@@ -24,6 +24,8 @@ echo Se va a limpiar, sin preguntar: temporales, cache de Windows Update, Window
 echo volcados y logs de errores, caches de apps, Visor de Eventos,
 echo Microsoft Store, DNS y componentes viejos de Windows (DISM).
 echo Antes te pregunta por tres cosas que conviene decidir vos.
+rem Modo app: las tres respuestas ya vienen en CLEAN_BIN, CLEAN_GPU y CLEAN_RP.
+if defined XUCA_AUTO goto preguntas_fin
 
 echo.
 echo   Papelera de reciclaje:
@@ -49,13 +51,14 @@ echo   A favor: libera varios GB del disco.
 echo   En contra: si algo sale mal, ya no podes volver a como estaba Windows antes.
 choice /c SN /n /m "- Desea borrar los puntos de restauracion? [S] Si  [N] No: "
 if errorlevel 2 (set "CLEAN_RP=0") else (set "CLEAN_RP=1")
+:preguntas_fin
 echo.
 
 set "XUCA_ARCH=%~f0"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $s=[IO.File]::ReadAllText($env:XUCA_ARCH); Invoke-Expression $s.Substring($s.IndexOf('#PS_'+'START')) } catch { Write-Host ('Error en la limpieza: ' + $_.Exception.Message) -ForegroundColor Red }"
 
 echo.
-pause
+if not defined XUCA_AUTO pause
 exit /b
 
 #PS_START

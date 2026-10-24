@@ -1431,7 +1431,7 @@ $dnsCand = [ordered]@{
 
 # ---------- Afinidad de CPU (opcion afi) ----------
 # Catalogos predeterminados (proceso=Nombre; varios procesos del mismo juego van con |). La app tambien los lee de aca.
-$afiJuegosCat = 'marvel-win64-shipping=Marvel Rivals; fortniteclient-win64-shipping=Fortnite; cs2=Counter-Strike 2; valorant-win64-shipping=Valorant; cod=Call of Duty / Warzone; r5apex|r5apex_dx12=Apex Legends; overwatch=Overwatch 2; rainbowsix=Rainbow Six Siege; tslgame=PUBG; league of legends=League of Legends; rocketleague=Rocket League; bf6=Battlefield 6; javaw=Minecraft Java (Lunar, Feather); minecraft.windows=Minecraft Bedrock; arkascended=ARK Survival Ascended; shootergame=ARK Survival Evolved; spider-man=Spider-Man Remastered; milesmorales=Spider-Man Miles Morales; spider-man2=Spider-Man 2; gta5|gta5_enhanced=GTA V; robloxplayerbeta=Roblox; cyberpunk2077=Cyberpunk 2077; rdr2=Red Dead Redemption 2; eldenring=Elden Ring'
+$afiJuegosCat = 'marvel-win64-shipping=Marvel Rivals; fortniteclient-win64-shipping=Fortnite; cs2=Counter-Strike 2; valorant-win64-shipping=Valorant; cod=Call of Duty HQ (Warzone, BO6, BO7, MW3); modernwarfare=CoD Modern Warfare 2019 / Warzone viejo; blackopscoldwar=CoD Black Ops Cold War; blackops4=CoD Black Ops 4; blackops3=CoD Black Ops 3; t6mp|t6zm|t6sp=CoD Black Ops 2; blackops|blackopsmp=CoD Black Ops 1; codwaw|codwawmp=CoD World at War; r5apex|r5apex_dx12=Apex Legends; overwatch=Overwatch 2; rainbowsix=Rainbow Six Siege; tslgame=PUBG; deltaforceclient-win64-shipping=Delta Force; discovery=The Finals; pioneergame=ARC Raiders; league of legends=League of Legends; dota2=Dota 2; project8=Deadlock; rocketleague=Rocket League; bf6=Battlefield 6; hytaleclient=Hytale; javaw=Minecraft Java (Lunar, Feather); minecraft.windows=Minecraft Bedrock; robloxplayerbeta=Roblox; sparkingzero-win64-shipping=Dragon Ball Sparking! Zero; streetfighter6=Street Fighter 6; fc26=EA Sports FC 26; arkascended=ARK Survival Ascended; shootergame=ARK Survival Evolved; rustclient=Rust; escapefromtarkov=Escape from Tarkov; helldivers2=Helldivers 2; monsterhunterwilds=Monster Hunter Wilds; eldenring=Elden Ring; nightreign=Elden Ring Nightreign; b1-win64-shipping=Black Myth: Wukong; genshinimpact=Genshin Impact; starrail=Honkai: Star Rail; zenlesszonezero=Zenless Zone Zero; spider-man=Spider-Man Remastered; milesmorales=Spider-Man Miles Morales; spider-man2=Spider-Man 2; gta5|gta5_enhanced=GTA V; cyberpunk2077=Cyberpunk 2077; rdr2=Red Dead Redemption 2'
 $afiFondoCat = 'discord=Discord; spotify=Spotify; chrome=Google Chrome; msedge=Microsoft Edge; firefox=Firefox; opera=Opera / Opera GX; brave=Brave; steamwebhelper=Steam (tienda y ventanas); epicwebhelper=Epic Games (ventanas); onedrive=OneDrive; whatsapp=WhatsApp; telegram=Telegram; wallpaper32|wallpaper64=Wallpaper Engine'
 # Juegos que usan pocos hilos y dependen de la latencia: en los Ryzen con bloques chicos van a un solo bloque.
 $afiLivianos = @('javaw', 'minecraft.windows', 'valorant-win64-shipping', 'league of legends', 'rocketleague', 'robloxplayerbeta')
@@ -2335,6 +2335,17 @@ public static class SpiNative {
                 New-ItemProperty -LiteralPath $po -Name 'XucaPrioridad' -Value 1 -PropertyType DWord -Force | Out-Null
                 if ((Get-ItemProperty -LiteralPath $po -ErrorAction SilentlyContinue).CpuPriorityClass -eq 3) { $hizo++; Log 'OK' ('verificado: ' + $x + ' arranca con prioridad alta') }
                 else { Log 'FALLO' ('no se pudo dar prioridad alta a ' + $x); $code = 1 }
+            }
+            # Desde la app, la lista de juegos es la que manda: a los que sacaste de la lista se les quita la prioridad.
+            if ($env:PRIOSYNC -eq '1') {
+                foreach ($k in @(Get-ChildItem -LiteralPath $ifeo -ErrorAction SilentlyContinue | Where-Object { (Get-ItemProperty -LiteralPath ($_.PSPath + '\PerfOptions') -ErrorAction SilentlyContinue).XucaPrioridad -eq 1 })) {
+                    if ($exes -contains $k.PSChildName) { continue }
+                    Remove-Item -LiteralPath ($k.PSPath + '\PerfOptions') -Recurse -Force -ErrorAction SilentlyContinue
+                    $resto = Get-Item -LiteralPath $k.PSPath -ErrorAction SilentlyContinue
+                    if ($resto -and ($resto.SubKeyCount -eq 0) -and ($resto.ValueCount -eq 0)) { Remove-Item -LiteralPath $k.PSPath -Force -ErrorAction SilentlyContinue }
+                    if (Test-Path -LiteralPath ($k.PSPath + '\PerfOptions')) { Log 'FALLO' ('no se pudo quitar la prioridad de ' + $k.PSChildName); $code = 1 }
+                    else { $hizo++; Log 'OK' ('ya no esta en tu lista: ' + $k.PSChildName + ' vuelve a prioridad normal') }
+                }
             }
             if (($hizo -eq 0) -and ($code -eq 0)) { $code = 5 }
         }

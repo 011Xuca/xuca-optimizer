@@ -116,19 +116,20 @@ echo.
 if not defined XUCA_AUTO pause
 
 if %BUILD% EQU 0 goto ver_fin
-if %BUILD% GEQ 26200 goto ver_ya
+if %BUILD% GEQ 26300 goto ver_ya
 echo.
 echo.
 echo %C_TIT%=== VERSION DE WINDOWS ===%C_RST%
-if %BUILD% EQU 26100 goto ver_24h2
+if %BUILD% GEQ 26100 goto ver_24h2
 echo.
-echo   Tenes una version de Windows mas vieja que la 25H2 [build %BUILD%].
+echo   Tenes una version de Windows mas vieja que la 24H2 [build %BUILD%].
 echo   Se puede forzar la actualizacion a Windows 11 25H2 aunque tu PC no sea compatible.
 echo   - Actualiza todo Windows y conserva tus archivos y programas.
 echo   - Tarda cerca de una hora y reinicia varias veces. Hace backup antes.
 echo   - No es un camino oficial de Microsoft: puede fallar en PCs no compatibles.
 echo   - Piso que no se puede saltear: CPU de 64 bits con SSE4.2, 4 GB de RAM y 64 GB de disco.
 echo   - Necesitas el ISO oficial de Windows 11 25H2 de microsoft.com.
+echo   - Despues, la 26H2 te llega por Windows Update con un reinicio corto.
 echo.
 echo   Que hace: instala Windows 11 25H2 desde el ISO oficial aunque tu PC no cumpla los requisitos.
 echo   A favor: tenes la version nueva con sus mejoras y parches de seguridad.
@@ -148,29 +149,29 @@ goto ver_fin
 
 :ver_24h2
 echo.
-echo   Tenes Windows 11 24H2 [build %BUILD%]. La 25H2 es una actualizacion chica que no revisa el hardware de nuevo.
+echo   Tenes Windows 11 24H2 o 25H2 [build %BUILD%]. La 26H2 es una actualizacion chica que no revisa el hardware de nuevo.
 echo.
-echo   Que hace: le pide a Windows Update la version 25H2.
-echo   A favor: es una actualizacion chica, con un solo reinicio corto.
+echo   Que hace: le pide a Windows Update la version 26H2.
+echo   A favor: es una actualizacion chica, con un solo reinicio corto, y usa menos RAM.
 echo   En contra: ninguno importante; como toda actualizacion, conviene tener backup.
 set "QID=ver"
-set "Q=- Desea actualizar a Windows 11 25H2? (Por Windows Update, con reinicio corto)"
+set "Q=- Desea actualizar a Windows 11 26H2? (Por Windows Update, con reinicio corto)"
 call :askS
 if errorlevel 2 goto ver_fin
-call :opt_ini "Actualizar a Windows 11 25H2"
+call :opt_ini "Actualizar a Windows 11 26H2"
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "TargetReleaseVersion" REG_DWORD 1
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "ProductVersion" REG_SZ "Windows 11"
-call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "TargetReleaseVersionInfo" REG_SZ 25H2
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "TargetReleaseVersionInfo" REG_SZ 26H2
 UsoClient StartScan >nul 2>&1
 call :log "INFO" "UsoClient StartScan lanzado"
 start "" ms-settings:windowsupdate
 echo   Se abrio Windows Update: instala lo que aparezca y reinicia.
-echo   Si no te ofrece la 25H2, instala a mano el paquete KB5054156 desde el Catalogo de Microsoft Update.
-call :opt_fin "Windows 11 25H2 pedida a Windows Update"
+echo   Si todavia no te ofrece la 26H2, volve a buscar en unos dias: Microsoft la va liberando de a poco.
+call :opt_fin "Windows 11 26H2 pedida a Windows Update"
 goto ver_fin
 
 :ver_ya
-call :log "INFO" "la version de Windows ya es 25H2 o mas nueva - build %BUILD%"
+call :log "INFO" "la version de Windows ya es 26H2 o mas nueva - build %BUILD%"
 goto ver_fin
 
 :ver_cancel
