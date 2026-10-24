@@ -29,6 +29,16 @@ if ($faltan.Count -gt 0) {
     exit
 }
 
+# Los .bat necesitan saltos de linea de Windows (CRLF). Si vienen con los de Linux (LF),
+# cmd salta a etiquetas equivocadas: preguntas repetidas, "Fin" varias veces y PowerShell sin datos.
+$latin = [Text.Encoding]::GetEncoding(28591)
+foreach ($r in $Rutas.Values) {
+    try {
+        $txt = $latin.GetString([IO.File]::ReadAllBytes($r))
+        if ($txt -match '(^|[^\r])\n') { [IO.File]::WriteAllText($r, ($txt -replace '\r?\n', "`r`n"), $latin) }
+    } catch { }
+}
+
 # Opciones que te piden datos en la consola: van en la pagina Herramientas, no como casillas.
 $SoloScript = @('ver', 'ms_acc', 'al', 'cta')
 

@@ -1,5 +1,9 @@
 @echo off
 setlocal EnableExtensions
+set "XUCA_SELF=%~f0"
+rem Si el archivo quedo con saltos de linea de Linux (LF), cmd salta a etiquetas equivocadas: se corrige solo y se vuelve a abrir.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $f=$env:XUCA_SELF; $e=[Text.Encoding]::GetEncoding(28591); $t=$e.GetString([IO.File]::ReadAllBytes($f)); if ($t -match '(^|[^\r])\n') { [IO.File]::WriteAllText($f, ($t -replace '\r?\n', ([string][char]13 + [char]10)), $e); exit 9 }; exit 0 } catch { exit 0 }" >nul 2>&1
+if errorlevel 9 "%~f0" %*
 title Limpieza de cache (Xuca)
 color 0B
 
