@@ -235,6 +235,7 @@ $Chequeos = @{
     'Gaming|afi'    = { [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue) }
     'Gaming|pw'     = { $global:XPlan -eq '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' }
     'Gaming|cpu'    = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt')) }
+    'Gaming|ll'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446' 'EnabledState') -eq 2 }
     'Gaming|gm'     = { ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled') -eq 1) -and ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled') -eq 0) }
     'Gaming|xb'     = { -not (HasAppx 'Microsoft.XboxGamingOverlay') }
     'Gaming|notif'  = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0 }
@@ -296,6 +297,26 @@ try {
         $res[$e.Clave] = $est
         $Sync.Hecho = $Sync.Hecho + 1
     }
+    $Sync.Paso = 'Compatibilidad con tu Windows'
+    $i = @{ Build = 0; Ubr = 0; Display = ''; Edicion = ''; RamGB = 0; Hdd = $false; Recall = $false; BitLocker = $false; Winget = $false; AvOff = $false }
+    try { $i.Build = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'CurrentBuildNumber') } catch { }
+    try { $i.Ubr = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'UBR') } catch { }
+    $i.Display = [string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'DisplayVersion')
+    $i.Edicion = [string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'EditionID')
+    try { $i.RamGB = [int][math]::Round((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1GB) } catch { }
+    try {
+        $dk = Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1) -ErrorAction Stop | Get-Disk -ErrorAction Stop | Get-PhysicalDisk -ErrorAction Stop
+        $i.Hdd = ([string]$dk.MediaType -eq 'HDD')
+    } catch { }
+    if ($i.Build -ge 26100) { try { $i.Recall = [bool](Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction Stop) } catch { } }
+    $i.BitLocker = [bool](Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)
+    $i.Winget = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+    try {
+        $sv = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
+        $i.AvOff = (-not $sv) -or ($sv.Status -ne 'Running') -or ((Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled -eq $false)
+    } catch { }
+    $Sync.Info = $i
+    $Sync.Hecho = $Sync.Hecho + 1
     $Sync.Paso = 'Ultimos detalles'
     try { $Sync.Prio = @(Prio-Actuales) } catch { $Sync.Prio = @() }
     try { $Sync.TareaAfi = [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue) } catch { $Sync.TareaAfi = $false }
@@ -375,11 +396,11 @@ try {
       <DockPanel LastChildFill="False">
         <StackPanel DockPanel.Dock="Top">
           <TextBlock Text="Xuca OPtimizer" Foreground="White" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,14"/>
+          <Button x:Name="NavPerfiles" Style="{StaticResource Nav}" Content="Perfiles"/>
           <Button x:Name="NavDebloat" Style="{StaticResource Nav}" Content="Debloat y privacidad"/>
           <Button x:Name="NavGaming" Style="{StaticResource Nav}" Content="Optimizacion gaming"/>
           <Button x:Name="NavLimpieza" Style="{StaticResource Nav}" Content="Limpiar cache"/>
           <Button x:Name="NavHerr" Style="{StaticResource Nav}" Content="Herramientas"/>
-          <Button x:Name="NavRestaurar" Style="{StaticResource Nav}" Content="Restaurar todo"/>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom">
           <Button x:Name="BtnRefrescar" Style="{StaticResource Nav}" Content="Volver a leer los ajustes"/>
@@ -405,6 +426,7 @@ try {
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
           <Button x:Name="BtnTodo" Style="{StaticResource Accion}" Content="Marcar todo"/>
           <Button x:Name="BtnNada" Style="{StaticResource Accion}" Content="Desmarcar todo"/>
+          <Button x:Name="BtnRestablecer" Style="{StaticResource Accion}" Background="#7A3326" Content="Restablecer seleccionadas"/>
           <Button x:Name="BtnAplicar" Style="{StaticResource Accion}" Background="#3D6FD9" Content="Aplicar seleccionadas"/>
         </StackPanel>
         <TextBlock x:Name="Estado" Foreground="#9AA0A6" FontSize="12.5" VerticalAlignment="Center" TextWrapping="Wrap"/>
@@ -439,14 +461,30 @@ try {
 
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 $ui = @{}
-foreach ($n in 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavRestaurar', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'Scroll', 'BtnTodo', 'BtnNada', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle') { $ui[$n] = $win.FindName($n) }
+foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'Scroll', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle') { $ui[$n] = $win.FindName($n) }
 
 $bc = New-Object Windows.Media.BrushConverter
 function Pincel([string]$hex) { return $bc.ConvertFromString($hex) }
 
+# Los .bat y este archivo van sin acentos (para que cmd y PowerShell no los rompan segun la PC);
+# al mostrar el texto en la app se ponen las palabras con enie. La enie se arma con [char] para que el archivo siga en ASCII.
+$Enie = [string][char]0xF1
+$ConEnie = @(
+    @('\bcontrasenas\b', ('contrase' + $Enie + 'as')),
+    @('\bcontrasena\b', ('contrase' + $Enie + 'a')),
+    @('\bContrasena\b', ('Contrase' + $Enie + 'a')),
+    @('\bpestana\b', ('pesta' + $Enie + 'a')),
+    @('\banos\b', ('a' + $Enie + 'os'))
+)
+function Con-Enie([string]$t) {
+    if (-not $t) { return $t }
+    foreach ($par in $ConEnie) { $t = [regex]::Replace($t, $par[0], $par[1]) }
+    return $t
+}
+
 function Nuevo-Texto([string]$t, [double]$tam, [string]$color, [bool]$negrita) {
     $tb = New-Object Windows.Controls.TextBlock
-    $tb.Text = $t; $tb.FontSize = $tam; $tb.Foreground = (Pincel $color); $tb.TextWrapping = 'Wrap'
+    $tb.Text = (Con-Enie $t); $tb.FontSize = $tam; $tb.Foreground = (Pincel $color); $tb.TextWrapping = 'Wrap'
     if ($negrita) { $tb.FontWeight = 'SemiBold' }
     return $tb
 }
@@ -454,8 +492,8 @@ function Nuevo-Texto([string]$t, [double]$tam, [string]$color, [bool]$negrita) {
 function Agregar-Linea($tb, [string]$etiqueta, [string]$color, [string]$texto) {
     if (-not $texto) { return }
     if ($tb.Inlines.Count -gt 0) { $tb.Inlines.Add((New-Object Windows.Documents.LineBreak)) }
-    $r1 = New-Object Windows.Documents.Run($etiqueta); $r1.Foreground = (Pincel $color); $r1.FontWeight = 'SemiBold'
-    $r2 = New-Object Windows.Documents.Run($texto)
+    $r1 = New-Object Windows.Documents.Run((Con-Enie $etiqueta)); $r1.Foreground = (Pincel $color); $r1.FontWeight = 'SemiBold'
+    $r2 = New-Object Windows.Documents.Run((Con-Enie $texto))
     $tb.Inlines.Add($r1); $tb.Inlines.Add($r2)
 }
 
@@ -467,7 +505,7 @@ function Nueva-Caja {
 
 function Nuevo-Boton([string]$texto, [string]$color) {
     $b = New-Object Windows.Controls.Button
-    $b.Style = $win.FindResource('Accion'); $b.Content = $texto; $b.Margin = '0,10,8,0'
+    $b.Style = $win.FindResource('Accion'); $b.Content = (Con-Enie $texto); $b.Margin = '0,10,8,0'
     if ($color) { $b.Background = (Pincel $color) }
     return $b
 }
@@ -530,7 +568,7 @@ function Avisar([string]$titulo, [string]$mensaje) { Confirmar $titulo $mensaje 
 # Ventana con casillas para elegir juegos o programas, y un campo para agregar otros.
 # Devuelve la lista de procesos elegidos ('' si ninguno) o $null si cancelas.
 $script:Lst = $null
-function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaExtra) {
+function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaExtra, $defecto) {
     $w = Nuevo-Dialogo 700
     $w.SizeToContent = 'Manual'; $w.Height = 680
     $dock = New-Object Windows.Controls.DockPanel
@@ -556,10 +594,11 @@ function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaE
     $tx.Background = (Pincel '#0E1014'); $tx.Foreground = (Pincel '#FFFFFF'); $tx.BorderBrush = (Pincel '#3A404C'); $tx.CaretBrush = (Pincel '#FFFFFF')
     $filaAg.Children.Add($tx) | Out-Null
     $abajo.Children.Add($filaAg) | Out-Null
-    $bTodo = Nuevo-Boton 'Marcar todo'; $bNada = Nuevo-Boton 'Desmarcar todo'
+    $bTodo = Nuevo-Boton 'Marcar todo'; $bNada = Nuevo-Boton 'Desmarcar todo'; $bDef = Nuevo-Boton 'Lista por defecto'
+    $bDef.ToolTip = 'Vuelve a la lista de fabrica: todos los del catalogo marcados y sin los que agregaste vos.'
     $bc1 = Nuevo-Boton 'Cancelar'; $bc1.IsCancel = $true
     $bok = Nuevo-Boton 'Guardar' '#3D6FD9'
-    $abajo.Children.Add((Fila-Botones @($bTodo, $bNada) @($bc1, $bok))) | Out-Null
+    $abajo.Children.Add((Fila-Botones @($bTodo, $bNada, $bDef) @($bc1, $bok))) | Out-Null
     $dock.Children.Add($abajo) | Out-Null
 
     $grilla = New-Object Windows.Controls.Primitives.UniformGrid
@@ -572,13 +611,14 @@ function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaE
     $caja.Child = $sv
     $dock.Children.Add($caja) | Out-Null
 
-    $script:Lst = @{ Grilla = $grilla; Texto = $tx; Scroll = $sv; Casillas = (New-Object System.Collections.Generic.List[object]) }
+    $script:Lst = @{ Grilla = $grilla; Texto = $tx; Scroll = $sv; Casillas = (New-Object System.Collections.Generic.List[object]); Defecto = $defecto }
     foreach ($it in $items) { Lista-Agregar $it.Nombre $it.Procs ([bool]$it.Marcado) }
 
     $bAg.Add_Click({ Lista-AgregarTexto })
     $tx.Add_KeyDown({ if ($_.Key -eq 'Return') { Lista-AgregarTexto; $_.Handled = $true } })
     $bTodo.Add_Click({ foreach ($c in $script:Lst.Casillas) { $c.IsChecked = $true } })
     $bNada.Add_Click({ foreach ($c in $script:Lst.Casillas) { $c.IsChecked = $false } })
+    $bDef.Add_Click({ Lista-Defecto })
     $bok.Add_Click({ Lista-AgregarTexto; [Windows.Window]::GetWindow($this).DialogResult = $true })
     $w.Content.Child = $dock
     $ok = $w.ShowDialog()
@@ -607,6 +647,15 @@ function Lista-Agregar([string]$nombre, $procs, [bool]$marcado) {
     $script:Lst.Casillas.Add($cb)
 }
 
+# Vuelve a la lista de fabrica (se guarda recien cuando tocas Guardar)
+function Lista-Defecto {
+    if ((-not $script:Lst) -or (-not $script:Lst.Defecto)) { return }
+    $script:Lst.Grilla.Children.Clear()
+    $script:Lst.Casillas.Clear()
+    foreach ($it in $script:Lst.Defecto) { Lista-Agregar $it.Nombre $it.Procs $true }
+    $script:Lst.Scroll.ScrollToTop()
+}
+
 # Lo escrito en el campo se suma a la lista ya marcado (si ya estaba, solo se marca)
 function Lista-AgregarTexto {
     if (-not $script:Lst) { return }
@@ -620,22 +669,49 @@ function Lista-AgregarTexto {
     if ($nuevos.Count -gt 0) { $script:Lst.Scroll.ScrollToEnd() }
 }
 
-# Abren la lista compartida y la guardan. Devuelven $false si cancelaste.
-function Editar-Juegos {
+# Abren la lista compartida y la guardan al instante. Devuelven $false si cancelaste.
+# Con $aplicar, si la prioridad alta o la afinidad ya estan activas, se vuelven a aplicar solas con la lista nueva.
+function Editar-Juegos([bool]$aplicar) {
     $L = Leer-Listas
-    $r = Elegir-Lista 'Tus juegos' ('Esta lista la usan "Prioridad alta" y "Afinidad de CPU": lo que marques aca vale para las dos.' + "`n" + 'Vienen los juegos mas comunes. Si un juego no tiene antitrampas que lo bloquee, la afinidad se aplica a los 2 segundos de abrirlo.') (Items-De $AfiJuegosCat $L.juegos) 'Agregar otros juegos: escribi su proceso sin .exe (separados por comas) y toca Agregar. Lo ves con el juego abierto: Administrador de tareas, pestana Detalles.'
+    $r = Elegir-Lista 'Tus juegos' ('Esta lista la usan "Prioridad alta" y "Afinidad de CPU": lo que marques aca vale para las dos.' + "`n" + 'Al guardar, si alguna de las dos ya esta activa, se actualiza sola con la lista nueva.') (Items-De $AfiJuegosCat $L.juegos) 'Agregar otros juegos: escribi su proceso sin .exe (separados por comas) y toca Agregar. Lo ves con el juego abierto: Administrador de tareas, pestana Detalles.' (Items-De $AfiJuegosCat $null)
     if ($null -eq $r) { return $false }
     Guardar-Listas @(Normalizar-Procesos $r) $L.fondo
     Actualizar-Resumenes
+    if ($aplicar) { Aplicar-ListaActiva $true $true }
     return $true
 }
-function Editar-Fondo {
+function Editar-Fondo([bool]$aplicar) {
     $L = Leer-Listas
-    $r = Elegir-Lista 'Programas de fondo' ('Mientras jugas, estos programas se van a otros nucleos. Cuando cerras el juego vuelven a usar todos.' + "`n" + 'OBS, Visual Studio, Unreal, Godot, el sistema y los antitrampas nunca se tocan aunque los escribas.') (Items-De $AfiFondoCat $L.fondo) 'Agregar otros programas (separados por comas). No pongas launchers (Steam, Epic, Battle.net): los juegos que abren heredarian esos nucleos.'
+    $r = Elegir-Lista 'Programas de fondo' ('Mientras jugas, estos programas se van a otros nucleos. Cuando cerras el juego vuelven a usar todos.' + "`n" + 'OBS, Visual Studio, Unreal, Godot, el sistema y los antitrampas nunca se tocan aunque los escribas.') (Items-De $AfiFondoCat $L.fondo) 'Agregar otros programas (separados por comas). No pongas launchers (Steam, Epic, Battle.net): los juegos que abren heredarian esos nucleos.' (Items-De $AfiFondoCat $null)
     if ($null -eq $r) { return $false }
     Guardar-Listas $L.juegos @(Normalizar-Procesos $r)
     Actualizar-Resumenes
+    if ($aplicar) { Aplicar-ListaActiva $false $true }
     return $true
+}
+
+# Vuelve a aplicar la prioridad alta y/o la afinidad con la lista guardada, solo si ya estaban activas.
+# Si dejaste la lista de juegos vacia, se quitan (la lista manda).
+function Aplicar-ListaActiva([bool]$pri, [bool]$afi) {
+    $pri = $pri -and (@(Prio-Actuales).Count -gt 0)
+    $afi = $afi -and [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue)
+    if (-not ($pri -or $afi)) { $ui.Estado.Text = 'Lista guardada. Se usa cuando apliques "Prioridad alta" o "Afinidad".'; return }
+    $L = Leer-Listas
+    $jug = @(Procesos-De $AfiJuegosCat $L.juegos)
+    $fon = @(Procesos-De $AfiFondoCat $L.fondo)
+    $v = @{}; $n = 0
+    if ($pri) {
+        $n++
+        if ($jug.Count -gt 0) { $v['XR_pri'] = 'S'; $v['PRIOJ'] = ($jug -join ','); $v['PRIOSYNC'] = '1' } else { $v['XR_pri'] = 'R' }
+    }
+    if ($afi) {
+        $n++
+        if ($jug.Count -gt 0) {
+            $v['XR_afi'] = 'S'; $v['AFIAPP'] = '1'; $v['AFIJ'] = ($jug -join ',')
+            if ($fon.Count -gt 0) { $v['AFIF'] = ($fon -join ',') }
+        } else { $v['XR_afi'] = 'R' }
+    }
+    Correr @([pscustomobject]@{ Nombre = 'Tu lista de juegos'; Ruta = $Rutas.Gaming; Vars = $v; Cambios = $n; Visible = $false; Tipo = 'lista' }) $false 'Aplicando tu lista nueva'
 }
 
 # ------------------------------------------------------------
@@ -666,11 +742,37 @@ $script:PrioTexto = $null
 $script:AfiTexto = $null
 $script:TxtJuegos = New-Object System.Collections.Generic.List[object]
 $script:TxtFondo = $null
-$script:RpCard = $null
-$script:RpNota = $null
-$script:RpoAplicado = $false
+$script:Tarjetas = @{}      # 'Pagina|id' -> @{ Card; Cb; Nota }
+$script:NoDisp = @{}        # 'Pagina|id' -> motivo por el que no es compatible con tu Windows
+$script:Estados = @{}       # 'Pagina|id' -> $true (ya aplicado), $false o $null
+$Aviso = [string][char]0x26A0
+
+# Opciones que se sabe que en algunas PCs pueden dar problemas: llevan el icono de advertencia
+$Advertencias = @{
+    'Debloat|rpo'  = 'Ya no vas a poder volver atras con un punto de restauracion.'
+    'Debloat|av'   = 'Si la Proteccion contra alteraciones sigue encendida, falla. Smart App Control no vuelve sin reinstalar Windows. Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
+    'Debloat|bl'   = 'Descifrar el disco puede tardar bastante en segundo plano. Si cambia algo, borra Riot Vanguard.'
+    'Debloat|db'   = 'No tiene restablecimiento las apps borradas se reinstalan a mano desde la Store.'
+    'Debloat|edge' = 'Si no tenes otro navegador, te quedas sin uno. Una actualizacion grande de Windows puede traerlo de vuelta.'
+    'Debloat|hst'  = 'Defender a veces lo marca como amenaza porque toca el archivo hosts.'
+    'Debloat|ter'  = 'Puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox en PC.'
+    'Gaming|afi'   = 'Algunos antitrampas no dejan cambiar la afinidad: en esos juegos se saltea.'
+    'Gaming|pw'    = 'Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos.'
+    'Gaming|cpu'   = 'Mas consumo y calor; con undervolt u overclock puede volverse inestable.'
+    'Gaming|gf'    = 'En algunas PCs viejas puede dar problemas.'
+    'Gaming|ll'    = 'Es una funcion oculta que Microsoft todavia esta probando: si notas algo raro, restablecelo.'
+    'Gaming|msi'   = 'Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro, o con R en el script).'
+    'Gaming|tr'    = 'Mas consumo y calor; con undervolt u overclock puede colgarse en juegos.'
+    'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos.'
+    'Gaming|nic'   = 'En placas madre de baja calidad puede cortar el internet.'
+    'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
+    'Gaming|ex'    = 'Valorant puede crashear al abrir o dar el error VAN9002 (Riot pide dejar DEP y ASLR como vienen). Si cambia algo, borra Riot Vanguard.'
+    'Gaming|vbs'   = 'Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.'
+}
 
 function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
+    $clave = $pagina + '|' + $it.Id
+    $adv = $Advertencias[$clave]
     $card = Nueva-Caja
     $sp = New-Object Windows.Controls.StackPanel
     $head = New-Object Windows.Controls.DockPanel
@@ -678,7 +780,15 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     [Windows.Controls.DockPanel]::SetDock($pb, 'Right')
     $head.Children.Add($pb) | Out-Null
     $cb = New-Object Windows.Controls.CheckBox
-    $cb.Content = (Nuevo-Texto $it.Titulo 15 '#FFFFFF' $true); $cb.VerticalContentAlignment = 'Center'; $cb.IsChecked = $marcada
+    $tit = New-Object Windows.Controls.StackPanel
+    $tit.Orientation = 'Horizontal'
+    $tit.Children.Add((Nuevo-Texto $it.Titulo 15 '#FFFFFF' $true)) | Out-Null
+    if ($adv) {
+        $ic = Nuevo-Texto $Aviso 15 '#E5B567' $true
+        $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'; $ic.ToolTip = $adv
+        $tit.Children.Add($ic) | Out-Null
+    }
+    $cb.Content = $tit; $cb.VerticalContentAlignment = 'Center'; $cb.IsChecked = $marcada
     $cb.Tag = $it.Id
     $cb.Add_Click({ Actualizar-Contador })
     $head.Children.Add($cb) | Out-Null
@@ -688,15 +798,14 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     Agregar-Linea $d 'Que hace: ' '#8AB4F8' $it.Hace
     Agregar-Linea $d 'A favor: ' '#81C995' $it.Favor
     Agregar-Linea $d 'En contra: ' '#F28B82' $it.Contra
+    if ($adv) { Agregar-Linea $d ($Aviso + ' Puede dar problemas: ') '#E5B567' $adv }
     $sp.Children.Add($d) | Out-Null
-    if (-not $it.ConR) { $sp.Children.Add((Nota 'No tiene R: lo que haga no se deshace desde "Restaurar todo".' '#E5B567' '24,6,0,0')) | Out-Null }
+    if (-not $it.ConR) { $sp.Children.Add((Nota 'No tiene restablecimiento: lo que haga no se puede volver atras desde la app.' '#E5B567' '24,6,0,0')) | Out-Null }
 
-    if ($pagina -eq 'Debloat' -and $it.Id -eq 'rp') {
-        $script:RpCard = $card
-        $script:RpNota = Nota '' '#E5B567' '24,6,0,0'
-        $script:RpNota.Visibility = 'Collapsed'
-        $sp.Children.Add($script:RpNota) | Out-Null
-    }
+    # Aviso de "no disponible" (version de Windows, edicion, hardware o el punto de restauracion)
+    $nb = Nota '' '#E5B567' '24,6,0,0'
+    $nb.Visibility = 'Collapsed'
+    $sp.Children.Add($nb) | Out-Null
 
     if ($pagina -eq 'Gaming' -and $it.Id -in 'pri', 'afi') {
         $txtNota = $(if ($it.Id -eq 'pri') { 'Usa tu lista de juegos, la misma que la afinidad de CPU.' } else { 'Usa tu lista de juegos, la misma que la prioridad alta. Tu procesador se detecta solo.' })
@@ -711,11 +820,11 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
         $fila = New-Object Windows.Controls.WrapPanel
         $fila.Margin = '24,0,0,0'
         $bJ = Nuevo-Boton 'Editar mis juegos'
-        $bJ.Add_Click({ Editar-Juegos | Out-Null })
+        $bJ.Add_Click({ Editar-Juegos $true | Out-Null })
         $fila.Children.Add($bJ) | Out-Null
         if ($it.Id -eq 'afi') {
             $bF = Nuevo-Boton 'Editar programas de fondo'
-            $bF.Add_Click({ Editar-Fondo | Out-Null })
+            $bF.Add_Click({ Editar-Fondo $true | Out-Null })
             $fila.Children.Add($bF) | Out-Null
         }
         $sp.Children.Add($fila) | Out-Null
@@ -726,7 +835,12 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
 
     $card.Child = $sp
     $casillas[$it.Id] = $cb
-    if ($pagina) { $script:Pills[$pagina + '|' + $it.Id] = $pb }
+    if ($pagina) {
+        $script:Pills[$clave] = $pb
+        $script:Tarjetas[$clave] = @{ Card = $card; Cb = $cb; Nota = $nb }
+        [Windows.Controls.ToolTipService]::SetShowOnDisabled($cb, $true)
+        [Windows.Controls.ToolTipService]::SetShowOnDisabled($card, $true)
+    }
     return $card
 }
 
@@ -758,19 +872,63 @@ foreach ($k in 'Debloat', 'Gaming') {
     $Paginas[$k] = $sp
 }
 
-# "Crear un punto de restauracion" no se puede si marcaste (o ya tenes) los puntos apagados para siempre
-function Actualizar-Rp {
-    $rp = $Casillas.Debloat['rp']; $rpo = $Casillas.Debloat['rpo']
-    if ((-not $rp) -or (-not $rpo) -or (-not $script:RpCard)) { return }
-    $marcado = ($rpo.IsChecked -eq $true)
-    $off = $marcado -or $script:RpoAplicado
-    $rp.IsEnabled = -not $off
-    if ($off) { $rp.IsChecked = $false }
-    $script:RpCard.Opacity = $(if ($off) { 0.55 } else { 1 })
-    if ($off) {
-        $script:RpNota.Text = $(if ($marcado) { 'Marcaste apagar los puntos de restauracion para siempre: no se puede crear uno.' } else { 'Tenes los puntos de restauracion apagados: no se puede crear uno. Se vuelven a encender desde "Restaurar todo".' })
-        $script:RpNota.Visibility = 'Visible'
-    } else { $script:RpNota.Visibility = 'Collapsed' }
+# Que opciones no se pueden usar en esta PC. $i = datos de la PC que junta la lectura de fondo.
+function Calcular-NoDisp($i) {
+    $r = @{}
+    if (-not $i) { return $r }
+    $b = [int]$i.Build
+    $tuyo = $(if ($b -ge 22000) { 'Windows 11' } else { 'Windows 10' })
+    if ($i.Display) { $tuyo += (' ' + $i.Display) }
+    $tuyo += (' (build ' + $b + ')')
+    $nv = 'Tu Windows no lo soporta: necesita '
+    if ($b -lt 26100) { $r['Debloat|rc'] = ($nv + 'Windows 11 24H2 o mas nuevo en una PC Copilot+. Tenes ' + $tuyo + '.') }
+    elseif (-not $i.Recall) { $r['Debloat|rc'] = 'Tu PC no tiene Recall: solo viene en las PCs Copilot+ (con NPU).' }
+    if ($b -lt 22621) { $r['Debloat|et'] = ($nv + 'Windows 11 22H2 o mas nuevo. Tenes ' + $tuyo + '.') }
+    if ($b -lt 26100) { $r['Debloat|ia'] = ($nv + 'Windows 11 24H2 o mas nuevo. Tenes ' + $tuyo + '.') }
+    if ($b -lt 22000) { $r['Debloat|wg'] = ($nv + 'Windows 11 (los Widgets no existen en Windows 10). Tenes ' + $tuyo + '.') }
+    if (-not $i.BitLocker) { $r['Debloat|bl'] = 'Tu edicion de Windows no tiene BitLocker: viene en Pro, Enterprise y Education.' }
+    if (-not $i.Winget) { $r['Debloat|chr'] = 'Falta winget en tu PC: instala o actualiza el "Instalador de aplicaciones" desde la Microsoft Store.' }
+    if ($b -lt 22000) { $r['Gaming|tr'] = ($nv + 'Windows 11 (el temporizador global fijo no existe en Windows 10). Tenes ' + $tuyo + '.') }
+    if (($b -lt 26100) -or (($b -lt 26300) -and ([int]$i.Ubr -lt 8655))) { $r['Gaming|ll'] = ('Tu Windows todavia no trae Baja latencia: necesita Windows 11 24H2 o 25H2 con la actualizacion de junio de 2026 (build .8655 o mas nueva). Tenes la build ' + $b + '.' + $i.Ubr + ': actualiza Windows.') }
+    if ($b -lt 19041) { $r['Gaming|gf'] = ($nv + 'Windows 10 2004 o mas nuevo. Tenes ' + $tuyo + '.') }
+    if (([int]$i.RamGB -lt 16) -or $i.Hdd) {
+        $q = @()
+        if ([int]$i.RamGB -lt 16) { $q += ('tenes ' + $i.RamGB + ' GB de RAM') }
+        if ($i.Hdd) { $q += 'Windows esta en un disco HDD' }
+        $r['Gaming|sm'] = ('Tu PC no cumple los requisitos: necesita 16 GB de RAM o mas y Windows en un SSD o NVMe (' + ($q -join ' y ') + ').')
+    }
+    if ($i.AvOff) { $r['Gaming|avl'] = 'No hace falta: tu antivirus ya esta apagado.' }
+    return $r
+}
+
+# Deshabilita (gris, sin poder marcar) lo que no es compatible, y "Crear un punto de restauracion"
+# si marcaste (o ya tenes) los puntos apagados para siempre.
+function Actualizar-Bloqueos {
+    foreach ($k in @($script:Tarjetas.Keys)) {
+        $t = $script:Tarjetas[$k]
+        $motivo = $null
+        $noComp = $script:NoDisp.ContainsKey($k)
+        if ($noComp) { $motivo = $script:NoDisp[$k] }
+        elseif ($k -eq 'Debloat|rp') {
+            $rpo = $Casillas.Debloat['rpo']
+            if ($rpo -and ($rpo.IsChecked -eq $true)) { $motivo = 'Marcaste apagar los puntos de restauracion para siempre: no se puede crear uno.' }
+            elseif ($script:Estados['Debloat|rpo'] -eq $true) { $motivo = 'Tenes los puntos de restauracion apagados: no se puede crear uno. Para volver a usarlos, marca "Apagar los puntos de restauracion para siempre" y toca Restablecer seleccionadas.' }
+        }
+        if ($motivo) {
+            # Gris y sin poder marcar; al pasar el mouse por encima dice por que
+            $t.Cb.IsChecked = $false; $t.Cb.IsEnabled = $false
+            $t.Card.Opacity = $(if ($noComp) { 0.4 } else { 0.55 })
+            $t.Card.Background = (Pincel $(if ($noComp) { '#181A1F' } else { '#1C2027' }))
+            $t.Nota.Text = $motivo; $t.Nota.Foreground = (Pincel $(if ($noComp) { '#9AA0A6' } else { '#E5B567' })); $t.Nota.Visibility = 'Visible'
+            $t.Card.ToolTip = $motivo; $t.Cb.ToolTip = $motivo
+        } else {
+            $t.Cb.IsEnabled = $true
+            $t.Card.Opacity = 1
+            $t.Card.Background = (Pincel '#1C2027')
+            $t.Nota.Visibility = 'Collapsed'
+            $t.Card.ToolTip = $null; $t.Cb.ToolTip = $null
+        }
+    }
 }
 
 # --- Pagina de limpieza ---
@@ -849,34 +1007,176 @@ function Actualizar-Version {
     }
 }
 
-# --- Pagina de restaurar todo ---
-$spR = New-Object Windows.Controls.StackPanel
-$avisoR = Nueva-Caja
-$tR = New-Object Windows.Controls.TextBlock
-$tR.TextWrapping = 'Wrap'; $tR.FontSize = 13; $tR.Foreground = (Pincel '#C3C8D0'); $tR.LineHeight = 21
-Agregar-Linea $tR 'Que hace: ' '#8AB4F8' 'aprieta R en todas las opciones que tienen R, en los dos scripts: todo vuelve al valor que trae Windows.'
-Agregar-Linea $tR 'Tene en cuenta: ' '#E5B567' 'las apps borradas no vuelven (se reinstalan desde la Store). Edge y los Widgets se reinstalan. El antivirus vuelve, pero la Proteccion contra alteraciones la encendes vos y Smart App Control no vuelve sin reinstalar Windows. BitLocker solo deja de estar bloqueado, no vuelve a cifrar el disco. Lo de Herramientas se deshace desde su pagina.'
-Agregar-Linea $tR 'Despues: ' '#81C995' 'reinicia la PC para que todo quede aplicado.'
-$avisoR.Child = $tR
-$spR.Children.Add($avisoR) | Out-Null
-$Casillas.Restaurar = @{}
-foreach ($par in @(@('Gaming', 'Optimizacion gaming'), @('Debloat', 'Debloat y privacidad'))) {
-    $cbR = New-Object Windows.Controls.CheckBox
-    $cbR.Content = (Nuevo-Texto ('Restaurar ' + $par[1] + '  (' + @($Opciones[$par[0]] | Where-Object { $_.ConR }).Count + ' opciones)') 15 '#FFFFFF' $true)
-    $cbR.IsChecked = $true; $cbR.Margin = '4,8,0,4'; $cbR.Tag = $par[0]
-    $Casillas.Restaurar[$par[0]] = $cbR
-    $spR.Children.Add($cbR) | Out-Null
+
+# --- Pagina de perfiles ---
+$Perfiles = @(
+    [pscustomobject]@{
+        Id = 'seguro'; Nombre = 'Seguro (Debloat basico)'; Color = '#81C995'
+        Hace = 'saca publicidad, sugerencias, Bing, telemetria, rastreo y Widgets, y apaga la IA de Windows; suma ajustes comodos para jugar que no tienen riesgo (sin carteles de Teclas especiales, sin bajar el volumen en llamadas, Modo Juego, menus sin retraso).'
+        Ideal = 'cualquier PC, incluso la de alguien que no sabe de esto.'
+        NoToca = 'la seguridad, las apps instaladas ni el procesador.'
+        Adv = ''
+        D = @('rp', 'rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia')
+        G = @('tk', 'du', 'gm', 'ext', 'md')
+    },
+    [pscustomobject]@{
+        Id = 'comp'; Nombre = 'Competitivo'; Color = '#8AB4F8'
+        Hace = 'lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro del procesador, temporizador al minimo, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida.'
+        Ideal = 'jugar competitivo (Valorant, CS2, Fortnite, Warzone) con la PC protegida.'
+        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps.'
+        Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse.'
+        D = @('rp')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'dns', 'avl', 'md', 'v4')
+    },
+    [pscustomobject]@{
+        Id = 'compopt'; Nombre = 'Competitivo + Optimizado'; Color = '#C58AF9'
+        Hace = 'todo lo de Competitivo y lo de Seguro, y ademas borra las apps basura, apaga la hibernacion, los efectos visuales, los sonidos, servicios que casi nadie usa y el Storage Sense, y Windows Update deja de instalar drivers.'
+        Ideal = 'la PC de juego de todos los dias: el mayor rendimiento con la PC todavia protegida.'
+        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS.'
+        Adv = 'borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
+        D = @('rp', 'rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
+    },
+    [pscustomobject]@{
+        Id = 'full'; Nombre = 'Full Optimizado'; Color = '#F28B82'
+        Hace = 'Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga la seguridad (antivirus, BitLocker, integridad de memoria y VBS), activa el modo MSI, bloquea la telemetria en hosts y apaga Teredo y Windows Search.'
+        Ideal = 'una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.'
+        NoToca = 'los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Tampoco la proteccion contra vulnerabilidades (DEP y ASLR), porque puede hacer crashear Valorant y otros juegos. Crea un punto de restauracion antes de empezar.'
+        Adv = 'la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales.'
+        D = @('rp', 'rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db', 'av', 'bl', 'hst', 'ter')
+        G = @('tk', 'du', 'gm', 'ext', 'md', 'mm', 'll', 'xb', 'gf', 'pca', 'ram', 'sm', 'stg', 'msi', 'mi', 'vbs', 'wsr')
+    },
+    [pscustomobject]@{
+        Id = 'fullcomp'; Nombre = 'Full Optimizado + Competitivo'; Color = '#FF6B6B'
+        Hace = 'todo, todo: cada opcion de Debloat y de Gaming. Es Full Optimizado mas todos los ajustes competitivos (mouse, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro, temporizador al minimo, red, DNS y notificaciones).'
+        Ideal = 'una PC que es solo para jugar, donde queres el maximo absoluto y sabes lo que haces.'
+        NoToca = 'Edge ni Chrome, ni la proteccion contra vulnerabilidades (DEP y ASLR), porque puede hacer crashear Valorant y otros juegos. No apaga los puntos de restauracion: crea uno antes de empezar.'
+        Adv = 'suma los riesgos de Full Optimizado y de Competitivo: sin antivirus, Vanguard se borra (lo reinstalas abriendo el cliente de Riot), y con undervolt u overclock la PC puede colgarse por el plan de energia y el temporizador.'
+        D = @('rp', 'av', 'bl', 'hib', 'rc', 'sch', 'fx', 'et', 'apps', 'tel', 'wg', 'do', 'wud', 'wup', 'ad', 'sv', 'pv', 'ter', 'tp', 'hst', 'eb', 'su', 'ia', 'db')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'dns', 'mi', 'vbs', 'wsr', 'stg', 'ext', 'md', 'v4')
+    }
+)
+
+$spP = New-Object Windows.Controls.StackPanel
+$script:InfoPC = Nuevo-Texto 'Tu PC: leyendo...' 13 '#9AA0A6' $false
+$script:InfoPC.Margin = '2,0,0,12'
+$spP.Children.Add($script:InfoPC) | Out-Null
+$script:PerfilTxt = @{}
+foreach ($pf in $Perfiles) {
+    $card = Nueva-Caja
+    $card.BorderBrush = (Pincel $pf.Color); $card.BorderThickness = '4,0,0,0'
+    $sp = New-Object Windows.Controls.StackPanel
+    $tit = New-Object Windows.Controls.StackPanel
+    $tit.Orientation = 'Horizontal'
+    $tit.Children.Add((Nuevo-Texto $pf.Nombre 17 '#FFFFFF' $true)) | Out-Null
+    if ($pf.Id -like 'full*') {
+        $porque = ('Tiene la alerta porque apaga el antivirus (Defender, SmartScreen y Smart App Control): la PC queda sin proteccion contra virus.' + "`n" + 'Tambien apaga BitLocker, la integridad de memoria y VBS, y desinstala Riot Vanguard (lo reinstalas abriendo el cliente de Riot).' + "`n" + 'La proteccion contra vulnerabilidades (DEP y ASLR) no se toca, para que Valorant y otros juegos no crasheen.')
+        $ic = Nuevo-Texto $Aviso 17 '#E5B567' $true
+        $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'
+        $tit.Children.Add($ic) | Out-Null
+        $card.ToolTip = $porque
+        [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
+    }
+    $sp.Children.Add($tit) | Out-Null
+    $d = New-Object Windows.Controls.TextBlock
+    $d.TextWrapping = 'Wrap'; $d.FontSize = 12.5; $d.Foreground = (Pincel '#C3C8D0'); $d.Margin = '0,6,0,0'; $d.LineHeight = 19
+    Agregar-Linea $d 'Que hace: ' '#8AB4F8' $pf.Hace
+    Agregar-Linea $d 'Ideal para: ' '#81C995' $pf.Ideal
+    Agregar-Linea $d 'No toca: ' '#9AA0A6' $pf.NoToca
+    if ($pf.Adv) { Agregar-Linea $d ($Aviso + ' Ojo: ') '#E5B567' $pf.Adv }
+    $sp.Children.Add($d) | Out-Null
+    $cuenta = Nota '' '#7D8590' '0,8,0,0'
+    $script:PerfilTxt[$pf.Id] = $cuenta
+    $sp.Children.Add($cuenta) | Out-Null
+    $fila = New-Object Windows.Controls.WrapPanel
+    $bA = Nuevo-Boton 'Aplicar perfil' $(if ($pf.Id -like 'full*') { '#B3412F' } else { '#3D6FD9' })
+    $bA.Tag = $pf.Id
+    $bA.Add_Click({ Aplicar-Perfil ([string]$this.Tag) })
+    $bR = Nuevo-Boton 'Marcar y revisar'
+    $bR.Tag = $pf.Id
+    $bR.Add_Click({
+        if ((Marcar-Perfil ([string]$this.Tag)) -gt 0) { Ir-A $(if ((Elegidas 'Gaming').Count -gt (Elegidas 'Debloat').Count) { 'Gaming' } else { 'Debloat' }) }
+    })
+    $fila.Children.Add($bA) | Out-Null
+    $fila.Children.Add($bR) | Out-Null
+    $sp.Children.Add($fila) | Out-Null
+    $card.Child = $sp
+    $spP.Children.Add($card) | Out-Null
 }
-$Paginas.Restaurar = $spR
+$Paginas.Perfiles = $spP
+
+function Perfil-De([string]$id) { return @($Perfiles | Where-Object { $_.Id -eq $id })[0] }
+
+# Cuenta que va a marcar cada perfil: lo que falta aplicar, lo que ya tenes y lo que no es compatible
+function Actualizar-Perfiles {
+    foreach ($pf in $Perfiles) {
+        $falta = 0; $ya = 0; $nd = 0
+        foreach ($par in @(@('Debloat', $pf.D), @('Gaming', $pf.G))) {
+            foreach ($id in $par[1]) {
+                $k = $par[0] + '|' + $id
+                if (-not $script:Tarjetas.ContainsKey($k)) { continue }
+                if ($script:NoDisp.ContainsKey($k)) { $nd++ }
+                elseif ($script:Estados[$k] -eq $true) { $ya++ }
+                else { $falta++ }
+            }
+        }
+        $t = ([string]$falta + ' por aplicar')
+        if ($ya -gt 0) { $t += (', ' + $ya + ' ya aplicadas') }
+        if ($nd -gt 0) { $t += (', ' + $nd + ' no compatibles con tu PC') }
+        $script:PerfilTxt[$pf.Id].Text = ('Opciones: ' + $t + '.')
+    }
+}
+
+function Actualizar-InfoPC($i) {
+    if (-not $i) { $script:InfoPC.Text = 'Tu PC: no se pudo leer.'; return }
+    $nombre = $(if ([int]$i.Build -ge 22000) { 'Windows 11' } else { 'Windows 10' })
+    $ed = switch -Regex ([string]$i.Edicion) { '^Core' { 'Home' } '^Professional' { 'Pro' } '^Enterprise' { 'Enterprise' } '^Education' { 'Education' } default { [string]$i.Edicion } }
+    $t = ('Tu PC: ' + $nombre + ' ' + $ed + ' ' + $i.Display + ' (build ' + $i.Build + ')')
+    if ([int]$i.RamGB -gt 0) { $t += ('  -  ' + $i.RamGB + ' GB de RAM') }
+    $t += $(if ($i.Hdd) { '  -  Windows en disco HDD' } else { '' })
+    if ($script:NoDisp.Count -gt 0) { $t += ('  -  ' + $script:NoDisp.Count + ' opciones no son compatibles: quedan en gris y se saltean solas') }
+    $script:InfoPC.Text = $t
+}
+
+# Marca solo las opciones del perfil (desmarca el resto). Saltea lo no compatible y lo que ya esta aplicado.
+# Devuelve cuantas marco.
+function Marcar-Perfil([string]$id) {
+    $pf = Perfil-De $id
+    foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } }
+    $n = 0
+    foreach ($par in @(@('Debloat', $pf.D), @('Gaming', $pf.G))) {
+        foreach ($oid in $par[1]) {
+            $k = $par[0] + '|' + $oid
+            $cb = $Casillas[$par[0]][$oid]
+            if (-not $cb) { continue }
+            if ($script:NoDisp.ContainsKey($k) -or ($script:Estados[$k] -eq $true)) { continue }
+            $cb.IsChecked = $true; $n++
+        }
+    }
+    Actualizar-Bloqueos
+    $n = (Elegidas 'Debloat').Count + (Elegidas 'Gaming').Count
+    Actualizar-Contador
+    if ($n -eq 0) { Avisar $pf.Nombre 'Ya tenes todo este perfil aplicado (o lo que falta no es compatible con tu PC).' }
+    return $n
+}
+
+function Aplicar-Perfil([string]$id) {
+    $pf = Perfil-De $id
+    if ($id -like 'full*') {
+        if (-not (Confirmar ($Aviso + ' ' + $pf.Nombre) ('Este perfil apaga el antivirus, BitLocker, la integridad de memoria y VBS. La PC queda sin proteccion contra virus.' + "`n`n" + 'Seguir?') 'Si, aplicar' '#B3412F' 'Cancelar')) { return }
+    }
+    if ((Marcar-Perfil $id) -eq 0) { return }
+    Aplicar-Seleccion
+}
 
 $Textos = @{
+    Perfiles  = @('Perfiles', 'Elegi un perfil armado: aplicalo con un toque, o marcalo para revisar y ajustar las opciones antes de aplicar. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.')
     Debloat   = @('Debloat y privacidad', 'Lo que se puede sacar o apagar de Windows. Lo que marques aca y en Gaming se aplica junto con un solo Aplicar.')
     Gaming    = @('Optimizacion gaming', 'Ajustes para mas FPS y menos latencia. Lo que marques aca y en Debloat se aplica junto con un solo Aplicar.')
     Limpieza  = @('Limpiar cache', 'Libera espacio. Lo de arriba se limpia siempre; lo de abajo solo si lo marcas.')
     Herr      = @('Herramientas', 'Opciones que te piden datos en la ventana del script.')
-    Restaurar = @('Restaurar todo', 'Deja todo como viene Windows, como si tocaras R en cada opcion.')
 }
-$Nav = @{ Debloat = $ui.NavDebloat; Gaming = $ui.NavGaming; Limpieza = $ui.NavLimpieza; Herr = $ui.NavHerr; Restaurar = $ui.NavRestaurar }
+$Nav = @{ Perfiles = $ui.NavPerfiles; Debloat = $ui.NavDebloat; Gaming = $ui.NavGaming; Limpieza = $ui.NavLimpieza; Herr = $ui.NavHerr }
 $script:Pagina = 'Debloat'
 $script:Ocupado = $false
 
@@ -885,7 +1185,7 @@ function Elegidas([string]$p) {
 }
 
 function Actualizar-Contador {
-    Actualizar-Rp
+    Actualizar-Bloqueos
     if ($script:Ocupado) { return }
     $d = (Elegidas 'Debloat').Count; $g = (Elegidas 'Gaming').Count
     if (($d + $g) -eq 0) { $ui.Estado.Text = $(if ($script:EstadoLeido) { $script:EstadoLeido } else { 'No hay opciones marcadas.' }) }
@@ -899,16 +1199,16 @@ function Ir-A([string]$p) {
     $ui.Descripcion.Text = $Textos[$p][1]
     $ui.Scroll.Content = $Paginas[$p]
     $ui.Scroll.ScrollToTop()
-    $vis = $(if ($p -in 'Restaurar', 'Herr') { 'Collapsed' } else { 'Visible' })
+    $vis = $(if ($p -in 'Herr', 'Perfiles') { 'Collapsed' } else { 'Visible' })
     $ui.BtnTodo.Visibility = $vis; $ui.BtnNada.Visibility = $vis
-    $ui.BtnAplicar.Visibility = $(if ($p -eq 'Herr') { 'Collapsed' } else { 'Visible' })
-    $ui.BtnAplicar.Content = $(switch ($p) { 'Limpieza' { 'Limpiar ahora' } 'Restaurar' { 'Restaurar todo' } default { 'Aplicar seleccionadas' } })
-    $ui.BtnAplicar.Background = (Pincel $(if ($p -eq 'Restaurar') { '#B3412F' } else { '#3D6FD9' }))
+    $ui.BtnRestablecer.Visibility = $(if ($p -in 'Debloat', 'Gaming') { 'Visible' } else { 'Collapsed' })
+    $ui.BtnAplicar.Visibility = $(if ($p -in 'Herr', 'Perfiles') { 'Collapsed' } else { 'Visible' })
+    $ui.BtnAplicar.Content = $(if ($p -eq 'Limpieza') { 'Limpiar ahora' } else { 'Aplicar seleccionadas' })
 }
 
 function Bloquear([bool]$si) {
     $script:Ocupado = $si
-    foreach ($b in @($ui.NavDebloat, $ui.NavGaming, $ui.NavLimpieza, $ui.NavHerr, $ui.NavRestaurar, $ui.BtnRefrescar, $ui.BtnTodo, $ui.BtnNada, $ui.BtnAplicar)) { $b.IsEnabled = -not $si }
+    foreach ($b in @($ui.NavPerfiles, $ui.NavDebloat, $ui.NavGaming, $ui.NavLimpieza, $ui.NavHerr, $ui.BtnRefrescar, $ui.BtnTodo, $ui.BtnNada, $ui.BtnRestablecer, $ui.BtnAplicar)) { $b.IsEnabled = -not $si }
     $ui.Scroll.IsEnabled = -not $si
 }
 
@@ -997,7 +1297,7 @@ function Refrescar-Estado([scriptblock]$despues) {
         if (-not $Chequeos.ContainsKey($k)) { continue }
         $lista += @{ Clave = $k; Titulo = [string]$TitulosChequeo[$k]; Codigo = $Chequeos[$k].ToString() }
     }
-    $sync = [hashtable]::Synchronized(@{ Hecho = 0; Total = ($lista.Count + 3); Paso = ''; Listo = $false; Resultados = $null; Prio = @(); TareaAfi = $false })
+    $sync = [hashtable]::Synchronized(@{ Info = $null; Hecho = 0; Total = ($lista.Count + 4); Paso = ''; Listo = $false; Resultados = $null; Prio = @(); TareaAfi = $false })
     $ps = [powershell]::Create()
     [void]$ps.AddScript($CodigoLectura).AddArgument($FuncLectura).AddArgument($lista).AddArgument($sync)
     $script:Lectura = @{ PS = $ps; Handle = $ps.BeginInvoke(); Sync = $sync }
@@ -1020,7 +1320,7 @@ $lecturaTimer.Add_Tick({
     Cerrar-Carga {
         Bloquear $false
         $ui.Estado.Text = $script:EstadoLeido
-        Actualizar-Rp
+        Actualizar-Bloqueos
         $f = $script:DespuesLectura
         $script:DespuesLectura = $null
         if ($f) { & $f }
@@ -1029,14 +1329,21 @@ $lecturaTimer.Add_Tick({
 
 function Aplicar-Lectura($s) {
     $res = $s.Resultados
+    $script:NoDisp = Calcular-NoDisp $s.Info
+    $script:Estados = @{}
     $apl = 0; $tot = 0
     foreach ($k in @($script:Pills.Keys)) {
         $est = $null
         if ($res -and $res.ContainsKey($k)) { $est = $res[$k] }
+        $script:Estados[$k] = $est
+        if ($script:NoDisp.ContainsKey($k)) {
+            $pb = $script:Pills[$k]
+            $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#2A2D33'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = 'No compatible'
+            continue
+        }
         Poner-Pill $script:Pills[$k] $est
         if ($null -ne $est) { $tot++; if ($est) { $apl++ } }
     }
-    $script:RpoAplicado = [bool]($res -and ($res['Debloat|rpo'] -eq $true))
     if ($script:PrioTexto) {
         $pr = @($s.Prio)
         $script:PrioTexto.Text = $(if ($pr.Count -gt 0) { 'Con prioridad alta ahora: ' + ($pr -join ', ') } else { '' })
@@ -1047,13 +1354,18 @@ function Aplicar-Lectura($s) {
     }
     Actualizar-Resumenes
     Actualizar-Version
-    if ($res) { $script:EstadoLeido = ('Windows leido: ' + $apl + ' de ' + $tot + ' opciones ya estan aplicadas.') }
+    Actualizar-InfoPC $s.Info
+    Actualizar-Perfiles
+    if ($res) {
+        $script:EstadoLeido = ('Windows leido: ' + $apl + ' de ' + $tot + ' opciones ya estan aplicadas.')
+        if ($script:NoDisp.Count -gt 0) { $script:EstadoLeido += (' ' + $script:NoDisp.Count + ' no son compatibles con tu PC.') }
+    }
     else { $script:EstadoLeido = 'No se pudo leer el estado de Windows. Proba con "Volver a leer los ajustes".' }
 }
 
 # ------------------------------------------------------------
 # Correr scripts en modo app (uno atras de otro)
-# Las opciones de Debloat, Gaming, Limpieza y Restaurar corren ocultas y su progreso se ve en la pantalla de carga.
+# Las opciones de Debloat, Gaming y Limpieza (aplicar y restablecer) corren ocultas y su progreso se ve en la pantalla de carga.
 # Las de Herramientas abren la ventana negra porque te piden datos.
 # ------------------------------------------------------------
 $script:Cola = New-Object System.Collections.Generic.Queue[object]
@@ -1096,7 +1408,7 @@ function Limpiar-Variables {
 
 function Correr($tareas, [bool]$reinicio, [string]$tituloCarga) {
     $total = 0; foreach ($t in $tareas) { $total += [int]$t.Cambios }
-    $script:Corrida = @{ Reinicio = $reinicio; Total = [math]::Max($total, 1); Hechos = 0; Fallos = 0; Liberado = ''; Tipo = $tareas[0].Tipo; Oculta = $false }
+    $script:Corrida = @{ Reinicio = $reinicio; PideReinicio = $false; Total = [math]::Max($total, 1); Hechos = 0; Fallos = 0; Liberado = ''; Tipo = $tareas[0].Tipo; Oculta = $false }
     $script:Cola.Clear()
     foreach ($t in $tareas) { $script:Cola.Enqueue($t) }
     Bloquear $true
@@ -1119,7 +1431,7 @@ function Siguiente {
     $t | Add-Member -NotePropertyName UltN -NotePropertyValue 0 -Force
     $t | Add-Member -NotePropertyName UltCambio -NotePropertyValue (Get-Date) -Force
     if ($t.Visible) {
-        $ui.Estado.Text = ($t.Nombre + ': responde en la ventana negra del script. Cuando termine, la app sigue sola.')
+        $ui.Estado.Text = (Con-Enie ($t.Nombre + ': responde en la ventana negra del script. Cuando termine, la app sigue sola.'))
         $script:Proc = Start-Process -FilePath $env:ComSpec -ArgumentList ('/c ""' + $t.Ruta + '""') -WorkingDirectory $Root -PassThru
     } else {
         $salida = Join-Path $env:TEMP ('xucaop_' + [guid]::NewGuid().ToString('N') + '.txt')
@@ -1150,7 +1462,7 @@ function Actualizar-Progreso {
     $act = $(if ($ms.Count -gt 0) { Titulo-Corto $ms[$ms.Count - 1].Groups[1].Value } else { 'Preparando' })
     $num = [math]::Min($C.Hechos + [math]::Max($n, 1), $C.Total)
     $base = $C.Hechos + [math]::Max($n - 1, 0) + $(if ($n -gt 0) { Avance-Tiempo $t.UltCambio 6 } else { 0 })
-    Poner-Progreso (($base / $C.Total) * 0.97) ('Cambio ' + $num + ' de ' + $C.Total + '  -  ' + $act)
+    Poner-Progreso (($base / $C.Total) * 0.97) (Con-Enie ('Cambio ' + $num + ' de ' + $C.Total + '  -  ' + $act))
 }
 
 function Fin-Tarea {
@@ -1161,6 +1473,8 @@ function Fin-Tarea {
         $txt = Leer-Salida $t.Salida
         $m = [regex]::Match($txt, 'Cambios que fallaron:\s*(\d+)')
         if ($m.Success) { $C.Fallos += [int]$m.Groups[1].Value }
+        # El script solo escribe esto si alguna opcion que necesita reiniciar cambio algo de verdad
+        if ($txt -match 'Hace falta reiniciar la PC') { $C.PideReinicio = $true }
         $m = [regex]::Match($txt, 'Espacio liberado\s*:\s*(.+)')
         if ($m.Success) { $C.Liberado = $m.Groups[1].Value.Trim() }
         # La limpieza no tiene log propio: se guarda lo que mostro en la carpeta de logs
@@ -1185,7 +1499,10 @@ $timer.Add_Tick({
 function Terminar-Corrida {
     $timer.Stop()
     Limpiar-Variables
-    foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } }
+    # Si solo se actualizo la lista de juegos, no se tocan las casillas que tengas marcadas
+    if ((-not $script:Corrida) -or ($script:Corrida.Tipo -ne 'lista')) {
+        foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } }
+    }
     Refrescar-Estado {
         $C = $script:Corrida
         $script:Corrida = $null
@@ -1197,9 +1514,20 @@ function Terminar-Corrida {
             Avisar 'Limpieza terminada' $m
             return
         }
+        if ($C.Tipo -eq 'lista') {
+            if ($C.Fallos -gt 0) { Avisar 'Tu lista de juegos' ('Se guardo, pero ' + $C.Fallos + ' cambios fallaron al aplicarla (mira la carpeta de logs).') }
+            else { $ui.Estado.Text = 'Listo: tu lista nueva ya esta aplicada, sin reiniciar.' }
+            return
+        }
         if (-not $C.Reinicio) { return }
         $m = $(if ($C.Fallos -gt 0) { 'Termino, pero ' + $C.Fallos + ' cambios fallaron (mira la carpeta de logs).' } else { 'Se aplico todo bien.' })
-        if (Confirmar 'Listo' ($m + "`n`n" + 'Algunos cambios necesitan reiniciar la PC. Reiniciar ahora?') 'Reiniciar' '#3D6FD9' 'Despues') { & shutdown.exe /r /t 10 }
+        if ($C.PideReinicio) {
+            if (Confirmar 'Listo' ($m + "`n`n" + 'Algunos de estos cambios necesitan reiniciar la PC. Reiniciar ahora?') 'Reiniciar' '#3D6FD9' 'Despues') { & shutdown.exe /r /t 10 }
+        } elseif ($C.Fallos -gt 0) {
+            Avisar 'Listo' ($m + "`n`n" + 'No hace falta reiniciar.')
+        } else {
+            $ui.Estado.Text = ('Listo: se aplico todo bien y no hace falta reiniciar. ' + $ui.Estado.Text)
+        }
     }
 }
 
@@ -1210,11 +1538,11 @@ function Titulo-De([string]$p, [string]$id) {
 # ------------------------------------------------------------
 # Botones
 # ------------------------------------------------------------
+$ui.NavPerfiles.Add_Click({ Ir-A 'Perfiles' })
 $ui.NavDebloat.Add_Click({ Ir-A 'Debloat' })
 $ui.NavGaming.Add_Click({ Ir-A 'Gaming' })
 $ui.NavLimpieza.Add_Click({ Ir-A 'Limpieza' })
 $ui.NavHerr.Add_Click({ Ir-A 'Herr' })
-$ui.NavRestaurar.Add_Click({ Ir-A 'Restaurar' })
 $ui.BtnRefrescar.Add_Click({ Refrescar-Estado })
 $ui.BtnRedes.Add_Click({ Start-Process $Redes })
 
@@ -1239,32 +1567,8 @@ $accionHerr = {
 }
 foreach ($b in @($script:BtnVer, $bAcc, $bSin, $bCon)) { $b.Add_Click($accionHerr) }
 
-$ui.BtnAplicar.Add_Click({
-    $p = $script:Pagina
-
-    if ($p -eq 'Limpieza') {
-        $v = @{}
-        foreach ($k in $Casillas.Limpieza.Keys) { $v[$k] = $(if ($Casillas.Limpieza[$k].IsChecked) { '1' } else { '0' }) }
-        if (-not (Confirmar 'Limpiar cache' 'Cerra los juegos y programas abiertos antes de seguir.' 'Limpiar' '#3D6FD9' 'Cancelar')) { return }
-        Correr @([pscustomobject]@{ Nombre = 'Limpieza'; Ruta = $Rutas.Limpieza; Vars = $v; Cambios = 1; Visible = $false; Tipo = 'limpieza' }) $false 'Limpiando la cache'
-        return
-    }
-
-    if ($p -eq 'Restaurar') {
-        $tareas = @()
-        foreach ($k in 'Debloat', 'Gaming') {
-            if ($Casillas.Restaurar[$k].IsChecked -ne $true) { continue }
-            $v = @{}; $n = 0
-            foreach ($it in $Opciones[$k]) { if ($it.ConR) { $v['XR_' + $it.Id] = 'R'; $n++ } }
-            $tareas += [pscustomobject]@{ Nombre = ('Restaurar ' + $k); Ruta = $Rutas[$k]; Vars = $v; Cambios = $n; Visible = $false; Tipo = 'opciones' }
-        }
-        if ($tareas.Count -eq 0) { Avisar 'Restaurar todo' 'Marca al menos un script para restaurar.'; return }
-        if (-not (Confirmar 'Restaurar todo' 'Todo va a volver a como viene Windows (lee los avisos de la pagina).' 'Restaurar' '#B3412F' 'Cancelar')) { return }
-        Correr $tareas $true 'Restaurando Windows'
-        return
-    }
-
-    # Debloat y Gaming: se aplica lo marcado en las dos paginas, en una sola pasada
+# Aplica lo marcado en Debloat y Gaming, en una sola pasada (lo usan Aplicar y los perfiles)
+function Aplicar-Seleccion {
     $selD = Elegidas 'Debloat'
     $selG = Elegidas 'Gaming'
     if (($selD.Count + $selG.Count) -eq 0) { Avisar 'Aplicar' 'No marcaste ninguna opcion.'; return }
@@ -1276,7 +1580,7 @@ $ui.BtnAplicar.Add_Click({
         $L = Leer-Listas
         $jug = @(Procesos-De $AfiJuegosCat $L.juegos)
         if ($jug.Count -eq 0) {
-            if (-not (Editar-Juegos)) { return }
+            if (-not (Editar-Juegos $false)) { return }
             $L = Leer-Listas
             $jug = @(Procesos-De $AfiJuegosCat $L.juegos)
             if ($jug.Count -eq 0) { Avisar 'Tus juegos' 'No elegiste ningun juego. Elegi al menos uno o desmarca "Prioridad alta" y "Afinidad".'; return }
@@ -1306,6 +1610,53 @@ $ui.BtnAplicar.Add_Click({
     if ($selD.Count -gt 0) { $tareas += [pscustomobject]@{ Nombre = 'Debloat y privacidad'; Ruta = $Rutas.Debloat; Vars = $vD; Cambios = $selD.Count; Visible = $false; Tipo = 'opciones' } }
     if ($selG.Count -gt 0) { $tareas += [pscustomobject]@{ Nombre = 'Optimizacion gaming'; Ruta = $Rutas.Gaming; Vars = $vG; Cambios = $selG.Count; Visible = $false; Tipo = 'opciones' } }
     Correr $tareas $true 'Aplicando cambios'
+}
+
+# Restablece lo marcado en Debloat y Gaming a como viene Windows: es la misma pasada que Aplicar, pero con R.
+# Para restablecer todo: "Marcar todo" en las dos paginas y despues Restablecer seleccionadas.
+function Restablecer-Seleccion {
+    $total = (Elegidas 'Debloat').Count + (Elegidas 'Gaming').Count
+    if ($total -eq 0) { Avisar 'Restablecer' 'No marcaste ninguna opcion. Marca las que quieras volver a como vienen en Windows (con "Marcar todo" en Debloat y en Gaming restableces todo).'; return }
+    $tareas = @(); $n = 0; $sinR = @(); $sel = @()
+    foreach ($p in 'Debloat', 'Gaming') {
+        $v = @{}; $c = 0
+        foreach ($id in (Elegidas $p)) {
+            $it = @($Opciones[$p] | Where-Object { $_.Id -eq $id })[0]
+            if ($it -and $it.ConR) { $v['XR_' + $id] = 'R'; $c++; $sel += ($p + '|' + $id) } else { $sinR += (Titulo-De $p $id) }
+        }
+        if ($c -gt 0) { $tareas += [pscustomobject]@{ Nombre = ('Restablecer ' + $p); Ruta = $Rutas[$p]; Vars = $v; Cambios = $c; Visible = $false; Tipo = 'opciones' }; $n += $c }
+    }
+    if ($n -eq 0) { Avisar 'Restablecer' ('Las opciones que marcaste no tienen restablecimiento: ' + ($sinR -join ', ') + '.'); return }
+    $m = $(if ($n -eq 1) { 'Se va a restablecer 1 opcion a como viene en Windows.' } else { 'Se van a restablecer ' + $n + ' opciones a como vienen en Windows.' })
+    $notas = @()
+    if ($sel -contains 'Debloat|av') { $notas += 'El antivirus vuelve, pero la Proteccion contra alteraciones la encendes vos y Smart App Control no vuelve sin reinstalar Windows.' }
+    if ($sel -contains 'Debloat|bl') { $notas += 'BitLocker solo deja de estar bloqueado: no vuelve a cifrar el disco.' }
+    if (($sel -contains 'Debloat|edge') -or ($sel -contains 'Debloat|wg') -or ($sel -contains 'Gaming|xb')) { $notas += 'Edge, los Widgets y la Game Bar se reinstalan (tarda un poco mas).' }
+    if ($notas.Count -gt 0) { $m += ("`n`n" + 'Tene en cuenta: ' + ($notas -join ' ')) }
+    if ($sinR.Count -gt 0) {
+        # Marcaste alguna que no se puede restablecer: se avisa cuales y se pregunta si seguir con el resto
+        $q = ('Hay ajustes que no se pueden restablecer y se van a saltear:' + "`n" + (($sinR | ForEach-Object { '- ' + $_ }) -join "`n") + "`n`n" + $m + "`n`n" + 'Deseas continuar igualmente?')
+        if (-not (Confirmar 'Algunos ajustes no se pueden restablecer' $q 'Continuar igualmente' '#B3412F' 'Cancelar')) { return }
+    } else {
+        if (-not (Confirmar 'Restablecer seleccionadas' ($m + "`n`n" + 'Seguir?') 'Restablecer' '#B3412F' 'Cancelar')) { return }
+    }
+    Correr $tareas $true 'Restableciendo ajustes'
+}
+
+$ui.BtnRestablecer.Add_Click({ Restablecer-Seleccion })
+
+$ui.BtnAplicar.Add_Click({
+    $p = $script:Pagina
+
+    if ($p -eq 'Limpieza') {
+        $v = @{}
+        foreach ($k in $Casillas.Limpieza.Keys) { $v[$k] = $(if ($Casillas.Limpieza[$k].IsChecked) { '1' } else { '0' }) }
+        if (-not (Confirmar 'Limpiar cache' 'Cerra los juegos y programas abiertos antes de seguir.' 'Limpiar' '#3D6FD9' 'Cancelar')) { return }
+        Correr @([pscustomobject]@{ Nombre = 'Limpieza'; Ruta = $Rutas.Limpieza; Vars = $v; Cambios = 1; Visible = $false; Tipo = 'limpieza' }) $false 'Limpiando la cache'
+        return
+    }
+
+    Aplicar-Seleccion
 })
 
 $win.Add_Closing({
@@ -1317,7 +1668,7 @@ $win.Add_Closing({
 
 $win.Add_ContentRendered({ Refrescar-Estado })
 
-Ir-A 'Debloat'
+Ir-A 'Perfiles'
 $ui.Estado.Text = ''
 $win.ShowDialog() | Out-Null
 

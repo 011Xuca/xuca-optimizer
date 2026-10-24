@@ -29,6 +29,11 @@ set "RAMGB=0"
 set "ESHDD=0"
 set "VGAVISO="
 set "VG_HECHO="
+set "VGT="
+set "QACT="
+set "REINICIO="
+rem Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
+set "REIN_IDS= tk mm notif gf mpo msi pca tr mi ex vbs md v4 ll "
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
@@ -396,23 +401,46 @@ echo   Que hace: deja todos los nucleos activos y el turbo y el rendimiento al m
 echo   A favor: menos tirones cuando el juego pide mas CPU de golpe.
 echo   En contra: un poco mas de consumo y calor.
 set "QID=cpu"
-set "Q=- Desea dejar el procesador como QuickCPU? (Nucleos siempre activos, turbo y rendimiento al maximo, solo con corriente)"
+set "Q=- Desea activar el Modo Nitro del procesador? (Nucleos siempre despiertos, turbo y rendimiento al maximo, solo con corriente)"
 call :askR
 if errorlevel 3 goto cpu_r
 if errorlevel 2 goto cpu_fin
-call :opt_ini "Procesador como QuickCPU"
+call :opt_ini "Modo Nitro del procesador"
 set "ACT=CPU_ON"
 call :aplicar_ps
 call :resps
-call :opt_fin "Procesador como QuickCPU: nucleos 100, frecuencia 0, turbo 100, rendimiento 100 (con corriente)"
+call :opt_fin "Modo Nitro activo: nucleos 100, frecuencia 0, turbo 100, rendimiento 100 (con corriente)"
 goto cpu_fin
 :cpu_r
-call :opt_ini "Procesador como QuickCPU (restaurar)"
+call :opt_ini "Modo Nitro del procesador (restaurar)"
 set "ACT=CPU_OFF"
 call :aplicar_ps
 call :resps
 call :opt_fin "Procesador restaurado a tus valores anteriores"
 :cpu_fin
+
+echo.
+echo   Que hace: activa Baja latencia ^(Low Latency Profile^), una funcion oculta de Windows 11 que tambien se activa con ViVeTool y el ID 58989092: al abrir el Inicio, menus, la busqueda o apps, el procesador sube al maximo por 1 a 3 segundos.
+echo   A favor: el Inicio, los menus y las apps abren mas rapido, sobre todo en PCs de gama baja.
+echo   En contra: picos cortos de consumo y calor; Microsoft todavia la esta probando y en PCs potentes casi no se nota.
+set "QID=ll"
+set "Q=- Desea activar Baja latencia? (El CPU sube al maximo 1 a 3 segundos al abrir menus y apps; pide reiniciar)"
+call :askR
+if errorlevel 3 goto ll_r
+if errorlevel 2 goto ll_fin
+call :opt_ini "Baja latencia"
+set "ACT=LL_ON"
+call :aplicar_ps
+call :resps
+call :opt_fin "Baja latencia activada (se aplica al reiniciar)"
+goto ll_fin
+:ll_r
+call :opt_ini "Baja latencia (restaurar)"
+set "ACT=LL_OFF"
+call :aplicar_ps
+call :resps
+call :opt_fin "Baja latencia vuelve a como la maneja Windows (se aplica al reiniciar)"
+:ll_fin
 
 echo.
 echo.
@@ -575,7 +603,7 @@ echo   Que hace: apaga el Asistente de compatibilidad de programas.
 echo   A favor: evita ventanas que te roban el foco en partida.
 echo   En contra: no te avisa de problemas con programas viejos.
 set "QID=pca"
-set "Q=- Desea desactivar el Asistente de compatibilidad (PcaSvc)? (Evita ventanas de consola que roban el foco en partida; deja de avisar problemas de compatibilidad de programas viejos; pide reiniciar)"
+set "Q=- Desea desactivar el Asistente de compatibilidad (PcaSvc)? (Evita ventanas que roban el foco en partida; pide reiniciar)"
 call :askR
 if errorlevel 3 goto pca_r
 if errorlevel 2 goto pca_fin
@@ -768,7 +796,7 @@ call :opt_fin "DNS restaurado al que tenias antes"
 echo.
 echo.
 echo %C_TIT%=== SEGURIDAD (MAS RENDIMIENTO) ===%C_RST%
-echo %C_WARN%AVISO: si tenes Riot Vanguard, se borra solo si una opcion de seguridad cambia algo de verdad (si ya la tenias asi, no se toca); se reinstala solo al abrir Valorant.%C_RST%
+echo %C_WARN%AVISO: si tenes Riot Vanguard, se borra solo si una opcion de seguridad cambia algo de verdad (si ya la tenias asi, no se toca); se desinstala del todo, se cierra Riot y lo volves a instalar abriendo el cliente de Riot.%C_RST%
 echo.
 echo   Que hace: apaga la Integridad de memoria de Windows.
 echo   A favor: mas FPS en algunos juegos.
@@ -1014,12 +1042,22 @@ set "Q=Desea abrir el log ahora?"
 call :askS
 if not errorlevel 2 start "" notepad "%LOG%"
 
-set "Q=Desea reiniciar ahora? (Hace falta para aplicar algunos cambios)"
+if defined VGAVISO set "REINICIO=1"
+if defined REINICIO goto fin_pide_reinicio
+echo.
+echo %C_OK%No hace falta reiniciar: los cambios ya quedaron aplicados.%C_RST%
+if not defined XUCA_AUTO pause
+exit /b
+:fin_pide_reinicio
+echo.
+echo %C_WARN%Hace falta reiniciar la PC para terminar de aplicar algunos cambios.%C_RST%
+set "Q=Desea reiniciar ahora?"
 call :askS
 if not errorlevel 2 (echo Reiniciando en 10 segundos... & shutdown /r /t 10) else (echo Reinicia cuando puedas. & if not defined XUCA_AUTO pause)
 exit /b
 
 :askR
+set "QACT=%QID%"
 if defined XUCA_AUTO goto ask_auto
 echo.
 choice /c SNR /n /m "%Q% [S] Si  [N] No  [R] Restaurar: "
@@ -1031,6 +1069,7 @@ call :log "PREG" "%LET% - %Q:~0,80%"
 exit /b %RESP%
 
 :askS
+set "QACT=%QID%"
 if defined XUCA_AUTO goto ask_auto_s
 echo.
 choice /c SN /n /m "%Q% [S] Si  [N] No: "
@@ -1081,10 +1120,14 @@ if not defined LOG goto :eof
 goto :eof
 
 :vanguard_check
+rem VGT = cambios en la parte de seguridad de la opcion (si no se marco, cuentan todos los de la opcion).
+set "VGN=%OPT_T%"
+if defined VGT set "VGN=%VGT%"
+set "VGT="
 rem Si ya se borro (o no estaba instalado) en una opcion anterior, no se vuelve a revisar ni a mostrar nada.
 if defined VG_HECHO goto :eof
-rem Si la opcion que se acaba de aplicar no cambio nada (ya estaba asi, no aplica o se omitio), Vanguard no se toca.
-if %OPT_T% EQU 0 goto :eof
+rem Si la seguridad ya estaba apagada (no cambio nada, no aplica o se omitio), Vanguard no se toca.
+if %VGN% EQU 0 goto :eof
 set "VGAVISO=1"
 set "ACT=VANGUARD_CHECK"
 call :aplicar_ps
@@ -1102,6 +1145,12 @@ call :opt_fin "Riot Vanguard borrado"
 set "VG_HECHO=1"
 goto :eof
 
+:rein_marca
+if not defined QACT goto :eof
+call set "RTMP=%%REIN_IDS: %QACT% =%%"
+if not "%RTMP%"=="%REIN_IDS%" set "REINICIO=1"
+goto :eof
+
 :opt_ini
 set "OPT_T=0"
 set "OPT_F=0"
@@ -1111,6 +1160,7 @@ call :log "INFO" "== %~1"
 goto :eof
 
 :opt_fin
+if %OPT_T% GTR 0 call :rein_marca
 if %OPT_F% GTR 0 goto opt_mal
 if %OPT_P% GTR 0 goto opt_pend
 if %OPT_T% GTR 0 goto opt_ok
@@ -1430,8 +1480,8 @@ $dnsCand = [ordered]@{
 }
 
 # ---------- Afinidad de CPU (opcion afi) ----------
-# Catalogos predeterminados (proceso=Nombre; varios procesos del mismo juego van con |). La app tambien los lee de aca.
-$afiJuegosCat = 'marvel-win64-shipping=Marvel Rivals; fortniteclient-win64-shipping=Fortnite; cs2=Counter-Strike 2; valorant-win64-shipping=Valorant; cod=Call of Duty HQ (Warzone, BO6, BO7, MW3); modernwarfare=CoD Modern Warfare 2019 / Warzone viejo; blackopscoldwar=CoD Black Ops Cold War; blackops4=CoD Black Ops 4; blackops3=CoD Black Ops 3; t6mp|t6zm|t6sp=CoD Black Ops 2; blackops|blackopsmp=CoD Black Ops 1; codwaw|codwawmp=CoD World at War; r5apex|r5apex_dx12=Apex Legends; overwatch=Overwatch 2; rainbowsix=Rainbow Six Siege; tslgame=PUBG; deltaforceclient-win64-shipping=Delta Force; discovery=The Finals; pioneergame=ARC Raiders; league of legends=League of Legends; dota2=Dota 2; project8=Deadlock; rocketleague=Rocket League; bf6=Battlefield 6; hytaleclient=Hytale; javaw=Minecraft Java (Lunar, Feather); minecraft.windows=Minecraft Bedrock; robloxplayerbeta=Roblox; sparkingzero-win64-shipping=Dragon Ball Sparking! Zero; streetfighter6=Street Fighter 6; fc26=EA Sports FC 26; arkascended=ARK Survival Ascended; shootergame=ARK Survival Evolved; rustclient=Rust; escapefromtarkov=Escape from Tarkov; helldivers2=Helldivers 2; monsterhunterwilds=Monster Hunter Wilds; eldenring=Elden Ring; nightreign=Elden Ring Nightreign; b1-win64-shipping=Black Myth: Wukong; genshinimpact=Genshin Impact; starrail=Honkai: Star Rail; zenlesszonezero=Zenless Zone Zero; spider-man=Spider-Man Remastered; milesmorales=Spider-Man Miles Morales; spider-man2=Spider-Man 2; gta5|gta5_enhanced=GTA V; cyberpunk2077=Cyberpunk 2077; rdr2=Red Dead Redemption 2'
+# Catalogos predeterminados (proceso=Nombre; varios procesos del mismo juego van con |). Los juegos se muestran con su proceso. La app tambien los lee de aca.
+$afiJuegosCat = 'marvel-win64-shipping=marvel-win64-shipping; fortniteclient-win64-shipping=fortniteclient-win64-shipping; cs2=cs2; valorant-win64-shipping=valorant-win64-shipping; cod=cod; modernwarfare=modernwarfare; blackopscoldwar=blackopscoldwar; blackops4=blackops4; blackops3=blackops3; t6mp=t6mp; t6zm=t6zm; t6sp=t6sp; blackops=blackops; blackopsmp=blackopsmp; codwaw=codwaw; codwawmp=codwawmp; s2_mp64_ship=s2_mp64_ship; r5apex=r5apex; r5apex_dx12=r5apex_dx12; overwatch=overwatch; rainbowsix=rainbowsix; tslgame=tslgame; league of legends=league of legends; dota2=dota2; deadlock=deadlock; rocketleague=rocketleague; bf6=bf6; warframe.x64=warframe.x64; hytaleclient=hytaleclient; javaw=javaw; minecraft.windows=minecraft.windows; robloxplayerbeta=robloxplayerbeta; sparkingzero-win64-shipping=sparkingzero-win64-shipping; streetfighter6=streetfighter6; devilmaycry5=devilmaycry5; re2=re2; re3=re3; re4=re4; re7=re7; re8=re8; arkascended=arkascended; shootergame=shootergame; rustclient=rustclient; escapefromtarkov=escapefromtarkov; helldivers2=helldivers2; monsterhunterwilds=monsterhunterwilds; eldenring=eldenring; b1-win64-shipping=b1-win64-shipping; genshinimpact=genshinimpact; starrail=starrail; zenlesszonezero=zenlesszonezero; spider-man=spider-man; milesmorales=milesmorales; spider-man2=spider-man2; gta5=gta5; gta5_enhanced=gta5_enhanced; cyberpunk2077=cyberpunk2077; rdr2=rdr2'
 $afiFondoCat = 'discord=Discord; spotify=Spotify; chrome=Google Chrome; msedge=Microsoft Edge; firefox=Firefox; opera=Opera / Opera GX; brave=Brave; steamwebhelper=Steam (tienda y ventanas); epicwebhelper=Epic Games (ventanas); onedrive=OneDrive; whatsapp=WhatsApp; telegram=Telegram; wallpaper32|wallpaper64=Wallpaper Engine'
 # Juegos que usan pocos hilos y dependen de la latencia: en los Ryzen con bloques chicos van a un solo bloque.
 $afiLivianos = @('javaw', 'minecraft.windows', 'valorant-win64-shipping', 'league of legends', 'rocketleague', 'robloxplayerbeta')
@@ -2119,7 +2169,7 @@ switch ($env:ACT) {
             if ($env:ACT -eq 'CPU_ON') {
                 $faltan = @($cfg | Where-Object { (Actual $_.Cfg) -ne $_.Val })
                 if ($faltan.Count -eq 0) {
-                    Log 'OK' ('ya estaba: procesador como QuickCPU en el plan ' + $g)
+                    Log 'OK' ('ya estaba: Modo Nitro del procesador en el plan ' + $g)
                     $code = 5
                 } else {
                     $sinCopia = $false
@@ -2403,7 +2453,7 @@ public static class SpiNative {
                 $desc = ($pl.Cpu + ' (' + $pl.Tipo + '): juegos en ' + (Afi-Lista $pl.Juego) + ', livianos en ' + (Afi-Lista $pl.Liviano) + ', fondo en ' + (Afi-Lista $pl.Fondo))
                 Log 'INFO' ('Procesador: ' + $desc)
                 Afi-Mostrar $pl
-                $txt = (@(('juego=' + $pl.Juego), ('liviano=' + $pl.Liviano), ('fondo=' + $pl.Fondo), ('todo=' + $pl.Todo), ('juegos=' + ($pesados -join ',')), ('livianos=' + ($livianos -join ',')), ('apps=' + ($apps -join ',')), ('desc=' + $desc)) -join "`r`n")
+                $txt = (@(('juego=' + $pl.Juego), ('liviano=' + $pl.Liviano), ('fondo=' + $pl.Fondo), ('todo=' + $pl.Todo), ('juegos=' + ($pesados -join ',')), ('livianos=' + ($livianos -join ',')), ('apps=' + ($apps -join ',')), ('desc=' + $desc), 'ver=2') -join "`r`n")
                 $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
                 $viejo = ''; if (Test-Path -LiteralPath $cfg) { $viejo = [string](Get-Content -LiteralPath $cfg -Raw) }
                 if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and ($viejo.Trim() -eq $txt.Trim())) {
@@ -2420,7 +2470,7 @@ public static class SpiNative {
                     Log 'OK' ('programas de fondo: ' + ($apps -join ', '))
                     # Programa chico: cada 2 segundos mira que hay abierto. A cada juego le pone sus nucleos una sola vez.
                     # Mientras haya un juego abierto lleva lo de fondo a sus nucleos; cuando no queda ninguno, lo devuelve a todos.
-                    $cs = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static void Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); } catch { } } public static void Main() { string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "XucaScripts\\afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> hechosJ = new HashSet<int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m != 0) { hayJuego = true; if (!hechosJ.Contains(p.Id)) { Poner(p, m); hechosJ.Add(p.Id); } } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) continue; string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom)) { Poner(p, fondo); hechosF.Add(p.Id); } } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } hechosJ.IntersectWith(vivos); hechosF.IntersectWith(vivos); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
+                    $cs = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static bool Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); p.Refresh(); return (long)p.ProcessorAffinity == m; } catch { return false; } } public static void Main() { string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "XucaScripts\\afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> hechosJ = new HashSet<int>(); HashSet<int> okJ = new HashSet<int>(); Dictionary<int, int> intentos = new Dictionary<int, int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m != 0) { if (!hechosJ.Contains(p.Id)) { if (Poner(p, m)) { okJ.Add(p.Id); hechosJ.Add(p.Id); } else { int c = 0; intentos.TryGetValue(p.Id, out c); c++; intentos[p.Id] = c; if (c >= 3) hechosJ.Add(p.Id); } } if (okJ.Contains(p.Id)) hayJuego = true; } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) continue; string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom)) { Poner(p, fondo); hechosF.Add(p.Id); } } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } hechosJ.IntersectWith(vivos); okJ.IntersectWith(vivos); hechosF.IntersectWith(vivos); List<int> viejos = new List<int>(); foreach (int k in intentos.Keys) if (!vivos.Contains(k)) viejos.Add(k); foreach (int k in viejos) intentos.Remove(k); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
                     Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
                     try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar AFINIDAD: ' + $_.Exception.Message); $code = 1 }
                     if (Test-Path $exe) {
@@ -2513,6 +2563,43 @@ public static class SpiNative {
         }
     }
 
+    'LL_ON' {
+        # Baja latencia (Low Latency Profile): es lo mismo que "vivetool /enable /id:58989092", escrito directo en el registro
+        # (prioridad User = 8). La clave usa el ID ofuscado como lo guarda Windows: 58989092 -> 1213986446.
+        $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+        $b = [int]$cv.CurrentBuildNumber; $u = [int]$cv.UBR
+        if (($b -lt 26100) -or (($b -lt 26300) -and ($u -lt 8655))) {
+            Log 'OMITIDO' ('Baja latencia necesita Windows 11 24H2 o 25H2 con la actualizacion de junio de 2026 (build .8655 o mas nueva); esta PC tiene ' + $b + '.' + $u)
+            Say ('  Tu Windows todavia no trae Baja latencia: actualiza Windows (necesita build ' + $b + '.8655 o mas nueva, tenes ' + $b + '.' + $u + ').') 'Yellow'
+            $code = 2
+        } else {
+            $k = 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446'
+            if ((Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).EnabledState -eq 2) {
+                Log 'OK' 'ya estaba: Baja latencia activada (ID 58989092)'
+                $code = 5
+            } else {
+                New-Item -Path $k -Force | Out-Null
+                New-ItemProperty -LiteralPath $k -Name 'EnabledState' -Value 2 -PropertyType DWord -Force | Out-Null
+                New-ItemProperty -LiteralPath $k -Name 'EnabledStateOptions' -Value 0 -PropertyType DWord -Force | Out-Null
+                if ((Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).EnabledState -eq 2) { Log 'OK' 'verificado: Baja latencia activada (ID 58989092), se aplica al reiniciar' }
+                else { Log 'FALLO' 'no se pudo activar Baja latencia'; $code = 1 }
+            }
+        }
+    }
+
+    'LL_OFF' {
+        # Igual que "vivetool /reset /id:58989092": se borra el cambio y Windows vuelve a decidir solo
+        $k = 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446'
+        if (-not (Test-Path -LiteralPath $k)) {
+            Log 'OK' 'ya estaba: Baja latencia sin cambios del script'
+            $code = 5
+        } else {
+            Remove-Item -LiteralPath $k -Recurse -Force -ErrorAction SilentlyContinue
+            if (Test-Path -LiteralPath $k) { Log 'FALLO' 'no se pudo quitar Baja latencia'; $code = 1 }
+            else { Log 'OK' 'verificado: Baja latencia vuelve a como la maneja Windows' }
+        }
+    }
+
     'VANGUARD_CHECK' {
         $pf = [Environment]::GetFolderPath('ProgramFiles')
         $vgDir = Join-Path $pf 'Riot Vanguard'
@@ -2524,27 +2611,57 @@ public static class SpiNative {
         $pf = [Environment]::GetFolderPath('ProgramFiles')
         $vgDir = Join-Path $pf 'Riot Vanguard'
         $vgc = Join-Path $vgDir 'vgc.exe'
-        Stop-Process -Name 'vgc', 'vgtray' -Force -ErrorAction SilentlyContinue
+        # 1) Cerrar Riot: el cliente, Valorant, League y la bandeja de Vanguard. Asi tenes que volver a abrir
+        #    el cliente de Riot, que te pide instalar Vanguard de nuevo y no queda a medias.
+        $riot = @('VALORANT-Win64-Shipping', 'VALORANT', 'RiotClientServices', 'RiotClientUx', 'RiotClientUxRender', 'RiotClientCrashHandler', 'Riot Client', 'LeagueClient', 'LeagueClientUx', 'LeagueClientUxRender', 'League of Legends', 'vgtray', 'vgc')
+        $abiertos = @(Get-Process -Name $riot -ErrorAction SilentlyContinue)
+        if ($abiertos.Count -gt 0) {
+            $abiertos | Stop-Process -Force -ErrorAction SilentlyContinue
+            Log 'OK' ('Riot cerrado: ' + ((@($abiertos | ForEach-Object { $_.ProcessName } | Select-Object -Unique)) -join ', '))
+            Start-Sleep -Seconds 2
+        }
+        # 2) Desinstalarlo como desde el Panel de control (su propio desinstalador, sin preguntas si se puede)
+        $claves = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')
+        $entradas = @(foreach ($c in $claves) { Get-ChildItem -LiteralPath $c -ErrorAction SilentlyContinue | Where-Object { [string](Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue).DisplayName -like 'Riot Vanguard*' } })
+        foreach ($e in $entradas) {
+            $pr = Get-ItemProperty -LiteralPath $e.PSPath -ErrorAction SilentlyContinue
+            $cmd = [string]$pr.QuietUninstallString
+            if (-not $cmd) { $cmd = [string]$pr.UninstallString }
+            if (-not $cmd) { continue }
+            $exeU = ''; $argU = ''
+            if ($cmd -match '^\s*"([^"]+)"\s*(.*)$') { $exeU = $Matches[1]; $argU = $Matches[2] }
+            elseif ($cmd -match '^\s*(.+?\.exe)\s*(.*)$') { $exeU = $Matches[1]; $argU = $Matches[2] }
+            if (-not (Test-Path -LiteralPath $exeU)) { continue }
+            try {
+                $pu = $(if ($argU) { Start-Process -FilePath $exeU -ArgumentList $argU -PassThru -ErrorAction Stop } else { Start-Process -FilePath $exeU -PassThru -ErrorAction Stop })
+                # Como mucho 2 minutos: si el desinstalador pide confirmar, aparece su ventana
+                if (-not $pu.WaitForExit(120000)) { Log 'INFO' 'el desinstalador de Vanguard sigue abierto: se continua con la limpieza' }
+                else { Log 'OK' ('desinstalador de Riot Vanguard ejecutado (' + $exeU + ')') }
+            } catch { Log 'INFO' ('desinstalador de Vanguard: ' + $_.Exception.Message) }
+        }
+        # 3) Si quedo algo, su desinstalacion directa y despues borrar servicios, carpeta y la entrada del Panel de control
         if (Test-Path $vgc) {
-            try { Start-Process -FilePath $vgc -ArgumentList '/uninstall' -Wait -WindowStyle Hidden -ErrorAction Stop } catch { }
+            try { $pv = Start-Process -FilePath $vgc -ArgumentList '/uninstall' -WindowStyle Hidden -PassThru -ErrorAction Stop; $pv.WaitForExit(60000) | Out-Null } catch { }
             Start-Sleep -Seconds 2
         }
         foreach ($sv in 'vgc', 'vgk') {
             $s = Get-Service -Name $sv -ErrorAction SilentlyContinue
-            if ($s) { & sc.exe delete $sv | Out-Null }
+            if ($s) { & sc.exe stop $sv 2>&1 | Out-Null; & sc.exe delete $sv 2>&1 | Out-Null }
         }
         if (Test-Path $vgDir) { Remove-Item -Path $vgDir -Recurse -Force -ErrorAction SilentlyContinue }
+        foreach ($e in $entradas) { if (Test-Path -LiteralPath $e.PSPath) { Remove-Item -LiteralPath $e.PSPath -Recurse -Force -ErrorAction SilentlyContinue } }
         Start-Sleep -Seconds 1
         $queda = (Get-Service -Name 'vgc','vgk' -ErrorAction SilentlyContinue) -or (Test-Path $vgDir)
-        if (-not $queda) { 
-            Log 'OK' 'Riot Vanguard desinstalado y sus restos borrados'
+        if (-not $queda) {
+            Log 'OK' 'Riot Vanguard desinstalado del todo: abri el cliente de Riot y te pide instalarlo de nuevo'
+            Say '  Riot Vanguard desinstalado. Reinicia, abri el cliente de Riot y te pide instalarlo de nuevo.' 'Yellow'
             $code = 0
-        } else { 
+        } else {
             Log 'PENDIENTE' 'Riot Vanguard quitado: quedan restos que se limpian al reiniciar'
-            $code = 6 
+            Say '  Riot Vanguard quitado: termina de borrarse al reiniciar. Despues abri el cliente de Riot y te pide instalarlo.' 'Yellow'
+            $code = 6
         }
     }
-
 }
 
 exit $code

@@ -29,6 +29,11 @@ set "OPT_P=0"
 set "CHK="
 set "VGAVISO="
 set "VG_HECHO="
+set "VGT="
+set "QACT="
+set "REINICIO="
+rem Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
+set "REIN_IDS= av rc ad sv pv ms_acc al cta "
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
@@ -241,7 +246,7 @@ call :opt_fin "Punto de restauracion creado"
 echo.
 echo.
 echo %C_TIT%=== SEGURIDAD ===%C_RST%
-echo %C_WARN%AVISO: si tenes Riot Vanguard, se borra solo si una opcion de seguridad cambia algo de verdad (si ya la tenias asi, no se toca); se reinstala solo al abrir Valorant.%C_RST%
+echo %C_WARN%AVISO: si tenes Riot Vanguard, se borra solo si una opcion de seguridad cambia algo de verdad (si ya la tenias asi, no se toca); se desinstala del todo, se cierra Riot y lo volves a instalar abriendo el cliente de Riot.%C_RST%
 echo.
 echo %C_WARN%AVISO: Smart App Control no se puede volver a encender sin reinstalar Windows.%C_RST%
 echo %C_WARN%AVISO: la Proteccion contra alteraciones la apagas vos; el script abre la pagina.%C_RST%
@@ -306,6 +311,8 @@ call :opt_ini "BitLocker"
 set "ACT=BL_OFF"
 call :aplicar_ps
 call :resps
+rem Para Vanguard solo cuenta si el disco se empezo a descifrar ahora (no el bloqueo de abajo)
+set "VGT=%OPT_T%"
 call :reg "HKLM\SYSTEM\CurrentControlSet\Control\BitLocker" "PreventDeviceEncryption" REG_DWORD 1
 call :opt_fin "BitLocker desactivado (el descifrado sigue en segundo plano)"
 call :vanguard_check
@@ -610,7 +617,7 @@ echo   Que hace: te deja elegir en Windows Update una pausa de muchos anos.
 echo   A favor: no se actualiza ni reinicia en un torneo o una partida importante.
 echo   En contra: si la dejas pausada mucho tiempo, te perdes parches de seguridad.
 set "QID=wup"
-set "Q=- Desea poder pausar las actualizaciones de Windows por mucho tiempo? (No pausa nada solo: en Windows Update elegis hasta cuando; ideal antes de un torneo)"
+set "Q=- Desea poder pausar las actualizaciones de Windows por mucho tiempo? (Vos elegis hasta cuando, en Windows Update)"
 call :askR
 if errorlevel 3 goto wup_r
 if errorlevel 2 goto wup_fin
@@ -675,7 +682,7 @@ echo   Que hace: apaga servicios de Fax, Mapas, modo demo, geolocalizacion y rep
 echo   A favor: menos servicios y funciones cargadas en Windows.
 echo   En contra: si usas el escaner de Windows o el Media Player viejo, dejan de estar.
 set "QID=sv"
-set "Q=- Desea desactivar servicios y funciones que casi nadie usa? (Fax y Escaner, Internet Explorer, Media Player viejo, Mapas, modo demo, geolocalizacion y reportes de error)"
+set "Q=- Desea desactivar servicios y funciones que casi nadie usa? (Fax y Escaner, Internet Explorer, Media Player viejo, Mapas y mas)"
 call :askR
 if errorlevel 3 goto sv_r
 if errorlevel 2 goto sv_fin
@@ -710,7 +717,7 @@ echo   Que hace: apaga historial de actividad, ubicacion, Wifi Sense, portapapel
 echo   A favor: mas privacidad y menos tareas en segundo plano.
 echo   En contra: las apps que usan ubicacion, como el clima, no la detectan, y tus ajustes no se copian a otras PCs.
 set "QID=pv"
-set "Q=- Desea apagar el rastreo y la recopilacion de datos? (Historial de actividad, ubicacion, Wifi Sense, portapapeles y ajustes en la nube, escritura, voz en la nube, mapas, DRM y Homegroup)"
+set "Q=- Desea apagar el rastreo y la recopilacion de datos? (Actividad, ubicacion, Wifi Sense, sincronizacion, escritura y voz en la nube)"
 call :askR
 if errorlevel 3 goto pv_r
 if errorlevel 2 goto pv_fin
@@ -969,7 +976,7 @@ echo   Que hace: apaga Click to Do y la IA del Bloc de notas.
 echo   A favor: menos procesos de IA y mas privacidad.
 echo   En contra: perdes esas funciones.
 set "QID=ia"
-set "Q=- Desea apagar las funciones de IA de Windows? (Click to Do y la IA del Bloc de notas; Recall tiene su propia opcion y Copilot se borra con las apps basura)"
+set "Q=- Desea apagar las funciones de IA de Windows? (Click to Do y la IA del Bloc de notas)"
 call :askR
 if errorlevel 3 goto ia_r
 if errorlevel 2 goto ia_fin
@@ -994,7 +1001,7 @@ echo   Que hace: borra OneDrive, Copilot, los paquetes de IA y las apps que vien
 echo   A favor: mas espacio, menos RAM y menos procesos.
 echo   En contra: no tiene R: si queres alguna, la reinstalas desde la Store. Tus archivos de OneDrive en la PC no se borran.
 set "QID=db"
-set "Q=- Desea borrar las apps basura? (OneDrive, Copilot, los paquetes de IA y las apps de Microsoft y de terceros que vienen de fabrica: Spotify, Netflix, Disney+, Teams, Outlook, Mapas, Notas, Camara, Reloj y mas; no toca WhatsApp, Telegram, redes sociales, Xbox ni la Store)"
+set "Q=- Desea borrar las apps basura? (OneDrive, Copilot, IA y apps de fabrica como Spotify, Netflix, Teams u Outlook; no toca WhatsApp, Xbox ni la Store)"
 call :askS
 if errorlevel 2 goto db_fin
 call :opt_ini "Apps basura"
@@ -1136,7 +1143,16 @@ call :askS
 if not errorlevel 2 start "" notepad "%LOG%"
 
 
-set "Q=Desea reiniciar ahora? (Hace falta para aplicar algunos cambios)"
+if defined VGAVISO set "REINICIO=1"
+if defined REINICIO goto fin_pide_reinicio
+echo.
+echo %C_OK%No hace falta reiniciar: los cambios ya quedaron aplicados.%C_RST%
+if not defined XUCA_AUTO pause
+exit /b
+:fin_pide_reinicio
+echo.
+echo %C_WARN%Hace falta reiniciar la PC para terminar de aplicar algunos cambios.%C_RST%
+set "Q=Desea reiniciar ahora?"
 call :askS
 if errorlevel 2 goto fin_sin_reinicio
 echo Reiniciando en 10 segundos...
@@ -1178,7 +1194,15 @@ call :askS
 if not errorlevel 2 start "" notepad "%LOG%"
 
 
-set "Q=Desea reiniciar ahora? (Hace falta para aplicar los cambios del script)"
+if defined REINICIO goto cta_pide_reinicio
+echo.
+echo %C_OK%No hace falta reiniciar.%C_RST%
+if not defined XUCA_AUTO pause
+exit /b
+:cta_pide_reinicio
+echo.
+echo %C_WARN%Hace falta reiniciar la PC para terminar de aplicar algunos cambios.%C_RST%
+set "Q=Desea reiniciar ahora?"
 call :askS
 if errorlevel 2 goto cta_sin_reinicio
 echo Reiniciando en 10 segundos...
@@ -1210,6 +1234,7 @@ call :log "INFO" "Fin. Cambios fallidos: %NFALLO%, opciones con problemas: %NATE
 exit /b
 
 :askR
+set "QACT=%QID%"
 if defined XUCA_AUTO goto ask_auto
 echo.
 choice /c SNR /n /m "%Q% [S] Si  [N] No  [R] Restaurar: "
@@ -1221,6 +1246,7 @@ call :log "PREG" "%LET% - %Q:~0,80%"
 exit /b %RESP%
 
 :askS
+set "QACT=%QID%"
 if defined XUCA_AUTO goto ask_auto_s
 echo.
 choice /c SN /n /m "%Q% [S] Si  [N] No: "
@@ -1270,10 +1296,14 @@ if not defined LOG goto :eof
 goto :eof
 
 :vanguard_check
+rem VGT = cambios en la parte de seguridad de la opcion (si no se marco, cuentan todos los de la opcion).
+set "VGN=%OPT_T%"
+if defined VGT set "VGN=%VGT%"
+set "VGT="
 rem Si ya se borro (o no estaba instalado) en una opcion anterior, no se vuelve a revisar ni a mostrar nada.
 if defined VG_HECHO goto :eof
-rem Si la opcion que se acaba de aplicar no cambio nada (ya estaba asi, no aplica o se omitio), Vanguard no se toca.
-if %OPT_T% EQU 0 goto :eof
+rem Si la seguridad ya estaba apagada (no cambio nada, no aplica o se omitio), Vanguard no se toca.
+if %VGN% EQU 0 goto :eof
 set "VGAVISO=1"
 set "ACT=VANGUARD_CHECK"
 call :aplicar_ps
@@ -1291,6 +1321,12 @@ call :opt_fin "Riot Vanguard borrado"
 set "VG_HECHO=1"
 goto :eof
 
+:rein_marca
+if not defined QACT goto :eof
+call set "RTMP=%%REIN_IDS: %QACT% =%%"
+if not "%RTMP%"=="%REIN_IDS%" set "REINICIO=1"
+goto :eof
+
 :opt_ini
 set "OPT_T=0"
 set "OPT_F=0"
@@ -1300,6 +1336,7 @@ call :log "INFO" "== %~1"
 goto :eof
 
 :opt_fin
+if %OPT_T% GTR 0 call :rein_marca
 if %OPT_F% GTR 0 goto opt_mal
 if %OPT_P% GTR 0 goto opt_pend
 if %OPT_T% GTR 0 goto opt_ok
@@ -35854,27 +35891,57 @@ public static class SpiNative {
         $pf = [Environment]::GetFolderPath('ProgramFiles')
         $vgDir = Join-Path $pf 'Riot Vanguard'
         $vgc = Join-Path $vgDir 'vgc.exe'
-        Stop-Process -Name 'vgc', 'vgtray' -Force -ErrorAction SilentlyContinue
+        # 1) Cerrar Riot: el cliente, Valorant, League y la bandeja de Vanguard. Asi tenes que volver a abrir
+        #    el cliente de Riot, que te pide instalar Vanguard de nuevo y no queda a medias.
+        $riot = @('VALORANT-Win64-Shipping', 'VALORANT', 'RiotClientServices', 'RiotClientUx', 'RiotClientUxRender', 'RiotClientCrashHandler', 'Riot Client', 'LeagueClient', 'LeagueClientUx', 'LeagueClientUxRender', 'League of Legends', 'vgtray', 'vgc')
+        $abiertos = @(Get-Process -Name $riot -ErrorAction SilentlyContinue)
+        if ($abiertos.Count -gt 0) {
+            $abiertos | Stop-Process -Force -ErrorAction SilentlyContinue
+            Log 'OK' ('Riot cerrado: ' + ((@($abiertos | ForEach-Object { $_.ProcessName } | Select-Object -Unique)) -join ', '))
+            Start-Sleep -Seconds 2
+        }
+        # 2) Desinstalarlo como desde el Panel de control (su propio desinstalador, sin preguntas si se puede)
+        $claves = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')
+        $entradas = @(foreach ($c in $claves) { Get-ChildItem -LiteralPath $c -ErrorAction SilentlyContinue | Where-Object { [string](Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue).DisplayName -like 'Riot Vanguard*' } })
+        foreach ($e in $entradas) {
+            $pr = Get-ItemProperty -LiteralPath $e.PSPath -ErrorAction SilentlyContinue
+            $cmd = [string]$pr.QuietUninstallString
+            if (-not $cmd) { $cmd = [string]$pr.UninstallString }
+            if (-not $cmd) { continue }
+            $exeU = ''; $argU = ''
+            if ($cmd -match '^\s*"([^"]+)"\s*(.*)$') { $exeU = $Matches[1]; $argU = $Matches[2] }
+            elseif ($cmd -match '^\s*(.+?\.exe)\s*(.*)$') { $exeU = $Matches[1]; $argU = $Matches[2] }
+            if (-not (Test-Path -LiteralPath $exeU)) { continue }
+            try {
+                $pu = $(if ($argU) { Start-Process -FilePath $exeU -ArgumentList $argU -PassThru -ErrorAction Stop } else { Start-Process -FilePath $exeU -PassThru -ErrorAction Stop })
+                # Como mucho 2 minutos: si el desinstalador pide confirmar, aparece su ventana
+                if (-not $pu.WaitForExit(120000)) { Log 'INFO' 'el desinstalador de Vanguard sigue abierto: se continua con la limpieza' }
+                else { Log 'OK' ('desinstalador de Riot Vanguard ejecutado (' + $exeU + ')') }
+            } catch { Log 'INFO' ('desinstalador de Vanguard: ' + $_.Exception.Message) }
+        }
+        # 3) Si quedo algo, su desinstalacion directa y despues borrar servicios, carpeta y la entrada del Panel de control
         if (Test-Path $vgc) {
-            try { Start-Process -FilePath $vgc -ArgumentList '/uninstall' -Wait -WindowStyle Hidden -ErrorAction Stop } catch { }
+            try { $pv = Start-Process -FilePath $vgc -ArgumentList '/uninstall' -WindowStyle Hidden -PassThru -ErrorAction Stop; $pv.WaitForExit(60000) | Out-Null } catch { }
             Start-Sleep -Seconds 2
         }
         foreach ($sv in 'vgc', 'vgk') {
             $s = Get-Service -Name $sv -ErrorAction SilentlyContinue
-            if ($s) { & sc.exe delete $sv | Out-Null }
+            if ($s) { & sc.exe stop $sv 2>&1 | Out-Null; & sc.exe delete $sv 2>&1 | Out-Null }
         }
         if (Test-Path $vgDir) { Remove-Item -Path $vgDir -Recurse -Force -ErrorAction SilentlyContinue }
+        foreach ($e in $entradas) { if (Test-Path -LiteralPath $e.PSPath) { Remove-Item -LiteralPath $e.PSPath -Recurse -Force -ErrorAction SilentlyContinue } }
         Start-Sleep -Seconds 1
         $queda = (Get-Service -Name 'vgc','vgk' -ErrorAction SilentlyContinue) -or (Test-Path $vgDir)
-        if (-not $queda) { 
-            Log 'OK' 'Riot Vanguard desinstalado y sus restos borrados'
+        if (-not $queda) {
+            Log 'OK' 'Riot Vanguard desinstalado del todo: abri el cliente de Riot y te pide instalarlo de nuevo'
+            Say '  Riot Vanguard desinstalado. Reinicia, abri el cliente de Riot y te pide instalarlo de nuevo.' 'Yellow'
             $code = 0
-        } else { 
+        } else {
             Log 'PENDIENTE' 'Riot Vanguard quitado: quedan restos que se limpian al reiniciar'
-            $code = 6 
+            Say '  Riot Vanguard quitado: termina de borrarse al reiniciar. Despues abri el cliente de Riot y te pide instalarlo.' 'Yellow'
+            $code = 6
         }
     }
-
 }
 
 exit $code
