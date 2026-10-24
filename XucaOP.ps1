@@ -82,6 +82,43 @@ function Prio-Actuales {
         Where-Object { (Leer-Reg ($_.PSPath + '\PerfOptions') 'XucaPrioridad') -eq 1 } |
         ForEach-Object { $_.PSChildName -replace '(?i)\.exe$', '' })
 }
+# Catalogos de la opcion de afinidad (juegos y programas de fondo): se leen del .bat para no tenerlos repetidos
+$AfiJuegosCat = ''; $AfiFondoCat = ''
+try {
+    $tg = [IO.File]::ReadAllText($Rutas.Gaming)
+    $AfiJuegosCat = [regex]::Match($tg, "(?m)^\`$afiJuegosCat = '([^']*)'").Groups[1].Value
+    $AfiFondoCat = [regex]::Match($tg, "(?m)^\`$afiFondoCat = '([^']*)'").Groups[1].Value
+} catch { }
+# Lo que dejo guardado la opcion de afinidad (juegos, programas de fondo y nucleos elegidos)
+function Afi-Config {
+    $c = @{}
+    $f = Join-Path $env:ProgramData 'XucaScripts\afinidad.txt'
+    if (-not (Test-Path -LiteralPath $f)) { return $c }
+    foreach ($l in @(Get-Content -LiteralPath $f -ErrorAction SilentlyContinue)) { $i = $l.IndexOf('='); if ($i -gt 0) { $c[$l.Substring(0, $i)] = $l.Substring($i + 1) } }
+    return $c
+}
+# Arma la lista para elegir: el catalogo y, al final, los que agregaste vos.
+# Si ya se aplico antes, viene marcado lo que elegiste esa vez; si no, todo el catalogo.
+function Afi-Items([string]$cat, [string]$clave) {
+    $c = Afi-Config
+    $actual = $null
+    if ($c.ContainsKey('apps')) {
+        $t = $(if ($clave -eq 'juegos') { ([string]$c['juegos']) + ',' + ([string]$c['livianos']) } else { [string]$c['apps'] })
+        $actual = @($t -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    }
+    $items = @()
+    foreach ($e in ($cat -split ';')) {
+        $i = $e.IndexOf('='); if ($i -lt 1) { continue }
+        $pr = @($e.Substring(0, $i) -split '\|' | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ })
+        $items += [pscustomobject]@{ Procs = $pr; Nombre = $e.Substring($i + 1).Trim(); Marcado = $true }
+    }
+    if ($null -ne $actual) {
+        foreach ($it in $items) { $it.Marcado = (@($it.Procs | Where-Object { $actual -contains $_ }).Count -gt 0) }
+        $conocidos = @($items | ForEach-Object { $_.Procs })
+        foreach ($pr in $actual) { if ($conocidos -notcontains $pr) { $items += [pscustomobject]@{ Procs = @($pr); Nombre = $pr; Marcado = $true } } }
+    }
+    return , $items
+}
 
 $Chequeos = @{
     'Debloat|rpo'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore' 'DisableSR') -eq 1 }
@@ -119,6 +156,7 @@ $Chequeos = @{
     'Gaming|du'     = { (Leer-Reg 'HKCU:\Software\Microsoft\Multimedia\Audio' 'UserDuckingPreference') -eq 3 }
     'Gaming|mm'     = { ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games' 'Scheduling Category') -eq 'High') -and ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile' 'SystemResponsiveness') -eq 10) }
     'Gaming|pri'    = { (Prio-Actuales).Count -gt 0 }
+    'Gaming|afi'    = { [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue) }
     'Gaming|pw'     = { $script:Plan -eq '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' }
     'Gaming|cpu'    = { if (-not $script:Plan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $script:Plan + '.txt')) }
     'Gaming|gm'     = { ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled') -eq 1) -and ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled') -eq 0) }
@@ -320,6 +358,7 @@ function Poner-Pill($pb, $estado) {
 
 # Una tarjeta con casilla, estado actual y explicacion
 $script:PrioTexto = $null
+$script:AfiTexto = $null
 function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     $card = Nueva-Caja
     $sp = New-Object Windows.Controls.StackPanel
@@ -351,6 +390,14 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
         $script:PrioTexto = Nuevo-Texto '' 12 '#81C995' $false
         $script:PrioTexto.Margin = '24,4,0,0'
         $sp.Children.Add($script:PrioTexto) | Out-Null
+    }
+    if ($it.Id -eq 'afi') {
+        $n = Nuevo-Texto 'Al tocar Aplicar te pide los procesos de tus juegos y los programas de fondo. Tu procesador se detecta solo.' 12 '#8AB4F8' $false
+        $n.Margin = '24,6,0,0'
+        $sp.Children.Add($n) | Out-Null
+        $script:AfiTexto = Nuevo-Texto '' 12 '#81C995' $false
+        $script:AfiTexto.Margin = '24,4,0,0'
+        $sp.Children.Add($script:AfiTexto) | Out-Null
     }
     $card.Child = $sp
     $casillas[$it.Id] = $cb
@@ -517,6 +564,10 @@ function Refrescar-Estado {
         $pr = Prio-Actuales
         $script:PrioTexto.Text = $(if ($pr.Count -gt 0) { 'Con prioridad alta ahora: ' + ($pr -join ', ') } else { '' })
     }
+    if ($script:AfiTexto) {
+        $ac = Afi-Config
+        $script:AfiTexto.Text = $(if ($ac['desc'] -and (Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue)) { 'Activa: ' + $ac['desc'] } else { '' })
+    }
     $bld = 0
     try { $bld = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'CurrentBuildNumber') } catch { }
     if ($bld -ge 26200) { $script:VerTexto.Text = ('Ya tenes la 25H2 o build mas nueva (build ' + $bld + ').'); $script:BtnVer.IsEnabled = $false }
@@ -541,7 +592,7 @@ function Bloquear([bool]$si) {
 
 function Limpiar-Variables {
     foreach ($v in @(Get-ChildItem Env: | Where-Object { $_.Name -like 'XR_*' })) { Remove-Item -LiteralPath ('Env:' + $v.Name) -ErrorAction SilentlyContinue }
-    foreach ($n in 'XUCA_AUTO', 'PRIOJ', 'CLEAN_BIN', 'CLEAN_GPU', 'CLEAN_RP') { Remove-Item -LiteralPath ('Env:' + $n) -ErrorAction SilentlyContinue }
+    foreach ($n in 'XUCA_AUTO', 'PRIOJ', 'AFIAPP', 'AFIJ', 'AFIF', 'AFIJX', 'AFIFX', 'AFIJT', 'AFIFT', 'CLEAN_BIN', 'CLEAN_GPU', 'CLEAN_RP') { Remove-Item -LiteralPath ('Env:' + $n) -ErrorAction SilentlyContinue }
 }
 
 function Siguiente {
@@ -608,6 +659,87 @@ function Pedir-Texto([string]$titulo, [string]$mensaje, [string]$inicial) {
     $w.Add_ContentRendered({ $tx.Focus() | Out-Null; $tx.SelectAll() }.GetNewClosure())
     if ($w.ShowDialog()) { return $tx.Text.Trim() }
     return $null
+}
+
+# Ventana con casillas para elegir juegos o programas, y un campo para agregar otros.
+# Devuelve los procesos elegidos separados por comas ('' si no elegiste ninguno) o $null si cancelas.
+function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaExtra) {
+    $w = New-Object Windows.Window
+    $w.Title = $titulo; $w.Width = 640; $w.Height = 660; $w.MinWidth = 520; $w.MinHeight = 420
+    $w.WindowStartupLocation = 'CenterOwner'; $w.Owner = $win; $w.Background = (Pincel '#14161B'); $w.FontFamily = 'Segoe UI'
+    $dock = New-Object Windows.Controls.DockPanel
+    $dock.Margin = '20,18,20,16'
+    $msg = Nuevo-Texto $mensaje 13 '#C3C8D0' $false
+    $msg.Margin = '0,0,0,10'
+    [Windows.Controls.DockPanel]::SetDock($msg, 'Top')
+    $dock.Children.Add($msg) | Out-Null
+
+    $abajo = New-Object Windows.Controls.StackPanel
+    [Windows.Controls.DockPanel]::SetDock($abajo, 'Bottom')
+    $lx = Nuevo-Texto $ayudaExtra 12.5 '#9AA0A6' $false
+    $lx.Margin = '0,12,0,4'
+    $abajo.Children.Add($lx) | Out-Null
+    $tx = New-Object Windows.Controls.TextBox
+    $tx.Padding = '6,5'; $tx.FontSize = 13.5
+    $tx.Background = (Pincel '#0E1014'); $tx.Foreground = (Pincel '#FFFFFF'); $tx.BorderBrush = (Pincel '#3A404C'); $tx.CaretBrush = (Pincel '#FFFFFF')
+    $abajo.Children.Add($tx) | Out-Null
+    $fila = New-Object Windows.Controls.DockPanel
+    $fila.Margin = '0,6,0,0'
+    $der = New-Object Windows.Controls.StackPanel
+    $der.Orientation = 'Horizontal'
+    [Windows.Controls.DockPanel]::SetDock($der, 'Right')
+    $bc1 = Nuevo-Boton 'Cancelar'; $bc1.IsCancel = $true
+    $bok = Nuevo-Boton 'Aceptar' '#3D6FD9'; $bok.IsDefault = $true
+    $der.Children.Add($bc1) | Out-Null
+    $der.Children.Add($bok) | Out-Null
+    $fila.Children.Add($der) | Out-Null
+    $izq = New-Object Windows.Controls.StackPanel
+    $izq.Orientation = 'Horizontal'
+    $bTodo = Nuevo-Boton 'Marcar todo'; $bNada = Nuevo-Boton 'Desmarcar todo'
+    $izq.Children.Add($bTodo) | Out-Null
+    $izq.Children.Add($bNada) | Out-Null
+    $fila.Children.Add($izq) | Out-Null
+    $abajo.Children.Add($fila) | Out-Null
+    $dock.Children.Add($abajo) | Out-Null
+
+    $grilla = New-Object Windows.Controls.Primitives.UniformGrid
+    $grilla.Columns = 2
+    $cbs = New-Object System.Collections.Generic.List[object]
+    foreach ($it in $items) {
+        $cb = New-Object Windows.Controls.CheckBox
+        $cb.Margin = '2,4,8,4'; $cb.VerticalContentAlignment = 'Center'; $cb.IsChecked = [bool]$it.Marcado
+        $cb.Tag = ($it.Procs -join ',')
+        $cb.ToolTip = ('Proceso: ' + ($it.Procs -join ', '))
+        $t = New-Object Windows.Controls.TextBlock
+        $t.TextWrapping = 'Wrap'
+        $r1 = New-Object Windows.Documents.Run($it.Nombre); $r1.Foreground = (Pincel '#FFFFFF'); $r1.FontSize = 13.5
+        $t.Inlines.Add($r1)
+        if ($it.Nombre -ne ($it.Procs -join ', ')) {
+            $t.Inlines.Add((New-Object Windows.Documents.LineBreak))
+            $r2 = New-Object Windows.Documents.Run(($it.Procs -join ', ')); $r2.Foreground = (Pincel '#7D8590'); $r2.FontSize = 11
+            $t.Inlines.Add($r2)
+        }
+        $cb.Content = $t
+        $grilla.Children.Add($cb) | Out-Null
+        $cbs.Add($cb)
+    }
+    $caja = New-Object Windows.Controls.Border
+    $caja.CornerRadius = 10; $caja.Background = (Pincel '#1C2027'); $caja.Padding = '12,8'
+    $sv = New-Object Windows.Controls.ScrollViewer
+    $sv.VerticalScrollBarVisibility = 'Auto'
+    $sv.Content = $grilla
+    $caja.Child = $sv
+    $dock.Children.Add($caja) | Out-Null
+
+    $bTodo.Add_Click({ foreach ($c in $cbs) { $c.IsChecked = $true } }.GetNewClosure())
+    $bNada.Add_Click({ foreach ($c in $cbs) { $c.IsChecked = $false } }.GetNewClosure())
+    $bok.Add_Click({ $w.DialogResult = $true }.GetNewClosure())
+    $w.Content = $dock
+    if (-not $w.ShowDialog()) { return $null }
+    $sel = @($cbs | Where-Object { $_.IsChecked -eq $true } | ForEach-Object { [string]$_.Tag })
+    $extra = $tx.Text.Trim()
+    if ($extra) { $sel += $extra }
+    return ($sel -join ',')
 }
 
 # ------------------------------------------------------------
@@ -682,6 +814,16 @@ $ui.BtnAplicar.Add_Click({
         if ($null -eq $j) { return }
         if (-not $j) { [Windows.MessageBox]::Show('No escribiste ningun proceso. Desmarca "Dar prioridad alta a tus juegos" o escribi al menos uno.', 'Xuca OPtimizer') | Out-Null; return }
         $vG['PRIOJ'] = $j
+    }
+    if ($selG -contains 'afi') {
+        $j = Elegir-Lista 'Afinidad: tus juegos' ('Marca los juegos que quieras en los mejores nucleos. Vienen los mas comunes; si ya lo usaste, te muestra lo que elegiste la vez pasada.' + "`n" + 'Si un juego no tiene antitrampas que lo bloquee, se aplica a los 2 segundos de abrirlo.') (Afi-Items $AfiJuegosCat 'juegos') 'Agregar otros juegos: escribi su proceso sin .exe, separados por comas. Lo ves con el juego abierto: Administrador de tareas, pestana Detalles.'
+        if ($null -eq $j) { return }
+        if (-not $j) { [Windows.MessageBox]::Show('No elegiste ningun juego. Desmarca "Usar afinidad de CPU para tus juegos" o elegi al menos uno.', 'Xuca OPtimizer') | Out-Null; return }
+        $f = Elegir-Lista 'Afinidad: programas de fondo' ('Marca los programas que se van a otros nucleos mientras jugas. Cuando cerras el juego vuelven a usar todos.' + "`n" + 'OBS, Visual Studio, Unreal, Godot, el sistema y los antitrampas nunca se tocan aunque los escribas.') (Afi-Items $AfiFondoCat 'apps') 'Agregar otros programas, separados por comas. No pongas launchers (Steam, Epic, Battle.net): los juegos que abren heredarian esos nucleos.'
+        if ($null -eq $f) { return }
+        $vG['AFIAPP'] = '1'
+        $vG['AFIJ'] = $j
+        if ($f) { $vG['AFIF'] = $f }
     }
 
     $vD = @{}

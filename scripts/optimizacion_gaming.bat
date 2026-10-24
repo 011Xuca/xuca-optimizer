@@ -267,6 +267,69 @@ call :aplicar_ps
 call :resps
 call :opt_fin "Los juegos vuelven a la prioridad normal"
 :pri_fin
+
+echo.
+echo   Afinidad de CPU para tus juegos:
+echo   Se detecta solo tu procesador y se elige lo mejor para cada tipo:
+echo     - Intel con P-cores y E-cores: los juegos van a los P-cores, lo de fondo a los E-cores.
+echo     - AMD con dos bloques grandes, por ejemplo X3D: los juegos van al bloque con mas cache, lo de fondo al otro.
+echo     - Ryzen 1000, 2000 y 3000, con bloques chicos: Minecraft, Valorant y otros juegos livianos van a un solo bloque;
+echo       los pesados usan todos los nucleos para no perder FPS.
+echo     - Nucleos iguales: lo de fondo va al ultimo nucleo. Con 8 o mas nucleos el juego lo deja libre.
+echo   Ya trae una lista de juegos: Marvel Rivals, Fortnite, CS2, Valorant, Warzone, Apex, Minecraft, ARK, Spider-Man, GTA V y mas.
+echo   Lo de fondo solo se mueve mientras un juego esta abierto. Al cerrarlo, todo vuelve a usar todos los nucleos.
+echo   OBS, Visual Studio, Unreal, Godot, servidores Java, el audio de Windows y los antitrampas nunca se tocan.
+echo   Que hace: un programa chico en segundo plano pone tus juegos en los mejores nucleos y lleva Discord, Spotify y el navegador a otros.
+echo   A favor: lo de fondo no le roba nucleos al juego: frametimes mas parejos y menos tirones, sobre todo en Minecraft.
+echo   En contra: mientras jugas, lo de fondo anda un poco mas lento. Algunos antitrampas no dejan cambiar la afinidad del juego: en ese caso se saltea.
+set "QID=afi"
+set "Q=- Desea usar afinidad de CPU para tus juegos? (Juegos en los mejores nucleos y programas de fondo aparte; se detecta tu procesador)"
+call :askR
+if errorlevel 3 goto afi_r
+if errorlevel 2 goto afi_fin
+call :opt_ini "Afinidad de CPU para juegos"
+if not defined XUCA_AUTO set "AFIJ="
+if not defined XUCA_AUTO set "AFIF="
+if not defined XUCA_AUTO set "AFIAPP="
+set "AFIJT="
+set "AFIJX="
+set "AFIFT="
+set "AFIFX="
+echo.
+set "ACT=AFI_INFO"
+call :aplicar_ps
+if errorlevel 2 goto afi_aplicar
+if defined XUCA_AUTO goto afi_aplicar
+echo.
+echo   Para sacar o volver a poner uno, escribi su numero. Para agregar otro, escribi su proceso sin .exe
+echo   ^(lo ves con el juego abierto: Administrador de tareas, pestana Detalles^).
+set /p "AFIJT=  Numeros de juegos para marcar o desmarcar, separados por comas (Enter = dejar asi): "
+set /p "AFIJX=  Juegos nuevos para agregar, separados por comas (Enter = ninguno): "
+echo.
+set "ACT=AFI_INFO_F"
+call :aplicar_ps
+echo.
+set /p "AFIFT=  Numeros de programas para marcar o desmarcar, separados por comas (Enter = dejar asi): "
+set /p "AFIFX=  Programas nuevos para agregar, separados por comas (Enter = ninguno): "
+:afi_aplicar
+set "ACT=AFI_ON"
+call :aplicar_ps
+call :resps
+set "AFIJ="
+set "AFIF="
+set "AFIJT="
+set "AFIJX="
+set "AFIFT="
+set "AFIFX="
+call :opt_fin "Afinidad activa (si el juego ya estaba abierto, se aplica en unos segundos)"
+goto afi_fin
+:afi_r
+call :opt_ini "Afinidad de CPU (restaurar)"
+set "ACT=AFI_OFF"
+call :aplicar_ps
+call :resps
+call :opt_fin "Afinidad quitada: todo vuelve a usar todos los nucleos"
+:afi_fin
 echo.
 echo.
 echo %C_TIT%=== PLAN DE ENERGIA ===%C_RST%
@@ -1362,6 +1425,157 @@ $dnsCand = [ordered]@{
     'OpenDNS'    = @('208.67.222.222', '208.67.220.220')
 }
 
+# ---------- Afinidad de CPU (opcion afi) ----------
+# Catalogos predeterminados (proceso=Nombre; varios procesos del mismo juego van con |). La app tambien los lee de aca.
+$afiJuegosCat = 'marvel-win64-shipping=Marvel Rivals; fortniteclient-win64-shipping=Fortnite; cs2=Counter-Strike 2; valorant-win64-shipping=Valorant; cod=Call of Duty / Warzone; r5apex|r5apex_dx12=Apex Legends; overwatch=Overwatch 2; rainbowsix=Rainbow Six Siege; tslgame=PUBG; league of legends=League of Legends; rocketleague=Rocket League; bf6=Battlefield 6; javaw=Minecraft Java (Lunar, Feather); minecraft.windows=Minecraft Bedrock; arkascended=ARK Survival Ascended; shootergame=ARK Survival Evolved; spider-man=Spider-Man Remastered; milesmorales=Spider-Man Miles Morales; spider-man2=Spider-Man 2; gta5|gta5_enhanced=GTA V; robloxplayerbeta=Roblox; cyberpunk2077=Cyberpunk 2077; rdr2=Red Dead Redemption 2; eldenring=Elden Ring'
+$afiFondoCat = 'discord=Discord; spotify=Spotify; chrome=Google Chrome; msedge=Microsoft Edge; firefox=Firefox; opera=Opera / Opera GX; brave=Brave; steamwebhelper=Steam (tienda y ventanas); epicwebhelper=Epic Games (ventanas); onedrive=OneDrive; whatsapp=WhatsApp; telegram=Telegram; wallpaper32|wallpaper64=Wallpaper Engine'
+# Juegos que usan pocos hilos y dependen de la latencia: en los Ryzen con bloques chicos van a un solo bloque.
+$afiLivianos = @('javaw', 'minecraft.windows', 'valorant-win64-shipping', 'league of legends', 'rocketleague', 'robloxplayerbeta')
+# Nunca se tocan: sistema, audio, antivirus y antitrampas, OBS, editores y compiladores.
+$afiProhibidos = @('system', 'idle', 'registry', 'smss', 'csrss', 'wininit', 'winlogon', 'services', 'lsass', 'lsaiso', 'svchost', 'dwm', 'fontdrvhost', 'memory compression', 'audiodg', 'explorer', 'sihost', 'ctfmon', 'taskmgr', 'searchhost', 'startmenuexperiencehost', 'shellexperiencehost', 'textinputhost', 'runtimebroker', 'securityhealthservice', 'msmpeng', 'nissrv', 'vgc', 'vgtray', 'vgk', 'easyanticheat', 'easyanticheat_eos', 'beservice', 'faceit', 'faceitservice', 'devenv', 'msbuild', 'vbcscompiler', 'servicehub.host.dotnet.x64', 'code', 'rider64', 'shadercompileworker', 'resolve', 'blender', 'fmod studio', 'java', 'xucaafinidad', 'xucatimer', 'xucaram')
+
+function Afi-Prohibido([string]$n) { return (($afiProhibidos -contains $n) -or ($n -like 'obs*') -or ($n -like 'unrealeditor*') -or ($n -like 'godot*') -or ($n -like 'unrealinsights*')) }
+function Afi-Nombres([string]$txt) {
+    $l = New-Object System.Collections.Generic.List[string]
+    foreach ($e in ($txt -split ',')) {
+        $n = ($e.Trim().Trim('"').Trim() -replace '(?i)\.exe$', '').ToLower()
+        if (-not $n) { continue }
+        if ($n -notmatch '^[^\\/:*?"<>|=]+$') { Log 'OMITIDO' ('nombre de proceso no valido: "' + $n + '"'); Say ('  "' + $n + '" no es un nombre de proceso valido, se salteo.') 'Yellow'; continue }
+        if (Afi-Prohibido $n) { Log 'OMITIDO' ('"' + $n + '" no se toca para no romperlo'); Say ('  "' + $n + '" no se toca (sistema, OBS, editores, servidores Java o antitrampas), se salteo.') 'Yellow'; continue }
+        $l.Add($n)
+    }
+    return @($l | Sort-Object -Unique)
+}
+function Afi-Config {
+    $c = @{}
+    $f = Join-Path $env:ProgramData 'XucaScripts\afinidad.txt'
+    if (Test-Path -LiteralPath $f) { foreach ($l in @(Get-Content -LiteralPath $f)) { $i = $l.IndexOf('='); if ($i -gt 0) { $c[$l.Substring(0, $i)] = $l.Substring($i + 1) } } }
+    return $c
+}
+# Lo que elegiste la vez anterior ('juegos' o 'apps'); $null si nunca se aplico (se usan todos los predeterminados).
+function Afi-Actual([string]$clave) {
+    $c = Afi-Config
+    if (-not $c.ContainsKey('apps')) { return $null }
+    if ($clave -eq 'juegos') { $t = ([string]$c['juegos']) + ',' + ([string]$c['livianos']) } else { $t = [string]$c['apps'] }
+    return , @($t -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
+# Arma la lista para elegir: el catalogo y, al final, los que agregaste vos. Marcado = elegido.
+function Afi-Items([string]$cat, $actual) {
+    $items = @()
+    foreach ($e in ($cat -split ';')) {
+        $i = $e.IndexOf('='); if ($i -lt 1) { continue }
+        $pr = @($e.Substring(0, $i) -split '\|' | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ })
+        $items += [pscustomobject]@{ Procs = $pr; Nombre = $e.Substring($i + 1).Trim(); Marcado = $true }
+    }
+    if ($null -ne $actual) {
+        foreach ($it in $items) { $it.Marcado = (@($it.Procs | Where-Object { $actual -contains $_ }).Count -gt 0) }
+        $conocidos = @($items | ForEach-Object { $_.Procs })
+        foreach ($pr in $actual) { if ($conocidos -notcontains $pr) { $items += [pscustomobject]@{ Procs = @($pr); Nombre = $pr; Marcado = $true } } }
+    }
+    return , $items
+}
+function Afi-MostrarItems($items, [string]$titulo) {
+    Say ('  ' + $titulo + '  [X] = elegido') 'White'
+    for ($i = 0; $i -lt $items.Count; $i++) {
+        $m = ' '; if ($items[$i].Marcado) { $m = 'X' }
+        Say ('   {0,2}. [{1}] {2,-32} {3}' -f ($i + 1), $m, $items[$i].Nombre, ('(' + ($items[$i].Procs -join ', ') + ')')) $null
+    }
+}
+# Aplica los numeros que escribiste (marca o desmarca cada uno) y suma los procesos nuevos.
+function Afi-Elegir([string]$cat, [string]$clave, [string]$cambios, [string]$extra) {
+    $items = Afi-Items $cat (Afi-Actual $clave)
+    foreach ($t in ([string]$cambios -split '[,;\s]+')) {
+        $k = 0
+        if ([int]::TryParse($t, [ref]$k) -and ($k -ge 1) -and ($k -le $items.Count)) { $items[$k - 1].Marcado = -not $items[$k - 1].Marcado }
+    }
+    $sel = @($items | Where-Object { $_.Marcado } | ForEach-Object { $_.Procs })
+    return (($sel -join ',') + ',' + $extra)
+}
+function Afi-Bit([long]$m, [int]$i) { return (($m -band ([long]1 -shl $i)) -ne 0) }
+function Afi-BitBajo([long]$m) { for ($i = 0; $i -lt 64; $i++) { if (Afi-Bit $m $i) { return $i } }; return 64 }
+function Afi-Hilos([long]$m) { $c = 0; for ($i = 0; $i -lt 64; $i++) { if (Afi-Bit $m $i) { $c++ } }; return $c }
+function Afi-Lista([long]$m) {
+    $idx = @(); for ($i = 0; $i -lt 64; $i++) { if (Afi-Bit $m $i) { $idx += $i } }
+    $partes = @(); $i = 0
+    while ($i -lt $idx.Count) {
+        $j = $i
+        while (($j + 1 -lt $idx.Count) -and ($idx[$j + 1] -eq ($idx[$j] + 1))) { $j++ }
+        if ($j -eq $i) { $partes += [string]$idx[$i] } else { $partes += ([string]$idx[$i] + '-' + [string]$idx[$j]) }
+        $i = $j + 1
+    }
+    return ('CPU ' + ($partes -join ', '))
+}
+
+# Mira como es el procesador por dentro y decide que nucleos van para cada cosa.
+#   Juego   = nucleos para los juegos normales.
+#   Liviano = nucleos para los juegos de pocos hilos (Minecraft, Valorant...).
+#   Fondo   = nucleos para los programas de fondo, solo mientras jugas.
+function Afi-Plan {
+    $r = [pscustomobject]@{ Ok = $false; Motivo = ''; Cpu = ''; Tipo = ''; Todo = [long]0; Juego = [long]0; Liviano = [long]0; Fondo = [long]0 }
+    $csTopo = 'using System; using System.Collections.Generic; using System.Runtime.InteropServices; public class XucaPieza { public long Mascara; public int Grupo; public int Clase; public int Nivel; public long Cache; } public class XucaTopo { [DllImport("kernel32.dll", SetLastError = true)] static extern bool GetLogicalProcessorInformationEx(int rel, IntPtr buf, ref uint len); public static List<XucaPieza> Leer(int rel) { List<XucaPieza> r = new List<XucaPieza>(); uint len = 0; GetLogicalProcessorInformationEx(rel, IntPtr.Zero, ref len); if (len == 0) return r; IntPtr buf = Marshal.AllocHGlobal((int)len); try { if (!GetLogicalProcessorInformationEx(rel, buf, ref len)) return r; long off = 0; while (off < len) { IntPtr p = new IntPtr(buf.ToInt64() + off); int tipo = Marshal.ReadInt32(p, 0); int size = Marshal.ReadInt32(p, 4); if (size <= 0) break; if (tipo == 0) { int gc = Marshal.ReadInt16(p, 30); if (gc < 1) gc = 1; for (int g = 0; g < gc; g++) { XucaPieza x = new XucaPieza(); x.Mascara = Marshal.ReadInt64(p, 32 + g * 16); x.Grupo = Marshal.ReadInt16(p, 40 + g * 16); x.Clase = Marshal.ReadByte(p, 9); r.Add(x); } } else if (tipo == 2) { int gc = Marshal.ReadInt16(p, 38); if (gc < 1) gc = 1; for (int g = 0; g < gc; g++) { XucaPieza x = new XucaPieza(); x.Mascara = Marshal.ReadInt64(p, 40 + g * 16); x.Grupo = Marshal.ReadInt16(p, 48 + g * 16); x.Nivel = Marshal.ReadByte(p, 8); x.Cache = (long)(uint)Marshal.ReadInt32(p, 12); r.Add(x); } } off += size; } } finally { Marshal.FreeHGlobal(buf); } return r; } }'
+    $nucleos = @(); $l3 = @()
+    try {
+        if (-not ('XucaTopo' -as [type])) { Add-Type -TypeDefinition $csTopo -Language CSharp -ErrorAction Stop }
+        $nucleos = @([XucaTopo]::Leer(0))
+        $l3 = @([XucaTopo]::Leer(2) | Where-Object { $_.Nivel -eq 3 })
+    } catch { Log 'FALLO' ('Leer el procesador: ' + $_.Exception.Message) }
+    $r.Cpu = ([string](Get-CimInstance Win32_Processor | Select-Object -First 1).Name).Trim()
+    if ($nucleos.Count -eq 0) { $r.Motivo = 'no se pudo leer como son los nucleos del procesador'; return $r }
+    if (@($nucleos | Where-Object { $_.Grupo -ne 0 }).Count -gt 0) { $r.Motivo = 'el procesador tiene mas de 64 hilos y esta opcion no lo soporta'; return $r }
+    $n = $nucleos.Count
+    if ($n -lt 4) { $r.Motivo = ('el procesador tiene ' + $n + ' nucleos: no alcanza para separar el juego de lo de fondo'); return $r }
+    $todo = [long]0; foreach ($c in $nucleos) { $todo = $todo -bor $c.Mascara }
+    $r.Todo = $todo
+    $ord = @($nucleos | Sort-Object { Afi-BitBajo $_.Mascara })
+    # Regla para nucleos iguales: lo de fondo va al ultimo nucleo (a los 2 ultimos con 12 o mas).
+    # Con 8 o mas, el juego deja ese nucleo libre. Con menos, el juego igual puede usarlo: nunca pierde potencia.
+    $res = 1; if ($n -ge 12) { $res = 2 }
+    $ultimo = [long]0; for ($i = $n - $res; $i -lt $n; $i++) { $ultimo = $ultimo -bor $ord[$i].Mascara }
+    $clases = @($nucleos | ForEach-Object { $_.Clase } | Sort-Object -Unique)
+    if ($clases.Count -gt 1) {
+        # Intel hibrido: la clase mas alta son los P-cores (los rapidos).
+        $max = ($clases | Measure-Object -Maximum).Maximum
+        $pc = @($nucleos | Where-Object { $_.Clase -eq $max })
+        $pm = [long]0; foreach ($c in $pc) { $pm = $pm -bor $c.Mascara }
+        $r.Fondo = $todo -band (-bnot $pm)
+        if ($pc.Count -ge 6) { $r.Juego = $pm; $r.Liviano = $pm; $r.Tipo = ('hibrido, ' + $pc.Count + ' P-cores y ' + ($n - $pc.Count) + ' E-cores: juegos en los P-cores') }
+        elseif ($pc.Count -ge 4) { $r.Juego = $todo; $r.Liviano = $pm; $r.Tipo = ('hibrido, ' + $pc.Count + ' P-cores: los juegos pesados usan todo y los livianos solo los P-cores') }
+        else { $r.Juego = $todo; $r.Liviano = $todo; $r.Tipo = ('hibrido, solo ' + $pc.Count + ' P-cores: los juegos usan todo y lo de fondo va a los E-cores') }
+    } elseif ($l3.Count -gt 1) {
+        # Varios bloques con su propia cache L3: el de mas cache (V-Cache en los X3D); si son iguales, el primero.
+        $orden = @($l3 | Sort-Object @{ Expression = { $_.Cache }; Descending = $true }, @{ Expression = { Afi-BitBajo $_.Mascara }; Descending = $false })
+        $bloque = $orden[0].Mascara -band $todo
+        $nb = @($nucleos | Where-Object { ($_.Mascara -band $bloque) -ne 0 }).Count
+        $vc = ($orden[0].Cache -gt $orden[1].Cache)
+        if ($nb -ge 6) {
+            $r.Juego = $bloque; $r.Liviano = $bloque; $r.Fondo = $todo -band (-bnot $bloque)
+            if ($vc) { $r.Tipo = ($l3.Count.ToString() + ' bloques: juegos en el de V-Cache (' + [math]::Round($orden[0].Cache / 1MB) + ' MB de L3)') }
+            else { $r.Tipo = ($l3.Count.ToString() + ' bloques de ' + $nb + ' nucleos: juegos en el primero') }
+        } else {
+            # Bloques chicos (Ryzen 1000, 2000 y 3000): pasar de un bloque a otro es lento.
+            # Los juegos livianos van a un solo bloque; los pesados usan todos para no perder FPS.
+            $primero = @($l3 | Sort-Object { Afi-BitBajo $_.Mascara })[0].Mascara -band $todo
+            $r.Liviano = $primero; $r.Fondo = $ultimo
+            if ($n -ge 8) { $r.Juego = $todo -band (-bnot $ultimo) } else { $r.Juego = $todo }
+            if (($r.Liviano -band $r.Fondo) -ne 0) { $r.Liviano = $r.Juego }
+            $r.Tipo = ($l3.Count.ToString() + ' bloques de ' + $nb + ' nucleos: livianos en el primer bloque, pesados en todos')
+        }
+    } else {
+        $r.Fondo = $ultimo; $r.Liviano = $todo -band (-bnot $ultimo)
+        if ($n -ge 8) { $r.Juego = $todo -band (-bnot $ultimo) } else { $r.Juego = $todo }
+        $r.Tipo = ($n.ToString() + ' nucleos iguales en un solo bloque')
+    }
+    if (($r.Juego -eq 0) -or ($r.Fondo -eq 0) -or ($r.Liviano -eq 0)) { $r.Motivo = 'no se pudo separar los nucleos del procesador'; return $r }
+    $r.Ok = $true
+    return $r
+}
+function Afi-Mostrar($pl) {
+    Say ('  Procesador: ' + $pl.Cpu + ' - ' + $pl.Tipo) 'Cyan'
+    Say ('    Juegos:           ' + (Afi-Lista $pl.Juego) + ' (' + (Afi-Hilos $pl.Juego) + ' hilos)') 'Cyan'
+    if ($pl.Liviano -ne $pl.Juego) { Say ('    Juegos livianos:  ' + (Afi-Lista $pl.Liviano) + ' (' + (Afi-Hilos $pl.Liviano) + ' hilos) - ' + ($afiLivianos -join ', ')) 'Cyan' }
+    Say ('    Fondo:            ' + (Afi-Lista $pl.Fondo) + ' (' + (Afi-Hilos $pl.Fondo) + ' hilos), solo mientras jugas') 'Cyan'
+}
+
 switch ($env:ACT) {
 
     'INFO' {
@@ -2136,6 +2350,100 @@ public static class SpiNative {
                 if (Test-Path -LiteralPath ($k.PSPath + '\PerfOptions')) { Log 'FALLO' ('no se pudo quitar la prioridad de ' + $k.PSChildName); $code = 1 }
                 else { Log 'OK' ('verificado: ' + $k.PSChildName + ' vuelve a prioridad normal') }
             }
+        }
+    }
+
+    'AFI_INFO' {
+        $pl = Afi-Plan
+        if (-not $pl.Ok) { Say ('  No se puede usar en esta PC: ' + $pl.Motivo + '.') 'Yellow'; $code = 2 }
+        else {
+            Afi-Mostrar $pl
+            Say '' $null
+            Afi-MostrarItems (Afi-Items $afiJuegosCat (Afi-Actual 'juegos')) 'Juegos:'
+        }
+    }
+
+    'AFI_INFO_F' {
+        Afi-MostrarItems (Afi-Items $afiFondoCat (Afi-Actual 'apps')) 'Programas de fondo (se mueven solo mientras jugas):'
+    }
+
+    'AFI_ON' {
+        $tn = 'XucaAfinidad'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaAfinidad.exe'; $cfg = Join-Path $dir 'afinidad.txt'
+        $pl = Afi-Plan
+        if (-not $pl.Ok) { Log 'OMITIDO' $pl.Motivo; Say ('  No se cambio nada: ' + $pl.Motivo + '.') 'Yellow'; $code = 2 }
+        else {
+            # La app manda la eleccion completa (AFIAPP=1, AFIJ y AFIF). En la consola: lo de la vez anterior (o los
+            # predeterminados), con los numeros que marcaste o desmarcaste (AFIJT/AFIFT) y lo que agregaste (AFIJX/AFIFX).
+            if ($env:AFIAPP -eq '1') { $txtJ = [string]$env:AFIJ; $txtF = [string]$env:AFIF }
+            else {
+                $txtJ = Afi-Elegir $afiJuegosCat 'juegos' ([string]$env:AFIJT) ([string]$env:AFIJX)
+                $txtF = Afi-Elegir $afiFondoCat 'apps' ([string]$env:AFIFT) ([string]$env:AFIFX)
+            }
+            $juegos = @(Afi-Nombres $txtJ)
+            $apps = @(Afi-Nombres $txtF | Where-Object { $juegos -notcontains $_ })
+            $livianos = @($juegos | Where-Object { $afiLivianos -contains $_ })
+            $pesados = @($juegos | Where-Object { $afiLivianos -notcontains $_ })
+            if ($juegos.Count -eq 0) { Log 'OMITIDO' 'no quedo ningun juego elegido'; Say '  No quedo ningun juego elegido: no se cambio nada.' 'Yellow'; $code = 2 }
+            else {
+                $desc = ($pl.Cpu + ' (' + $pl.Tipo + '): juegos en ' + (Afi-Lista $pl.Juego) + ', livianos en ' + (Afi-Lista $pl.Liviano) + ', fondo en ' + (Afi-Lista $pl.Fondo))
+                Log 'INFO' ('Procesador: ' + $desc)
+                Afi-Mostrar $pl
+                $txt = (@(('juego=' + $pl.Juego), ('liviano=' + $pl.Liviano), ('fondo=' + $pl.Fondo), ('todo=' + $pl.Todo), ('juegos=' + ($pesados -join ',')), ('livianos=' + ($livianos -join ',')), ('apps=' + ($apps -join ',')), ('desc=' + $desc)) -join "`r`n")
+                $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
+                $viejo = ''; if (Test-Path -LiteralPath $cfg) { $viejo = [string](Get-Content -LiteralPath $cfg -Raw) }
+                if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and ($viejo.Trim() -eq $txt.Trim())) {
+                    Log 'OK' 'ya estaba: afinidad corriendo con los mismos juegos y programas'; $code = 5
+                } else {
+                    if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
+                    Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
+                    Start-Sleep -Milliseconds 500
+                    if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
+                    & icacls $dir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
+                    Set-Content -LiteralPath $cfg -Value $txt -Encoding ASCII
+                    Log 'OK' ('juegos: ' + ($pesados -join ', '))
+                    if ($livianos.Count -gt 0) { Log 'OK' ('juegos livianos: ' + ($livianos -join ', ')) }
+                    Log 'OK' ('programas de fondo: ' + ($apps -join ', '))
+                    # Programa chico: cada 2 segundos mira que hay abierto. A cada juego le pone sus nucleos una sola vez.
+                    # Mientras haya un juego abierto lleva lo de fondo a sus nucleos; cuando no queda ninguno, lo devuelve a todos.
+                    $cs = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static void Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); } catch { } } public static void Main() { string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "XucaScripts\\afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> hechosJ = new HashSet<int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m != 0) { hayJuego = true; if (!hechosJ.Contains(p.Id)) { Poner(p, m); hechosJ.Add(p.Id); } } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) continue; string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom)) { Poner(p, fondo); hechosF.Add(p.Id); } } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } hechosJ.IntersectWith(vivos); hechosF.IntersectWith(vivos); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
+                    Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+                    try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar AFINIDAD: ' + $_.Exception.Message); $code = 1 }
+                    if (Test-Path $exe) {
+                        $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
+                        Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
+                        Start-ScheduledTask -TaskName $tn; Start-Sleep -Seconds 2
+                        $t2 = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
+                        if ($t2 -and ($t2.State -eq 'Running')) { Log 'OK' ('verificado: afinidad corriendo - ' + $desc) } else { Log 'FALLO' 'la tarea XucaAfinidad no quedo corriendo'; $code = 1 }
+                    }
+                }
+            }
+        }
+    }
+
+    'AFI_OFF' {
+        $tn = 'XucaAfinidad'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaAfinidad.exe'; $cfg = Join-Path $dir 'afinidad.txt'
+        $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
+        $p = Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue
+        if ((-not $t) -and (-not $p) -and (-not (Test-Path $exe)) -and (-not (Test-Path $cfg))) { Log 'OK' 'ya estaba: sin afinidad puesta'; $code = 5 }
+        else {
+            if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
+            Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
+            Start-Sleep -Milliseconds 500
+            # Lo que este abierto ahora vuelve a usar todos los nucleos.
+            if (Test-Path -LiteralPath $cfg) {
+                $c = @{}
+                foreach ($l in @(Get-Content -LiteralPath $cfg)) { $i = $l.IndexOf('='); if ($i -gt 0) { $c[$l.Substring(0, $i)] = $l.Substring($i + 1) } }
+                $todo = [long]0; [void][long]::TryParse([string]$c['todo'], [ref]$todo)
+                $nombres = @((([string]$c['juegos']) + ',' + ([string]$c['livianos']) + ',' + ([string]$c['apps'])) -split ',' | Where-Object { $_ })
+                if (($todo -ne 0) -and ($nombres.Count -gt 0)) {
+                    foreach ($pr in @(Get-Process -Name $nombres -ErrorAction SilentlyContinue)) { try { $pr.ProcessorAffinity = (New-Object IntPtr $todo) } catch { } }
+                    Log 'OK' 'lo que estaba abierto vuelve a usar todos los nucleos'
+                }
+            }
+            Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $cfg -Force -ErrorAction SilentlyContinue
+            if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue)) { Log 'FALLO' 'la afinidad no se pudo quitar del todo'; $code = 1 }
+            else { Log 'OK' 'verificado: afinidad quitada' }
         }
     }
 
