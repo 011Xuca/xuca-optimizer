@@ -105,11 +105,13 @@ function Prio-Actuales {
 # Lista de juegos y de programas de fondo (compartida por "Prioridad alta" y "Afinidad")
 # ------------------------------------------------------------
 # Los catalogos se leen del .bat de gaming para no tenerlos repetidos
-$AfiJuegosCat = ''; $AfiFondoCat = ''
+$AfiJuegosCat = ''; $AfiFondoCat = ''; $FuncCpu = ''
 try {
     $tg = [IO.File]::ReadAllText($Rutas.Gaming)
     $AfiJuegosCat = [regex]::Match($tg, "(?m)^\`$afiJuegosCat = '([^']*)'").Groups[1].Value
     $AfiFondoCat = [regex]::Match($tg, "(?m)^\`$afiFondoCat = '([^']*)'").Groups[1].Value
+    # Funciones que leen el procesador y dicen cuanto cambia la afinidad y si hace falta la Game Bar
+    $FuncCpu = [regex]::Match($tg, '(?s)# >>> XUCA-CPU.*?# <<< XUCA-CPU').Value
 } catch { }
 
 $XucaDir = Join-Path $env:ProgramData 'XucaScripts'
@@ -238,7 +240,7 @@ $Chequeos = @{
     'Gaming|cpu'    = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt')) }
     'Gaming|ll'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446' 'EnabledState') -eq 2 }
     'Gaming|gm'     = { ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled') -eq 1) -and ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled') -eq 0) }
-    'Gaming|xb'     = { -not (HasAppx 'Microsoft.XboxGamingOverlay') }
+    'Gaming|xb'     = { if ($global:XCpuClase -eq 'x3d') { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled') -eq 0 } else { -not (HasAppx 'Microsoft.XboxGamingOverlay') } }
     'Gaming|notif'  = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0 }
     'Gaming|gf'     = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode') -eq 2) -and (([string](Leer-Reg 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences' 'DirectXUserGlobalSettings')) -like '*SwapEffectUpgradeEnable=1*') }
     'Gaming|mpo'    = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Dwm' 'OverlayTestMode') -eq 5 }
@@ -291,6 +293,17 @@ try {
     $global:XPlan = ''
     try { $global:XPlan = ([regex]::Match((& powercfg.exe /getactivescheme | Out-String), '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}').Value).ToLower() } catch { }
     $Sync.Hecho = 2
+    $Sync.Paso = 'Tu procesador'
+    $global:XCpuClase = ''
+    if ($Sync.FuncCpu) {
+        try {
+            function Log($a, $b) { }
+            . ([scriptblock]::Create($Sync.FuncCpu))
+            $pl = Afi-Plan
+            $global:XCpuClase = [string]$pl.Clase
+            $Sync.Cpu = @{ Nombre = $pl.Cpu; Ok = [bool]$pl.Ok; Motivo = [string]$pl.Motivo; Afi = (Afi-Consejo $pl); Gb = (Gb-Consejo $pl) }
+        } catch { }
+    }
     foreach ($e in $Lista) {
         $Sync.Paso = $e.Titulo
         $est = $null
@@ -743,6 +756,8 @@ function Nota([string]$t, [string]$color, [string]$margen) {
 
 $script:PrioTexto = $null
 $script:AfiTexto = $null
+$script:CpuTxt = @{}        # 'afi' / 'xb' -> texto con lo que cambia con tu procesador
+$script:XbIcono = $null     # icono de advertencia de la Game Bar (solo se ve en los Ryzen X3D de dos bloques)
 $script:TxtJuegos = New-Object System.Collections.Generic.List[object]
 $script:TxtFondo = $null
 $script:Tarjetas = @{}      # 'Pagina|id' -> @{ Card; Cb; Nota }
@@ -759,7 +774,7 @@ $Advertencias = @{
     'Debloat|edge' = 'Si no tenes otro navegador, te quedas sin uno. Una actualizacion grande de Windows puede traerlo de vuelta.'
     'Debloat|hst'  = 'Defender a veces lo marca como amenaza porque toca el archivo hosts.'
     'Debloat|ter'  = 'Puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox en PC.'
-    'Gaming|afi'   = 'Algunos antitrampas no dejan cambiar la afinidad: en esos juegos se saltea.'
+    'Gaming|afi'   = 'Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.'
     'Gaming|pw'    = 'Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos.'
     'Gaming|cpu'   = 'Mas consumo y calor; con undervolt u overclock puede volverse inestable.'
     'Gaming|gf'    = 'En algunas PCs viejas puede dar problemas.'
@@ -786,6 +801,11 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     $tit = New-Object Windows.Controls.StackPanel
     $tit.Orientation = 'Horizontal'
     $tit.Children.Add((Nuevo-Texto $it.Titulo 15 '#FFFFFF' $true)) | Out-Null
+    if ((-not $adv) -and ($pagina -eq 'Gaming') -and ($it.Id -eq 'xb')) {
+        $script:XbIcono = Nuevo-Texto $Aviso 15 '#E5B567' $true
+        $script:XbIcono.FontFamily = 'Segoe UI Symbol'; $script:XbIcono.Margin = '8,0,0,0'; $script:XbIcono.Visibility = 'Collapsed'
+        $tit.Children.Add($script:XbIcono) | Out-Null
+    }
     if ($adv) {
         $ic = Nuevo-Texto $Aviso 15 '#E5B567' $true
         $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'; $ic.ToolTip = $adv
@@ -803,6 +823,12 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     Agregar-Linea $d 'En contra: ' '#F28B82' $it.Contra
     if ($adv) { Agregar-Linea $d ($Aviso + ' Puede dar problemas: ') '#E5B567' $adv }
     $sp.Children.Add($d) | Out-Null
+    if ($pagina -eq 'Gaming' -and $it.Id -in 'afi', 'xb') {
+        $ct = New-Object Windows.Controls.TextBlock
+        $ct.TextWrapping = 'Wrap'; $ct.FontSize = 12.5; $ct.Foreground = (Pincel '#C3C8D0'); $ct.Margin = '24,8,0,0'; $ct.LineHeight = 19; $ct.Visibility = 'Collapsed'
+        $script:CpuTxt[$it.Id] = $ct
+        $sp.Children.Add($ct) | Out-Null
+    }
     if (-not $it.ConR) { $sp.Children.Add((Nota 'No tiene restablecimiento: lo que haga no se puede volver atras desde la app.' '#E5B567' '24,6,0,0')) | Out-Null }
 
     # Aviso de "no disponible" (version de Windows, edicion, hardware o el punto de restauracion)
@@ -876,7 +902,7 @@ foreach ($k in 'Debloat', 'Gaming') {
 }
 
 # Que opciones no se pueden usar en esta PC. $i = datos de la PC que junta la lectura de fondo.
-function Calcular-NoDisp($i) {
+function Calcular-NoDisp($i, $cpu) {
     $r = @{}
     if (-not $i) { return $r }
     $b = [int]$i.Build
@@ -902,6 +928,7 @@ function Calcular-NoDisp($i) {
         $r['Gaming|sm'] = ('Tu PC no cumple los requisitos: necesita 16 GB de RAM o mas y Windows en un SSD o NVMe (' + ($q -join ' y ') + ').')
     }
     if ($i.AvOff) { $r['Gaming|avl'] = 'No hace falta: tu antivirus ya esta apagado.' }
+    if ($cpu -and (-not $cpu.Ok)) { $r['Gaming|afi'] = ('Tu procesador no sirve para esto: ' + $cpu.Motivo + '.') }
     return $r
 }
 
@@ -1315,7 +1342,7 @@ function Refrescar-Estado([scriptblock]$despues) {
         if (-not $Chequeos.ContainsKey($k)) { continue }
         $lista += @{ Clave = $k; Titulo = [string]$TitulosChequeo[$k]; Codigo = $Chequeos[$k].ToString() }
     }
-    $sync = [hashtable]::Synchronized(@{ Info = $null; Hecho = 0; Total = ($lista.Count + 4); Paso = ''; Listo = $false; Resultados = $null; Prio = @(); TareaAfi = $false })
+    $sync = [hashtable]::Synchronized(@{ Info = $null; Hecho = 0; Total = ($lista.Count + 4); Paso = ''; Listo = $false; Resultados = $null; Prio = @(); TareaAfi = $false; FuncCpu = $FuncCpu; Cpu = $null })
     $ps = [powershell]::Create()
     [void]$ps.AddScript($CodigoLectura).AddArgument($FuncLectura).AddArgument($lista).AddArgument($sync)
     $script:Lectura = @{ PS = $ps; Handle = $ps.BeginInvoke(); Sync = $sync }
@@ -1345,9 +1372,33 @@ $lecturaTimer.Add_Tick({
     }
 })
 
+# Lo que cambia la afinidad y la Game Bar con TU procesador (lo calcula el .bat de gaming)
+function Actualizar-Cpu($cpu) {
+    foreach ($ct in $script:CpuTxt.Values) { $ct.Inlines.Clear(); $ct.Visibility = 'Collapsed' }
+    if ($script:XbIcono) { $script:XbIcono.Visibility = 'Collapsed'; $script:XbIcono.ToolTip = $null }
+    if (-not $cpu) { return }
+    $a = $script:CpuTxt['afi']
+    if ($a -and $cpu.Afi) {
+        Agregar-Linea $a 'Con tu procesador: ' '#8AB4F8' ($cpu.Nombre + ' - cambio ' + $cpu.Afi.Nivel)
+        Agregar-Linea $a 'Puede mejorar: ' '#81C995' $cpu.Afi.Favor
+        Agregar-Linea $a 'Puede empeorar: ' '#F28B82' $cpu.Afi.Contra
+        Agregar-Linea $a 'Conviene: ' '#E5B567' $cpu.Afi.Recom
+        $a.Visibility = 'Visible'
+    }
+    $g = $script:CpuTxt['xb']
+    if ($g -and $cpu.Gb) {
+        if ($cpu.Gb.Aviso) {
+            Agregar-Linea $g ($Aviso + ' Atencion: ') '#E5B567' $cpu.Gb.Aviso
+            if ($script:XbIcono) { $script:XbIcono.ToolTip = (Con-Enie $cpu.Gb.Aviso); $script:XbIcono.Visibility = 'Visible' }
+        }
+        Agregar-Linea $g 'Con tu procesador: ' '#8AB4F8' $cpu.Gb.Texto
+        $g.Visibility = 'Visible'
+    }
+}
+
 function Aplicar-Lectura($s) {
     $res = $s.Resultados
-    $script:NoDisp = Calcular-NoDisp $s.Info
+    $script:NoDisp = Calcular-NoDisp $s.Info $s.Cpu
     $script:Estados = @{}
     $apl = 0; $tot = 0
     foreach ($k in @($script:Pills.Keys)) {
@@ -1370,6 +1421,7 @@ function Aplicar-Lectura($s) {
         $ac = Afi-Config
         $script:AfiTexto.Text = $(if ($ac['desc'] -and $s.TareaAfi) { 'Activa: ' + $ac['desc'] } else { '' })
     }
+    Actualizar-Cpu $s.Cpu
     Actualizar-Resumenes
     Actualizar-Version
     Actualizar-InfoPC $s.Info

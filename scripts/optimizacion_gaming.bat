@@ -290,7 +290,13 @@ echo   Lo de fondo solo se mueve mientras un juego esta abierto. Al cerrarlo, to
 echo   OBS, Visual Studio, Unreal, Godot, servidores Java, el audio de Windows y los antitrampas nunca se tocan.
 echo   Que hace: un programa chico en segundo plano pone tus juegos en los mejores nucleos y lleva Discord, Spotify y el navegador a otros.
 echo   A favor: lo de fondo no le roba nucleos al juego: frametimes mas parejos y menos tirones, sobre todo en Minecraft.
-echo   En contra: mientras jugas, lo de fondo anda un poco mas lento. Algunos antitrampas no dejan cambiar la afinidad del juego: en ese caso se saltea.
+echo   En contra: mientras jugas, lo de fondo anda un poco mas lento. Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad del juego:
+echo     en ese caso el juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.
+if defined XUCA_AUTO goto afi_preg
+echo.
+set "ACT=AFI_CONSEJO"
+call :aplicar_ps
+:afi_preg
 set "QID=afi"
 set "Q=- Desea usar afinidad de CPU para tus juegos? (Juegos en los mejores nucleos y programas de fondo aparte; se detecta tu procesador)"
 call :askR
@@ -472,15 +478,23 @@ call :opt_fin "Modo Juego y Game Bar restaurados"
 :gm_fin
 
 echo.
-echo   Que hace: borra la app Xbox Game Bar y apaga sus grabaciones.
+echo   Que hace: borra la app Xbox Game Bar y apaga sus grabaciones. En los Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D, 9950X3D) solo apaga las grabaciones: ahi la app hace falta.
 echo   A favor: menos procesos y nada grabando de fondo.
 echo   En contra: perdes las capturas y clips de Windows; podes usar NVIDIA, AMD u OBS.
+if defined XUCA_AUTO goto xb_preg
+echo.
+set "ACT=GB_INFO"
+call :aplicar_ps
+:xb_preg
 set "QID=xb"
 set "Q=- Desea borrar la app Xbox Game Bar? (No toca los servicios de Xbox que usan los juegos)"
 call :askR
 if errorlevel 3 goto xb_r
 if errorlevel 2 goto xb_fin
 call :opt_ini "Xbox Game Bar"
+set "ACT=GB_CHECK"
+call :aplicar_ps
+if errorlevel 10 goto xb_x3d
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" REG_DWORD 0
 call :reg "HKCU\System\GameConfigStore" "GameDVR_Enabled" REG_DWORD 0
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" "AllowGameDVR" REG_DWORD 0
@@ -489,6 +503,14 @@ set "ACT=GAMEBAR_OFF"
 call :aplicar_ps
 call :resps
 call :opt_fin "Xbox Game Bar borrada"
+goto xb_fin
+:xb_x3d
+rem Ryzen X3D de dos bloques: solo se apagan las grabaciones. Si una version anterior la habia bloqueado, se desbloquea.
+call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" REG_DWORD 0
+call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR" "HistoricalCaptureEnabled" REG_DWORD 0
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" "AllowGameDVR"
+for %%P in (ms-gamingoverlay ms-gamebar ms-gamebarservices) do call :protodel "%%P"
+call :opt_fin "Grabaciones de la Game Bar apagadas. La app no se borro: tu Ryzen X3D la usa para mandar los juegos al bloque con V-Cache"
 goto xb_fin
 :xb_r
 call :opt_ini "Xbox Game Bar (restaurar)"
@@ -1545,6 +1567,7 @@ function Afi-Elegir([string]$cat, [string]$clave, [string]$cambios, [string]$ext
     $sel = @($items | Where-Object { $_.Marcado } | ForEach-Object { $_.Procs })
     return (($sel -join ',') + ',' + $extra)
 }
+# >>> XUCA-CPU (la app XucaOP copia todo lo que esta entre estas dos marcas para leer el procesador)
 function Afi-Bit([long]$m, [int]$i) { return (($m -band ([long]1 -shl $i)) -ne 0) }
 function Afi-BitBajo([long]$m) { for ($i = 0; $i -lt 64; $i++) { if (Afi-Bit $m $i) { return $i } }; return 64 }
 function Afi-Hilos([long]$m) { $c = 0; for ($i = 0; $i -lt 64; $i++) { if (Afi-Bit $m $i) { $c++ } }; return $c }
@@ -1565,7 +1588,7 @@ function Afi-Lista([long]$m) {
 #   Liviano = nucleos para los juegos de pocos hilos (Minecraft, Valorant...).
 #   Fondo   = nucleos para los programas de fondo, solo mientras jugas.
 function Afi-Plan {
-    $r = [pscustomobject]@{ Ok = $false; Motivo = ''; Cpu = ''; Tipo = ''; Todo = [long]0; Juego = [long]0; Liviano = [long]0; Fondo = [long]0 }
+    $r = [pscustomobject]@{ Ok = $false; Motivo = ''; Cpu = ''; Tipo = ''; Todo = [long]0; Juego = [long]0; Liviano = [long]0; Fondo = [long]0; Clase = ''; Nucleos = 0; Smt = $false; PCores = 0; NBloque = 0; Reserva = 0 }
     $csTopo = 'using System; using System.Collections.Generic; using System.Runtime.InteropServices; public class XucaPieza { public long Mascara; public int Grupo; public int Clase; public int Nivel; public long Cache; } public class XucaTopo { [DllImport("kernel32.dll", SetLastError = true)] static extern bool GetLogicalProcessorInformationEx(int rel, IntPtr buf, ref uint len); public static List<XucaPieza> Leer(int rel) { List<XucaPieza> r = new List<XucaPieza>(); uint len = 0; GetLogicalProcessorInformationEx(rel, IntPtr.Zero, ref len); if (len == 0) return r; IntPtr buf = Marshal.AllocHGlobal((int)len); try { if (!GetLogicalProcessorInformationEx(rel, buf, ref len)) return r; long off = 0; while (off < len) { IntPtr p = new IntPtr(buf.ToInt64() + off); int tipo = Marshal.ReadInt32(p, 0); int size = Marshal.ReadInt32(p, 4); if (size <= 0) break; if (tipo == 0) { int gc = Marshal.ReadInt16(p, 30); if (gc < 1) gc = 1; for (int g = 0; g < gc; g++) { XucaPieza x = new XucaPieza(); x.Mascara = Marshal.ReadInt64(p, 32 + g * 16); x.Grupo = Marshal.ReadInt16(p, 40 + g * 16); x.Clase = Marshal.ReadByte(p, 9); r.Add(x); } } else if (tipo == 2) { int gc = Marshal.ReadInt16(p, 38); if (gc < 1) gc = 1; for (int g = 0; g < gc; g++) { XucaPieza x = new XucaPieza(); x.Mascara = Marshal.ReadInt64(p, 40 + g * 16); x.Grupo = Marshal.ReadInt16(p, 48 + g * 16); x.Nivel = Marshal.ReadByte(p, 8); x.Cache = (long)(uint)Marshal.ReadInt32(p, 12); r.Add(x); } } off += size; } } finally { Marshal.FreeHGlobal(buf); } return r; } }'
     $nucleos = @(); $l3 = @()
     try {
@@ -1580,6 +1603,7 @@ function Afi-Plan {
     if ($n -lt 4) { $r.Motivo = ('el procesador tiene ' + $n + ' nucleos: no alcanza para separar el juego de lo de fondo'); return $r }
     $todo = [long]0; foreach ($c in $nucleos) { $todo = $todo -bor $c.Mascara }
     $r.Todo = $todo
+    $r.Nucleos = $n; $r.Smt = ((Afi-Hilos $todo) -gt $n)
     $ord = @($nucleos | Sort-Object { Afi-BitBajo $_.Mascara })
     # Regla para nucleos iguales: lo de fondo va al ultimo nucleo (a los 2 ultimos con 12 o mas).
     # Con 8 o mas, el juego deja ese nucleo libre. Con menos, el juego igual puede usarlo: nunca pierde potencia.
@@ -1591,10 +1615,11 @@ function Afi-Plan {
         $max = ($clases | Measure-Object -Maximum).Maximum
         $pc = @($nucleos | Where-Object { $_.Clase -eq $max })
         $pm = [long]0; foreach ($c in $pc) { $pm = $pm -bor $c.Mascara }
+        $r.PCores = $pc.Count
         $r.Fondo = $todo -band (-bnot $pm)
-        if ($pc.Count -ge 6) { $r.Juego = $pm; $r.Liviano = $pm; $r.Tipo = ('hibrido, ' + $pc.Count + ' P-cores y ' + ($n - $pc.Count) + ' E-cores: juegos en los P-cores') }
-        elseif ($pc.Count -ge 4) { $r.Juego = $todo; $r.Liviano = $pm; $r.Tipo = ('hibrido, ' + $pc.Count + ' P-cores: los juegos pesados usan todo y los livianos solo los P-cores') }
-        else { $r.Juego = $todo; $r.Liviano = $todo; $r.Tipo = ('hibrido, solo ' + $pc.Count + ' P-cores: los juegos usan todo y lo de fondo va a los E-cores') }
+        if ($pc.Count -ge 6) { $r.Clase = 'hib6'; $r.Juego = $pm; $r.Liviano = $pm; $r.Tipo = ('hibrido, ' + $pc.Count + ' P-cores y ' + ($n - $pc.Count) + ' E-cores: juegos en los P-cores') }
+        elseif ($pc.Count -ge 4) { $r.Clase = 'hib4'; $r.Juego = $todo; $r.Liviano = $pm; $r.Tipo = ('hibrido, ' + $pc.Count + ' P-cores: los juegos pesados usan todo y los livianos solo los P-cores') }
+        else { $r.Clase = 'hib2'; $r.Juego = $todo; $r.Liviano = $todo; $r.Tipo = ('hibrido, solo ' + $pc.Count + ' P-cores: los juegos usan todo y lo de fondo va a los E-cores') }
     } elseif ($l3.Count -gt 1) {
         # Varios bloques con su propia cache L3: el de mas cache (V-Cache en los X3D); si son iguales, el primero.
         $orden = @($l3 | Sort-Object @{ Expression = { $_.Cache }; Descending = $true }, @{ Expression = { Afi-BitBajo $_.Mascara }; Descending = $false })
@@ -1603,26 +1628,99 @@ function Afi-Plan {
         $vc = ($orden[0].Cache -gt $orden[1].Cache)
         if ($nb -ge 6) {
             $r.Juego = $bloque; $r.Liviano = $bloque; $r.Fondo = $todo -band (-bnot $bloque)
+            $r.NBloque = $nb; $r.Clase = $(if ($vc) { 'x3d' } else { 'bloques' })
             if ($vc) { $r.Tipo = ($l3.Count.ToString() + ' bloques: juegos en el de V-Cache (' + [math]::Round($orden[0].Cache / 1MB) + ' MB de L3)') }
             else { $r.Tipo = ($l3.Count.ToString() + ' bloques de ' + $nb + ' nucleos: juegos en el primero') }
         } else {
             # Bloques chicos (Ryzen 1000, 2000 y 3000): pasar de un bloque a otro es lento.
             # Los juegos livianos van a un solo bloque; los pesados usan todos para no perder FPS.
             $primero = @($l3 | Sort-Object { Afi-BitBajo $_.Mascara })[0].Mascara -band $todo
-            $r.Liviano = $primero; $r.Fondo = $ultimo
-            if ($n -ge 8) { $r.Juego = $todo -band (-bnot $ultimo) } else { $r.Juego = $todo }
+            $r.Liviano = $primero; $r.Fondo = $ultimo; $r.Clase = 'ccx'
+            if ($n -ge 8) { $r.Juego = $todo -band (-bnot $ultimo); $r.Reserva = $res } else { $r.Juego = $todo }
             if (($r.Liviano -band $r.Fondo) -ne 0) { $r.Liviano = $r.Juego }
             $r.Tipo = ($l3.Count.ToString() + ' bloques de ' + $nb + ' nucleos: livianos en el primer bloque, pesados en todos')
         }
     } else {
-        $r.Fondo = $ultimo; $r.Liviano = $todo -band (-bnot $ultimo)
-        if ($n -ge 8) { $r.Juego = $todo -band (-bnot $ultimo) } else { $r.Juego = $todo }
+        $r.Fondo = $ultimo; $r.Liviano = $todo -band (-bnot $ultimo); $r.Clase = 'iguales'
+        if ($n -ge 8) { $r.Juego = $todo -band (-bnot $ultimo); $r.Reserva = $res } else { $r.Juego = $todo }
         $r.Tipo = ($n.ToString() + ' nucleos iguales en un solo bloque')
     }
     if (($r.Juego -eq 0) -or ($r.Fondo -eq 0) -or ($r.Liviano -eq 0)) { $r.Motivo = 'no se pudo separar los nucleos del procesador'; return $r }
     $r.Ok = $true
     return $r
 }
+# Que tanto cambia la afinidad con TU procesador: cuanto se nota, que puede mejorar, que puede empeorar y que conviene.
+function Afi-Consejo($pl) {
+    $c = [pscustomobject]@{ Nivel = ''; Favor = ''; Contra = ''; Recom = '' }
+    if (-not $pl.Ok) { $c.Nivel = 'NO SE PUEDE USAR'; $c.Recom = ('no se puede usar en esta PC: ' + $pl.Motivo + '.'); return $c }
+    $n = $pl.Nucleos
+    switch ($pl.Clase) {
+        'x3d' {
+            $c.Nivel = 'GRANDE'
+            $c.Favor = ('el juego queda siempre en el bloque con V-Cache (' + $pl.NBloque + ' nucleos). Si cae en el otro bloque pierde muchos FPS, y eso pasa seguido si el driver de AMD o la Game Bar fallan.')
+            $c.Contra = ('el juego usa solo ' + $pl.NBloque + ' de tus ' + $n + ' nucleos: los pocos juegos que aprovechan mas nucleos pueden rendir un poco menos.')
+            $c.Recom = 'conviene activarla, junto con la Game Bar instalada y el Modo Juego: la Game Bar cubre los juegos que no estan en tu lista y los que tienen antitrampas (Valorant, Fortnite).'
+        }
+        'bloques' {
+            $c.Nivel = 'MEDIANO'
+            $c.Favor = 'el juego no salta de un bloque de nucleos al otro (eso suma demora): frametimes mas parejos y menos tirones.'
+            $c.Contra = ('el juego usa solo ' + $pl.NBloque + ' de tus ' + $n + ' nucleos: en juegos que usan muchos hilos el FPS promedio puede bajar un poco.')
+            $c.Recom = 'probala con y sin, y quedate con la que te de mejores 1% low.'
+        }
+        'ccx' {
+            $c.Nivel = 'MEDIANO'
+            $c.Favor = 'Minecraft, Valorant y otros juegos livianos quedan en un solo bloque de nucleos: menos tirones.'
+            $c.Contra = $(if ($pl.Reserva -gt 0) { ('los juegos pesados pierden ' + $pl.Reserva + ' de tus ' + $n + ' nucleos y lo de fondo anda mas lento mientras jugas.') } else { 'lo de fondo anda mas lento mientras jugas.' })
+            $c.Recom = 'conviene, sobre todo si jugas Minecraft.'
+        }
+        'hib6' {
+            if ($pl.Smt) {
+                $c.Nivel = 'MEDIANO'
+                $c.Favor = 'el juego nunca cae en los E-cores (los lentos) y lo de fondo va ahi: menos tirones, sobre todo en juegos viejos.'
+                $c.Contra = 'el juego no usa los E-cores: en juegos que usan muchos hilos (Cyberpunk, Battlefield) el FPS promedio puede bajar un poco.'
+                $c.Recom = 'conviene probarla: en la mayoria de los juegos ayuda.'
+            } else {
+                $c.Nivel = 'CHICO'
+                $c.Favor = 'lo de fondo va a los E-cores y el juego queda solo en los P-cores.'
+                $c.Contra = 'en estos procesadores los E-cores ya son rapidos y varios juegos rinden mejor usandolos: el FPS puede bajar.'
+                $c.Recom = 'probala con y sin; si no notas mejora, dejala apagada.'
+            }
+        }
+        'hib4' {
+            $c.Nivel = 'MEDIANO'
+            $c.Favor = 'los juegos livianos quedan en los P-cores y lo de fondo va a los E-cores: el juego tiene los P-cores libres.'
+            $c.Contra = 'lo de fondo anda mas lento mientras jugas.'
+            $c.Recom = 'conviene.'
+        }
+        'hib2' {
+            $c.Nivel = 'CHICO'
+            $c.Favor = 'lo de fondo va a los E-cores y deja libres los P-cores para el juego.'
+            $c.Contra = 'casi ninguno: el juego sigue usando todos los nucleos.'
+            $c.Recom = 'conviene: no pierde nada.'
+        }
+        default {
+            $c.Nivel = 'CHICO'
+            if ($pl.Reserva -gt 0) {
+                $c.Favor = 'lo de fondo (Discord, navegador, stream) queda en un nucleo aparte: los 1% low pueden quedar un poco mas parejos si tenes muchas cosas abiertas mientras jugas.'
+                $c.Contra = ('el juego pierde ' + $pl.Reserva + ' de tus ' + $n + ' nucleos: en juegos que usan muchos hilos (CS2, Battlefield, Cyberpunk) el FPS promedio puede bajar un poco.')
+                $c.Recom = 'la diferencia es chica: probala con y sin y quedate con la que ande mejor. Si jugas sin nada abierto atras, no hace falta.'
+            } else {
+                $c.Favor = 'lo de fondo queda en el ultimo nucleo y el juego sigue usando todos.'
+                $c.Contra = 'casi ninguno: lo de fondo anda un poco mas lento mientras jugas.'
+                $c.Recom = 'conviene: no pierde nada.'
+            }
+        }
+    }
+    return $c
+}
+# La Game Bar con TU procesador. Necesaria = $true en los Ryzen X3D de dos bloques: el driver de AMD la usa para mandar el juego al bloque con V-Cache.
+function Gb-Consejo($pl) {
+    if ($pl.Ok -and ($pl.Clase -eq 'x3d')) {
+        return [pscustomobject]@{ Necesaria = $true; Aviso = 'en tu procesador la Game Bar NO se borra: el driver de AMD la usa para saber cuando jugas y mandar el juego al bloque con V-Cache. Solo se apagan sus grabaciones y capturas, asi que queda casi sin uso para vos, pero sigue haciendo ese trabajo de fondo.'; Texto = 'lo mejor es usarla junto con la afinidad de CPU: la afinidad asegura los juegos de tu lista y mueve lo de fondo al otro bloque; la Game Bar cubre los juegos que no estan en la lista y los que tienen antitrampas (Valorant, Fortnite). Deja el Modo Juego activado y el driver de chipset de AMD instalado.' }
+    }
+    return [pscustomobject]@{ Necesaria = $false; Aviso = ''; Texto = 'con tu procesador la Game Bar no hace falta para el rendimiento: se puede borrar sin perder nada.' }
+}
+# <<< XUCA-CPU
 function Afi-Mostrar($pl) {
     Say ('  Procesador: ' + $pl.Cpu + ' - ' + $pl.Tipo) 'Cyan'
     Say ('    Juegos:           ' + (Afi-Lista $pl.Juego) + ' (' + (Afi-Hilos $pl.Juego) + ' hilos)') 'Cyan'
@@ -1693,6 +1791,37 @@ switch ($env:ACT) {
     'FREE' {
         $mb = [math]::Round(([IO.DriveInfo]$env:SystemDrive).AvailableFreeSpace / 1MB)
         Set-Content -Path (Join-Path $env:TEMP 'xuca_free.txt') -Value $mb
+    }
+
+    'AFI_CONSEJO' {
+        $pl = Afi-Plan
+        $c = Afi-Consejo $pl
+        Say ('  Con tu procesador (' + $pl.Cpu + '): cambio ' + $c.Nivel) 'Cyan'
+        if ($c.Favor) { Say ('    Puede mejorar:  ' + $c.Favor) 'Green' }
+        if ($c.Contra) { Say ('    Puede empeorar: ' + $c.Contra) 'Red' }
+        Say ('    Conviene:       ' + $c.Recom) 'Yellow'
+        Log 'INFO' ('Afinidad con ' + $pl.Cpu + ': cambio ' + $c.Nivel + ' - ' + $c.Recom)
+    }
+
+    'GB_INFO' {
+        $pl = Afi-Plan
+        $g = Gb-Consejo $pl
+        if ($g.Aviso) { Say ('  ATENCION: ' + $g.Aviso) 'Yellow' }
+        Say ('  Con tu procesador (' + $pl.Cpu + '): ' + $g.Texto) 'Cyan'
+    }
+
+    'GB_CHECK' {
+        # 10 = Ryzen X3D de dos bloques: la app Game Bar se deja instalada.
+        $pl = Afi-Plan
+        $g = Gb-Consejo $pl
+        if ($g.Necesaria) {
+            $code = 10
+            Log 'INFO' ('Game Bar: no se borra la app porque ' + $pl.Cpu + ' es un X3D de dos bloques')
+            if (@(Get-AppxPackage -AllUsers -Name 'Microsoft.XboxGamingOverlay*').Count -eq 0) {
+                Say '  La Game Bar no esta instalada: en tu procesador conviene tenerla. Reinstalala con R en esta opcion o desde la Microsoft Store.' 'Yellow'
+                Log 'ATENCION' 'la Game Bar no esta instalada y este procesador la necesita para el driver de V-Cache de AMD'
+            }
+        }
     }
 
     'GAMEBAR_OFF' {
@@ -2453,7 +2582,7 @@ public static class SpiNative {
                 $desc = ($pl.Cpu + ' (' + $pl.Tipo + '): juegos en ' + (Afi-Lista $pl.Juego) + ', livianos en ' + (Afi-Lista $pl.Liviano) + ', fondo en ' + (Afi-Lista $pl.Fondo))
                 Log 'INFO' ('Procesador: ' + $desc)
                 Afi-Mostrar $pl
-                $txt = (@(('juego=' + $pl.Juego), ('liviano=' + $pl.Liviano), ('fondo=' + $pl.Fondo), ('todo=' + $pl.Todo), ('juegos=' + ($pesados -join ',')), ('livianos=' + ($livianos -join ',')), ('apps=' + ($apps -join ',')), ('desc=' + $desc), 'ver=2') -join "`r`n")
+                $txt = (@(('juego=' + $pl.Juego), ('liviano=' + $pl.Liviano), ('fondo=' + $pl.Fondo), ('todo=' + $pl.Todo), ('juegos=' + ($pesados -join ',')), ('livianos=' + ($livianos -join ',')), ('apps=' + ($apps -join ',')), ('desc=' + $desc), 'ver=3') -join "`r`n")
                 $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
                 $viejo = ''; if (Test-Path -LiteralPath $cfg) { $viejo = [string](Get-Content -LiteralPath $cfg -Raw) }
                 if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and ($viejo.Trim() -eq $txt.Trim())) {
@@ -2468,9 +2597,10 @@ public static class SpiNative {
                     Log 'OK' ('juegos: ' + ($pesados -join ', '))
                     if ($livianos.Count -gt 0) { Log 'OK' ('juegos livianos: ' + ($livianos -join ', ')) }
                     Log 'OK' ('programas de fondo: ' + ($apps -join ', '))
-                    # Programa chico: cada 2 segundos mira que hay abierto. A cada juego le pone sus nucleos una sola vez.
-                    # Mientras haya un juego abierto lleva lo de fondo a sus nucleos; cuando no queda ninguno, lo devuelve a todos.
-                    $cs = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static bool Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); p.Refresh(); return (long)p.ProcessorAffinity == m; } catch { return false; } } public static void Main() { string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "XucaScripts\\afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> hechosJ = new HashSet<int>(); HashSet<int> okJ = new HashSet<int>(); Dictionary<int, int> intentos = new Dictionary<int, int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m != 0) { if (!hechosJ.Contains(p.Id)) { if (Poner(p, m)) { okJ.Add(p.Id); hechosJ.Add(p.Id); } else { int c = 0; intentos.TryGetValue(p.Id, out c); c++; intentos[p.Id] = c; if (c >= 3) hechosJ.Add(p.Id); } } if (okJ.Contains(p.Id)) hayJuego = true; } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) continue; string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom)) { Poner(p, fondo); hechosF.Add(p.Id); } } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } hechosJ.IntersectWith(vivos); okJ.IntersectWith(vivos); hechosF.IntersectWith(vivos); List<int> viejos = new List<int>(); foreach (int k in intentos.Keys) if (!vivos.Contains(k)) viejos.Add(k); foreach (int k in viejos) intentos.Remove(k); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
+                    # Programa chico: cada 2 segundos mira que hay abierto y le vuelve a poner sus nucleos a cada juego si se los cambiaron
+                    # (CS2 y otros los vuelven a poner en todos al arrancar). Si el antitrampas no deja (Valorant, Fortnite), lo saltea.
+                    # Mientras haya un juego abierto, aunque sea uno protegido, lleva lo de fondo a sus nucleos; al cerrarlo, lo devuelve a todos.
+                    $cs = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static bool Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); p.Refresh(); return (long)p.ProcessorAffinity == m; } catch { return false; } } public static void Main() { string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "XucaScripts\\afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> rendidos = new HashSet<int>(); Dictionary<int, int> fallos = new Dictionary<int, int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m == 0) continue; hayJuego = true; if (rendidos.Contains(p.Id)) continue; if (Poner(p, m)) fallos.Remove(p.Id); else { int c = 0; fallos.TryGetValue(p.Id, out c); c++; fallos[p.Id] = c; if (c >= 3) rendidos.Add(p.Id); } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom) && Poner(p, fondo)) hechosF.Add(p.Id); } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } rendidos.IntersectWith(vivos); hechosF.IntersectWith(vivos); List<int> viejos = new List<int>(); foreach (int k in fallos.Keys) if (!vivos.Contains(k)) viejos.Add(k); foreach (int k in viejos) fallos.Remove(k); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
                     Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
                     try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar AFINIDAD: ' + $_.Exception.Message); $code = 1 }
                     if (Test-Path $exe) {
