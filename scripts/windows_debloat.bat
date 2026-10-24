@@ -486,6 +486,38 @@ call :opt_fin "Finalizar tarea quitado del clic derecho"
 :et_fin
 
 echo.
+echo   Que hace: la fecha y la hora de la barra se siguen viendo, pero al tocarlas ya no se abre el calendario ni el centro de notificaciones.
+echo   A favor: no se abre el panel sin querer en medio de una partida y la barra queda igual.
+echo   En contra: no ves el calendario ni el historial de notificaciones; Win + N tampoco lo abre.
+set "QID=cal"
+set "Q=- Desea quitar el calendario del reloj? (La fecha y hora se siguen viendo, pero al tocarlas no se abre nada)"
+call :askR
+if errorlevel 3 goto cal_r
+if errorlevel 2 goto cal_fin
+call :opt_ini "Calendario del reloj"
+if %BUILD% GTR 0 if %BUILD% LSS 22000 goto cal_noex
+call :reg "HKCU\Software\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" REG_DWORD 1
+if %OPT_T% EQU 0 goto cal_s_ok
+set "ACT=EXPLORER_RESTART"
+call :aplicar_ps
+:cal_s_ok
+call :opt_fin "Calendario quitado del reloj: la fecha y hora se siguen viendo"
+goto cal_fin
+:cal_noex
+call :log "OMITIDO" "en Windows 10 el calendario del reloj no se puede quitar: no se toco nada"
+echo %C_WARN%  En Windows 10 el calendario del reloj no se puede quitar, no se toco nada.%C_RST%
+goto cal_fin
+:cal_r
+call :opt_ini "Calendario del reloj (restaurar)"
+call :regdel "HKCU\Software\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter"
+if %OPT_T% EQU 0 goto cal_r_ok
+set "ACT=EXPLORER_RESTART"
+call :aplicar_ps
+:cal_r_ok
+call :opt_fin "Calendario del reloj restaurado"
+:cal_fin
+
+echo.
 echo   Que hace: no deja que las apps de la Store sigan corriendo cuando no las usas.
 echo   A favor: ahorra RAM y CPU.
 echo   En contra: algunas apps no te avisan de nada hasta que las abris.
@@ -35441,6 +35473,19 @@ switch ($env:ACT) {
                 $code = 1
             }
         }
+    }
+
+    'EXPLORER_RESTART' {
+        # Reinicia la barra de tareas para que tome el cambio. Windows la vuelve a abrir solo (sin permisos de administrador).
+        Say '  Reiniciando la barra de tareas para que tome el cambio...'
+        Get-Process -Name explorer -ErrorAction SilentlyContinue | Stop-Process -Force
+        $vuelve = $false
+        for ($i = 0; $i -lt 16; $i++) {
+            Start-Sleep -Milliseconds 500
+            if (Get-Process -Name explorer -ErrorAction SilentlyContinue) { $vuelve = $true; break }
+        }
+        if (-not $vuelve) { Start-Process -FilePath 'explorer.exe' }
+        Log 'INFO' 'se reinicio el Explorador para aplicar el cambio'
     }
 
     'WIDGETS_OFF' {

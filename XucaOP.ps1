@@ -208,6 +208,7 @@ $Chequeos = @{
     'Debloat|rc'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableAIDataAnalysis') -eq 1 }
     'Debloat|sch'   = { ((Leer-Reg 'HKCU:\AppEvents\Schemes' '(default)') -eq '.None') -and ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation' 'DisableStartupSound') -eq 1) }
     'Debloat|fx'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting') -eq 3) -and ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'EnableTransparency') -eq 0) }
+    'Debloat|cal'   = { (Leer-Reg 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter') -eq 1 }
     'Debloat|et'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings' 'TaskbarEndTask') -eq 1 }
     'Debloat|apps'  = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground') -eq 2 }
     'Debloat|tel'   = { (Leer-Svc 'DiagTrack') -eq 4 }
@@ -462,6 +463,8 @@ try {
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 $ui = @{}
 foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'Scroll', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle') { $ui[$n] = $win.FindName($n) }
+
+foreach ($b in @($ui.BtnAplicar, $ui.BtnRestablecer)) { [Windows.Controls.ToolTipService]::SetShowOnDisabled($b, $true) }
 
 $bc = New-Object Windows.Media.BrushConverter
 function Pincel([string]$hex) { return $bc.ConvertFromString($hex) }
@@ -885,6 +888,7 @@ function Calcular-NoDisp($i) {
     elseif (-not $i.Recall) { $r['Debloat|rc'] = 'Tu PC no tiene Recall: solo viene en las PCs Copilot+ (con NPU).' }
     if ($b -lt 22621) { $r['Debloat|et'] = ($nv + 'Windows 11 22H2 o mas nuevo. Tenes ' + $tuyo + '.') }
     if ($b -lt 26100) { $r['Debloat|ia'] = ($nv + 'Windows 11 24H2 o mas nuevo. Tenes ' + $tuyo + '.') }
+    if ($b -lt 22000) { $r['Debloat|cal'] = ($nv + 'Windows 11 (en Windows 10 el calendario del reloj no se puede quitar). Tenes ' + $tuyo + '.') }
     if ($b -lt 22000) { $r['Debloat|wg'] = ($nv + 'Windows 11 (los Widgets no existen en Windows 10). Tenes ' + $tuyo + '.') }
     if (-not $i.BitLocker) { $r['Debloat|bl'] = 'Tu edicion de Windows no tiene BitLocker: viene en Pro, Enterprise y Education.' }
     if (-not $i.Winget) { $r['Debloat|chr'] = 'Falta winget en tu PC: instala o actualiza el "Instalador de aplicaciones" desde la Microsoft Store.' }
@@ -929,6 +933,18 @@ function Actualizar-Bloqueos {
             $t.Card.ToolTip = $null; $t.Cb.ToolTip = $null
         }
     }
+    Actualizar-BotonesAccion
+}
+
+# Aplicar y Restablecer quedan en gris si no marcaste nada (en Limpiar cache siempre hay algo que limpiar)
+function Actualizar-BotonesAccion {
+    if ($script:Ocupado) { return }
+    $hay = (@(Elegidas 'Debloat').Count + @(Elegidas 'Gaming').Count) -gt 0
+    $msg = 'Marca al menos una opcion en Debloat o en Gaming.'
+    $ui.BtnAplicar.IsEnabled = ($hay -or ($script:Pagina -eq 'Limpieza'))
+    $ui.BtnAplicar.ToolTip = $(if ($ui.BtnAplicar.IsEnabled) { $null } else { $msg })
+    $ui.BtnRestablecer.IsEnabled = $hay
+    $ui.BtnRestablecer.ToolTip = $(if ($hay) { $null } else { $msg })
 }
 
 # --- Pagina de limpieza ---
@@ -1204,12 +1220,14 @@ function Ir-A([string]$p) {
     $ui.BtnRestablecer.Visibility = $(if ($p -in 'Debloat', 'Gaming') { 'Visible' } else { 'Collapsed' })
     $ui.BtnAplicar.Visibility = $(if ($p -in 'Herr', 'Perfiles') { 'Collapsed' } else { 'Visible' })
     $ui.BtnAplicar.Content = $(if ($p -eq 'Limpieza') { 'Limpiar ahora' } else { 'Aplicar seleccionadas' })
+    Actualizar-BotonesAccion
 }
 
 function Bloquear([bool]$si) {
     $script:Ocupado = $si
     foreach ($b in @($ui.NavPerfiles, $ui.NavDebloat, $ui.NavGaming, $ui.NavLimpieza, $ui.NavHerr, $ui.BtnRefrescar, $ui.BtnTodo, $ui.BtnNada, $ui.BtnRestablecer, $ui.BtnAplicar)) { $b.IsEnabled = -not $si }
     $ui.Scroll.IsEnabled = -not $si
+    if (-not $si) { Actualizar-BotonesAccion }
 }
 
 # ------------------------------------------------------------
