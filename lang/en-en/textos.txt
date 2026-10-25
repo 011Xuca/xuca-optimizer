@@ -628,3 +628,7 @@ en espera	waiting
 no responde	not responding
  (maximo para este tamano de ventana)	 (maximum for this window size)
 Ctrl + 0 lo vuelve al tamano normal	Ctrl + 0 resets it to normal size
+Se sumaron 	Added 
+La lista se arma sola con los juegos que tenes instalados en cualquier disco: Steam, Epic, EA, Battle.net, Ubisoft, Riot, Xbox, GOG, Rockstar y Minecraft.	The list builds itself with the games you have installed on any drive: Steam, Epic, EA, Battle.net, Ubisoft, Riot, Xbox, GOG, Rockstar and Minecraft.
+Juegos instalados	Installed games
+ juegos nuevos instalados a tu lista.	 newly installed games to your list.

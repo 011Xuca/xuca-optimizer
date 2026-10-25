@@ -230,17 +230,31 @@ function Leer-Nic {
 # Lista de juegos y de programas de fondo (compartida por "Prioridad alta" y "Afinidad")
 # ------------------------------------------------------------
 # Los catalogos se leen del .bat de gaming para no tenerlos repetidos
-$AfiJuegosCat = ''; $AfiFondoCat = ''; $FuncCpu = ''
+$AfiJuegosCat = ''; $AfiFondoCat = ''; $FuncCpu = ''; $FuncJuegos = ''
 try {
     $tg = [IO.File]::ReadAllText($Rutas.Gaming)
     $AfiJuegosCat = [regex]::Match($tg, "(?m)^\`$afiJuegosCat = '([^']*)'").Groups[1].Value
     $AfiFondoCat = [regex]::Match($tg, "(?m)^\`$afiFondoCat = '([^']*)'").Groups[1].Value
     # Funciones que leen el procesador y dicen cuanto cambia la afinidad y si hace falta la Game Bar
     $FuncCpu = [regex]::Match($tg, '(?s)# >>> XUCA-CPU.*?# <<< XUCA-CPU').Value
+    # Funciones que detectan los juegos instalados (Steam, Epic, EA, Battle.net, Ubisoft, Riot, Xbox, GOG, Rockstar, Minecraft)
+    $FuncJuegos = [regex]::Match($tg, '(?s)# >>> XUCA-JUEGOS.*?# <<< XUCA-JUEGOS').Value
 } catch { }
+# Las funciones de juegos tambien se cargan aca, para poner el nombre a los que agregas a mano
+try { if ($FuncJuegos) { . ([scriptblock]::Create($FuncJuegos)) } } catch { }
+if (-not (Get-Command Juego-Nombre -ErrorAction SilentlyContinue)) { function Juego-Nombre([string]$proc) { return $null } }
 
 $XucaDir = Join-Path $env:ProgramData 'XucaScripts'
 $ListasArchivo = Join-Path $XucaDir 'listas_app.txt'
+$script:JuegosDet = @()     # juegos instalados que se detectaron (los carga la lectura de fondo)
+$script:JuegosNuevos = 0    # cuantos juegos nuevos se sumaron solos a tu lista
+
+# Lista de juegos para elegir: los instalados que se detectaron, con su plataforma (ya no hay lista fija)
+function Cat-Juegos {
+    $s = @($script:JuegosDet | ForEach-Object { [string]$_.Proc + '=' + [string]$_.Nombre + ' (' + [string]$_.Plat + ')' })
+    if ($AfiJuegosCat) { $s = @($AfiJuegosCat) + $s }
+    return ($s -join '; ')
+}
 
 # Lo que dejo guardado la afinidad (juegos, programas de fondo y nucleos elegidos)
 function Afi-Config {
@@ -255,6 +269,15 @@ function Afi-Config {
 function Normalizar-Procesos([string]$txt) {
     return @(($txt -split ',') | ForEach-Object { ($_.Trim().Trim('"').Trim() -replace '(?i)\.exe$', '').ToLower() } |
         Where-Object { $_ -and ($_ -match '^[^\\/:*?"<>|=;]+$') } | Select-Object -Unique)
+}
+
+# Juegos instalados que ya se vieron alguna vez (los nuevos se suman solos a tu lista)
+function Leer-Vistos {
+    $v = @()
+    if (Test-Path -LiteralPath $ListasArchivo) {
+        foreach ($l in @(Get-Content -LiteralPath $ListasArchivo -ErrorAction SilentlyContinue)) { if ($l.StartsWith('detectados=')) { $v = @(Normalizar-Procesos $l.Substring(11)) } }
+    }
+    return , $v
 }
 
 # Devuelve @{ juegos = <lista o $null>; fondo = <lista o $null> }. $null = nunca se eligio (van todos los del catalogo).
@@ -277,14 +300,28 @@ function Leer-Listas {
         if ($v.Count -gt 0) { $r.juegos = $v }
     }
     if (($null -eq $r.fondo) -and $c.ContainsKey('apps')) { $r.fondo = @(Normalizar-Procesos ([string]$c['apps'])) }
+    # Juegos que se instalaron desde la ultima vez: se suman solos a tu lista.
+    # Los que ya se vieron y desmarcaste no vuelven a marcarse.
+    $vistos = Leer-Vistos
+    $nuevos = @($script:JuegosDet | ForEach-Object { [string]$_.Proc } | Where-Object { $_ -and ($vistos -notcontains $_) })
+    if ($nuevos.Count -gt 0) {
+        if ($null -ne $r.juegos) {
+            $suma = @($nuevos | Where-Object { $r.juegos -notcontains $_ })
+            if ($suma.Count -gt 0) { $r.juegos = @(@($r.juegos) + $suma); $script:JuegosNuevos += $suma.Count }
+        }
+        try { Guardar-Listas $r.juegos $r.fondo (@($vistos) + $nuevos) } catch { }
+    }
     return $r
 }
 
-function Guardar-Listas($juegos, $fondo) {
+# $vistos = juegos instalados ya vistos ($null = deja los que habia)
+function Guardar-Listas($juegos, $fondo, $vistos) {
+    if ($null -eq $vistos) { $vistos = Leer-Vistos }
     if (-not (Test-Path -LiteralPath $XucaDir)) { New-Item -ItemType Directory -Path $XucaDir -Force | Out-Null }
     $l = @()
     if ($null -ne $juegos) { $l += ('juegos=' + (@($juegos) -join ',')) }
     if ($null -ne $fondo) { $l += ('fondo=' + (@($fondo) -join ',')) }
+    if (@($vistos).Count -gt 0) { $l += ('detectados=' + (@($vistos | Select-Object -Unique) -join ',')) }
     Set-Content -LiteralPath $ListasArchivo -Value $l -Encoding ASCII
 }
 
@@ -299,7 +336,12 @@ function Items-De([string]$cat, $actual) {
     if ($null -ne $actual) {
         foreach ($it in $items) { $it.Marcado = (@($it.Procs | Where-Object { $actual -contains $_ }).Count -gt 0) }
         $conocidos = @($items | ForEach-Object { $_.Procs })
-        foreach ($pr in $actual) { if ($conocidos -notcontains $pr) { $items += [pscustomobject]@{ Procs = @($pr); Nombre = $pr; Marcado = $true } } }
+        foreach ($pr in $actual) {
+            if ($conocidos -notcontains $pr) {
+                $nm = Juego-Nombre $pr; if (-not $nm) { $nm = $pr }
+                $items += [pscustomobject]@{ Procs = @($pr); Nombre = $nm; Marcado = $true }
+            }
+        }
     }
     return , $items
 }
@@ -439,6 +481,11 @@ try {
         $res[$e.Clave] = $est
         $Sync.Hecho = $Sync.Hecho + 1
     }
+    $Sync.Paso = 'Juegos instalados'
+    if ($Sync.FuncJuegos) {
+        try { . ([scriptblock]::Create($Sync.FuncJuegos)); $Sync.Juegos = @(Juegos-Detectados) } catch { }
+    }
+    $Sync.Hecho = $Sync.Hecho + 1
     $Sync.Paso = 'Compatibilidad con tu Windows'
     $i = @{ Build = 0; Ubr = 0; Display = ''; Edicion = ''; RamGB = 0; Hdd = $false; Recall = $false; BitLocker = $false; Winget = $false; AvOff = $false }
     try { $i.Build = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'CurrentBuildNumber') } catch { }
@@ -896,7 +943,7 @@ function Lista-AgregarTexto {
     foreach ($n in $nuevos) {
         $ya = @($script:Lst.Casillas | Where-Object { (([string]$_.Tag) -split ',') -contains $n })
         if ($ya.Count -gt 0) { foreach ($c in $ya) { $c.IsChecked = $true } }
-        else { Lista-Agregar $n @($n) $true }
+        else { $nm = Juego-Nombre $n; if (-not $nm) { $nm = $n }; Lista-Agregar $nm @($n) $true }
     }
     if ($nuevos.Count -gt 0) { $script:Lst.Scroll.ScrollToEnd() }
 }
@@ -905,7 +952,7 @@ function Lista-AgregarTexto {
 # Con $aplicar, si la prioridad alta o la afinidad ya estan activas, se vuelven a aplicar solas con la lista nueva.
 function Editar-Juegos([bool]$aplicar) {
     $L = Leer-Listas
-    $r = Elegir-Lista 'Tus juegos' ('Esta lista la usan "Prioridad alta" y "Afinidad de CPU": lo que marques aca vale para las dos.' + "`n" + 'Al guardar, si alguna de las dos ya esta activa, se actualiza sola con la lista nueva.') (Items-De $AfiJuegosCat $L.juegos) 'Agregar otros juegos: escribi su proceso sin .exe (separados por comas) y toca Agregar. Lo ves con el juego abierto: Administrador de tareas, pestana Detalles.' (Items-De $AfiJuegosCat $null)
+    $r = Elegir-Lista 'Tus juegos' ('Esta lista la usan "Prioridad alta" y "Afinidad de CPU": lo que marques aca vale para las dos.' + "`n" + 'Al guardar, si alguna de las dos ya esta activa, se actualiza sola con la lista nueva.' + "`n" + 'La lista se arma sola con los juegos que tenes instalados en cualquier disco: Steam, Epic, EA, Battle.net, Ubisoft, Riot, Xbox, GOG, Rockstar y Minecraft.') (Items-De (Cat-Juegos) $L.juegos) 'Agregar otros juegos: escribi su proceso sin .exe (separados por comas) y toca Agregar. Lo ves con el juego abierto: Administrador de tareas, pestana Detalles.' (Items-De (Cat-Juegos) $null)
     if ($null -eq $r) { return $false }
     Guardar-Listas @(Normalizar-Procesos $r) $L.fondo
     Actualizar-Resumenes
@@ -929,7 +976,7 @@ function Aplicar-ListaActiva([bool]$pri, [bool]$afi) {
     $afi = $afi -and [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue)
     if (-not ($pri -or $afi)) { $ui.Estado.Text = (Con-Enie 'Lista guardada. Se usa cuando apliques "Prioridad alta" o "Afinidad".'); return }
     $L = Leer-Listas
-    $jug = @(Procesos-De $AfiJuegosCat $L.juegos)
+    $jug = @(Procesos-De (Cat-Juegos) $L.juegos)
     $fon = @(Procesos-De $AfiFondoCat $L.fondo)
     $v = @{}; $n = 0
     if ($pri) {
@@ -1090,7 +1137,7 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
 
 function Actualizar-Resumenes {
     $L = Leer-Listas
-    $tj = Resumen-De $AfiJuegosCat $L.juegos 'Tus juegos'
+    $tj = Resumen-De (Cat-Juegos) $L.juegos 'Tus juegos'
     foreach ($t in $script:TxtJuegos) { $t.Text = (Con-Enie $tj) }
     if ($script:TxtFondo) { $script:TxtFondo.Text = (Con-Enie (Resumen-De $AfiFondoCat $L.fondo 'Programas de fondo')) }
 }
@@ -1569,7 +1616,7 @@ function Refrescar-Estado([scriptblock]$despues) {
         if (-not $Chequeos.ContainsKey($k)) { continue }
         $lista += @{ Clave = $k; Titulo = [string]$TitulosChequeo[$k]; Codigo = $Chequeos[$k].ToString() }
     }
-    $sync = [hashtable]::Synchronized(@{ Info = $null; Hecho = 0; Total = ($lista.Count + 4); Paso = ''; Listo = $false; Resultados = $null; Prio = @(); TareaAfi = $false; FuncCpu = $FuncCpu; Cpu = $null })
+    $sync = [hashtable]::Synchronized(@{ Info = $null; Hecho = 0; Total = ($lista.Count + 5); Paso = ''; Listo = $false; Resultados = $null; Prio = @(); TareaAfi = $false; FuncCpu = $FuncCpu; Cpu = $null; FuncJuegos = $FuncJuegos; Juegos = $null })
     $ps = [powershell]::Create()
     [void]$ps.AddScript($CodigoLectura).AddArgument($FuncLectura).AddArgument($lista).AddArgument($sync)
     $script:Lectura = @{ PS = $ps; Handle = $ps.BeginInvoke(); Sync = $sync }
@@ -1596,6 +1643,11 @@ $lecturaTimer.Add_Tick({
         $f = $script:DespuesLectura
         $script:DespuesLectura = $null
         if ($f) { & $f }
+        if (($script:JuegosNuevos -gt 0) -and (-not $script:Ocupado)) {
+            $nn = $script:JuegosNuevos; $script:JuegosNuevos = 0
+            Aplicar-ListaActiva $true $true
+            if (-not $script:Ocupado) { $ui.Estado.Text = (Con-Enie ('Se sumaron ' + $nn + ' juegos nuevos instalados a tu lista.')) }
+        }
     }
 })
 
@@ -1625,6 +1677,7 @@ function Actualizar-Cpu($cpu) {
 
 function Aplicar-Lectura($s) {
     $res = $s.Resultados
+    if ($null -ne $s.Juegos) { $script:JuegosDet = @($s.Juegos) }
     $script:NoDisp = Calcular-NoDisp $s.Info $s.Cpu
     $script:Estados = @{}
     $apl = 0; $tot = 0
@@ -2108,11 +2161,11 @@ function Aplicar-Seleccion {
     if (($selG -contains 'pri') -or ($selG -contains 'afi')) {
         # Prioridad alta y afinidad usan la misma lista de juegos guardada
         $L = Leer-Listas
-        $jug = @(Procesos-De $AfiJuegosCat $L.juegos)
+        $jug = @(Procesos-De (Cat-Juegos) $L.juegos)
         if ($jug.Count -eq 0) {
             if (-not (Editar-Juegos $false)) { return }
             $L = Leer-Listas
-            $jug = @(Procesos-De $AfiJuegosCat $L.juegos)
+            $jug = @(Procesos-De (Cat-Juegos) $L.juegos)
             if ($jug.Count -eq 0) { Avisar 'Tus juegos' 'No elegiste ningun juego. Elegi al menos uno o desmarca "Prioridad alta" y "Afinidad".'; return }
         }
         $fon = @(Procesos-De $AfiFondoCat $L.fondo)

@@ -308,7 +308,8 @@ echo     - AMD con dos bloques grandes, por ejemplo X3D: los juegos van al bloqu
 echo     - Ryzen 1000, 2000 y 3000, con bloques chicos: Minecraft, Valorant y otros juegos livianos van a un solo bloque;
 echo       los pesados usan todos los nucleos para no perder FPS.
 echo     - Nucleos iguales: lo de fondo va al ultimo nucleo. Con 8 o mas nucleos el juego lo deja libre.
-echo   Ya trae una lista de juegos: Marvel Rivals, Fortnite, CS2, Valorant, Warzone, Apex, Minecraft, ARK, Spider-Man, GTA V y mas.
+echo   La lista de juegos se arma sola con los que tenes instalados, en cualquier disco: Steam, Epic Games, EA app, Battle.net,
+echo   Ubisoft Connect, Riot, Xbox / Microsoft Store, GOG, Rockstar y Minecraft Java. Tambien podes agregar otros a mano.
 echo   Lo de fondo solo se mueve mientras un juego esta abierto. Al cerrarlo, todo vuelve a usar todos los nucleos.
 echo   OBS, Visual Studio, Unreal, Godot, servidores Java, el audio de Windows y los antitrampas nunca se tocan.
 echo   Que hace: un programa chico en segundo plano pone tus juegos en los mejores nucleos y lleva Discord, Spotify y el navegador a otros.
@@ -1529,8 +1530,9 @@ $dnsCand = [ordered]@{
 }
 
 # ---------- Afinidad de CPU (opcion afi) ----------
-# Catalogos predeterminados (proceso=Nombre; varios procesos del mismo juego van con |). Los juegos se muestran con su proceso. La app tambien los lee de aca.
-$afiJuegosCat = 'marvel-win64-shipping=marvel-win64-shipping; fortniteclient-win64-shipping=fortniteclient-win64-shipping; cs2=cs2; valorant-win64-shipping=valorant-win64-shipping; cod=cod; modernwarfare=modernwarfare; blackopscoldwar=blackopscoldwar; blackops4=blackops4; blackops3=blackops3; t6mp=t6mp; t6zm=t6zm; t6sp=t6sp; blackops=blackops; blackopsmp=blackopsmp; codwaw=codwaw; codwawmp=codwawmp; s2_mp64_ship=s2_mp64_ship; r5apex=r5apex; r5apex_dx12=r5apex_dx12; overwatch=overwatch; rainbowsix=rainbowsix; tslgame=tslgame; league of legends=league of legends; dota2=dota2; deadlock=deadlock; rocketleague=rocketleague; bf6=bf6; warframe.x64=warframe.x64; hytaleclient=hytaleclient; javaw=javaw; minecraft.windows=minecraft.windows; robloxplayerbeta=robloxplayerbeta; sparkingzero-win64-shipping=sparkingzero-win64-shipping; streetfighter6=streetfighter6; devilmaycry5=devilmaycry5; re2=re2; re3=re3; re4=re4; re7=re7; re8=re8; arkascended=arkascended; shootergame=shootergame; rustclient=rustclient; escapefromtarkov=escapefromtarkov; helldivers2=helldivers2; monsterhunterwilds=monsterhunterwilds; eldenring=eldenring; b1-win64-shipping=b1-win64-shipping; genshinimpact=genshinimpact; starrail=starrail; zenlesszonezero=zenlesszonezero; spider-man=spider-man; milesmorales=milesmorales; spider-man2=spider-man2; gta5=gta5; gta5_enhanced=gta5_enhanced; cyberpunk2077=cyberpunk2077; rdr2=rdr2'
+# Juegos: ya no hay lista fija. Se detectan los que tenes instalados (ver XUCA-JUEGOS) y se suman los que agregues vos.
+$afiJuegosCat = ''
+# Programas de fondo: catalogo predeterminado (proceso=Nombre; varios procesos del mismo programa van con |). La app tambien lo lee de aca.
 $afiFondoCat = 'discord=Discord; spotify=Spotify; chrome=Google Chrome; msedge=Microsoft Edge; firefox=Firefox; opera=Opera / Opera GX; brave=Brave; steamwebhelper=Steam (tienda y ventanas); epicwebhelper=Epic Games (ventanas); onedrive=OneDrive; whatsapp=WhatsApp; telegram=Telegram; wallpaper32|wallpaper64=Wallpaper Engine'
 # Juegos que usan pocos hilos y dependen de la latencia: en los Ryzen con bloques chicos van a un solo bloque.
 $afiLivianos = @('javaw', 'minecraft.windows', 'valorant-win64-shipping', 'league of legends', 'rocketleague', 'robloxplayerbeta')
@@ -1563,7 +1565,7 @@ function Afi-Actual([string]$clave) {
     return , @($t -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 }
 # Arma la lista para elegir: el catalogo y, al final, los que agregaste vos. Marcado = elegido.
-function Afi-Items([string]$cat, $actual) {
+function Afi-Items([string]$cat, $actual, $forzar) {
     $items = @()
     foreach ($e in ($cat -split ';')) {
         $i = $e.IndexOf('='); if ($i -lt 1) { continue }
@@ -1571,9 +1573,15 @@ function Afi-Items([string]$cat, $actual) {
         $items += [pscustomobject]@{ Procs = $pr; Nombre = $e.Substring($i + 1).Trim(); Marcado = $true }
     }
     if ($null -ne $actual) {
-        foreach ($it in $items) { $it.Marcado = (@($it.Procs | Where-Object { $actual -contains $_ }).Count -gt 0) }
+        # Marcado = estaba en tu eleccion anterior, o es un juego de Steam nuevo ($forzar)
+        foreach ($it in $items) { $it.Marcado = (@($it.Procs | Where-Object { ($actual -contains $_) -or (@($forzar) -contains $_) }).Count -gt 0) }
         $conocidos = @($items | ForEach-Object { $_.Procs })
-        foreach ($pr in $actual) { if ($conocidos -notcontains $pr) { $items += [pscustomobject]@{ Procs = @($pr); Nombre = $pr; Marcado = $true } } }
+        foreach ($pr in $actual) {
+            if ($conocidos -notcontains $pr) {
+                $nm = Juego-Nombre $pr; if (-not $nm) { $nm = $pr }
+                $items += [pscustomobject]@{ Procs = @($pr); Nombre = $nm; Marcado = $true }
+            }
+        }
     }
     return , $items
 }
@@ -1586,7 +1594,7 @@ function Afi-MostrarItems($items, [string]$titulo) {
 }
 # Aplica los numeros que escribiste (marca o desmarca cada uno) y suma los procesos nuevos.
 function Afi-Elegir([string]$cat, [string]$clave, [string]$cambios, [string]$extra) {
-    $items = Afi-Items $cat (Afi-Actual $clave)
+    $items = Afi-Items $cat (Afi-Actual $clave) $(if ($clave -eq 'juegos') { Afi-JuegosNuevos } else { $null })
     foreach ($t in ([string]$cambios -split '[,;\s]+')) {
         $k = 0
         if ([int]::TryParse($t, [ref]$k) -and ($k -ge 1) -and ($k -le $items.Count)) { $items[$k - 1].Marcado = -not $items[$k - 1].Marcado }
@@ -1748,6 +1756,391 @@ function Gb-Consejo($pl) {
     return [pscustomobject]@{ Necesaria = $false; Aviso = ''; Texto = 'con tu procesador la Game Bar no hace falta para el rendimiento: se puede borrar sin perder nada.' }
 }
 # <<< XUCA-CPU
+
+# >>> XUCA-JUEGOS (la app XucaOP copia todo lo que esta entre estas dos marcas para detectar los juegos instalados)
+# Detecta los juegos que tenes instalados, en TODOS los discos de la PC: Steam, Epic Games, EA app, Battle.net,
+# Ubisoft Connect, Riot, Xbox / Microsoft Store, GOG, Rockstar y Minecraft Java. Si no esta instalado, no aparece.
+# Para cada juego elige su .exe principal: es el proceso que se ve en el Administrador de tareas.
+
+# Juegos conocidos (proceso = nombre). Sirven para dos cosas: si un juego trae varios .exe, se elige el conocido;
+# y si agregas a mano uno de estos procesos, se muestra con su nombre.
+$XucaJuegosConocidos = @{
+    'marvel-win64-shipping' = 'Marvel Rivals';
+    'fortniteclient-win64-shipping' = 'Fortnite';
+    'cs2' = 'Counter-Strike 2';
+    'valorant-win64-shipping' = 'Valorant';
+    'cod' = 'Call of Duty (Warzone, BO6, BO7)';
+    'modernwarfare' = 'CoD Modern Warfare (2019)';
+    'blackopscoldwar' = 'CoD Black Ops Cold War';
+    'blackops4' = 'CoD Black Ops 4';
+    'blackops3' = 'CoD Black Ops III';
+    't6mp' = 'CoD Black Ops II (multijugador)';
+    't6zm' = 'CoD Black Ops II (zombies)';
+    't6sp' = 'CoD Black Ops II (historia)';
+    'blackops' = 'CoD Black Ops (historia y zombies)';
+    'blackopsmp' = 'CoD Black Ops (multijugador)';
+    'codwaw' = 'CoD World at War (historia y zombies)';
+    'codwawmp' = 'CoD World at War (multijugador)';
+    's2_mp64_ship' = 'CoD WWII (multijugador)';
+    'r5apex' = 'Apex Legends';
+    'r5apex_dx12' = 'Apex Legends (DX12)';
+    'overwatch' = 'Overwatch 2';
+    'rainbowsix' = 'Rainbow Six Siege';
+    'tslgame' = 'PUBG: Battlegrounds';
+    'league of legends' = 'League of Legends';
+    'dota2' = 'Dota 2';
+    'deadlock' = 'Deadlock';
+    'rocketleague' = 'Rocket League';
+    'bf6' = 'Battlefield 6';
+    'warframe.x64' = 'Warframe';
+    'hytaleclient' = 'Hytale';
+    'javaw' = 'Minecraft Java';
+    'minecraft.windows' = 'Minecraft Bedrock';
+    'robloxplayerbeta' = 'Roblox';
+    'sparkingzero-win64-shipping' = 'Dragon Ball: Sparking! Zero';
+    'streetfighter6' = 'Street Fighter 6';
+    'devilmaycry5' = 'Devil May Cry 5';
+    're2' = 'Resident Evil 2';
+    're3' = 'Resident Evil 3';
+    're4' = 'Resident Evil 4';
+    're7' = 'Resident Evil 7';
+    're8' = 'Resident Evil Village';
+    'arkascended' = 'ARK: Survival Ascended';
+    'shootergame' = 'ARK: Survival Evolved';
+    'rustclient' = 'Rust';
+    'escapefromtarkov' = 'Escape from Tarkov';
+    'helldivers2' = 'Helldivers 2';
+    'monsterhunterwilds' = 'Monster Hunter Wilds';
+    'eldenring' = 'Elden Ring';
+    'b1-win64-shipping' = 'Black Myth: Wukong';
+    'genshinimpact' = 'Genshin Impact';
+    'starrail' = 'Honkai: Star Rail';
+    'zenlesszonezero' = 'Zenless Zone Zero';
+    'spider-man' = 'Spider-Man Remastered';
+    'milesmorales' = 'Spider-Man: Miles Morales';
+    'spider-man2' = 'Spider-Man 2';
+    'gta5' = 'GTA V (Legacy)';
+    'gta5_enhanced' = 'GTA V (Enhanced)';
+    'cyberpunk2077' = 'Cyberpunk 2077';
+    'rdr2' = 'Red Dead Redemption 2'
+}
+$XucaExesConocidos = @($XucaJuegosConocidos.Keys)
+
+# Nombre de un proceso que agregaste a mano: el de la lista de conocidos, el que se guardo antes,
+# o el que dice el propio .exe si el juego esta abierto (se guarda para la proxima vez). $null si no se sabe.
+function Juego-Nombre([string]$proc) {
+    $proc = ([string]$proc).Trim().ToLower()
+    if (-not $proc) { return $null }
+    if ($XucaJuegosConocidos.ContainsKey($proc)) { return $XucaJuegosConocidos[$proc] }
+    $fn = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'nombres_juegos.txt'
+    try {
+        if ([IO.File]::Exists($fn)) {
+            foreach ($l in [IO.File]::ReadAllLines($fn, [Text.Encoding]::UTF8)) { $c = $l -split "`t"; if (($c.Count -eq 2) -and ($c[0] -eq $proc)) { return $c[1] } }
+        }
+    } catch { }
+    $n = $null
+    try {
+        foreach ($p in @(Get-Process -Name $proc -ErrorAction SilentlyContinue)) {
+            try {
+                $vi = $p.MainModule.FileVersionInfo
+                foreach ($t in @([string]$vi.ProductName, [string]$vi.FileDescription)) {
+                    $t = (($t -replace '[;=|,\t]', ' ') -replace '[\u2122\u00AE\u00A9]', '').Trim()
+                    if ($t -and ($t -notmatch '(?i)^(java|microsoft|windows|unreal|unity|bootstrap|launcher)')) { $n = $t; break }
+                }
+            } catch { }
+            if ($n) { break }
+        }
+    } catch { }
+    if ($n) {
+        try {
+            $d = Split-Path -Parent $fn
+            if (-not [IO.Directory]::Exists($d)) { [void][IO.Directory]::CreateDirectory($d) }
+            [IO.File]::AppendAllText($fn, ($proc + "`t" + $n + "`r`n"), (New-Object Text.UTF8Encoding($false)))
+        } catch { }
+    }
+    return $n
+}
+
+# La raiz de cada disco de la PC (internos y externos)
+function Juegos-Discos {
+    try {
+        foreach ($dv in [IO.DriveInfo]::GetDrives()) {
+            try { if ($dv.IsReady -and (([string]$dv.DriveType -eq 'Fixed') -or ([string]$dv.DriveType -eq 'Removable'))) { $dv.RootDirectory.FullName } } catch { }
+        }
+    } catch { }
+}
+
+# Las subcarpetas de unas rutas fijas, probadas en cada disco (por ejemplo "EA Games" -> D:\EA Games\<juego>)
+function Juegos-Carpetas([string[]]$rutas) {
+    foreach ($d in @(Juegos-Discos)) {
+        foreach ($r in $rutas) {
+            try {
+                $p = [IO.Path]::Combine($d, $r)
+                if ([IO.Directory]::Exists($p)) { [IO.Directory]::GetDirectories($p) }
+            } catch { }
+        }
+    }
+}
+
+# Bibliotecas de Steam: las que tiene anotadas Steam (libraryfolders.vdf) y las carpetas tipicas de cada disco
+function Steam-Bibliotecas {
+    $raices = New-Object System.Collections.Generic.List[string]
+    foreach ($k in @(@('HKCU:\Software\Valve\Steam', 'SteamPath'), @('HKLM:\SOFTWARE\WOW6432Node\Valve\Steam', 'InstallPath'), @('HKLM:\SOFTWARE\Valve\Steam', 'InstallPath'))) {
+        try { $v = [string](Get-ItemProperty -LiteralPath $k[0] -ErrorAction Stop).($k[1]); if ($v) { $raices.Add(($v -replace '/', '\')) } } catch { }
+    }
+    $tipicas = 'Program Files (x86)\Steam', 'Program Files\Steam', 'Steam', 'SteamLibrary', 'Steam Library', 'Games', 'Games\Steam', 'Games\SteamLibrary', 'Juegos', 'Juegos\Steam', 'Juegos\SteamLibrary'
+    foreach ($d in @(Juegos-Discos)) { foreach ($t in $tipicas) { $raices.Add([IO.Path]::Combine($d, $t)) } }
+    foreach ($r in @($raices)) {
+        try {
+            $vdf = [IO.Path]::Combine($r, 'steamapps\libraryfolders.vdf')
+            if ([IO.File]::Exists($vdf)) {
+                foreach ($m in [regex]::Matches([IO.File]::ReadAllText($vdf), '"path"\s+"([^"]+)"')) { $raices.Add(($m.Groups[1].Value -replace '\\\\', '\')) }
+            }
+        } catch { }
+    }
+    $vistas = @{}
+    foreach ($r in $raices) {
+        try {
+            $sa = [IO.Path]::GetFullPath([IO.Path]::Combine($r, 'steamapps'))
+            if (-not [IO.Directory]::Exists($sa)) { continue }
+            $k = $sa.TrimEnd('\').ToLower()
+            if ($vistas.ContainsKey($k)) { continue }
+            $vistas[$k] = $true
+            $sa
+        } catch { }
+    }
+}
+
+# El .exe principal de un juego: se descartan instaladores, crash reporters, antitrampas, launchers y herramientas.
+# Gana el de la lista de conocidos o el que dice la plataforma, despues el de Unreal (-Win64-Shipping),
+# despues el que se llama parecido al juego y despues el mas grande.
+function Juego-Exe([string]$dir, $pistas, [string]$preferido) {
+    $malo = 'unins|setup|install|redist|dxsetup|prereq|crash|report|anticheat|battleye|beservice|cefsharp|qtwebengine|webhelper|helper|updat|patch|config|benchmark|server|editor|sdk|python|ffmpeg|bugsplat|activation|touchup|cleanup|repair|launcher|vcredist|dotnet|directx|uploader|overlay|register|vanguard|riotclient|^7za?$'
+    $carpMala = '\\(_?commonredist|redist|redistributables?|directx|dotnet|prereqs?|support|_?installers?|easyanticheat|battleye|thirdparty|extras|tools)\\'
+    $ps = @(@($pistas) | ForEach-Object { ([string]$_).ToLower() -replace '[^a-z0-9]', '' } | Where-Object { $_.Length -ge 2 })
+    $preferido = ([string]$preferido).ToLower()
+    $mejor = $null; $pm = -99999
+    $exes = @()
+    try { $exes = @(Get-ChildItem -LiteralPath $dir -Filter '*.exe' -File -Recurse -Depth 5 -Force -ErrorAction SilentlyContinue) } catch { }
+    foreach ($f in $exes) {
+        $rel = $f.FullName.Substring($dir.Length)
+        if ($rel -match $carpMala) { continue }
+        $b = [IO.Path]::GetFileNameWithoutExtension($f.Name).ToLower()
+        if ($b -match $malo) { continue }
+        $s = 0
+        if ($XucaExesConocidos -contains $b) { $s += 2000 }
+        if ($preferido -and ($b -eq $preferido)) { $s += 800 }
+        if ($b -match '-win(64|gdk)-shipping$') { $s += 1000 }
+        $a = $b -replace '[^a-z0-9]', ''
+        if ($a.Length -ge 2) { foreach ($p in $ps) { if ($p.Contains($a) -or $a.Contains($p)) { $s += 300; break } } }
+        $s += [math]::Min(200, [int]($f.Length / 1MB))
+        $s -= 15 * ($rel.Split('\').Count - 2)
+        if ($s -gt $pm) { $pm = $s; $mejor = $b }
+    }
+    return $mejor
+}
+
+# Programas instalados (lo que sale en "Agregar o quitar programas"), para EA, Battle.net, Ubisoft, Riot y Rockstar
+function Juegos-Desinstalar {
+    foreach ($b in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall') {
+        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+            try {
+                $p = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop
+                [pscustomobject]@{ Id = [string]$k.PSChildName; Nombre = [string]$p.DisplayName; Editor = [string]$p.Publisher; Dir = ([string]$p.InstallLocation).Trim().Trim('"') }
+            } catch { }
+        }
+    }
+}
+
+# Devuelve los juegos instalados: Proc (proceso sin .exe), Nombre y Plat (plataforma).
+# El .exe elegido se guarda en ProgramData\XucaScripts\juegos_detectados.txt y solo se vuelve a buscar si la carpeta cambio.
+function Juegos-Detectados {
+    # Lo que no es un juego (launchers, herramientas, redistribuibles...)
+    $noJuego = '(?i)soundtrack|redistributable|dedicated server|\bsdk\b|steamworks|proton|steam linux runtime|steamvr|wallpaper engine|lossless scaling|blender|aseprite|krita|soundpad|\bobs\b|vtube studio|voicemod|rpg maker|gamemaker|3dmark|benchmark|launcher|battle\.net|^ea app|^ea$|^origin$|ea desktop|ea core|ubisoft connect|^uplay|riot client|vanguard|social club|anti-?cheat|unreal engine|epic online services|directx|visual c\+\+|\.net |microsoft edge|webview|gog galaxy|^xbox$|gaming services|game bar'
+    $procNo = '^(blender|resolve|obs(32|64)?|code|devenv|java|godot.*|unrealeditor.*|losslessscaling|aseprite|krita|soundpad|wallpaper(32|64)|steam.*|vtube studio|voicemod|explorer|cmd|powershell|epicgameslauncher|eadesktop|ealauncher|origin|battle\.net|agent|upc|ubisoftconnect|uplay|riotclient.*|rockstarservice|playgtav|socialclub.*|galaxyclient|gamebar|xboxpcapp)$'
+    $fuera = @('228980', '1070560', '1391110', '1628350', '1493710', '250820', '431960', '1007', '2180100')
+    $dirC = Join-Path $env:ProgramData 'XucaScripts'
+    $fc = Join-Path $dirC 'juegos_detectados.txt'
+    $cache = @{}
+    try { if ([IO.File]::Exists($fc)) { foreach ($l in [IO.File]::ReadAllLines($fc, [Text.Encoding]::UTF8)) { $c = $l -split "`t"; if ($c.Count -eq 3) { $cache[$c[0]] = $c } } } } catch { }
+    $nuevaC = New-Object System.Collections.Generic.List[string]
+    $res = New-Object System.Collections.Generic.List[object]
+    $ya = @{}; $dirs = @{}
+
+    # Suma un juego. Con $exeFijo se usa ese .exe; si no, se busca el principal dentro de $dir.
+    function Agregar([string]$plat, [string]$id, [string]$nombre, [string]$dir, $pistas, [string]$preferido, [string]$exeFijo, [string]$extra) {
+        try {
+            $nombre = (($nombre -replace '[;=|,]', ' ') -replace '[\u2122\u00AE\u00A9]', '').Trim()
+            if ((-not $nombre) -or ($nombre -match $noJuego)) { return }
+            $proc = ''
+            if ($exeFijo) {
+                $proc = ([IO.Path]::GetFileNameWithoutExtension(($exeFijo -replace '/', '\'))).ToLower()
+            } else {
+                if ((-not $dir) -or (-not [IO.Directory]::Exists($dir))) { return }
+                $dir = [IO.Path]::GetFullPath($dir).TrimEnd('\')
+                # La raiz de un disco o carpetas de sistema no son la carpeta de un juego
+                if (($dir.Length -le 3) -or ($dir -match '(?i)\\(windows|program files( \(x86\))?|users|programdata)$')) { return }
+                if ($dirs.ContainsKey($dir.ToLower())) { return }
+                $dirs[$dir.ToLower()] = $true
+                $k = $plat + ':' + $id
+                $marca = [string]([IO.Directory]::GetLastWriteTimeUtc($dir).Ticks) + '|' + $extra + '|' + $dir
+                if ($cache.ContainsKey($k) -and ($cache[$k][1] -eq $marca)) { $proc = [string]$cache[$k][2] }
+                else { $proc = [string](Juego-Exe $dir (@($pistas) + @($nombre)) $preferido) }
+                $nuevaC.Add((@($k, $marca, $proc) -join "`t"))
+            }
+            if ((-not $proc) -or ($proc -notmatch '^[^\\/:*?"<>|=;,]+$') -or ($proc -match $procNo) -or $ya.ContainsKey($proc)) { return }
+            $ya[$proc] = $true
+            $res.Add([pscustomobject]@{ Proc = $proc; Nombre = $nombre; Plat = $plat })
+        } catch { }
+    }
+
+    # Steam: los appmanifest de cada biblioteca
+    foreach ($sa in @(Steam-Bibliotecas)) {
+        $mans = @()
+        try { $mans = @([IO.Directory]::GetFiles($sa, 'appmanifest_*.acf')) } catch { }
+        foreach ($mf in $mans) {
+            try {
+                $txt = [IO.File]::ReadAllText($mf, [Text.Encoding]::UTF8)
+                $id = [regex]::Match($txt, '"appid"\s+"(\d+)"').Groups[1].Value
+                $nom = [regex]::Match($txt, '"name"\s+"([^"]*)"').Groups[1].Value
+                $inst = [regex]::Match($txt, '"installdir"\s+"([^"]*)"').Groups[1].Value
+                if ((-not $id) -or (-not $inst) -or ($fuera -contains $id)) { continue }
+                Agregar 'Steam' $id $nom ([IO.Path]::Combine([IO.Path]::Combine($sa, 'common'), $inst)) @($inst) '' '' ([string]([IO.File]::GetLastWriteTimeUtc($mf).Ticks))
+            } catch { }
+        }
+    }
+
+    # Epic Games: los manifiestos del launcher (sin DLC ni instalaciones a medias)
+    $me = Join-Path $env:ProgramData 'Epic\EpicGamesLauncher\Data\Manifests'
+    if ([IO.Directory]::Exists($me)) {
+        foreach ($f in @([IO.Directory]::GetFiles($me, '*.item'))) {
+            try {
+                $j = [IO.File]::ReadAllText($f) | ConvertFrom-Json
+                if ($j.bIsIncompleteInstall) { continue }
+                if ($j.MainGameAppName -and ($j.MainGameAppName -ne $j.AppName)) { continue }
+                if ($j.AppCategories -and (@($j.AppCategories) -notcontains 'games')) { continue }
+                $pref = [IO.Path]::GetFileNameWithoutExtension(([string]$j.LaunchExecutable -replace '/', '\'))
+                Agregar 'Epic' ([string]$j.AppName) ([string]$j.DisplayName) ([string]$j.InstallLocation) @($pref) $pref '' ''
+            } catch { }
+        }
+    }
+
+    # GOG: el registro dice el .exe de cada juego (sin DLC)
+    foreach ($b in 'HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games', 'HKLM:\SOFTWARE\GOG.com\Games') {
+        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+            try {
+                $p = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop
+                if ([string]$p.dependsOn) { continue }
+                Agregar 'GOG' ([string]$k.PSChildName) ([string]$p.gameName) '' @() '' ([string]$p.exe) ''
+            } catch { }
+        }
+    }
+
+    # Xbox / Microsoft Store: los juegos traen un MicrosoftGame.config que dice su .exe
+    $configs = New-Object System.Collections.Generic.List[object]
+    foreach ($g in @(Juegos-Carpetas @('XboxGames'))) {
+        try { $cf = [IO.Path]::Combine($g, 'Content\MicrosoftGame.config'); if ([IO.File]::Exists($cf)) { $configs.Add(@($cf, [IO.Path]::GetFileName($g))) } } catch { }
+    }
+    try {
+        foreach ($pk in @(Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object { (-not $_.IsFramework) -and $_.InstallLocation })) {
+            try { $cf = [IO.Path]::Combine([string]$pk.InstallLocation, 'MicrosoftGame.config'); if ([IO.File]::Exists($cf)) { $configs.Add(@($cf, [string]$pk.Name)) } } catch { }
+        }
+    } catch { }
+    foreach ($c in $configs) {
+        try {
+            [xml]$x = [IO.File]::ReadAllText($c[0])
+            $exe = @($x.Game.ExecutableList.Executable | ForEach-Object { [string]$_.Name } | Where-Object { $_ -and ($_ -notmatch '(?i)launcher|crash|setup') })[0]
+            $nom = [string]$x.Game.ShellVisuals.DefaultDisplayName
+            if ((-not $nom) -or ($nom -like 'ms-resource*')) { $nom = [string]$c[1] }
+            if ($exe) { Agregar 'Xbox' ([string]$c[1]) $nom '' @() '' $exe '' }
+        } catch { }
+    }
+
+    # EA app, Battle.net, Ubisoft, Riot y Rockstar: lo que figura instalado en Windows, segun quien lo publica
+    $editores = @(@('(?i)electronic arts', 'EA'), @('(?i)blizzard', 'Battle.net'), @('(?i)ubisoft', 'Ubisoft'), @('(?i)riot games', 'Riot'), @('(?i)rockstar games', 'Rockstar'))
+    $instalados = @(Juegos-Desinstalar)
+    foreach ($e in $instalados) {
+        if ((-not $e.Dir) -or (-not $e.Nombre)) { continue }
+        foreach ($ed in $editores) {
+            if ($e.Editor -match $ed[0]) { Agregar $ed[1] $e.Id $e.Nombre $e.Dir @([IO.Path]::GetFileName($e.Dir.TrimEnd('\'))) '' '' ''; break }
+        }
+    }
+    # Registros propios de EA, Ubisoft y Rockstar
+    foreach ($b in 'HKLM:\SOFTWARE\WOW6432Node\EA Games', 'HKLM:\SOFTWARE\EA Games', 'HKLM:\SOFTWARE\WOW6432Node\Electronic Arts', 'HKLM:\SOFTWARE\Electronic Arts') {
+        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+            try {
+                $p = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop
+                $d = [string]$p.'Install Dir'; if (-not $d) { $d = [string]$p.InstallDir }
+                $n = [string]$p.DisplayName; if (-not $n) { $n = [string]$k.PSChildName }
+                if ($d) { Agregar 'EA' ([string]$k.PSChildName) $n $d @([string]$k.PSChildName) '' '' '' }
+            } catch { }
+        }
+    }
+    foreach ($b in 'HKLM:\SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs', 'HKLM:\SOFTWARE\Ubisoft\Launcher\Installs') {
+        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+            try {
+                $d = [string](Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop).InstallDir
+                if (-not $d) { continue }
+                $d = $d -replace '/', '\'
+                $n = [string](@($instalados | Where-Object { $_.Id -eq ('Uplay Install ' + $k.PSChildName) })[0].Nombre)
+                if (-not $n) { $n = [IO.Path]::GetFileName($d.TrimEnd('\')) }
+                Agregar 'Ubisoft' ([string]$k.PSChildName) $n $d @() '' '' ''
+            } catch { }
+        }
+    }
+    foreach ($b in 'HKLM:\SOFTWARE\WOW6432Node\Rockstar Games', 'HKLM:\SOFTWARE\Rockstar Games') {
+        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+            try {
+                $d = [string](Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop).InstallFolder
+                if ($d) { Agregar 'Rockstar' ([string]$k.PSChildName) ([string]$k.PSChildName) $d @() '' '' '' }
+            } catch { }
+        }
+    }
+    # Rutas predefinidas de cada plataforma, en todos los discos
+    foreach ($par in @(
+        @('EA', @('Program Files\EA Games', 'EA Games', 'Program Files (x86)\Origin Games', 'Origin Games')),
+        @('Ubisoft', @('Program Files (x86)\Ubisoft\Ubisoft Game Launcher\games', 'Program Files\Ubisoft\Ubisoft Game Launcher\games', 'Ubisoft Game Launcher\games', 'Ubisoft\games')),
+        @('Riot', @('Riot Games', 'Program Files\Riot Games')),
+        @('Epic', @('Program Files\Epic Games', 'Epic Games')),
+        @('Rockstar', @('Program Files\Rockstar Games', 'Rockstar Games')))) {
+        foreach ($g in @(Juegos-Carpetas $par[1])) { Agregar $par[0] ([IO.Path]::GetFileName($g)) ([IO.Path]::GetFileName($g)) $g @() '' '' '' }
+    }
+
+    # Minecraft Java: si alguna cuenta de la PC tiene la carpeta .minecraft, el juego corre como javaw
+    try {
+        $hayMc = $false
+        foreach ($u in @([IO.Directory]::GetDirectories([IO.Path]::Combine($env:SystemDrive + '\', 'Users')))) {
+            if ([IO.Directory]::Exists([IO.Path]::Combine($u, 'AppData\Roaming\.minecraft'))) { $hayMc = $true; break }
+        }
+        if ($hayMc) { Agregar 'Minecraft' 'java' 'Minecraft Java' '' @() '' 'javaw.exe' '' }
+    } catch { }
+
+    try {
+        if (-not [IO.Directory]::Exists($dirC)) { [void][IO.Directory]::CreateDirectory($dirC) }
+        [IO.File]::WriteAllLines($fc, $nuevaC.ToArray(), (New-Object Text.UTF8Encoding($false)))
+    } catch { }
+    $res | Sort-Object Nombre
+}
+# <<< XUCA-JUEGOS
+
+# Juegos detectados (una vez por corrida) y la lista para elegir: nombre (plataforma) y abajo el proceso
+function Afi-Detectados {
+    if ($null -eq $global:XAfiDet) { $global:XAfiDet = @(Juegos-Detectados | Where-Object { -not (Afi-Prohibido $_.Proc) }) }
+    return $global:XAfiDet
+}
+function Afi-DetectadosProcs { return @(Afi-Detectados | ForEach-Object { $_.Proc }) }
+function Afi-CatJuegos {
+    $s = @(Afi-Detectados | ForEach-Object { $_.Proc + '=' + $_.Nombre + ' (' + $_.Plat + ')' })
+    if ($afiJuegosCat) { $s = @($afiJuegosCat) + $s }
+    return ($s -join '; ')
+}
+# Juegos instalados que aparecieron desde la ultima vez que aplicaste la afinidad: se marcan solos
+function Afi-JuegosNuevos {
+    $c = Afi-Config
+    if (-not $c.ContainsKey('apps')) { return @() }
+    $vis = @(([string]$c['detectados']) -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    return @(Afi-DetectadosProcs | Where-Object { $vis -notcontains $_ })
+}
 function Afi-Mostrar($pl) {
     Say ('  Procesador: ' + $pl.Cpu + ' - ' + $pl.Tipo) 'Cyan'
     Say ('    Juegos:           ' + (Afi-Lista $pl.Juego) + ' (' + (Afi-Hilos $pl.Juego) + ' hilos)') 'Cyan'
@@ -2591,7 +2984,7 @@ public static class SpiNative {
         else {
             Afi-Mostrar $pl
             Say '' $null
-            Afi-MostrarItems (Afi-Items $afiJuegosCat (Afi-Actual 'juegos')) 'Juegos:'
+            Afi-MostrarItems (Afi-Items (Afi-CatJuegos) (Afi-Actual 'juegos') (Afi-JuegosNuevos)) 'Juegos:'
         }
     }
 
@@ -2608,7 +3001,7 @@ public static class SpiNative {
             # predeterminados), con los numeros que marcaste o desmarcaste (AFIJT/AFIFT) y lo que agregaste (AFIJX/AFIFX).
             if ($env:AFIAPP -eq '1') { $txtJ = [string]$env:AFIJ; $txtF = [string]$env:AFIF }
             else {
-                $txtJ = Afi-Elegir $afiJuegosCat 'juegos' ([string]$env:AFIJT) ([string]$env:AFIJX)
+                $txtJ = Afi-Elegir (Afi-CatJuegos) 'juegos' ([string]$env:AFIJT) ([string]$env:AFIJX)
                 $txtF = Afi-Elegir $afiFondoCat 'apps' ([string]$env:AFIFT) ([string]$env:AFIFX)
             }
             $juegos = @(Afi-Nombres $txtJ)
@@ -2620,7 +3013,7 @@ public static class SpiNative {
                 $desc = ($pl.Cpu + ' (' + $pl.Tipo + '): juegos en ' + (Afi-Lista $pl.Juego) + ', livianos en ' + (Afi-Lista $pl.Liviano) + ', fondo en ' + (Afi-Lista $pl.Fondo))
                 Log 'INFO' ('Procesador: ' + $desc)
                 Afi-Mostrar $pl
-                $txt = (@(('juego=' + $pl.Juego), ('liviano=' + $pl.Liviano), ('fondo=' + $pl.Fondo), ('todo=' + $pl.Todo), ('juegos=' + ($pesados -join ',')), ('livianos=' + ($livianos -join ',')), ('apps=' + ($apps -join ',')), ('desc=' + $desc), 'ver=3') -join "`r`n")
+                $txt = (@(('juego=' + $pl.Juego), ('liviano=' + $pl.Liviano), ('fondo=' + $pl.Fondo), ('todo=' + $pl.Todo), ('juegos=' + ($pesados -join ',')), ('livianos=' + ($livianos -join ',')), ('apps=' + ($apps -join ',')), ('desc=' + $desc), ('detectados=' + ((Afi-DetectadosProcs) -join ',')), 'ver=3') -join "`r`n")
                 $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
                 $viejo = ''; if (Test-Path -LiteralPath $cfg) { $viejo = [string](Get-Content -LiteralPath $cfg -Raw) }
                 if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and ($viejo.Trim() -eq $txt.Trim())) {
