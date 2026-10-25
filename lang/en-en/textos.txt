@@ -619,3 +619,12 @@ NO SE PUEDE USAR	CAN'T BE USED
 conviene.	recommended.
 los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.	the competitive gaming tweaks (mouse, priority, affinity, power plan, timer and network), or Edge or Chrome. It creates a restore point before starting.
 Edge ni Chrome. No apaga los puntos de restauracion: crea uno antes de empezar.	Edge or Chrome. It doesn't turn off restore points: it creates one before starting.
+Tu placa de red no tiene opciones de ahorro de energia para cambiar (depende del driver): no hace falta.	Your network card has no power saving options to change (it depends on the driver): not needed.
+Probando los DNS desde tu conexion	Testing DNS servers from your connection
+El mas rapido para tu conexion: 	Fastest for your connection: 
+Ningun DNS respondio a la prueba	No DNS server answered the test
+probando...	testing...
+en espera	waiting
+no responde	not responding
+ (maximo para este tamano de ventana)	 (maximum for this window size)
+Ctrl + 0 lo vuelve al tamano normal	Ctrl + 0 resets it to normal size

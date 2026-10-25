@@ -42,7 +42,7 @@ set "VGT="
 set "QACT="
 set "REINICIO="
 rem Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
-set "REIN_IDS= tk mm notif gf mpo msi pca tr mi vbs md v4 ll nag "
+set "REIN_IDS= tk mm notif gf mpo msi pca tr mi vbs md v4 ll nag nic "
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
@@ -790,13 +790,13 @@ call :opt_fin "Ahorro de energia de USB, PCIe y discos restaurado"
 
 echo.
 echo %C_WARN%AVISO: En placas madre de baja calidad, desactivarlo puede provocar que se vaya el internet por exceso de carga de paquetes o problemas de saturacion.%C_RST%
-echo %C_WARN%AVISO: la conexion puede cortarse unos segundos al aplicar.%C_RST%
+echo %C_WARN%AVISO: el cambio se aplica al reiniciar la PC.%C_RST%
 echo.
 echo   Que hace: apaga el ahorro de energia de la placa de red.
 echo   A favor: menos picos de ping.
 echo   En contra: un poco mas de consumo; en placas malas puede causar cortes, y R lo vuelve atras.
 set "QID=nic"
-set "Q=- Desea desactivar el ahorro de energia de la red? (Menos picos de ping; no toca Wake-on-LAN)"
+set "Q=- Desea desactivar el ahorro de energia de la red? (Menos picos de ping; no toca Wake-on-LAN; pide reiniciar)"
 call :askR
 if errorlevel 3 goto nic_r
 if errorlevel 2 goto nic_fin
@@ -804,14 +804,14 @@ call :opt_ini "Ahorro de energia de la placa de red"
 set "ACT=NIC_OFF"
 call :aplicar_ps
 call :resps
-call :opt_fin "Ahorro de energia de la placa de red desactivado"
+call :opt_fin "Ahorro de energia de la placa de red desactivado (se aplica al reiniciar)"
 goto nic_fin
 :nic_r
 call :opt_ini "Ahorro de energia de la placa de red (restaurar)"
 set "ACT=NIC_ON"
 call :aplicar_ps
 call :resps
-call :opt_fin "Ahorro de energia de la placa de red restaurado"
+call :opt_fin "Ahorro de energia de la placa de red restaurado (se aplica al reiniciar)"
 :nic_fin
 echo.
 echo   Que hace: apaga el algoritmo de Nagle en tus conexiones de red: Windows manda cada paquete chico al instante en vez de juntarlos y esperar.
@@ -2021,6 +2021,10 @@ switch ($env:ACT) {
         $existen = 0
         $cambio = $false
         $omitio = $false
+        # Las opciones se buscan por nombre exacto. Con -RegistryKeyword '*EEE' Windows toma el * como comodin y trae
+        # tambien EEE y AdvancedEEE juntas: la comparacion fallaba siempre y la app quedaba en "Sin aplicar".
+        function Nic-Prop($ad, [string]$kw) { return (@($ad | Get-NetAdapterAdvancedProperty -AllProperties -ErrorAction SilentlyContinue | Where-Object { ([string]$_.RegistryKeyword) -eq $kw }) | Select-Object -First 1) }
+        function Nic-Valor($p) { if (-not $p) { return $null }; return [string](@($p.RegistryValue)[0]) }
         foreach ($a in @(Get-NetAdapter -Physical | Where-Object { $_.Status -eq 'Up' })) {
             $clase = $null
             try {
@@ -2028,19 +2032,19 @@ switch ($env:ACT) {
                     Where-Object { (Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue).NetCfgInstanceId -eq $a.InterfaceGuid } |
                     Select-Object -First 1
             } catch { }
+            $todas = @($a | Get-NetAdapterAdvancedProperty -AllProperties -ErrorAction SilentlyContinue)
             foreach ($kw in $claves) {
-                $pr = Get-NetAdapterAdvancedProperty -Name $a.Name -RegistryKeyword $kw -ErrorAction SilentlyContinue
+                $pr = @($todas | Where-Object { ([string]$_.RegistryKeyword) -eq $kw }) | Select-Object -First 1
                 if (-not $pr) { continue }
                 $existen++
-                if (([string]$pr.RegistryValue) -eq ([string]$val)) {
+                if ((Nic-Valor $pr) -eq ([string]$val)) {
                     Log 'OK' ('ya estaba: ' + $a.Name + ' ' + $kw + ' = ' + $val)
                     continue
                 }
-                try { Set-NetAdapterAdvancedProperty -Name $a.Name -RegistryKeyword $kw -RegistryValue $val -NoRestart -ErrorAction Stop }
+                try { $pr | Set-NetAdapterAdvancedProperty -RegistryValue ([string]$val) -NoRestart -ErrorAction Stop }
                 catch { Log 'INFO' ('Set-NetAdapterAdvancedProperty ' + $kw + ': ' + $_.Exception.Message) }
-                $nuevo = (Get-NetAdapterAdvancedProperty -Name $a.Name -RegistryKeyword $kw).RegistryValue
-                if (([string]$nuevo) -eq ([string]$val)) {
-                    Log 'OK' ('verificado: ' + $a.Name + ' ' + $kw + ' = ' + $val)
+                if ((Nic-Valor (Nic-Prop $a $kw)) -eq ([string]$val)) {
+                    Log 'OK' ('verificado: ' + $a.Name + ' ' + $kw + ' = ' + $val + ' (se aplica al reiniciar)')
                     $cambio = $true
                     continue
                 }
@@ -2049,7 +2053,7 @@ switch ($env:ACT) {
                     catch { Log 'INFO' ('registro directo ' + $kw + ': ' + $_.Exception.Message) }
                     $leido = (Get-ItemProperty -Path $clase.PSPath -ErrorAction SilentlyContinue).PSObject.Properties[$kw].Value
                     if (([string]$leido) -eq ([string]$val)) {
-                        Log 'OK' ('verificado por registro: ' + $a.Name + ' ' + $kw + ' = ' + $val + ' (se aplica al reiniciar la red)')
+                        Log 'OK' ('verificado por registro: ' + $a.Name + ' ' + $kw + ' = ' + $val + ' (se aplica al reiniciar)')
                         $cambio = $true
                         continue
                     }
@@ -2115,11 +2119,15 @@ switch ($env:ACT) {
             if ($validos.Count -eq 0) {
                 Log 'OMITIDO' 'ningun DNS respondio a la prueba (sin internet o bloqueados)'
                 Say '  Ningun DNS respondio a la prueba, no se cambio nada.' 'Yellow'
+                # Pausa para que se vean los resultados (en la app se muestran en la pantalla de carga)
+                Start-Sleep -Seconds 3
                 $code = 2
             } else {
                 $mejor = $validos[0]
                 $deseado = @($mejor.Ips)
                 Say ('  El mas rapido para tu conexion: ' + $mejor.Nombre + ' (' + ($deseado -join ', ') + ')') 'Green'
+                # Pausa para que se vean los ms de cada DNS (en la app se muestran en la pantalla de carga)
+                Start-Sleep -Seconds 3
                 Log 'INFO' ('DNS elegido: ' + $mejor.Nombre + ' ' + ($deseado -join ', '))
                 if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
                 & icacls $dir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null

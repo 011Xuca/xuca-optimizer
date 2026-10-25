@@ -122,7 +122,8 @@ $ConEnie = @(
     @('\bcontrasena\b', ('contrase' + $Enie + 'a')),
     @('\bContrasena\b', ('Contrase' + $Enie + 'a')),
     @('\bpestana\b', ('pesta' + $Enie + 'a')),
-    @('\banos\b', ('a' + $Enie + 'os'))
+    @('\banos\b', ('a' + $Enie + 'os')),
+    @('\btamano\b', ('tama' + $Enie + 'o'))
 )
 function Con-Enie([string]$t) {
     if (-not $t) { return $t }
@@ -206,6 +207,21 @@ function Prio-Actuales {
     return @(Get-ChildItem -LiteralPath $ifeo -ErrorAction SilentlyContinue |
         Where-Object { (Leer-Reg ($_.PSPath + '\PerfOptions') 'XucaPrioridad') -eq 1 } |
         ForEach-Object { $_.PSChildName -replace '(?i)\.exe$', '' })
+}
+# Ahorro de energia de la placa de red. Se busca cada opcion por nombre exacto: con -RegistryKeyword '*EEE'
+# Windows toma el * como comodin, junta varias opciones y la comparacion nunca daba "Ya aplicado".
+function Leer-Nic {
+    if ($global:XNicLeido) { return $global:XNic }
+    $claves = '*EEE', 'EEE', 'AdvancedEEE', 'GreenEthernet', 'EnableGreenEthernet', 'PowerSavingMode'
+    $r = @{ Placas = 0; Vals = @() }
+    foreach ($ad in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' })) {
+        $r.Placas++
+        foreach ($p in @($ad | Get-NetAdapterAdvancedProperty -AllProperties -ErrorAction SilentlyContinue)) {
+            if ($claves -contains ([string]$p.RegistryKeyword)) { $r.Vals += [string](@($p.RegistryValue)[0]) }
+        }
+    }
+    $global:XNic = $r; $global:XNicLeido = $true
+    return $r
 }
 '@
 . ([scriptblock]::Create($FuncLectura))
@@ -364,15 +380,9 @@ $Chequeos = @{
     'Gaming|sm'     = { (Leer-Svc 'SysMain') -eq 4 }
     'Gaming|pe'     = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\2a737441-1930-4402-8d77-b2bebba308a3\48e6b7a6-50f5-4782-a5d4-53bb8f07e226') 'ACSettingIndex') -eq 0 }
     'Gaming|nic'    = {
-        $vals = @()
-        foreach ($ad in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' })) {
-            foreach ($kw in '*EEE', 'EEE', 'AdvancedEEE', 'GreenEthernet', 'EnableGreenEthernet', 'PowerSavingMode') {
-                $p = Get-NetAdapterAdvancedProperty -Name $ad.Name -RegistryKeyword $kw -ErrorAction SilentlyContinue
-                if ($p) { $vals += [string]$p.RegistryValue }
-            }
-        }
-        if ($vals.Count -eq 0) { return $null }
-        @($vals | Where-Object { $_ -ne '0' }).Count -eq 0
+        $n = Leer-Nic
+        if (@($n.Vals).Count -eq 0) { return $null }
+        @($n.Vals | Where-Object { $_ -ne '0' }).Count -eq 0
     }
     'Gaming|nag'    = {
         $vals = @()
@@ -443,6 +453,8 @@ try {
     if ($i.Build -ge 26100) { try { $i.Recall = [bool](Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction Stop) } catch { } }
     $i.BitLocker = [bool](Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)
     $i.Winget = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+    $i.NicPlacas = 0; $i.NicOpc = 0
+    try { $nn = Leer-Nic; $i.NicPlacas = [int]$nn.Placas; $i.NicOpc = @($nn.Vals).Count } catch { }
     try {
         $sv = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
         $i.AvOff = (-not $sv) -or ($sv.Status -ne 'Running') -or ((Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled -eq $false)
@@ -479,7 +491,7 @@ try {
 $XamlTexto = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Xuca OPtimizer" Width="1080" Height="740" MinWidth="880" MinHeight="580"
+        Title="Xuca OPtimizer" Width="1080" Height="740" MinWidth="420" MinHeight="320"
         WindowStartupLocation="CenterScreen" Background="#14161B" FontFamily="Segoe UI">
   <Window.Resources>
     <Style x:Key="Nav" TargetType="Button">
@@ -555,7 +567,9 @@ $XamlTexto = @'
       </Setter>
     </Style>
   </Window.Resources>
-  <Grid>
+  <!-- Marco = lugar real de la ventana. Raiz = todo el contenido, que se achica con zoom si la ventana queda chica -->
+  <Border x:Name="Marco">
+  <Grid x:Name="Raiz">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="230"/>
       <ColumnDefinition Width="*"/>
@@ -614,7 +628,7 @@ $XamlTexto = @'
       </StackPanel>
       <ScrollViewer x:Name="Scroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0"/>
       <DockPanel Grid.Row="2" Margin="0,14,0,0">
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
           <Button x:Name="BtnTodo" Style="{StaticResource Accion}" Content="Marcar todo"/>
           <Button x:Name="BtnNada" Style="{StaticResource Accion}" Content="Desmarcar todo"/>
           <Button x:Name="BtnRestablecer" Style="{StaticResource Accion}" Background="#7A3326" Content="Restablecer seleccionadas"/>
@@ -644,6 +658,13 @@ $XamlTexto = @'
           <TextBlock x:Name="CargaPct" DockPanel.Dock="Right" Foreground="#9AA0A6" FontSize="12.5" Text="0%" Margin="12,0,0,0"/>
           <TextBlock x:Name="CargaDetalle" Foreground="#7D8590" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
         </DockPanel>
+        <!-- Prueba de DNS: cada DNS con su tiempo, mientras se aplica esa opcion -->
+        <Border x:Name="CargaDns" Margin="0,18,0,0" Padding="16,12" CornerRadius="10" Background="#1C2027" Visibility="Collapsed">
+          <StackPanel>
+            <TextBlock x:Name="CargaDnsTitulo" Foreground="#C3C8D0" FontSize="13" FontWeight="SemiBold" Text="Probando los DNS desde tu conexion"/>
+            <StackPanel x:Name="CargaDnsLista" Margin="0,6,0,0"/>
+          </StackPanel>
+        </Border>
         <!-- Aparece al abrir la app si hay una version nueva en GitHub -->
         <StackPanel x:Name="UpdCarga" Margin="0,24,0,0" Visibility="Collapsed">
           <Button x:Name="BtnUpd" Style="{StaticResource Amarillo}">
@@ -664,6 +685,7 @@ $XamlTexto = @'
     <TextBlock x:Name="VersionTxt" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,12,0"
                Panel.ZIndex="20" FontSize="12" FontWeight="SemiBold" Foreground="#5C6370" IsHitTestVisible="False"/>
   </Grid>
+  </Border>
 </Window>
 '@
 # Los textos fijos de la ventana tambien pasan por el idioma elegido
@@ -674,7 +696,7 @@ if ($script:Trad) {
 
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 $ui = @{}
-foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'Scroll', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt') { $ui[$n] = $win.FindName($n) }
+foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'Scroll', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'Marco', 'Raiz', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista') { $ui[$n] = $win.FindName($n) }
 
 # Numero de version (sale del version.txt de tu PC)
 function Poner-Version([bool]$vieja) {
@@ -1121,6 +1143,7 @@ function Calcular-NoDisp($i, $cpu) {
         $r['Gaming|sm'] = ('Tu PC no cumple los requisitos: necesita 16 GB de RAM o mas y Windows en un SSD o NVMe (' + ($q -join ' y ') + ').')
     }
     if ($i.AvOff) { $r['Gaming|avl'] = 'No hace falta: tu antivirus ya esta apagado.' }
+    if (([int]$i.NicPlacas -gt 0) -and ([int]$i.NicOpc -eq 0)) { $r['Gaming|nic'] = 'Tu placa de red no tiene opciones de ahorro de energia para cambiar (depende del driver): no hace falta.' }
     if ($cpu -and (-not $cpu.Ok)) { $r['Gaming|afi'] = ('Tu procesador no sirve para esto: ' + $cpu.Motivo + '.') }
     return $r
 }
@@ -1481,6 +1504,7 @@ $animTimer.Add_Tick({
 })
 
 function Mostrar-Carga([string]$titulo, [bool]$conFade) {
+    Mostrar-Dns $null
     $c = $script:Carga
     $c.Objetivo = 0.0; $c.Mostrado = 0.0; $c.Cerrar = $false
     $ui.CargaBarra.Width = 0; $ui.CargaPct.Text = '0%'
@@ -1842,6 +1866,62 @@ $PasosLimpieza = @(
     @('RESULTADO FINAL', 'Terminando')
 )
 
+# Prueba de DNS en la pantalla de carga: lee lo que va escribiendo el .bat de gaming
+# ("Probando Google...", "    Google: 12.3 ms") y lo muestra fila por fila.
+$DnsNombres = @('Cloudflare', 'Google', 'Quad9', 'OpenDNS')
+$script:DnsFilas = @{}
+foreach ($dn in $DnsNombres) {
+    $fila = New-Object Windows.Controls.DockPanel
+    $fila.Margin = '0,4,0,0'
+    $tv = Nuevo-Texto '' 12.5 '#5C6370' $true
+    $tv.TextWrapping = 'NoWrap'
+    [Windows.Controls.DockPanel]::SetDock($tv, 'Right')
+    $fila.Children.Add($tv) | Out-Null
+    $tn = Nuevo-Texto $dn 12.5 '#C3C8D0' $false
+    $fila.Children.Add($tn) | Out-Null
+    $ui.CargaDnsLista.Children.Add($fila) | Out-Null
+    $script:DnsFilas[$dn] = @{ Nombre = $tn; Valor = $tv }
+}
+
+function Leer-Dns([string]$t) {
+    $r = @{ Hechos = 0; Probando = ''; Ganador = ''; Ninguno = $false; Fin = $false; Filas = @{} }
+    foreach ($dn in $DnsNombres) {
+        $e = [regex]::Escape($dn)
+        $m = [regex]::Match($t, '(?m)^\s+' + $e + ':\s*([\d.,]+)\s*ms')
+        if ($m.Success) { $r.Filas[$dn] = @('ms', $m.Groups[1].Value); $r.Hechos++; continue }
+        if ($t -match ('(?m)^\s+' + $e + ':\s*no responde')) { $r.Filas[$dn] = @('mal', ''); $r.Hechos++; continue }
+        if ($t -match ('Probando ' + $e + '\.\.\.')) { $r.Filas[$dn] = @('prob', ''); $r.Probando = $dn; continue }
+        $r.Filas[$dn] = @('espera', '')
+    }
+    $g = [regex]::Match($t, 'El mas rapido para tu conexion:\s*(\S+)')
+    if ($g.Success) { $r.Ganador = $g.Groups[1].Value }
+    $r.Ninguno = ($t -match 'Ningun DNS respondio')
+    $r.Fin = $g.Success -or $r.Ninguno -or ($t -match 'no puede medir DNS') -or ($t -match 'No hay una placa de red conectada')
+    return $r
+}
+
+function Mostrar-Dns($d) {
+    if (-not $d) { if ($ui.CargaDns.Visibility -ne 'Collapsed') { $ui.CargaDns.Visibility = 'Collapsed' }; return }
+    $ui.CargaDns.Visibility = 'Visible'
+    $tit = 'Probando los DNS desde tu conexion'
+    if ($d.Ganador) { $tit = 'El mas rapido para tu conexion: ' + $d.Ganador }
+    elseif ($d.Ninguno) { $tit = 'Ningun DNS respondio a la prueba' }
+    $ui.CargaDnsTitulo.Text = (Con-Enie $tit)
+    foreach ($dn in $DnsNombres) {
+        $f = $script:DnsFilas[$dn]; $e = $d.Filas[$dn]
+        $gana = ($dn -eq $d.Ganador)
+        switch ($e[0]) {
+            'ms'   { $txt = $e[1] + ' ms'; $col = $(if ($gana) { '#81C995' } else { '#C3C8D0' }) }
+            'mal'  { $txt = (Con-Enie 'no responde'); $col = '#F28B82' }
+            'prob' { $txt = (Con-Enie 'probando...'); $col = '#E5B567' }
+            default { $txt = (Con-Enie 'en espera'); $col = '#5C6370' }
+        }
+        $f.Valor.Text = $txt; $f.Valor.Foreground = (Pincel $col)
+        $f.Nombre.FontWeight = $(if ($gana) { 'SemiBold' } else { 'Normal' })
+        $f.Nombre.Foreground = (Pincel $(if ($gana) { '#81C995' } else { '#C3C8D0' }))
+    }
+}
+
 function Limpiar-Variables {
     foreach ($v in @(Get-ChildItem Env: | Where-Object { $_.Name -like 'XR_*' })) { Remove-Item -LiteralPath ('Env:' + $v.Name) -ErrorAction SilentlyContinue }
     foreach ($n in 'XUCA_AUTO', 'PRIOJ', 'PRIOSYNC', 'AFIAPP', 'AFIJ', 'AFIF', 'AFIJX', 'AFIFX', 'AFIJT', 'AFIFT', 'CLEAN_BIN', 'CLEAN_GPU', 'CLEAN_RP') { Remove-Item -LiteralPath ('Env:' + $n) -ErrorAction SilentlyContinue }
@@ -1902,7 +1982,16 @@ function Actualizar-Progreso {
     if ($n -ne $t.UltN) { $t.UltN = $n; $t.UltCambio = Get-Date }
     $act = $(if ($ms.Count -gt 0) { Titulo-Corto $ms[$ms.Count - 1].Groups[1].Value } else { 'Preparando' })
     $num = [math]::Min($C.Hechos + [math]::Max($n, 1), $C.Total)
-    $base = $C.Hechos + [math]::Max($n - 1, 0) + $(if ($n -gt 0) { Avance-Tiempo $t.UltCambio 6 } else { 0 })
+    $sub = $(if ($n -gt 0) { Avance-Tiempo $t.UltCambio 6 } else { 0 })
+    # Si el paso actual es la prueba de DNS: se muestra cada DNS con su tiempo y la barra avanza con cada uno que termina
+    $dns = $null
+    if ($ms.Count -gt 0) {
+        $u = $ms[$ms.Count - 1]
+        if (($u.Groups[2].Value -eq 'S') -and ($u.Groups[1].Value -like 'cambiar el DNS*')) { $dns = Leer-Dns $txt.Substring($u.Index) }
+    }
+    Mostrar-Dns $dns
+    if ($dns) { $sub = $(if ($dns.Fin) { 0.95 } else { 0.95 * ($dns.Hechos + $(if ($dns.Probando) { 0.5 } else { 0 })) / $DnsNombres.Count }) }
+    $base = $C.Hechos + [math]::Max($n - 1, 0) + $sub
     Poner-Progreso (($base / $C.Total) * 0.97) (Con-Enie ((Con-Enie 'Cambio') + ' ' + $num + ' ' + (Con-Enie 'de') + ' ' + $C.Total + '  -  ' + $act))
 }
 
@@ -2159,7 +2248,7 @@ $win.Add_Closing({
 # ------------------------------------------------------------
 # Idioma: el boton de abajo a la izquierda cambia entre ingles y espanol, lo guarda y abre la app de nuevo
 # ------------------------------------------------------------
-$ui.IdiomaTxt.Text = $(if ($script:Idioma -eq 'es-mx') { 'English' } else { 'Espa' + $Enie + 'ol' })
+$ui.IdiomaTxt.Text = $(if ($script:Idioma -eq 'es-mx') { 'Set to English' } else { 'Cambiar a Espa' + $Enie + 'ol' })
 $ui.BtnIdioma.ToolTip = (Con-Enie 'Cambiar idioma')
 $ui.BtnIdioma.Add_Click({
     if (($script:Proc -and -not $script:Proc.HasExited) -or $script:UpdRun -or $script:Lectura) { Avisar 'Cambiar idioma' 'Espera a que termine lo que se esta aplicando para cambiar el idioma.'; return }
@@ -2170,6 +2259,58 @@ $ui.BtnIdioma.Add_Click({
     Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $AppPath + '"')
     $script:SalirYa = $true
     $win.Close()
+})
+
+# ------------------------------------------------------------
+# Zoom: si la ventana queda chica, todo se achica junto en vez de aplastarse.
+# Ctrl + rueda del mouse (o Ctrl + y Ctrl -) lo agranda o achica a mano; Ctrl + 0 lo vuelve a normal. Se guarda.
+# ------------------------------------------------------------
+$AnchoBase = 1080; $AltoBase = 620
+$Inv = [Globalization.CultureInfo]::InvariantCulture
+$script:ZoomTr = New-Object Windows.Media.ScaleTransform 1.0, 1.0
+$ui.Raiz.LayoutTransform = $script:ZoomTr
+$script:ZoomUsuario = 1.0
+try {
+    $zz = 0.0
+    if ([double]::TryParse([string](Leer-Config)['zoom'], [Globalization.NumberStyles]::Float, $Inv, [ref]$zz) -and ($zz -ge 0.6) -and ($zz -le 1.6)) { $script:ZoomUsuario = $zz }
+} catch { }
+$script:ZoomReal = 1.0
+
+function Ajustar-Zoom {
+    $w = $ui.Marco.ActualWidth; $h = $ui.Marco.ActualHeight
+    if (($w -le 0) -or ($h -le 0)) { return }
+    # Nunca mas grande de lo que entra: el contenido siempre tiene el lugar para el que fue armado
+    $s = [math]::Min($script:ZoomUsuario, [math]::Min($w / $AnchoBase, $h / $AltoBase))
+    $s = [math]::Max(0.3, $s)
+    $script:ZoomReal = $s
+    $script:ZoomTr.ScaleX = $s; $script:ZoomTr.ScaleY = $s
+}
+
+function Cambiar-Zoom([double]$nuevo) {
+    $nuevo = [math]::Round([math]::Max(0.6, [math]::Min(1.6, $nuevo)), 2)
+    $script:ZoomUsuario = $nuevo
+    Guardar-Config 'zoom' $nuevo.ToString($Inv)
+    Ajustar-Zoom
+    if ($script:Ocupado) { return }
+    $t = (Con-Enie 'Zoom: ') + [int][math]::Round($script:ZoomReal * 100) + '%'
+    if ($script:ZoomUsuario -gt ($script:ZoomReal + 0.01)) { $t += (Con-Enie ' (maximo para este tamano de ventana)') }
+    $ui.Estado.Text = ($t + '  -  ' + (Con-Enie 'Ctrl + 0 lo vuelve al tamano normal'))
+}
+
+$ui.Marco.Add_SizeChanged({ Ajustar-Zoom })
+$win.Add_PreviewMouseWheel({
+    param($o, $e)
+    if (([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control) -eq 0) { return }
+    Cambiar-Zoom ($script:ZoomUsuario + $(if ($e.Delta -gt 0) { 0.1 } else { -0.1 }))
+    $e.Handled = $true
+})
+$win.Add_PreviewKeyDown({
+    param($o, $e)
+    if (([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control) -eq 0) { return }
+    $k = [string]$e.Key
+    if ($k -in 'OemPlus', 'Add') { Cambiar-Zoom ($script:ZoomUsuario + 0.1); $e.Handled = $true }
+    elseif ($k -in 'OemMinus', 'Subtract') { Cambiar-Zoom ($script:ZoomUsuario - 0.1); $e.Handled = $true }
+    elseif ($k -in 'D0', 'NumPad0') { Cambiar-Zoom 1.0; $e.Handled = $true }
 })
 
 $win.Add_ContentRendered({ Buscar-Actualizacion })
