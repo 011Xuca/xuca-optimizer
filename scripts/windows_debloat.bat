@@ -47,7 +47,7 @@ set "REIN_IDS= av rc ad sv pv ms_acc al cta "
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo Pidiendo permisos de administrador...
-    if "%~1"=="" (powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs") else (powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '%~1' -Verb RunAs")
+    if "%~1"=="" (powershell -NoProfile -Command "Start-Process -FilePath $env:XUCA_SELF -Verb RunAs") else (powershell -NoProfile -Command "Start-Process -FilePath $env:XUCA_SELF -ArgumentList '%~1' -Verb RunAs")
     exit /b
 )
 
@@ -483,6 +483,11 @@ call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" "E
 call :opt_fin "Efectos visuales restaurados"
 :fx_fin
 
+rem Finalizar tarea en la barra existe desde Windows 11 22H2 (build 22621)
+if %BUILD% GTR 0 if %BUILD% LSS 22621 (
+    call :log "SALTADO" "Finalizar tarea: necesita Windows 11 22H2 o mas nuevo - build %BUILD%"
+    goto et_fin
+)
 echo.
 echo   Que hace: agrega Finalizar tarea al clic derecho de la barra de tareas.
 echo   A favor: cerras un juego o programa trabado sin abrir el Administrador de tareas.
@@ -554,6 +559,29 @@ call :opt_fin "Apps de la Store restauradas en segundo plano"
 :apps_fin
 
 echo.
+echo   Que hace: apaga los programas que se abren solos al prender la PC ^(Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge y parecidos^). No toca lo de Windows, drivers, paneles de mouse, teclado, auriculares y RGB ^(Logitech, Razer, SteelSeries Sonar, Corsair...^), Wallpaper Engine, antivirus, VPN ni antitrampas.
+echo   A favor: la PC prende mas rapido y queda mas RAM libre.
+echo   En contra: esos programas ya no se abren solos: los abris vos cuando los necesitas.
+set "QID=ini"
+set "Q=- Desea apagar las apps basura de inicio? (Las que se abren solas al prender la PC; no toca drivers, perifericos ni Wallpaper Engine)"
+call :askR
+if errorlevel 3 goto ini_r
+if errorlevel 2 goto ini_fin
+call :opt_ini "Apps de inicio"
+set "ACT=INICIO_OFF"
+call :aplicar_ps
+call :resps
+call :opt_fin "Apps basura de inicio apagadas"
+goto ini_fin
+:ini_r
+call :opt_ini "Apps de inicio (restaurar)"
+set "ACT=INICIO_ON"
+call :aplicar_ps
+call :resps
+call :opt_fin "Apps de inicio restauradas"
+:ini_fin
+
+echo.
 echo   Que hace: apaga el servicio que manda datos a Microsoft y sus tareas ^(diagnostico de discos y de energia, cola de errores, copia de MAR, medicion de inicio y mapas^), y deja el nivel que Windows pide para recibir antes las versiones nuevas.
 echo   A favor: menos procesos de fondo usando disco y CPU, y recibis primero la 26H2, que usa menos RAM.
 echo   En contra: no es un apagado total de los datos: es el punto medio para seguir recibiendo lo nuevo. El Administrador de tareas deja de medir el impacto de inicio de los programas.
@@ -617,20 +645,41 @@ if errorlevel 3 goto wg_r
 if errorlevel 2 goto wg_fin
 call :opt_ini "Widgets"
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowTaskViewButton" REG_DWORD 0
+rem En Windows 10 el panel de clima y noticias se llama "Noticias e intereses" y se apaga con otra clave (no es una app aparte).
+if %BUILD% GTR 0 if %BUILD% LSS 22000 goto wg_10
 call :regsoft "HKLM\SOFTWARE\Policies\Microsoft\Dsh" "AllowNewsAndInterests" REG_DWORD 0
 set "ACT=WIDGETS_OFF"
 call :aplicar_ps
 call :resps
 call :opt_fin "Widgets desactivados"
 goto wg_fin
+:wg_10
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" "EnableFeeds" REG_DWORD 0
+call :regsoft "HKCU\Software\Microsoft\Windows\CurrentVersion\Feeds" "ShellFeedsTaskbarViewMode" REG_DWORD 2
+if %OPT_T% EQU 0 goto wg_10_ok
+set "ACT=EXPLORER_RESTART"
+call :aplicar_ps
+:wg_10_ok
+call :opt_fin "Noticias e intereses desactivado"
+goto wg_fin
 :wg_r
 call :opt_ini "Widgets (restaurar)"
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowTaskViewButton" REG_DWORD 1
+if %BUILD% GTR 0 if %BUILD% LSS 22000 goto wg_10_r
 call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Dsh" "AllowNewsAndInterests"
 set "ACT=WIDGETS_ON"
 call :aplicar_ps
 call :resps
 call :opt_fin "Widgets restaurados"
+goto wg_fin
+:wg_10_r
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" "EnableFeeds"
+call :regsoft "HKCU\Software\Microsoft\Windows\CurrentVersion\Feeds" "ShellFeedsTaskbarViewMode" REG_DWORD 0
+if %OPT_T% EQU 0 goto wg_10_r_ok
+set "ACT=EXPLORER_RESTART"
+call :aplicar_ps
+:wg_10_r_ok
+call :opt_fin "Noticias e intereses restaurado"
 :wg_fin
 
 echo.
@@ -1180,6 +1229,25 @@ call :aplicar_ps
 call :resps
 call :opt_fin "Google Chrome instalado"
 :chr_fin
+
+
+echo.
+echo.
+echo %C_TIT%=== DRIVERS ===%C_RST%
+echo.
+echo   Que hace: revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver, la placa de video, el chipset de AMD y el programa de tu mouse, teclado o auriculares de marca. Tambien te avisa si la BIOS esta vieja.
+echo   A favor: te abre la pagina oficial de cada cosa, con la ultima version, sin programas de mas.
+echo   En contra: la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.
+set "QID=drv"
+set "Q=- Desea buscar los drivers recomendados para tu PC? (Solo los necesarios; se abre la pagina oficial de cada uno)"
+call :askS
+if errorlevel 2 goto drv_fin
+call :opt_ini "Drivers recomendados"
+set "ACT=DRIVERS"
+call :aplicar_ps
+call :resps
+call :opt_fin "Revision de drivers terminada"
+:drv_fin
 
 
 echo.
@@ -34802,6 +34870,11 @@ function Log($tag, $msg) {
 function Say($msg, $color) {
     if ($color) { Write-Host $msg -ForegroundColor $color } else { Write-Host $msg }
 }
+# Las paginas se abren con explorer.exe para que el navegador arranque como usuario normal y no como administrador.
+function Abrir-Pagina([string]$u) {
+    try { Start-Process -FilePath (Join-Path $env:WINDIR 'explorer.exe') -ArgumentList ('"' + ($u -replace '"', '%22') + '"') -ErrorAction Stop }
+    catch { Start-Process $u }
+}
 
 function Get-FeatMap {
     $m = @{}
@@ -34825,24 +34898,31 @@ function Extraer-Bin($texto, $clave, $destino, $sha) {
     } catch { return $false }
 }
 
+# Los nombres aceptan comodines (por ejemplo *LinkedIn*, porque el nombre del paquete cambia segun la version).
+# Lo que Windows marca como parte del sistema (NonRemovable) no se toca: borrarlo a la fuerza rompe el menu Inicio.
 function Quitar-Apps($lista) {
     $instaladas = @(Get-AppxPackage -AllUsers)
     $prov = @(Get-AppxProvisionedPackage -Online)
     $ok = 0; $mal = 0; $nada = 0
     foreach ($n in $lista) {
-        $pk = @($instaladas | Where-Object { $_.Name -eq $n })
-        $pv = @($prov | Where-Object { $_.DisplayName -eq $n })
-        if ($pk.Count -eq 0 -and $pv.Count -eq 0) { $nada++; Log 'OMITIDO' ($n + ' no estaba instalada'); continue }
+        $pk = @($instaladas | Where-Object { $_.Name -like $n })
+        $pv = @($prov | Where-Object { $_.DisplayName -like $n })
+        $fijas = @($pk | Where-Object { $_.NonRemovable })
+        if ($fijas.Count -gt 0) {
+            Log 'OMITIDO' ($n + ' es parte de Windows: Windows no deja borrarla')
+            $pk = @($pk | Where-Object { -not $_.NonRemovable })
+        }
+        if ($pk.Count -eq 0 -and $pv.Count -eq 0) { $nada++; if ($fijas.Count -eq 0) { Log 'OMITIDO' ($n + ' no estaba instalada') }; continue }
         foreach ($p in $pk) { 
             try { Remove-AppxPackage -Package $p.PackageFullName -AllUsers -ErrorAction Stop | Out-Null } 
             catch { try { Remove-AppxPackage -Package $p.PackageFullName -ErrorAction Stop | Out-Null } catch { } } 
         }
         foreach ($p in $pv) { try { Remove-AppxProvisionedPackage -Online -PackageName $p.PackageName -ErrorAction Stop | Out-Null } catch { } }
-        $quedan = @(Get-AppxPackage -AllUsers -Name $n).Count
+        $quedan = @(Get-AppxPackage -AllUsers -Name $n | Where-Object { -not $_.NonRemovable }).Count
         if ($quedan -eq 0) { 
             $ok++; Log 'OK' ('quitada ' + $n) 
         } else { 
-            $quedanLocal = @(Get-AppxPackage -Name $n).Count
+            $quedanLocal = @(Get-AppxPackage -Name $n | Where-Object { -not $_.NonRemovable }).Count
             if ($quedanLocal -eq 0) {
                 $ok++; Log 'OK' ('quitada ' + $n + ' para el usuario actual')
             } else {
@@ -34938,6 +35018,126 @@ function Quitar-Contrasena($name) {
         }
     }
 }
+
+# >>> XUCA-INICIO (la app XucaOP copia todo lo que esta entre estas dos marcas para saber si quedan apps de inicio basura)
+# Programas que se abren solos al prender la PC. Se apagan igual que desde el Administrador de tareas (StartupApproved),
+# asi se pueden volver a prender desde ahi, desde Configuracion o con R.
+# Nunca se apaga lo que esta en la carpeta de Windows (seguridad y drivers) ni lo que coincide con esta lista:
+# drivers y paneles de hardware, perifericos, RGB, Wallpaper Engine, antivirus, VPN, antitrampas y gestores de contrasenas.
+$InicioDejar = @(
+    'SecurityHealth', 'Windows Defender', 'ctfmon', 'Xuca',
+    'Realtek', 'RtkAud', 'RtHDVCpl', 'Nahimic', 'Waves', 'MaxxAudio', 'Dolby', 'DTS', 'Sonic Studio', 'Sound Blaster', 'SBCommand',
+    'NVIDIA', 'AMD', 'Radeon', 'Intel', 'igfx',
+    'Synaptics', 'ELAN', 'ETD', 'Alps', 'Wacom', 'XP-Pen', 'Huion', 'Tobii',
+    'Logitech', 'LGHUB', 'LogiOptions', 'Razer', 'Corsair', 'iCUE', 'SteelSeries', 'Sonar', 'HyperX', 'NGENUITY', 'Wooting', 'Glorious',
+    'ROCCAT', 'Turtle Beach', 'Cooler Master', 'MasterPlus', 'Redragon', 'Keychron', 'Fantech', 'Attack Shark', 'VGN', 'Pulsar', 'Lamzu', 'Endgame Gear', 'Zowie',
+    'ASUS', 'Armoury', 'ROG', 'MSI', 'Dragon Center', 'Mystic Light', 'Gigabyte', 'AORUS', 'RGB Fusion', 'ASRock', 'Polychrome', 'SignalRGB', 'OpenRGB',
+    'Lenovo', 'Legion', 'Vantage', 'Dell', 'Alienware', 'HP', 'OMEN', 'Acer', 'Predator', 'NitroSense',
+    'Bluetooth', 'Thunderbolt', 'Hotkey', 'Afterburner', 'RivaTuner', 'RTSS', 'FanControl',
+    'Wallpaper Engine', 'wallpaper32', 'wallpaper64', 'Lively',
+    'VoiceMeeter', 'Elgato', 'Stream Deck', 'GoXLR', 'Focusrite', 'Wave Link',
+    'Vanguard', 'vgtray', 'FACEIT', 'EasyAntiCheat', 'BattlEye',
+    'Malwarebytes', 'Bitdefender', 'Kaspersky', 'ESET', 'Avast', 'AVG', 'Norton', 'McAfee', 'Avira', 'Sophos', 'Webroot',
+    'NordVPN', 'ProtonVPN', 'Mullvad', 'WireGuard', 'OpenVPN', 'ExpressVPN', 'Surfshark', 'Cloudflare WARP', 'Tailscale',
+    'Bitwarden', '1Password', 'KeePass', 'Dashlane', 'PowerToys', 'AutoHotkey'
+)
+$InicioArchivo = Join-Path $env:ProgramData 'XucaScripts\inicio_apagado.txt'
+
+# 'HKCU:\...' o 'HKLM:\...' -> clave del registro (se crea si falta y $crear)
+function Inicio-Clave([string]$p, [bool]$crear) {
+    $raiz = $(if ($p -like 'HKCU:*') { [Microsoft.Win32.Registry]::CurrentUser } else { [Microsoft.Win32.Registry]::LocalMachine })
+    $sub = $p -replace '^HK(CU|LM):\\', ''
+    if ($crear) { return $raiz.CreateSubKey($sub) }
+    return $raiz.OpenSubKey($sub)
+}
+function Inicio-Leer([string]$p, [string]$n) {
+    $k = Inicio-Clave $p $false
+    if (-not $k) { return $null }
+    try { return $k.GetValue($n) } finally { $k.Close() }
+}
+
+# Todo lo que arranca solo, con Activo (si hoy arranca) y Dejar (si es de lo que nunca se apaga)
+function Inicio-Lista {
+    $rx = '(?i)(?<![a-z0-9])(' + (($InicioDejar | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')'
+    $aprob = 'Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\'
+    $r = @()
+    foreach ($f in @(
+        @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Run', ('HKCU:\' + $aprob + 'Run')),
+        @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', ('HKLM:\' + $aprob + 'Run')),
+        @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run', ('HKLM:\' + $aprob + 'Run32')))) {
+        $k = Inicio-Clave $f[0] $false
+        if (-not $k) { continue }
+        foreach ($n in @($k.GetValueNames())) {
+            if (-not $n) { continue }
+            $cmd = [string]$k.GetValue($n)
+            $r += [pscustomobject]@{ Tipo = 'reg'; Nombre = $n; Texto = ($n + ' ' + $cmd); Ruta = $cmd; Aprob = $f[1]; Clave = $n; Activo = $true; Dejar = $false }
+        }
+        $k.Close()
+    }
+    # Carpetas de Inicio (la tuya y la de todos los usuarios)
+    foreach ($f in @(
+        @([Environment]::GetFolderPath('Startup'), ('HKCU:\' + $aprob + 'StartupFolder')),
+        @([Environment]::GetFolderPath('CommonStartup'), ('HKLM:\' + $aprob + 'StartupFolder')))) {
+        if ((-not $f[0]) -or (-not (Test-Path -LiteralPath $f[0]))) { continue }
+        foreach ($a in @(Get-ChildItem -LiteralPath $f[0] -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne 'desktop.ini' })) {
+            $dest = ''
+            if ($a.Extension -eq '.lnk') { try { $dest = [string](New-Object -ComObject WScript.Shell).CreateShortcut($a.FullName).TargetPath } catch { } }
+            $r += [pscustomobject]@{ Tipo = 'reg'; Nombre = $a.BaseName; Texto = ($a.Name + ' ' + $dest); Ruta = $dest; Aprob = $f[1]; Clave = $a.Name; Activo = $true; Dejar = $false }
+        }
+    }
+    # Si arranca o no lo dice StartupApproved: el primer byte par = prendido (o si no hay nada), impar = apagado
+    foreach ($e in $r) {
+        $b = Inicio-Leer $e.Aprob $e.Clave
+        if (($b -is [byte[]]) -and ($b.Length -gt 0)) { $e.Activo = (($b[0] -band 1) -eq 0) }
+    }
+    # Apps de la Store que arrancan solas (Spotify, Teams, WhatsApp...): State 2 = prendida, 1 = apagada por vos
+    $base = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData'
+    $kb = Inicio-Clave $base $false
+    if ($kb) {
+        foreach ($pk in @($kb.GetSubKeyNames())) {
+            $kp = $kb.OpenSubKey($pk)
+            if (-not $kp) { continue }
+            foreach ($t in @($kp.GetSubKeyNames())) {
+                $kt = $kp.OpenSubKey($t)
+                if (-not $kt) { continue }
+                $st = $kt.GetValue('State'); $kt.Close()
+                if ($st -isnot [int]) { continue }
+                $r += [pscustomobject]@{ Tipo = 'store'; Nombre = ($pk -replace '_[a-z0-9]+$', ''); Texto = ($pk + ' ' + $t); Ruta = ''; Aprob = ($base + '\' + $pk + '\' + $t); Clave = 'State'; Activo = ($st -eq 2); Dejar = $false }
+            }
+            $kp.Close()
+        }
+        $kb.Close()
+    }
+    $win = [string]$env:SystemRoot
+    foreach ($e in $r) {
+        $e.Dejar = ($e.Texto -match $rx) -or ($win -and ($e.Ruta -like ('*' + $win + '\*')))
+    }
+    return $r
+}
+
+# Las que se apagan con la opcion (las que hoy arrancan y no son de la lista para dejar)
+function Inicio-Basura { return @(Inicio-Lista | Where-Object { $_.Activo -and -not $_.Dejar }) }
+
+# Prende o apaga una. Devuelve $true si quedo como se pidio.
+function Inicio-Poner($e, [bool]$prender) {
+    try {
+        if ($e.Tipo -eq 'store') {
+            $k = Inicio-Clave $e.Aprob $false
+            if (-not $k) { return $prender }
+            $k.Close()
+            $k = Inicio-Clave $e.Aprob $true
+            $k.SetValue('State', $(if ($prender) { 2 } else { 1 }), [Microsoft.Win32.RegistryValueKind]::DWord); $k.Close()
+            return ((Inicio-Leer $e.Aprob 'State') -eq $(if ($prender) { 2 } else { 1 }))
+        }
+        $b = New-Object byte[] 12
+        if ($prender) { $b[0] = 2 } else { $b[0] = 3; [BitConverter]::GetBytes([DateTime]::UtcNow.ToFileTimeUtc()).CopyTo($b, 4) }
+        $k = Inicio-Clave $e.Aprob $true
+        $k.SetValue($e.Clave, $b, [Microsoft.Win32.RegistryValueKind]::Binary); $k.Close()
+        $v = Inicio-Leer $e.Aprob $e.Clave
+        return (($v -is [byte[]]) -and ($v[0] -eq $b[0]))
+    } catch { return $false }
+}
+# <<< XUCA-INICIO
 
 if ($env:ACT -like 'LOCALPW*') {
 Add-Type -Namespace XucaWin -Name Lg -MemberDefinition @'
@@ -35592,6 +35792,47 @@ switch ($env:ACT) {
         }
     }
 
+    'INICIO_OFF' {
+        $lista = @(Inicio-Basura)
+        if ($lista.Count -eq 0) {
+            Log 'OK' 'ya estaba: no hay apps basura que arranquen solas'
+            $code = 5
+        } else {
+            $d = Split-Path -Parent $InicioArchivo
+            if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+            foreach ($e in $lista) {
+                if (Inicio-Poner $e $false) {
+                    # Se anota para que R vuelva a prender solo lo que apago esta opcion
+                    Add-Content -LiteralPath $InicioArchivo -Value (($e.Tipo, $e.Aprob, $e.Clave, $e.Nombre) -join "`t")
+                    Log 'OK' ('ya no arranca solo: ' + $e.Nombre)
+                    Say ('  Apagado al inicio: ' + $e.Nombre)
+                } else {
+                    Log 'FALLO' ('no se pudo apagar al inicio: ' + $e.Nombre); $code = 1
+                }
+            }
+            foreach ($e in @(Inicio-Lista | Where-Object { $_.Activo -and $_.Dejar })) { Log 'INFO' ('se deja como esta: ' + $e.Nombre) }
+        }
+    }
+
+    'INICIO_ON' {
+        $l = @()
+        if (Test-Path -LiteralPath $InicioArchivo) { $l = @(Get-Content -LiteralPath $InicioArchivo | Where-Object { $_ }) }
+        if ($l.Count -eq 0) {
+            Log 'OK' 'ya estaba: no hay apps de inicio apagadas por esta opcion'
+            $code = 5
+        } else {
+            $quedan = @()
+            foreach ($x in $l) {
+                $c = $x -split "`t"
+                if ($c.Count -lt 4) { continue }
+                $e = [pscustomobject]@{ Tipo = $c[0]; Aprob = $c[1]; Clave = $c[2]; Nombre = $c[3] }
+                if (Inicio-Poner $e $true) { Log 'OK' ('vuelve a arrancar solo: ' + $e.Nombre); Say ('  Prendido al inicio: ' + $e.Nombre) }
+                else { Log 'FALLO' ('no se pudo prender al inicio: ' + $e.Nombre); $quedan += $x; $code = 1 }
+            }
+            if ($quedan.Count -gt 0) { Set-Content -LiteralPath $InicioArchivo -Value $quedan } else { Remove-Item -LiteralPath $InicioArchivo -Force -ErrorAction SilentlyContinue }
+        }
+    }
+
     'DEBLOAT' {
         Stop-Process -Name "OneDrive", "ms-teams", "msteams" -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 1
@@ -35626,9 +35867,9 @@ switch ($env:ACT) {
                  'Microsoft.GetHelp', 'Microsoft.Getstarted', 'Microsoft.MicrosoftOfficeHub', 'Microsoft.MicrosoftSolitaireCollection',
                  'Microsoft.WindowsFeedbackHub', 'Clipchamp.Clipchamp', 'Microsoft.People', 'Microsoft.MixedReality.Portal',
                  'Microsoft.SkypeApp', 'Microsoft.Copilot', 'MSTeams', 'Microsoft.PowerAutomateDesktop',
-                 '7EE7776C.LinkedInforWindows', 'Microsoft.Todos', 'MicrosoftCorporationII.MicrosoftFamily',
+                 '*LinkedIn*', 'Microsoft.Todos', 'MicrosoftCorporationII.MicrosoftFamily',
                  'SpotifyAB.SpotifyMusic', 'Microsoft.ZuneVideo', 'Microsoft.ZuneMusic', 'Microsoft.YourPhone', 'Microsoft.549981C3F5F10',
-                 'Microsoft.MicrosoftStickyNotes', 'Microsoft.OutlookForWindows', 'Microsoft.MSPaint', 'Microsoft.WindowsCamera',
+                 'Microsoft.MicrosoftStickyNotes', 'Microsoft.OutlookForWindows', 'Microsoft.MSPaint', 'Microsoft.Paint', 'Microsoft.WindowsCamera',
                  'Microsoft.WindowsSoundRecorder', 'Microsoft.WindowsAlarms',
                  'Microsoft.Microsoft3DViewer', 'Microsoft.3DBuilder', 'Microsoft.Print3D', 'Microsoft.Appconnector',
                  'Microsoft.BingFoodAndDrink', 'Microsoft.BingHealthAndFitness', 'Microsoft.BingTranslator', 'Microsoft.BingTravel',
@@ -35822,6 +36063,304 @@ switch ($env:ACT) {
         }
     }
 
+    # Drivers recomendados: solo lo que de verdad aporta (dispositivos sin driver, placa de video, chipset de AMD,
+    # programas de mouse/teclado/auriculares de marca) y aviso de BIOS vieja. Se abre la pagina oficial de cada uno.
+    'DRIVERS' {
+        # Desde el boton de la app corre oculto: no pregunta nada, instala lo de Windows Update y abre las paginas solo
+        $desdeApp = ($env:XUCA_DRVAPP -eq '1')
+        # PRUEBA (borrar despues): hace de cuenta que falta todo, para ver que paginas abre
+        $prueba = ($env:XUCA_DRVPRUEBA -eq '1')
+        $wg = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+        $reco = New-Object System.Collections.Generic.List[object]
+        function Reco([string]$que, [string]$por, $ids, [string]$link) { $reco.Add([pscustomobject]@{ Que = $que; Por = $por; Ids = @($ids); Link = $link; Id = $null; Tipo = 'perif'; Titulo = $que; Corto = $por; Sub = @(); Abrir = $true }) }
+        # Lo que solo esta viejo (no falta) se muestra, pero su pagina no se abre sola (en la prueba se abre todo)
+        function Sin-Abrir { $reco[$reco.Count - 1].Abrir = $false }
+        # Version corta para las cajitas de la app: tipo (icono y color), titulo y una frase
+        function Corto([string]$tipo, [string]$titulo, [string]$corto) { $x = $reco[$reco.Count - 1]; $x.Tipo = $tipo; $x.Titulo = $titulo; $x.Corto = $corto }
+        # Estado de un programa en winget: 'no' (no instalado), 'viejo' (hay version nueva) o 'ok'
+        function Wg-Estado([string]$id) {
+            $out = @(& winget list --id $id -e --accept-source-agreements --disable-interactivity 2>$null)
+            if ($LASTEXITCODE -ne 0) { return 'no' }
+            $l = @($out | Where-Object { $_ -match [regex]::Escape($id) }) | Select-Object -First 1
+            if (-not $l) { return 'no' }
+            # Columnas: Nombre, Id, Version, Disponible, Origen. Con 5 columnas hay version nueva.
+            if (@(($l.Trim()) -split '\s{2,}').Count -ge 5) { return 'viejo' }
+            return 'ok'
+        }
+
+        Say ''
+        Say '  Revisando tu PC, puede tardar un minuto...' 'Cyan'
+
+        # 1) Dispositivos sin driver o con el driver roto (lo unico que falta de verdad, por ejemplo sonido, red o Bluetooth)
+        $malos = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -in 1, 18, 28, 31, 39 })
+        $wuDrv = @()
+        if ($malos.Count -gt 0) {
+            Say ''
+            Say ('  Dispositivos sin driver o con problemas: ' + $malos.Count) 'Yellow'
+            foreach ($m in $malos) { Say ('    * ' + $(if ($m.Name) { $m.Name } else { $m.PNPDeviceID })) }
+            $hw = @($malos | ForEach-Object { @($_.HardwareID) + @($_.CompatibleID) } | Where-Object { $_ } | ForEach-Object { ([string]$_).ToUpper() })
+            try {
+                Say '  Buscando sus drivers en Windows Update...'
+                $ses = New-Object -ComObject Microsoft.Update.Session
+                $bus = $ses.CreateUpdateSearcher()
+                $bus.ServerSelection = 3; $bus.ServiceID = '7971f918-a847-4430-9279-4a52d1efe18d'
+                $res = $bus.Search("IsInstalled=0 and Type='Driver'")
+                foreach ($u in @($res.Updates)) {
+                    # Solo los que son para un dispositivo que no anda
+                    if ($hw -contains ([string]$u.DriverHardwareID).ToUpper()) { $wuDrv += $u }
+                }
+                Log 'INFO' ('Windows Update: ' + $wuDrv.Count + ' drivers para dispositivos que no andan')
+            } catch { Log 'INFO' ('no se pudo buscar en Windows Update: ' + $_.Exception.Message) }
+        }
+
+        # 1b) Que bajar de la pagina de la placa madre: solo lo que usa el driver generico de Windows o no tiene driver
+        $piezas = New-Object System.Collections.Generic.List[string]
+        if ($wuDrv.Count -eq 0) {
+            foreach ($m in $malos) {
+                $tipo = $(switch -Regex ([string]$m.PNPClass) { '^Net$' { 'red' } 'Bluetooth' { 'Bluetooth' } 'MEDIA|AudioEndpoint' { 'audio' } 'USB' { 'USB' } default { 'chipset u otro' } })
+                $piezas.Add('Sin driver (' + $tipo + '): ' + $(if ($m.Name) { $m.Name } else { 'dispositivo sin nombre' }))
+            }
+        }
+        # Solo las placas que estan: las apagadas no cuentan, y el WiFi sin ninguna red a la vista (sin antena) tampoco
+        $fis3 = @(); try { $fis3 = @(Get-NetAdapter -Physical -ErrorAction Stop | Where-Object { [string]$_.Status -ne 'Disabled' }) } catch { }
+        $wifiSinRed = $false
+        if ((@($fis3 | Where-Object { $_.NdisPhysicalMedium -eq 9 }).Count -gt 0) -and (@($fis3 | Where-Object { ($_.NdisPhysicalMedium -eq 9) -and ([string]$_.Status -eq 'Up') }).Count -eq 0)) {
+            $o = (& netsh.exe wlan show networks 2>$null | Out-String)
+            $mw = [regex]::Match($o, '(\d+)\s+(networks?|redes)')
+            if ($mw.Success -and ([int]$mw.Groups[1].Value -eq 0)) { $wifiSinRed = $true; Log 'INFO' 'la placa WiFi no ve ninguna red (sin antena?): no se recomienda su driver' }
+        }
+        foreach ($a in @($fis3 | Where-Object { $_.NdisPhysicalMedium -eq 14 })) {
+            if ($prueba -or ([string]$a.DriverProvider -eq 'Microsoft')) { $piezas.Add('LAN: ' + $a.InterfaceDescription) }
+        }
+        foreach ($a in @($fis3 | Where-Object { ($_.NdisPhysicalMedium -eq 9) -and (-not $wifiSinRed) })) {
+            if ($prueba -or ([string]$a.DriverProvider -eq 'Microsoft')) { $piezas.Add('WiFi: ' + $a.InterfaceDescription) }
+        }
+        $firmados = @(Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue | Where-Object { ([string]$_.DeviceClass) -in 'BLUETOOTH', 'MEDIA' })
+        $btOk = @(Get-PnpDevice -PresentOnly -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { ([string]$_.Status -eq 'OK') -and ([string]$_.InstanceId -like 'USB\VID_*') }).Count -gt 0
+        foreach ($d in @($firmados | Where-Object { $btOk -and ([string]$_.DeviceClass -eq 'BLUETOOTH') -and ([string]$_.HardWareID -like 'USB\VID_*') })) {
+            if ($prueba -or ([string]$d.DriverProviderName -eq 'Microsoft')) { $piezas.Add('Bluetooth: ' + $d.DeviceName); break }
+        }
+        # Audio de la placa: el de Realtek solo si Windows le puso el generico (sin el, pueden fallar los conectores del frente o el microfono)
+        foreach ($d in @($firmados | Where-Object { ([string]$_.DeviceClass -eq 'MEDIA') -and ([string]$_.HardWareID -like 'HDAUDIO\FUNC_01&VEN_10EC*') })) {
+            if ($prueba -or ([string]$d.DriverProviderName -eq 'Microsoft')) { $piezas.Add('Audio: Realtek'); break }
+            else { Log 'OK' ('audio Realtek con su driver (' + $d.DriverVersion + '): no hace falta bajarlo') }
+        }
+        if ($piezas.Count -gt 0) {
+            Reco 'Drivers de tu placa madre' 'baja de la pagina de tu placa solo esto (lo demas, como las utilidades, no hace falta):' @() '#placa'
+            $reco[$reco.Count - 1].Sub = @($piezas)
+            Corto 'placa' 'Placa madre' 'Baja solo esto de su pagina (tienen el driver generico de Windows):'
+        }
+
+        # 2) Placa de video: con el driver basico de Windows o con uno de hace mas de 4 meses
+        foreach ($g in @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue)) {
+            $pnp = [string]$g.PNPDeviceID
+            if ($pnp -notmatch 'VEN_([0-9A-Fa-f]{4})') { continue }
+            $ven = $Matches[1].ToUpper()
+            $basico = ([string]$g.Name -match '(?i)basic|basico') -or ([string]$g.InfFilename -match '(?i)^(basicdisplay|display)\.inf$')
+            $dias = 0; try { $dias = [int]((Get-Date) - [datetime]$g.DriverDate).TotalDays } catch { }
+            if ((-not $basico) -and ($dias -lt 120) -and (-not $prueba)) { Log 'OK' ('driver de video al dia: ' + $g.Name + ' (' + $g.DriverVersion + ')'); continue }
+            $por = $(if ($basico) { 'tu placa de video usa el driver basico de Windows: sin el de la marca andas sin aceleracion' } else { 'tu driver de video tiene ' + $dias + ' dias; los nuevos traen mejoras para los juegos' })
+            switch ($ven) {
+                '10DE' { Reco ('Driver de NVIDIA (' + $g.Name + ')') ($por + '. La NVIDIA App instala el ultimo driver recomendado.') @('Nvidia.NVIDIAApp', 'Nvidia.GeForceExperience') 'https://www.nvidia.com/es-la/software/nvidia-app/' }
+                '1002' { Reco ('Driver de AMD (' + $g.Name + ')') ($por + '. En la pagina de AMD esta el instalador que detecta tu placa.') @() 'https://www.amd.com/es/support/download/drivers.html' }
+                '8086' { Reco ('Driver de Intel (' + $g.Name + ')') ($por + '. El Asistente de Intel instala el driver recomendado.') @('Intel.IntelDriverAndSupportAssistant') 'https://www.intel.com/content/www/es/es/support/detect.html' }
+            }
+            if ($ven -in '10DE', '1002', '8086') {
+                $con = $(switch ($ven) { '10DE' { 'la NVIDIA App' } '1002' { 'AMD Adrenalin' } default { 'el Asistente de Intel' } })
+                Corto $(switch ($ven) { '10DE' { 'gpu-nv' } '1002' { 'gpu-amd' } default { 'gpu-intel' } }) ([string]$g.Name) $(if ($basico) { 'Usa el driver basico de Windows: instala el de la marca con ' + $con } else { 'Driver de hace ' + $dias + ' dias: actualizalo con ' + $con })
+                if (-not $basico) { Sin-Abrir }
+            }
+        }
+
+        # 3) Procesador: en los Ryzen el driver de chipset de AMD trae el plan de energia y, en los X3D, el reparto de nucleos
+        $cpu = @(Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue)[0]
+        if ($cpu -and ([string]$cpu.Manufacturer -eq 'AuthenticAMD') -and ([string]$cpu.Name -match 'Ryzen')) {
+            $chip = @(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { [string]$_.DisplayName -match '(?i)AMD Chipset' })
+            if (($chip.Count -eq 0) -or $prueba) { Reco 'Driver de chipset de AMD' ('tenes un ' + ([string]$cpu.Name).Trim() + ' y no esta instalado: mejora el manejo de energia y de los nucleos (en los X3D hace falta)') @() 'https://www.amd.com/es/support/download/drivers.html'; Corto 'chipset' 'Chipset de AMD' 'No esta instalado: mejora la energia y el reparto de nucleos' }
+            else { Log 'OK' ('driver de chipset de AMD instalado: ' + $chip[0].DisplayVersion) }
+        }
+
+        # 4) Mouse, teclado y auriculares de marca: el programa de la marca (DPI, macros, sonido, Sonar...)
+        $usb = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { [string]$_.InstanceId -match '^(USB|HID)\\VID_([0-9A-F]{4})' })
+        $nombresDe = {
+            param($vid)
+            @($usb | Where-Object { [string]$_.InstanceId -match ('VID_(' + $vid + ')') } | ForEach-Object {
+                $d = $null; try { $d = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName 'DEVPKEY_Device_BusReportedDeviceDesc' -ErrorAction Stop).Data } catch { }
+                if ($d) { [string]$d } else { [string]$_.FriendlyName }
+            } | Where-Object { $_ } | Select-Object -Unique)
+        }
+        $marcas = @(
+            @{ Vid = '046D'; Que = 'Logitech G HUB'; Ids = @('Logitech.GHUB'); Link = 'https://www.logitechg.com/innovation/g-hub.html'; Solo = '(?i)\bG\s?\d|G PRO|PRO X|LIGHTSPEED|ASTRO|Gaming' },
+            @{ Vid = '1532'; Que = 'Razer Synapse'; Ids = @('RazerInc.RazerInstaller'); Link = 'https://www.razer.com/synapse-4'; Solo = '' },
+            @{ Vid = '1038'; Que = 'SteelSeries GG (con Sonar)'; Ids = @('SteelSeries.GG'); Link = 'https://steelseries.com/gg'; Solo = '' },
+            @{ Vid = '1B1C'; Que = 'Corsair iCUE'; Ids = @('Corsair.iCUE.5', 'Corsair.iCUE.4'); Link = 'https://www.corsair.com/icue'; Solo = '' },
+            @{ Vid = '0951|03F0'; Que = 'HyperX NGENUITY'; Ids = @(); Link = 'https://hyperx.com/pages/ngenuity'; Solo = '(?i)HyperX' },
+            @{ Vid = '31E3'; Que = 'Wootility'; Ids = @('Wooting.Wootility'); Link = 'https://wooting.io/wootility'; Solo = '' },
+            @{ Vid = '1E7D'; Que = 'ROCCAT / Turtle Beach Swarm II'; Ids = @(); Link = 'https://www.turtlebeach.com/swarm-ii'; Solo = '' }
+        )
+        foreach ($mk in $marcas) {
+            $nom = @(& $nombresDe $mk.Vid)
+            if ($nom.Count -eq 0) { continue }
+            if ($mk.Solo -and (-not ($nom -match $mk.Solo))) { Log 'INFO' ('se ve ' + ($nom -join ', ') + ' pero no es de la linea gaming: no hace falta ' + $mk.Que); continue }
+            $estado = 'no'
+            if ($wg -and $mk.Ids.Count -gt 0 -and (-not $prueba)) { foreach ($id in $mk.Ids) { $estado = Wg-Estado $id; if ($estado -ne 'no') { break } } }
+            if ($estado -eq 'ok') { Log 'OK' ($mk.Que + ' ya esta instalado y al dia'); continue }
+            $por = $(if ($estado -eq 'viejo') { 'ya lo tenes pero hay una version nueva' } else { 'para configurar ' + (($nom | Select-Object -First 2) -join ' y ') })
+            Reco $mk.Que $por $mk.Ids $mk.Link
+            Corto 'perif' $mk.Que $(if ($estado -eq 'viejo') { 'Hay una version nueva' } else { 'Para configurar ' + (($nom | Select-Object -First 1)) })
+            if ($estado -eq 'viejo') { Sin-Abrir }
+        }
+
+        # 4b) Otros mouse y teclados de marca (Attack Shark, Ajazz, VXE, Redragon...): se busca su programa por el nombre
+        # Marcas que ya se revisan arriba, y joysticks (Sony, Microsoft, Nintendo, 8BitDo, Valve): esos no necesitan programa
+        $conocidos = '046D|1532|1038|1B1C|0951|03F0|31E3|1E7D|045E|054C|057E|2DC8|28DE'
+        $genericos = '(?i)^(usb|hid|generic|wireless|wired|2\.4g|receiver|composite|input|device|keyboard|mouse|optical|gaming|dongle|nano|bt|bluetooth|rgb|kb|ms|and|audio|headset|headphones?|microphone|mic|speakers?|sound|card|adapter|dac|webcam|camera|hd|pnp|stereo|7\.1|virtual|[\s\-_\.\d\(\)])+$'
+        $progs = (@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | ForEach-Object { [string]$_.DisplayName }) -join ' | ')
+        # Cada mouse, teclado, auricular o micro USB por separado (VID y PID): dos marcas distintas pueden compartir el mismo fabricante de chip
+        $vps = @(Get-PnpDevice -PresentOnly -Class Keyboard, Mouse, Media -ErrorAction SilentlyContinue | ForEach-Object { if ([string]$_.InstanceId -match 'VID_([0-9A-F]{4})&PID_([0-9A-F]{4})') { $Matches[1].ToUpper() + '&' + $Matches[2].ToUpper() } } | Select-Object -Unique)
+        # Modelos que se presentan con un nombre generico (tipo "Gaming Keyboard"): se reconocen por su VID y PID
+        $modelosVp = @{ '3151&502F' = 'Attack Shark X82 Pro HE' }
+        # Chips que usan muchas marcas gamer chinas (Ajazz, Attack Shark, VXE, Redragon...): aunque digan solo "Gaming Keyboard", tienen programa
+        $chipsGamer = '3151|3554|373B|258A|1D57|320F|36B0|3434'
+        $clases = @{}
+        foreach ($d in @(Get-PnpDevice -PresentOnly -Class Keyboard, Mouse, Media -ErrorAction SilentlyContinue)) { if ([string]$d.InstanceId -match 'VID_([0-9A-F]{4})&PID_([0-9A-F]{4})') { $clases[$Matches[1].ToUpper() + '&' + $Matches[2].ToUpper()] = [string]$d.Class } }
+        $vistos = @()
+        foreach ($vp in $vps) {
+            $vid = $vp.Split('&')[0]; $pid2 = $vp.Split('&')[1]
+            if ($vid -match ('^(' + $conocidos + ')$')) { continue }
+            # Solo el nombre que da el propio aparato (el de Windows es generico, tipo "Dispositivo de teclado HID")
+            $todos = @($usb | Where-Object { [string]$_.InstanceId -match ('VID_' + $vid + '&PID_' + $pid2) } | ForEach-Object {
+                try { [string](Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName 'DEVPKEY_Device_BusReportedDeviceDesc' -ErrorAction Stop).Data } catch { }
+            } | Where-Object { $_ } | ForEach-Object { $_.Trim() } | Select-Object -Unique)
+            # Un nombre sirve si tiene al menos una palabra de 3 letras que no sea generica ("K2" solo no dice la marca) y no es un joystick
+            $nom = @($todos | Where-Object { ($_ -notmatch $genericos) -and ($_ -notmatch '(?i)controller|gamepad|joystick|mando') -and (@(($_ -split '[\s\-_]+') | Where-Object { ($_.Length -ge 3) -and ($_ -notmatch $genericos) }).Count -gt 0) }) | Select-Object -First 1
+            if (@($todos | Where-Object { $_ -match '(?i)controller|gamepad|joystick|mando' }).Count -gt 0) { Log 'INFO' ('joystick: ' + ($todos -join ', ') + ' - no hace falta programa'); continue }
+            $busca = ''
+            if ($modelosVp.ContainsKey($vp)) { $nom = $modelosVp[$vp] }
+            if (-not $nom) {
+                # Nombre generico: si es un aparato gamer (chip de marcas gamer o dice "Gaming"), se busca su programa por VID y PID
+                $tipo = $(switch ($clases[$vp]) { 'Keyboard' { 'teclado' } 'Mouse' { 'mouse' } default { 'auricular o microfono' } })
+                $gen = @($todos)[0]
+                if (($vid -match ('^(' + $chipsGamer + ')$')) -or ($gen -match '(?i)gaming|rgb|8k|4k|rapid')) {
+                    $nom = ($(if ($gen) { $gen } else { $tipo }) + ' (' + $tipo + ' VID ' + $vid + ' PID ' + $pid2 + ')')
+                    $busca = ('"VID_' + $vid + '" "PID_' + $pid2 + '" ' + $(switch ($tipo) { 'teclado' { 'keyboard' } 'mouse' { 'mouse' } default { 'headset' } }) + ' driver software')
+                } else { Log 'INFO' ('periferico sin nombre de marca (' + $vp + '): ' + $(if ($todos.Count -gt 0) { $todos -join ', ' } else { 'sin nombre' })); continue }
+            }
+            if ($vistos -contains $nom) { continue }
+            $vistos += $nom
+            Log 'INFO' ('periferico: ' + $nom + ' (' + $vp + ')')
+            # Si ya hay un programa instalado con su nombre (por ejemplo "AJ159" o "Attack Shark"), no hace falta
+            $clave = @(($nom -split '[\s\-_]+') | Where-Object { ($_.Length -ge 3) -and ($_ -notmatch $genericos) }) | Select-Object -First 1
+            if ((-not $prueba) -and (-not $busca) -and $clave -and ($progs -match [regex]::Escape($clave))) { Log 'OK' ('ya hay un programa para ' + $nom); continue }
+            if (-not $busca) { $busca = ($nom + ' driver software download') }
+            # Lo que se configura depende de que aparato es
+            $para = $(switch ($clases[$vp]) {
+                'Mouse' { 'para configurar tu mouse (DPI, polling, botones y luces); lo da la marca' }
+                'Keyboard' { 'para configurar tu teclado (rapid trigger, recorrido de teclas, macros y luces); lo da la marca' }
+                default { 'para configurar tu auricular o microfono (ecualizador, microfono y sonido envolvente); lo da la marca' }
+            })
+            Reco ('Programa de ' + $nom) $para @() ('https://www.google.com/search?q=' + [uri]::EscapeDataString($busca))
+            Corto $(switch ($clases[$vp]) { 'Mouse' { 'mouse' } 'Keyboard' { 'teclado' } default { 'audio' } }) $nom $(switch ($clases[$vp]) { 'Mouse' { 'Su programa: DPI, polling, botones y luces' } 'Keyboard' { 'Su programa: rapid trigger, macros y luces' } default { 'Su programa: ecualizador y microfono' } })
+        }
+
+        # 5) BIOS de la placa madre: si tiene mas de un ano, conviene buscar la version recomendada
+        $bb = Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue
+        $bios = Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue
+        $biosVieja = $false; $biosLink = ''
+        if ($bb -and $bios) {
+            $marca = ([string]$bb.Manufacturer).Trim(); $modelo = ([string]$bb.Product).Trim()
+            $fb = $null; try { $fb = [datetime]$bios.ReleaseDate } catch { }
+            $meses = $(if ($fb) { [int](((Get-Date) - $fb).TotalDays / 30.4) } else { -1 })
+            $q = [uri]::EscapeDataString($modelo)
+            # Va directo a la pagina de soporte de tu placa en el sitio de la marca (el primer resultado de DuckDuckGo en ese sitio)
+            $sitio = $(switch -Regex ($marca) { 'ASUS' { 'asus.com' } 'Micro-Star|MSI' { 'msi.com' } 'Gigabyte' { 'gigabyte.com' } 'ASRock' { 'asrock.com' } 'Biostar' { 'biostar.com.tw' } default { '' } })
+            $biosLink = $(if ($sitio) { 'https://duckduckgo.com/?q=' + [uri]::EscapeDataString('!ducky site:' + $sitio + ' ' + $modelo + ' support BIOS') } else { 'https://www.google.com/search?q=' + [uri]::EscapeDataString($marca + ' ' + $modelo + ' BIOS') })
+            Say ''
+            Say ('  Placa madre: ' + $marca + ' ' + $modelo + '  -  BIOS ' + ([string]$bios.SMBIOSBIOSVersion).Trim() + $(if ($fb) { ' (' + $fb.ToString('dd/MM/yyyy') + ')' } else { '' }))
+            if (($meses -ge 12) -or $prueba) {
+                $biosVieja = $true
+                Say ('  Tu BIOS tiene ' + $meses + ' meses: conviene buscar la version recomendada en la pagina de tu placa.') 'Yellow'
+                Say '  La BIOS se actualiza a mano (desde la pagina o con la herramienta de la BIOS). No apagues la PC mientras se actualiza.' 'Yellow'
+            } elseif ($meses -ge 0) { Say '  Tu BIOS es reciente.' 'Green' }
+        }
+
+        # Luces RGB de la placa: el programa de cada marca, opcional (no se abre su pagina, solo se nombra)
+        if ($bb) {
+            $rgb = $(switch -Regex ([string]$bb.Manufacturer) { 'ASUS' { 'Armoury Crate (Aura Sync)' } 'Micro-Star|MSI' { 'MSI Center (Mystic Light)' } 'Gigabyte' { 'RGB Fusion' } 'ASRock' { 'Polychrome Sync' } default { '' } })
+            $rgbHay = ($progs -match '(?i)Armoury|Aura|MSI Center|Mystic Light|Control Center|RGB Fusion|Polychrome|OpenRGB|SignalRGB')
+            if ($rgb -and ($prueba -or (-not $rgbHay))) { Reco ('Opcional: ' + $rgb) 'solo si tu placa tiene luces y queres cambiarles el color o apagarlas; esta en la pagina de tu placa, en Utilidades. Si no te importan las luces, no lo instales (corre en segundo plano)' @() ''; Corto 'rgb' ('Luces RGB (opcional)') ($rgb + ': solo si te importan las luces. Esta en Utilidades de la pagina de tu placa madre') }
+        }
+
+        # El link de la placa madre se arma con la marca y el modelo
+        foreach ($r in $reco) { if ($r.Link -eq '#placa') { $r.Link = $biosLink } }
+
+        # Resumen
+        Say ''
+        if (($reco.Count -eq 0) -and ($wuDrv.Count -eq 0)) {
+            Say '  No hace falta instalar nada: tu PC ya tiene los drivers que aportan algo.' 'Green'
+            Log 'OK' 'no hace falta ningun driver'
+            $code = 5
+        } else {
+            Say '  Recomendado para tu PC:' 'Cyan'
+            foreach ($w in $wuDrv) { Say ('    - ' + $w.Title + '  (Windows Update)') }
+            foreach ($r in $reco) {
+                Say ('    - ' + $r.Que + ': ' + $r.Por)
+                foreach ($x in @($r.Sub)) { if ($x) { Say ('      + ' + $x) } }
+            }
+        }
+
+        # Para la app: una linea por cajita (tipo|titulo|frase) y sus items
+        if ($desdeApp) {
+            if (($reco.Count -eq 0) -and ($wuDrv.Count -eq 0) -and (-not $biosVieja)) { Write-Host 'XDRV|ok|Todo al dia|Tu PC ya tiene los drivers que aportan algo' }
+            if ($wuDrv.Count -gt 0) { Write-Host ('XDRV|wu|Windows Update|' + $wuDrv.Count + ' drivers para lo que no anda: instalalos en Actualizaciones opcionales') }
+            foreach ($r in $reco) {
+                Write-Host ('XDRV|' + $r.Tipo + '|' + ($r.Titulo -replace '\|', '/') + '|' + ($r.Corto -replace '\|', '/'))
+                foreach ($x in @($r.Sub)) { if ($x) { Write-Host ('XDRVSUB|' + ($x -replace '\|', '/')) } }
+            }
+            if ($biosVieja) { Write-Host ('XDRV|bios|BIOS de tu placa|' + $(if ($meses -ge 0) { 'Tiene ' + $meses + ' meses: ' } else { '' }) + 'busca la version nueva en la pagina de tu placa') }
+        }
+
+        # Drivers de Windows Update para lo que no anda
+        if ($wuDrv.Count -gt 0) {
+            Say ''
+            if ($desdeApp) {
+                Say '  Estan en Windows Update > Opciones avanzadas > Actualizaciones opcionales: te abro esa pagina.' 'Yellow'
+            } elseif ((Read-Host '  Instalo los drivers que faltan desde Windows Update? (S/N)') -match '^[sS]') {
+                try {
+                    $col = New-Object -ComObject Microsoft.Update.UpdateColl
+                    foreach ($w in $wuDrv) { [void]$col.Add($w) }
+                    $dl = $ses.CreateUpdateDownloader(); $dl.Updates = $col; [void]$dl.Download()
+                    $ins = $ses.CreateUpdateInstaller(); $ins.Updates = $col; $rr = $ins.Install()
+                    Log 'OK' ('Windows Update instalo los drivers (resultado ' + $rr.ResultCode + ')')
+                    Say ('  Drivers de Windows Update instalados: ' + $wuDrv.Count) 'Green'
+                    if ($rr.RebootRequired) { Say '  Reinicia la PC para terminar.' 'Yellow' }
+                } catch { Log 'FALLO' ('Windows Update: ' + $_.Exception.Message); $code = 1 }
+            }
+        }
+
+        # Se abre la pagina oficial de cada cosa recomendada (y la de la BIOS si esta vieja), ahi esta siempre la ultima version
+        $paginas = @($reco | Where-Object { $_.Link -and ($prueba -or $_.Abrir) } | ForEach-Object { $_.Link } | Select-Object -Unique)
+        # La BIOS vieja es para actualizar (no falta nada): su pagina se abre solo en la prueba
+        if ($biosVieja -and $biosLink -and $prueba) { $paginas += $biosLink }
+        if ($desdeApp -and ($wuDrv.Count -gt 0)) { $paginas += 'ms-settings:windowsupdate-optionalupdates' }
+        $paginas = @($paginas | Select-Object -Unique)
+        # Si hay algo para mostrar (aunque sea opcional o solo viejo) pero ninguna pagina que abrir, se abre la de tu placa madre
+        if (($paginas.Count -eq 0) -and (($reco.Count -gt 0) -or $biosVieja) -and $biosLink) { $paginas = @($biosLink); Log 'INFO' 'nada falta: se abre la pagina de la placa madre igual' }
+        if ($paginas.Count -gt 0) {
+            Say ''
+            if ($desdeApp -or ((Read-Host ('  Abro las paginas oficiales para bajar lo recomendado (' + $paginas.Count + ')? (S/N)')) -match '^[sS]')) {
+                $pri = $true
+                foreach ($u in $paginas) {
+                    # El navegador pierde pestanas si se le mandan todas juntas (sobre todo si estaba cerrado)
+                    if (-not $pri) { Start-Sleep -Milliseconds 1500 }
+                    Abrir-Pagina $u; Log 'OK' ('pagina abierta: ' + $u); $pri = $false
+                    if ($paginas.Count -gt 1) { Start-Sleep -Milliseconds 1000 }
+                }
+                Say ('  Paginas abiertas: ' + $paginas.Count) 'Green'
+            }
+        }
+    }
+
     'CHROME_INSTALL' {
         $rutas = @(($env:ProgramFiles + '\Google\Chrome\Application\chrome.exe'), (${env:ProgramFiles(x86)} + '\Google\Chrome\Application\chrome.exe'), ($env:LOCALAPPDATA + '\Google\Chrome\Application\chrome.exe'))
         $chrome = $rutas | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
@@ -35882,7 +36421,7 @@ public static extern bool IsProcessorFeaturePresent(uint feature);
             Say '  https://www.microsoft.com/software-download/windows11  (Descargar imagen de disco ISO)'
             $r = ([string](Read-Host '  Pega la ruta del archivo .iso (Enter = abrir esa pagina y cancelar)')).Trim().Trim('"')
             if (-not $r) {
-                Start-Process 'https://www.microsoft.com/software-download/windows11'
+                Abrir-Pagina 'https://www.microsoft.com/software-download/windows11'
                 Log 'INFO' 'sin ISO: se abrio la pagina de descarga'
                 $code = 4
             } elseif ((-not (Test-Path -LiteralPath $r)) -or ($r -notlike '*.iso')) {

@@ -47,7 +47,7 @@ set "REIN_IDS= tk mm notif gf mpo msi pca tr mi vbs md v4 ll nag nic "
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo Pidiendo permisos de administrador...
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    powershell -NoProfile -Command "Start-Process -FilePath $env:XUCA_SELF -Verb RunAs"
     exit /b
 )
 
@@ -314,8 +314,8 @@ echo   Lo de fondo solo se mueve mientras un juego esta abierto. Al cerrarlo, to
 echo   OBS, Visual Studio, Unreal, Godot, servidores Java, el audio de Windows y los antitrampas nunca se tocan.
 echo   Que hace: un programa chico en segundo plano pone tus juegos en los mejores nucleos y lleva Discord, Spotify y el navegador a otros.
 echo   A favor: lo de fondo no le roba nucleos al juego: frametimes mas parejos y menos tirones, sobre todo en Minecraft.
-echo   En contra: mientras jugas, lo de fondo anda un poco mas lento. Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad del juego:
-echo     en ese caso el juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.
+echo   En contra: mientras jugas, lo de fondo anda un poco mas lento.
+echo     Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.
 if defined XUCA_AUTO goto afi_preg
 echo.
 set "ACT=AFI_CONSEJO"
@@ -576,6 +576,25 @@ call :opt_fin "Notificaciones restauradas (se aplica al reiniciar el Explorador 
 :notif_fin
 
 echo.
+echo   Que hace: apaga el Modo Xbox de Windows 11 (la pantalla completa tipo consola con la app de Xbox).
+echo   A favor: no se abre ni te lo ofrece Windows si no lo usas. No cambia los FPS: es solo por comodidad.
+echo   En contra: para usar la PC como consola con el control, lo tenes que volver a prender.
+set "QID=xm"
+set "Q=- Desea desactivar el Modo Xbox? (La pantalla completa tipo consola de Windows 11)"
+call :askR
+if errorlevel 3 goto xm_r
+if errorlevel 2 goto xm_fin
+call :opt_ini "Modo Xbox"
+call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration" "GamingHomeApp" REG_SZ ""
+call :opt_fin "Modo Xbox desactivado"
+goto xm_fin
+:xm_r
+call :opt_ini "Modo Xbox (restaurar)"
+call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration" "GamingHomeApp" REG_SZ "Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App"
+call :opt_fin "Modo Xbox restaurado"
+:xm_fin
+
+echo.
 echo.
 echo %C_TIT%=== GRAFICOS ===%C_RST%
 
@@ -589,10 +608,13 @@ call :askR
 if errorlevel 3 goto gf_r
 if errorlevel 2 goto gf_fin
 call :opt_ini "Graficos"
+rem "Optimizaciones para juegos en ventana" existe solo en Windows 11 (22000 o mas). En Windows 10 se aplica solo la GPU por hardware.
+if %BUILD% GTR 0 if %BUILD% LSS 22000 goto gf_hags
 set "DX=SwapEffectUpgradeEnable=1;"
 set "ACT=DX"
 call :aplicar_ps
 call :resps
+:gf_hags
 call :reg "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" REG_DWORD 2
 call :opt_fin "Juegos en ventana optimizados y GPU acelerada por hardware (se aplica al reiniciar)"
 goto gf_fin
@@ -674,6 +696,11 @@ call :opt_fin "Asistente de compatibilidad restaurado (inicio automatico retrasa
 echo.
 echo.
 echo %C_TIT%=== TEMPORIZADOR Y LATENCIA ===%C_RST%
+rem En Windows 10 (2004 o mas nuevo) cada programa tiene su propio temporizador: uno fijo para todo el sistema no llega a los juegos.
+if %BUILD% GTR 0 if %BUILD% LSS 22000 (
+    call :log "SALTADO" "Temporizador: el temporizador global fijo necesita Windows 11 - build %BUILD%"
+    goto tr_fin
+)
 echo.
 echo %C_WARN%AVISO: el temporizador al minimo mantiene el CPU mas activo: mas consumo y calor (en notebook, mas bateria).%C_RST%
 echo %C_WARN%Si la PC se cuelga o se reinicia sola en juegos, elegi R.%C_RST%
@@ -814,6 +841,32 @@ call :aplicar_ps
 call :resps
 call :opt_fin "Ahorro de energia de la placa de red restaurado (se aplica al reiniciar)"
 :nic_fin
+echo.
+echo   Que hace: deja el WiFi y el cable conectados a la vez: Windows ya no corta el WiFi cuando enchufas el cable, el cable queda primero y el WiFi no se apaga por ahorro de energia.
+echo   A favor: el WiFi deja de desconectarse solo en las PCs que tienen WiFi y cable ^(como las placas madre con WiFi integrado^).
+echo   En contra: un poco mas de consumo, porque las dos conexiones quedan prendidas.
+set "QID=wf"
+set "Q=- Desea usar WiFi y cable a la vez sin cortes? (Para PCs con WiFi y cable; el cable queda primero)"
+call :askR
+if errorlevel 3 goto wf_r
+if errorlevel 2 goto wf_fin
+call :opt_ini "WiFi y cable a la vez"
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy" "fMinimizeConnections" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy" "fSoftDisconnectConnections" REG_DWORD 0
+set "ACT=WIFILAN_ON"
+call :aplicar_ps
+call :resps
+call :opt_fin "WiFi y cable a la vez activado"
+goto wf_fin
+:wf_r
+call :opt_ini "WiFi y cable a la vez (restaurar)"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy" "fMinimizeConnections"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy" "fSoftDisconnectConnections"
+set "ACT=WIFILAN_R"
+call :aplicar_ps
+call :resps
+call :opt_fin "WiFi y cable restaurados"
+:wf_fin
 echo.
 echo   Que hace: apaga el algoritmo de Nagle en tus conexiones de red: Windows manda cada paquete chico al instante en vez de juntarlos y esperar.
 echo   A favor: puede bajar unos milisegundos el ping en juegos que usan TCP, como Minecraft o juegos de MMO y estrategia.
@@ -1507,6 +1560,14 @@ function Log($tag, $msg) {
 function Say($msg, $color) {
     if ($color) { Write-Host $msg -ForegroundColor $color } else { Write-Host $msg }
 }
+# La carpeta de los programas que corren como SYSTEM: duenio Administradores, solo admins y SYSTEM pueden escribir.
+# Si la carpeta la habia creado un usuario comun, asi ya no puede cambiar los .exe ni los permisos.
+function Proteger-Carpeta([string]$d) {
+    if (-not (Test-Path -LiteralPath $d)) { New-Item -Path $d -ItemType Directory -Force | Out-Null }
+    & icacls.exe $d /setowner '*S-1-5-32-544' /T /C /Q 2>&1 | Out-Null
+    & icacls.exe $d /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' /C /Q 2>&1 | Out-Null
+    if (@(Get-ChildItem -LiteralPath $d -Force -ErrorAction SilentlyContinue).Count -gt 0) { & icacls.exe (Join-Path $d '*') /reset /T /C /Q 2>&1 | Out-Null }
+}
 
 function Get-FeatMap {
     $m = @{}
@@ -1545,7 +1606,7 @@ function Afi-Nombres([string]$txt) {
     foreach ($e in ($txt -split ',')) {
         $n = ($e.Trim().Trim('"').Trim() -replace '(?i)\.exe$', '').ToLower()
         if (-not $n) { continue }
-        if ($n -notmatch '^[^\\/:*?"<>|=]+$') { Log 'OMITIDO' ('nombre de proceso no valido: "' + $n + '"'); Say ('  "' + $n + '" no es un nombre de proceso valido, se salteo.') 'Yellow'; continue }
+        if (($n -notmatch '^[^\\/:*?"<>|=;,\[\]]{1,100}$') -or ($n -match '^[. ]+$')) { Log 'OMITIDO' ('nombre de proceso no valido: "' + $n + '"'); Say ('  "' + $n + '" no es un nombre de proceso valido, se salteo.') 'Yellow'; continue }
         if (Afi-Prohibido $n) { Log 'OMITIDO' ('"' + $n + '" no se toca para no romperlo'); Say ('  "' + $n + '" no se toca (sistema, OBS, editores, servidores Java o antitrampas), se salteo.') 'Yellow'; continue }
         $l.Add($n)
     }
@@ -2407,6 +2468,86 @@ switch ($env:ACT) {
         }
     }
 
+    # WiFi y cable a la vez. Lo que se cambia de cada placa se anota en wifi_lan.txt para que R lo deje como estaba.
+    { $_ -eq 'WIFILAN_ON' -or $_ -eq 'WIFILAN_R' } {
+        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $guarda = Join-Path $dir 'wifi_lan.txt'
+        $placas = @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue)
+        $wifi = @($placas | Where-Object { $_.NdisPhysicalMedium -eq 9 })
+        $lan = @($placas | Where-Object { $_.NdisPhysicalMedium -eq 14 })
+        # Plan de energia: "Configuracion de adaptador inalambrico" (0 = Rendimiento maximo)
+        $subW = '19cad22e-06db-433b-a9f3-6a1d0b7c4b19'; $setW = '12bbebe6-58d6-4636-95bb-3217ef867c1a'
+
+        if ($env:ACT -eq 'WIFILAN_ON') {
+            if (($wifi.Count -eq 0) -or ($lan.Count -eq 0)) { Log 'OMITIDO' 'esta PC no tiene placa WiFi y de cable a la vez'; $code = 2; break }
+            $notas = @()
+            if (Test-Path -LiteralPath $guarda) { $notas = @(Get-Content -LiteralPath $guarda) }
+            # Prioridad: el cable primero (numero mas bajo = se usa primero)
+            foreach ($a in $lan) {
+                try { Set-NetIPInterface -InterfaceIndex $a.ifIndex -AutomaticMetric Disabled -InterfaceMetric 10 -ErrorAction Stop; Log 'OK' ('prioridad 10 para el cable: ' + $a.Name) }
+                catch { Log 'INFO' ('no se pudo poner la prioridad de ' + $a.Name + ': ' + $_.Exception.Message) }
+            }
+            foreach ($a in $wifi) {
+                try { Set-NetIPInterface -InterfaceIndex $a.ifIndex -AutomaticMetric Disabled -InterfaceMetric 20 -ErrorAction Stop; Log 'OK' ('prioridad 20 para el WiFi: ' + $a.Name) }
+                catch { Log 'INFO' ('no se pudo poner la prioridad de ' + $a.Name + ': ' + $_.Exception.Message) }
+                # "Disable Upon Wired Connect" del driver (solo existe con el driver de la marca, por ejemplo Intel)
+                foreach ($pr in @($a | Get-NetAdapterAdvancedProperty -AllProperties -ErrorAction SilentlyContinue | Where-Object { ([string]$_.DisplayName) -match '(?i)wired connect' })) {
+                    $apagado = @($pr.ValidDisplayValues | Where-Object { $_ -match '(?i)^(disabled?|deshabilitad|desactivad)' }) | Select-Object -First 1
+                    if (-not $apagado) { continue }
+                    if ([string]$pr.DisplayValue -eq [string]$apagado) { Log 'OK' ('ya estaba: ' + $a.Name + ' ' + $pr.DisplayName + ' = ' + $apagado); continue }
+                    $notas += ('adv|' + $a.InterfaceGuid + '|' + $pr.RegistryKeyword + '|' + [string](@($pr.RegistryValue)[0]))
+                    try { $pr | Set-NetAdapterAdvancedProperty -DisplayValue $apagado -NoRestart -ErrorAction Stop; Log 'OK' ($a.Name + ': ' + $pr.DisplayName + ' = ' + $apagado) }
+                    catch { Log 'FALLO' ('no se pudo cambiar ' + $pr.DisplayName + ' en ' + $a.Name); $code = 1 }
+                }
+                # Que Windows no apague la placa WiFi para ahorrar energia
+                try {
+                    $pm = Get-NetAdapterPowerManagement -Name $a.Name -ErrorAction Stop
+                    if ([string]$pm.AllowComputerToTurnOffDevice -eq 'Enabled') {
+                        $notas += ('pm|' + $a.InterfaceGuid)
+                        Set-NetAdapterPowerManagement -Name $a.Name -AllowComputerToTurnOffDevice Disabled -NoRestart -ErrorAction Stop
+                        Log 'OK' ('Windows ya no apaga ' + $a.Name + ' para ahorrar energia')
+                    } else { Log 'OK' ('ya estaba: Windows no apaga ' + $a.Name) }
+                } catch { Log 'INFO' ('ahorro de energia de ' + $a.Name + ': ' + $_.Exception.Message) }
+            }
+            # Plan de energia: WiFi a Rendimiento maximo (se guarda lo que habia, enchufado y con bateria)
+            $q = (& powercfg /query SCHEME_CURRENT $subW $setW | Out-String)
+            $hx = @([regex]::Matches($q, '0x[0-9a-fA-F]{8}') | ForEach-Object { $_.Value })
+            if ($hx.Count -ge 2) {
+                if (-not ($notas | Where-Object { $_ -like 'plan|*' })) { $notas += ('plan|' + [Convert]::ToInt32($hx[-2], 16) + '|' + [Convert]::ToInt32($hx[-1], 16)) }
+                & powercfg /setacvalueindex SCHEME_CURRENT $subW $setW 0 | Out-Null
+                & powercfg /setdcvalueindex SCHEME_CURRENT $subW $setW 0 | Out-Null
+                & powercfg /setactive SCHEME_CURRENT | Out-Null
+                Log 'OK' 'plan de energia: WiFi en Rendimiento maximo'
+            } else { Log 'INFO' 'el plan de energia no tiene la opcion del adaptador inalambrico' }
+            Set-Content -LiteralPath $guarda -Value @($notas | Select-Object -Unique)
+        } else {
+            foreach ($a in @($lan + $wifi)) {
+                try { Set-NetIPInterface -InterfaceIndex $a.ifIndex -AutomaticMetric Enabled -ErrorAction Stop; Log 'OK' ('prioridad automatica otra vez: ' + $a.Name) } catch { }
+            }
+            $notas = @()
+            if (Test-Path -LiteralPath $guarda) { $notas = @(Get-Content -LiteralPath $guarda) }
+            foreach ($n in $notas) {
+                $c = $n -split '\|'
+                try {
+                    if ($c[0] -eq 'adv') {
+                        $a = @($placas | Where-Object { [string]$_.InterfaceGuid -eq $c[1] }) | Select-Object -First 1
+                        if ($a) { Set-NetAdapterAdvancedProperty -Name $a.Name -RegistryKeyword $c[2] -RegistryValue $c[3] -NoRestart -ErrorAction Stop; Log 'OK' ($a.Name + ': ' + $c[2] + ' vuelve a ' + $c[3]) }
+                    } elseif ($c[0] -eq 'pm') {
+                        $a = @($placas | Where-Object { [string]$_.InterfaceGuid -eq $c[1] }) | Select-Object -First 1
+                        if ($a) { Set-NetAdapterPowerManagement -Name $a.Name -AllowComputerToTurnOffDevice Enabled -NoRestart -ErrorAction Stop; Log 'OK' ('Windows puede volver a apagar ' + $a.Name) }
+                    } elseif ($c[0] -eq 'plan') {
+                        & powercfg /setacvalueindex SCHEME_CURRENT $subW $setW ([int]$c[1]) | Out-Null
+                        & powercfg /setdcvalueindex SCHEME_CURRENT $subW $setW ([int]$c[2]) | Out-Null
+                        & powercfg /setactive SCHEME_CURRENT | Out-Null
+                        Log 'OK' 'plan de energia del WiFi como estaba'
+                    }
+                } catch { Log 'FALLO' ('no se pudo restaurar: ' + $n); $code = 1 }
+            }
+            Remove-Item -LiteralPath $guarda -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     { $_ -eq 'NIC_OFF' -or $_ -eq 'NIC_ON' } {
         $val = 0
         if ($env:ACT -eq 'NIC_ON') { $val = 1 }
@@ -2523,7 +2664,7 @@ switch ($env:ACT) {
                 Start-Sleep -Seconds 3
                 Log 'INFO' ('DNS elegido: ' + $mejor.Nombre + ' ' + ($deseado -join ', '))
                 if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
-                & icacls $dir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
+                Proteger-Carpeta $dir
                 $cambio = $false
                 foreach ($a in $adaps) {
                     $act = @((Get-DnsClientServerAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4).ServerAddresses)
@@ -2639,6 +2780,7 @@ switch ($env:ACT) {
 
     'TIMER_ON' {
         $tn = 'XucaTimer'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaTimer.exe'
+        Proteger-Carpeta $dir
         # En Windows 11 el temporizador es por programa: sin esta clave, el pedido de XucaTimer no llega a los juegos.
         $kk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
         $glob = (Get-ItemProperty -Path $kk -ErrorAction SilentlyContinue).GlobalTimerResolutionRequests
@@ -2657,7 +2799,7 @@ switch ($env:ACT) {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
             Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue | Stop-Process -Force
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
-            & icacls $dir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
+            Proteger-Carpeta $dir
             $cs = 'using System.Runtime.InteropServices; using System.Threading; public class P { [DllImport("ntdll.dll")] public static extern int NtSetTimerResolution(uint d, bool s, out uint c); public static void Main() { uint c; NtSetTimerResolution(5000, true, out c); Thread.Sleep(Timeout.Infinite); } }'
             try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar TIMER: ' + $_.Exception.Message); $code = 1 }
             if (Test-Path $exe) {
@@ -2691,6 +2833,7 @@ switch ($env:ACT) {
 
     'RAM_ON' {
         $tn = 'XucaRAM'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaRAM.exe'
+        Proteger-Carpeta $dir
         $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
         if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe)) { Log 'OK' 'ya estaba: limpiador RAM corriendo'; $code = 5 }
         else {
@@ -2791,7 +2934,7 @@ switch ($env:ACT) {
                     } else {
                         if (-not (Test-Path $dir)) {
                             New-Item -Path $dir -ItemType Directory -Force | Out-Null
-                            & icacls $dir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
+                            Proteger-Carpeta $dir
                         }
                         $lineas = @(foreach ($c in $cfg) { $c.Cfg + '=' + (Actual $c.Cfg) })
                         Set-Content -Path $bak -Value $lineas
@@ -2921,14 +3064,17 @@ public static class SpiNative {
 
     'PRIO_ON' {
         $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\'
+        # Procesos de Windows: cambiarles la prioridad puede trabar o colgar la PC.
+        $prioNo = @('system', 'idle', 'registry', 'smss', 'csrss', 'wininit', 'winlogon', 'services', 'lsass', 'lsaiso', 'svchost', 'dwm', 'explorer', 'audiodg', 'fontdrvhost', 'sihost', 'ctfmon', 'conhost', 'taskmgr', 'spoolsv', 'searchindexer', 'msmpeng', 'runtimebroker', 'dllhost', 'rundll32', 'cmd', 'powershell', 'pwsh')
         # Cada nombre es el proceso del juego tal como aparece en el Administrador de tareas, sin el .exe.
         $exes = New-Object System.Collections.Generic.List[string]
         foreach ($e in (([string]$env:PRIOJ) -split ',')) {
             $txt = $e.Trim().Trim('"').Trim()
             if (-not $txt) { continue }
             $txt = $txt -replace '(?i)\.exe$', ''
-            if ($txt -match '^[^\\/:*?"<>|]+$') { $exes.Add($txt + '.exe') }
-            else { Log 'OMITIDO' ('nombre de proceso no valido: "' + $txt + '"'); Say ('  "' + $txt + '" no es un nombre de proceso valido, se salteo.') 'Yellow' }
+            if (($txt -notmatch '^[^\\/:*?"<>|=;,\[\]]{1,100}$') -or ($txt -match '^[. ]+$')) { Log 'OMITIDO' ('nombre de proceso no valido: "' + $txt + '"'); Say ('  "' + $txt + '" no es un nombre de proceso valido, se salteo.') 'Yellow' }
+            elseif ($prioNo -contains $txt.ToLower()) { Log 'OMITIDO' ('"' + $txt + '" es de Windows, no se toca'); Say ('  "' + $txt + '" es un proceso de Windows, no se toca.') 'Yellow' }
+            else { $exes.Add($txt + '.exe') }
         }
         $exes = @($exes | Sort-Object -Unique)
         if ($exes.Count -eq 0) {
@@ -2995,6 +3141,7 @@ public static class SpiNative {
     'AFI_ON' {
         $tn = 'XucaAfinidad'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaAfinidad.exe'; $cfg = Join-Path $dir 'afinidad.txt'
         $pl = Afi-Plan
+        Proteger-Carpeta $dir
         if (-not $pl.Ok) { Log 'OMITIDO' $pl.Motivo; Say ('  No se cambio nada: ' + $pl.Motivo + '.') 'Yellow'; $code = 2 }
         else {
             # La app manda la eleccion completa (AFIAPP=1, AFIJ y AFIF). En la consola: lo de la vez anterior (o los
@@ -3023,7 +3170,7 @@ public static class SpiNative {
                     Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
                     Start-Sleep -Milliseconds 500
                     if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
-                    & icacls $dir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
+                    Proteger-Carpeta $dir
                     Set-Content -LiteralPath $cfg -Value $txt -Encoding ASCII
                     Log 'OK' ('juegos: ' + ($pesados -join ', '))
                     if ($livianos.Count -gt 0) { Log 'OK' ('juegos livianos: ' + ($livianos -join ', ')) }

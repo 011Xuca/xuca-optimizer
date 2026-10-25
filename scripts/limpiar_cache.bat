@@ -19,7 +19,7 @@ color 0B
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo Pidiendo permisos de administrador...
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    powershell -NoProfile -Command "Start-Process -FilePath $env:XUCA_SELF -Verb RunAs"
     exit /b
 )
 
@@ -100,6 +100,26 @@ function Expand-Paths([string[]]$Paths) {
     }
 }
 
+# Lista los archivos de una carpeta sin entrar en accesos directos de carpeta (junctions o enlaces).
+# Un usuario comun puede crear en Temp un enlace a System32: si se siguiera, la limpieza (que corre como admin) borraria archivos de Windows.
+function Archivos-Seguro([string]$raiz) {
+    $rp = [IO.FileAttributes]::ReparsePoint
+    $ini = New-Object IO.DirectoryInfo($raiz)
+    if ((-not $ini.Exists) -or (($ini.Attributes -band $rp) -ne 0)) { return }
+    # Tampoco si alguna carpeta del medio es un enlace (por ejemplo AppData\Local\Microsoft apuntando a otro lado)
+    for ($a = $ini.Parent; $a -and ($a.FullName.TrimEnd('\').Split('\').Count -gt 3); $a = $a.Parent) { if (($a.Attributes -band $rp) -ne 0) { return } }
+    $pila = New-Object System.Collections.Generic.Stack[IO.DirectoryInfo]
+    $pila.Push($ini)
+    while ($pila.Count -gt 0) {
+        $d = $pila.Pop()
+        try { $hijos = $d.GetFileSystemInfos() } catch { continue }
+        foreach ($h in $hijos) {
+            if ($h -is [IO.DirectoryInfo]) { if (($h.Attributes -band $rp) -eq 0) { $pila.Push($h) } }
+            else { $h }
+        }
+    }
+}
+
 function Clear-Group([string]$Name, [string[]]$Paths) {
     $found = 0
     $deleted = 0
@@ -109,7 +129,7 @@ function Clear-Group([string]$Name, [string[]]$Paths) {
         if (Test-Path -LiteralPath $p -PathType Leaf) {
             $files = @(Get-Item -LiteralPath $p -Force)
         } else {
-            $files = @(Get-ChildItem -LiteralPath $p -File -Recurse -Force)
+            $files = @(Archivos-Seguro $p)
         }
         foreach ($f in $files) {
             $found++
@@ -186,7 +206,20 @@ $totalFiles += $r.Deleted
 $totalBytes += $r.Bytes
 
 $old = $sysDrive + '\Windows.old'
+# Solo se borra si es la carpeta que dejo Windows: no un enlace y con duenio SYSTEM, TrustedInstaller o Administradores.
+# (Cualquier usuario puede crear una carpeta en C:\; si se borrara a ciegas, como admin, podria usarse para romper Windows.)
+$oldOk = $false
 if (Test-Path -LiteralPath $old) {
+    try {
+        $oi = Get-Item -LiteralPath $old -Force
+        $dn = (Get-Acl -LiteralPath $old).GetOwner([Security.Principal.SecurityIdentifier]).Value
+        $duenioOk = ($dn -in 'S-1-5-18', 'S-1-5-32-544', 'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464', [Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
+        if (-not $duenioOk) { try { $duenioOk = @(Get-LocalGroupMember -SID 'S-1-5-32-544' -ErrorAction Stop | Where-Object { $_.SID.Value -eq $dn }).Count -gt 0 } catch { } }
+        $oldOk = (($oi.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and $duenioOk
+    } catch { }
+    if (-not $oldOk) { Write-Host 'Windows.old no parece la carpeta que deja Windows al actualizarse: no se toco.' -ForegroundColor Yellow }
+}
+if ($oldOk) {
     Write-Host "Eliminando $old..." -ForegroundColor Cyan
 
     # 1) Liberar lo que tenga abierto Windows.old: procesos y servicios que corren desde ahi
@@ -210,7 +243,7 @@ if (Test-Path -LiteralPath $old) {
             # Truco de robocopy: espeja una carpeta vacia encima (sirve con rutas muy largas)
             $empty = Join-Path $env:TEMP ('vacia_' + [guid]::NewGuid().ToString('N'))
             New-Item -ItemType Directory -Path $empty -Force | Out-Null
-            & robocopy.exe $empty $old /MIR /R:1 /W:1 /NFL /NDL /NJH /NJS /NP 2>&1 | Out-Null
+            & robocopy.exe $empty $old /MIR /XJ /R:1 /W:1 /NFL /NDL /NJH /NJS /NP 2>&1 | Out-Null
             Remove-Item -LiteralPath $empty -Force
             & cmd.exe /c ('rd /s /q "' + $old + '"') 2>&1 | Out-Null
         }
@@ -222,7 +255,7 @@ if (Test-Path -LiteralPath $old) {
     if (Test-Path -LiteralPath $old) {
         # 3) Si todavia queda algo en uso: tarea unica que lo borra al reiniciar (antes de que nada lo use)
         $tn = 'BorrarWindowsOld'
-        $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/c rd /s /q ' + $old + ' & schtasks.exe /delete /tn ' + $tn + ' /f')
+        $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/c rd /s /q "' + $old + '" & schtasks.exe /delete /tn ' + $tn + ' /f')
         $trg = New-ScheduledTaskTrigger -AtStartup
         $prn = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
         Register-ScheduledTask -TaskName $tn -Action $act -Trigger $trg -Principal $prn -Force | Out-Null

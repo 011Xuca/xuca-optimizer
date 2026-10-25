@@ -1,0 +1,5 @@
+# Configuracion del editor
+.vscode/
+
+# Registros que generan los scripts (scripts\logs)
+logs/

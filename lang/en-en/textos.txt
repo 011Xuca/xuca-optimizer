@@ -452,8 +452,8 @@ Full Optimizado + Competitivo	Full Optimized + Competitive
 saca publicidad, sugerencias, Bing, telemetria, rastreo y Widgets, y apaga la IA de Windows; suma ajustes comodos para jugar que no tienen riesgo (sin carteles de Teclas especiales, sin bajar el volumen en llamadas, Modo Juego, menus sin retraso).	removes ads, suggestions, Bing, telemetry, tracking and Widgets, and turns off Windows AI; adds comfortable gaming tweaks with no risk (no accessibility shortcut pop-ups, no volume lowering during calls, Game Mode, menus without delay).
 cualquier PC, incluso la de alguien que no sabe de esto.	any PC, even someone's who doesn't know about this.
 la seguridad, las apps instaladas ni el procesador.	security, installed apps or the processor.
-lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro del procesador, temporizador al minimo, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida.	the most for gaming without touching security: mouse without acceleration, priority and affinity for your games, High performance plan, processor Nitro Mode, timer at minimum, hardware GPU scheduling, lower network latency, faster DNS, no Game Bar and no notifications in matches.
-jugar competitivo (Valorant, CS2, Fortnite, Warzone) con la PC protegida.	competitive gaming (Valorant, CS2, Fortnite, Warzone) with the PC protected.
+lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro y baja latencia del procesador, temporizador al minimo, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida.	the most for gaming without touching security: mouse without acceleration, priority and affinity for your games, High performance plan, processor Nitro Mode and low latency, minimum timer, hardware GPU scheduling, lower network latency, faster DNS, no Game Bar, no Xbox Mode and no notifications while playing.
+jugar competitivo (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL y Deadlock) con la PC protegida. Los antitrampas de esos juegos siguen andando.	competitive gaming (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL and Deadlock) with the PC protected. Those games' anti-cheats keep working.
 el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps.	the antivirus, BitLocker, memory integrity or VBS; it doesn't delete apps either.
 el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse.	the High performance plan and the timer at minimum raise power use and heat; with undervolt or overclock the PC can freeze.
 todo lo de Competitivo y lo de Seguro, y ademas borra las apps basura, apaga la hibernacion, los efectos visuales, los sonidos, servicios que casi nadie usa y el Storage Sense, y Windows Update deja de instalar drivers.	everything in Competitive and Safe, and it also deletes bloatware apps, turns off hibernation, visual effects, sounds, services almost nobody uses and Storage Sense, and Windows Update stops installing drivers.
@@ -490,11 +490,9 @@ Edicion de Windows poco comun: 	Uncommon Windows edition:
 el nombre de la edicion o el propietario registrado tiene palabras de versiones modificadas	the edition name or the registered owner has words from modified versions
 El nombre de la edicion o el propietario registrado tiene palabras de versiones modificadas	The edition name or the registered owner has words from modified versions
 Buscando actualizaciones	Checking for updates
-Comparando tu version con la de GitHub	Comparing your version with the one on GitHub
 sin version	no version
  (desactualizada)	 (outdated)
 Hay una actualizacion disponible: tenes la 	An update is available: you have 
- y en GitHub esta la 	 and GitHub has 
 Toca este cartel para descargarla. Se cierra esta version y se abre la nueva sola.	Click this banner to download it. This version closes and the new one opens on its own.
 . Toca aca para actualizar.	. Click here to update.
 Hay una version nueva de Xuca OPtimizer	There's a new version of Xuca OPtimizer
@@ -550,7 +548,7 @@ La app tuvo un error y se cerro:	The app had an error and closed:
 Linea: 	Line: 
 Salir de Xuca OPtimizer	Exit Xuca OPtimizer
 Seguro que queres salir?	Are you sure you want to exit?
-Este proyecto es gratis y lo hago en mi tiempo libre. Si te sirvio y queres apoyarme, podes invitarme un Ko-fi:	This project is free and I make it in my free time. If it helped you and you want to support me, you can buy me a Ko-fi:
+Este proyecto es gratis y lo hago en mi tiempo libre. Si te sirvio y queres apoyarme, podes donarme un Ko-fi:	This project is free and I make it in my free time. If it helped you and you want to support me, you can donate a Ko-fi to me:
 Apoyar en Ko-fi	Support on Ko-fi
 No volver a mostrar el mensaje de Ko-fi	Don't show the Ko-fi message again
 Salir	Exit
@@ -632,3 +630,200 @@ Se sumaron 	Added
 La lista se arma sola con los juegos que tenes instalados en cualquier disco: Steam, Epic, EA, Battle.net, Ubisoft, Riot, Xbox, GOG, Rockstar y Minecraft.	The list builds itself with the games you have installed on any drive: Steam, Epic, EA, Battle.net, Ubisoft, Riot, Xbox, GOG, Rockstar and Minecraft.
 Juegos instalados	Installed games
  juegos nuevos instalados a tu lista.	 newly installed games to your list.
+Desactivar el Modo Xbox	Turn off Xbox mode
+apaga el Modo Xbox de Windows 11 (la pantalla completa tipo consola con la app de Xbox).	turns off Windows 11 Xbox mode (the console-style full screen with the Xbox app).
+no se abre ni te lo ofrece Windows si no lo usas. No cambia los FPS: es solo por comodidad.	Windows won't open it or offer it if you don't use it. It doesn't change FPS: it's just for comfort.
+para usar la PC como consola con el control, lo tenes que volver a prender.	to use the PC as a console with a controller, you have to turn it back on.
+Modo Xbox desactivado	Xbox mode turned off
+Modo Xbox restaurado	Xbox mode restored
+Marcar solo seguras	Select only safe
+Marca solo las opciones sin el icono de advertencia (no incluye instalar Google Chrome).	Selects only the options without the warning icon (does not include installing Google Chrome).
+Tu Windows todavia no trae el Modo Xbox: llega con Windows 11 24H2 o 25H2 actualizado (build .8328 o mas nueva). Tenes la build 	Your Windows doesn't have Xbox mode yet: it comes with an updated Windows 11 24H2 or 25H2 (build .8328 or newer). You have build 
+Apagar las apps basura de inicio	Turn off junk startup apps
+apaga los programas que se abren solos al prender la PC (Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge y parecidos). No toca lo de Windows, drivers, paneles de mouse, teclado, auriculares y RGB (Logitech, Razer, SteelSeries Sonar, Corsair...), Wallpaper Engine, antivirus, VPN ni antitrampas.	turns off the programs that open by themselves when the PC starts (Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge and similar). It doesn't touch Windows stuff, drivers, mouse, keyboard, headset and RGB software (Logitech, Razer, SteelSeries Sonar, Corsair...), Wallpaper Engine, antivirus, VPN or anti-cheats.
+la PC prende mas rapido y queda mas RAM libre.	the PC boots faster and more RAM stays free.
+esos programas ya no se abren solos: los abris vos cuando los necesitas.	those programs no longer open by themselves: you open them when you need them.
+Apps de inicio	Startup apps
+Apps de inicio (restaurar)	Startup apps (restore)
+Apps basura de inicio apagadas	Junk startup apps turned off
+Apps de inicio restauradas	Startup apps restored
+  Apagado al inicio: 	  Turned off at startup: 
+  Prendido al inicio: 	  Turned on at startup: 
+Optimizador para Windows	Windows optimizer
+Usar WiFi y cable a la vez sin cortes	Use WiFi and Ethernet together without drops
+deja el WiFi y el cable conectados a la vez: Windows ya no corta el WiFi cuando enchufas el cable, el cable queda primero y el WiFi no se apaga por ahorro de energia.	keeps WiFi and Ethernet connected at the same time: Windows no longer cuts WiFi when you plug in the cable, the cable goes first and WiFi isn't turned off to save power.
+el WiFi deja de desconectarse solo en las PCs que tienen WiFi y cable (como las placas madre con WiFi integrado).	WiFi stops disconnecting by itself on PCs that have WiFi and Ethernet (like motherboards with built-in WiFi).
+un poco mas de consumo, porque las dos conexiones quedan prendidas.	slightly more power use, because both connections stay on.
+WiFi y cable a la vez	WiFi and Ethernet together
+WiFi y cable a la vez (restaurar)	WiFi and Ethernet together (restore)
+WiFi y cable a la vez activado	WiFi and Ethernet together turned on
+WiFi y cable restaurados	WiFi and Ethernet restored
+No hace falta: es para PCs que tienen placa WiFi y de cable a la vez.	Not needed: it's for PCs that have both a WiFi and an Ethernet adapter.
+Drivers: 	Drivers: 
+Para apagar "Disable Upon Wired Connect" hace falta el driver de WiFi de la marca (Intel, Realtek o MediaTek), bajado de la pagina de tu placa madre. Con el driver generico de Windows esa opcion no aparece; lo demas se aplica igual.	To turn off "Disable Upon Wired Connect" you need the brand's WiFi driver (Intel, Realtek or MediaTek), downloaded from your motherboard's page. With Windows' generic driver that option doesn't show up; the rest applies anyway.
+Necesita el driver de red de la pagina de tu placa madre (Realtek, Intel o Killer). Con el driver generico de Windows casi no aparecen estas opciones.	Needs the network driver from your motherboard's page (Realtek, Intel or Killer). With Windows' generic driver these options barely show up.
+Necesita el driver de tu placa de video actualizado (NVIDIA, AMD o Intel), bajado de su pagina oficial.	Needs your graphics card driver up to date (NVIDIA, AMD or Intel), downloaded from its official page.
+Usa los drivers originales de tus placas (video, red y sonido), no los genericos de Windows: con los genericos es mas probable que no lo soporten.	Use the original drivers for your cards (graphics, network and sound), not Windows' generic ones: generic ones are more likely not to support it.
+Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), instala el driver de chipset de AMD desde amd.com.	If you have a two-CCD Ryzen X3D (7900X3D, 7950X3D, 9900X3D or 9950X3D), install the AMD chipset driver from amd.com.
+Drivers recomendados	Recommended drivers
+Buscar drivers	Find drivers
+Revision de drivers terminada	Driver check finished
+revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD y el programa de tu mouse, teclado o auriculares de marca, y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.	checks your PC and recommends only the drivers that add something: what has no driver (sound, network, Bluetooth...), the graphics card, the AMD chipset and the software for your brand mouse, keyboard or headset, and opens the official page for each one. It also tells you if your motherboard BIOS is old.
+tenes lo que hace falta, en su ultima version, y nada de programas de mas.	you get what you need, in its latest version, and no extra software.
+la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.	the BIOS doesn't update by itself: you do it by hand from your motherboard's page.
+Necesita drivers: 	Needs drivers: 
+mientras jugas, lo de fondo anda un poco mas lento.	while you play, background stuff runs a bit slower.
+Crear un punto de restauracion antes de continuar?	Create a restore point before continuing?
+Guarda una copia de como esta Windows ahora. Si algo sale mal, volves atras en unos minutos. Tarda un poco mas y ocupa algo de espacio en el disco.	It saves a copy of how Windows is right now. If something goes wrong, you can go back in a few minutes. It takes a bit longer and uses some disk space.
+No volver a preguntar	Don't ask again
+No, seguir sin crear	No, continue without one
+Crear y seguir	Create and continue
+Punto de restauracion	Restore point
+Faltan drivers	Missing drivers
+Primero instala los drivers	Install the drivers first
+Ir a instalar drivers	Go install drivers
+Antes de aplicar o seguir con lo que seleccionaste, tenes que instalar los drivers:	Before applying or continuing with what you selected, you need to install the drivers:
+Te llevo a Herramientas, a "Buscar drivers". Cuando los instales, toca "Volver a leer los ajustes".	Taking you to Tools, to "Find drivers". Once you install them, press "Read settings again".
+tu placa de video usa el driver basico de Windows	your graphics card is using the basic Windows driver
+tu placa de red usa el driver generico de Windows	your network card is using the generic Windows driver
+tu placa WiFi usa el driver generico de Windows	your WiFi card is using the generic Windows driver
+falta el driver de chipset de AMD (3D V-Cache Performance Optimizer)	the AMD chipset driver is missing (3D V-Cache Performance Optimizer)
+Revisa tu PC (tarda un minuto). Si a algun dispositivo le falta el driver y esta en Windows Update, lo instala; despues te abre la pagina oficial de cada cosa recomendada.	Checks your PC (takes a minute). If a device is missing its driver and Windows Update has it, it installs it; then it opens the official page for each recommended item.
+Buscar	Search
+Buscando drivers	Looking for drivers
+Tu PC ya tiene los drivers que aportan algo.	Your PC already has the drivers that matter.
+Recomendado para tu PC:	Recommended for your PC:
+drivers desde Windows Update.	drivers from Windows Update.
+Se instalaron 	Installed 
+(Prueba) No hacia falta nada, pero se abrio una pagina igual.	(Test) Nothing was needed, but a page was opened anyway.
+Se abrieron 	Opened 
+paginas oficiales en tu navegador.	official pages in your browser.
+Termino la revision. El detalle quedo en la carpeta de logs.	The check is done. The details are in the logs folder.
+Revisa tu PC (tarda un minuto) y te abre la pagina oficial de cada driver recomendado. No instala nada: lo bajas vos desde ahi.	Checks your PC (takes a minute) and opens the official page for each recommended driver. It doesn't install anything: you download it from there.
+Se abrio 1 pagina oficial en tu navegador.	Opened 1 official page in your browser.
+No hace falta: es para PCs que tienen placa WiFi y de cable a la vez (las placas apagadas no cuentan).	Not needed: it's for PCs with both a WiFi and a wired card (disabled cards don't count).
+Tu placa WiFi no ve ninguna red: puede que no tenga la antena puesta. Ponela y toca "Volver a leer los ajustes".	Your WiFi card can't see any network: the antenna may not be plugged in. Plug it in and press "Read settings again".
+Adicional	Extras
+Configs de juegos que subo a GitHub. Toca una y se descarga en tu escritorio con las instrucciones para optimizar ese juego.	Game configs I upload to GitHub. Press one and it downloads to your desktop with the instructions to optimize that game.
+Toca Descargar y se guarda en tu escritorio una carpeta con los archivos y las instrucciones para optimizar ese juego.	Press Download and a folder with the files and the instructions to optimize that game is saved on your desktop.
+Recargar	Reload
+Sin descripcion.	No description.
+Descargar en el escritorio	Download to desktop
+Buscando configs...	Looking for configs...
+Revisando lo que hay subido en GitHub.	Checking what's uploaded on GitHub.
+Vacio por ahora...	Empty for now...
+Todavia no subi ninguna config. Estoy armando las primeras: volve pronto que van a aparecer aca.	I haven't uploaded any configs yet. I'm working on the first ones: come back soon and they'll show up here.
+Descargar config	Download config
+Espera a que termine la descarga que esta en curso.	Wait for the current download to finish.
+Descargando...	Downloading...
+No se pudo conectar con GitHub	Couldn't connect to GitHub
+Revisa tu internet y toca Recargar.	Check your internet and press Reload.
+No se pudo descargar	Download failed
+No se pudo bajar la config. Revisa tu internet y proba de nuevo.	Couldn't download the config. Check your internet and try again.
+Config descargada	Config downloaded
+Se guardo en tu escritorio, en esta carpeta:	It was saved on your desktop, in this folder:
+Adentro estan los archivos y las instrucciones para optimizar el juego.	Inside are the files and the instructions to optimize the game.
+El perfil	The profile
+tiene ajustes que necesitan drivers que te faltan. Antes de seguir, instalalos:	has settings that need drivers you are missing. Install them before continuing:
+Configs	Configs
+Apps recomendadas	Recommended apps
+Programas gratis que recomiendo para cuidar, revisar y limpiar tu PC. Cada uno se baja de su pagina oficial.	Free programs I recommend to look after, check and clean your PC. Each one downloads from its official page.
+Configs de juegos y apps que subo a GitHub. Toca una y se descarga en tu escritorio con sus instrucciones.	Game and app configs I upload to GitHub. Press one and it downloads to your desktop with its instructions.
+Toca Descargar y se guarda en tu escritorio una carpeta con los archivos y las instrucciones para usarla.	Press Download and a folder with the files and the instructions to use it is saved on your desktop.
+Adentro estan los archivos y las instrucciones para usarla.	Inside are the files and the instructions to use it.
+Toca Descargar y se abre la descarga oficial en tu navegador. Despues lo instalas como cualquier programa.	Press Download and the official download opens in your browser. Then install it like any other program.
+Discos y espacio	Disks and space
+Limpieza y arranque	Cleanup and startup
+Hardware y temperaturas	Hardware and temperatures
+Juegos y video	Games and video
+Otros	Others
+Gratis	Free
+Prioridad critica	Critical priority
+Descargar	Download
+Desde:	From:
+Se abrio la descarga de	Opened the download of
+en tu navegador.	in your browser.
+No se pudo abrir el navegador.	Couldn't open the browser.
+Revisa la salud y la temperatura de tus discos y SSD, y te avisa si alguno esta por fallar, antes de que pierdas tus archivos.	Checks the health and temperature of your drives and SSDs, and warns you if one is about to fail, before you lose your files.
+Analiza tu disco en segundos y te muestra con colores que archivos y carpetas te estan comiendo el espacio.	Scans your drive in seconds and shows you, with colors, which files and folders are eating your space.
+Desinstala programas de forma limpia y borra los archivos basura y las entradas del registro que dejan los desinstaladores normales.	Uninstalls programs cleanly and removes the junk files and registry entries that normal uninstallers leave behind.
+Te muestra todo lo que arranca con Windows y te deja apagarlo. Lo mejor para que la PC prenda mas rapido y para encontrar malware escondido.	Shows everything that starts with Windows and lets you turn it off. The best way to make your PC boot faster and to find hidden malware.
+Desbloquea y borra los archivos que Windows no te deja borrar porque "estan siendo usados por otro programa".	Unlocks and deletes the files Windows won't let you delete because they're "being used by another program".
+Muestra en detalle temperaturas, voltajes y ventiladores. Esencial para saber si tu PC se esta calentando de mas.	Shows temperatures, voltages and fans in detail. Essential to know if your PC is overheating.
+Te dice el modelo exacto de tu procesador, tu placa madre y tu memoria RAM. Muy util para saber que tenes adentro de la PC.	Tells you the exact model of your processor, motherboard and RAM. Very useful to know what's inside your PC.
+Pone al maximo el procesador, la placa de video o la fuente para probarlos. Ideal para saber por que la PC se apaga sola o da pantallazos azules.	Pushes the processor, graphics card or power supply to the max to test them. Ideal to find out why your PC shuts down on its own or shows blue screens.
+Mide la potencia de tu procesador con un benchmark y te deja comparar tu puntaje con el de otras PCs.	Measures your processor's power with a benchmark and lets you compare your score with other PCs.
+Borra por completo el driver de tu placa de video. La solucion cuando los juegos dan tirones o hay problemas de video despues de cambiar de driver.	Completely removes your graphics card driver. The fix when games stutter or you get video problems after changing drivers.
+Compila antes de jugar los shaders del juego que elijas, asi no da tirones ni bajones de FPS en las primeras partidas. Anda con NVIDIA y AMD.	Compiles the shaders of the game you pick before you play, so it doesn't stutter or drop FPS in the first matches. Works with NVIDIA and AMD.
+Cliente de torrent liviano, minimalista y de codigo abierto, sin publicidad ni programas de mas como uTorrent.	Lightweight, minimalist and open-source torrent client, without the ads and bundled programs of uTorrent.
+ opciones de esta pagina ya estan aplicadas.	 options on this page are already applied.
+ no es compatible con tu PC.	 is not compatible with your PC.
+Configs recomendadas	Recommended configs
+Bienvenido a Xuca OPtimizer	Welcome to Xuca OPtimizer
+Que hace la app y como se usa. Cuando quieras, elegi una seccion a la izquierda.	What the app does and how to use it. Whenever you're ready, pick a section on the left.
+Optimizador gratis para Windows 10 y 11.	Free optimizer for Windows 10 and 11.
+Saca lo que sobra de Windows, lo prepara para jugar con menos latencia y libera espacio. Antes de tocar nada, lee tu PC: lo que ya tenes aplicado lo marca, y lo que no es compatible queda en gris y se saltea solo. Cada opcion te explica que hace, que ganas y que perdes.	It removes what Windows doesn't need, gets it ready for gaming with less latency and frees up space. Before touching anything, it reads your PC: it shows what you already have applied, and anything not compatible is greyed out and skipped. Each option explains what it does, what you gain and what you lose.
+Como se usa	How to use it
+Que hay en cada seccion	What's in each section
+Antes de empezar	Before you start
+Elegi una seccion en la barra de la izquierda.	Pick a section in the left bar.
+Si no sabes por donde empezar, anda a Perfiles.	If you don't know where to start, go to Profiles.
+Marca lo que quieras.	Check whatever you want.
+Toca cualquier parte de una opcion para marcarla. Lo que marques en Debloat y en Gaming se junta.	Click anywhere on an option to check it. What you check in Debloat and Gaming is combined.
+Toca Aplicar.	Press Apply.
+Antes te ofrece crear un punto de restauracion. Casi todo se deshace despues con Restablecer.	First it offers to create a restore point. Almost everything can be undone later with Restore.
+Perfiles:	Profiles:
+combos listos, de Seguro a Full Optimizado, que se aplican con un toque.	ready-made combos, from Safe to Full Optimized, applied with one click.
+Debloat y privacidad:	Debloat and privacy:
+publicidad, telemetria, IA de Windows, apps basura y apps de inicio que no hacen falta.	ads, telemetry, Windows AI, junk apps and startup apps you don't need.
+Optimizacion gaming:	Gaming optimization:
+mouse, prioridad y afinidad para tus juegos, energia, red, DNS y mas.	mouse, priority and affinity for your games, power, network, DNS and more.
+Limpiar cache:	Clean cache:
+temporales, cache de Windows Update, shaders y otras cosas que ocupan espacio.	temp files, Windows Update cache, shaders and other things that take up space.
+Herramientas:	Tools:
+drivers recomendados, actualizar Windows, entrar sin contrasena y mas.	recommended drivers, updating Windows, signing in without a password and more.
+Apps recomendadas:	Recommended apps:
+programas gratis para revisar, cuidar y limpiar tu PC.	free programs to check, look after and clean your PC.
+Configs recomendadas:	Recommended configs:
+configs de juegos y apps que subo a GitHub, con sus instrucciones.	game and app configs I upload to GitHub, with their instructions.
+Las opciones en amarillo pueden dar problemas en algunas PCs.	Options in yellow can cause problems on some PCs.
+Pasa el mouse por encima y te dice por que.	Hover over them and it tells you why.
+Las opciones en violeta necesitan drivers.	Options in purple need drivers.
+Si te faltan, la app te avisa y te lleva a Herramientas a buscarlos.	If you're missing them, the app tells you and takes you to Tools to find them.
+Todo lo que se cambia queda anotado.	Every change is logged.
+Lo ves con "Abrir carpeta de logs", abajo a la izquierda.	See it with "Open logs folder", bottom left.
+Elegi una seccion a la izquierda para empezar.	Pick a section on the left to start.
+de espacio liberado en tu disco	of disk space freed
+Los detalles quedaron en la carpeta de logs.	The details are in the logs folder.
+Genial	Great
+  -  1 opcion no es compatible: queda en gris y se saltea sola	  -  1 option is not compatible: it's grayed out and skipped automatically
+  -  Windows modificado o no original (mira el aviso rojo de arriba)	  -  Modified or non-genuine Windows (see the red warning at the top)
+Tema: 	Theme: 
+Sistema	System
+Claro	Light
+Oscuro	Dark
+ (claro)	 (light)
+ (oscuro)	 (dark)
+Tema de la app	App theme
+Ahora usas: 	You're using: 
+ (Windows esta en claro)	 (Windows is in light mode)
+ (Windows esta en oscuro)	 (Windows is in dark mode)
+Usa el mismo modo que Windows (ahora: 	Uses the same mode as Windows (now: 
+claro).	light).
+oscuro).	dark).
+Fondo claro y letras oscuras.	Light background and dark text.
+Fondo oscuro y letras claras.	Dark background and light text.
+Al cambiarlo, la app se vuelve a abrir sola.	When you change it, the app reopens by itself.
+Cambiar el tema (Sistema, Claro u Oscuro)	Change the theme (System, Light or Dark)
+Cambiar tema	Change theme
+Espera a que termine lo que se esta aplicando para cambiar el tema.	Wait for the current changes to finish before changing the theme.
+No se pudo completar	Couldn't finish
+Algo fallo, pero la app sigue abierta. Proba de nuevo; el detalle quedo en la carpeta de logs (app_errores.txt).	Something went wrong, but the app is still open. Try again; the details are in the logs folder (app_errores.txt).
+No es compatible con tu PC	Not compatible with your PC
+Tenes una version mas nueva: la 	You have a newer version: 
+, y la publicada es la 	, and the published one is 
+Si tocas este cartel se baja la publicada y reemplaza la tuya.	If you click this banner, the published version is downloaded and replaces yours.
+ (distinta)	 (different)
+Tu version de Xuca OPtimizer es distinta	Your Xuca OPtimizer version is different
+ y la nueva es la 	 and the new one is 
+Buscando versiones nuevas	Looking for new versions
