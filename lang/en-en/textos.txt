@@ -1,0 +1,621 @@
+# Traducciones al ingles de Xuca OPtimizer.
+# Cada linea: texto en espanol (tal cual esta en la app o en los .bat), un TAB, y el texto en ingles.
+# Ojo con los espacios al principio y al final: se respetan. Las lineas que empiezan con # se ignoran.
+# Si un texto no esta aca, se muestra en espanol.
+Apagar los puntos de restauracion para siempre	Turn off restore points for good
+apaga para siempre los puntos de restauracion y borra los que ya tenes.	turns off restore points for good and deletes the ones you already have.
+libera espacio en el disco y Windows deja de escribir copias en segundo plano.	frees disk space and Windows stops writing copies in the background.
+si algo sale mal ya no vas a poder volver atras con un punto de restauracion.	if something goes wrong you won't be able to go back with a restore point.
+PUNTOS DE RESTAURACION	RESTORE POINTS
+Crear un punto de restauracion	Create a restore point
+guarda una copia del estado de Windows antes de los cambios del script.	saves a copy of the state of Windows before the script makes changes.
+si algo sale mal, volves atras en unos minutos.	if something goes wrong, you go back in a few minutes.
+ocupa algo de espacio en el disco.	uses some disk space.
+Apagar TODO el antivirus	Turn off ALL the antivirus
+apaga Defender, SmartScreen y Smart App Control.	turns off Defender, SmartScreen and Smart App Control.
+menos uso de CPU y disco, y ningun analisis en medio de una partida.	less CPU and disk use, and no scans in the middle of a match.
+la PC queda sin proteccion contra virus y Smart App Control no se vuelve a encender sin reinstalar Windows.	the PC is left without virus protection and Smart App Control can't be turned back on without reinstalling Windows.
+SEGURIDAD	SECURITY
+Desactivar BitLocker	Disable BitLocker
+descifra el disco y evita que Windows lo vuelva a cifrar solo.	decrypts the disk and stops Windows from encrypting it again on its own.
+un poco mas de velocidad de disco y no te bloquea el acceso si cambias hardware o la BIOS.	a bit more disk speed and it won't lock you out if you change hardware or the BIOS.
+si te roban la PC, pueden leer tus archivos.	if your PC is stolen, they can read your files.
+Desactivar la hibernacion	Disable hibernation
+apaga la hibernacion y el Inicio rapido, y activa la compresion de memoria.	turns off hibernation and Fast Startup, and turns on memory compression.
+libera varios GB del disco y cada apagado es completo, con menos errores raros.	frees several GB of disk and every shutdown is complete, with fewer weird errors.
+prender la PC desde apagada tarda unos segundos mas.	turning the PC on from off takes a few more seconds.
+ALMACENAMIENTO Y MEMORIA	STORAGE AND MEMORY
+Desactivar Recall	Disable Recall
+apaga Recall, que saca capturas de lo que haces para buscarlo con IA.	turns off Recall, which takes screenshots of what you do to search it with AI.
+mas privacidad y menos uso de disco y CPU.	more privacy and less disk and CPU use.
+perdes esa busqueda por capturas; solo existe en PCs Copilot+.	you lose that screenshot search; it only exists on Copilot+ PCs.
+SISTEMA Y PRIVACIDAD	SYSTEM AND PRIVACY
+Silenciar los sonidos de Windows	Mute Windows sounds
+silencia los sonidos de Windows y el de inicio; quedan solo los de conectar y desconectar dispositivos.	mutes Windows sounds and the startup sound; only the device connect and disconnect sounds remain.
+no te suenan avisos en medio de una partida o un stream.	no alert sounds in the middle of a match or a stream.
+no escuchas las alertas del sistema.	you don't hear system alerts.
+Reducir los efectos visuales	Reduce visual effects
+quita animaciones, sombras, atenuados y transparencias.	removes animations, shadows, fades and transparency.
+Windows se siente mas rapido y usa un poco menos la placa de video.	Windows feels faster and uses the graphics card a bit less.
+Windows se ve mas simple.	Windows looks plainer.
+Agregar Finalizar tarea al clic derecho de la barra	Add End task to the taskbar right-click menu
+agrega Finalizar tarea al clic derecho de la barra de tareas.	adds End task to the taskbar right-click menu.
+cerras un juego o programa trabado sin abrir el Administrador de tareas.	you close a frozen game or program without opening Task Manager.
+ninguno.	none.
+Quitar el calendario del reloj	Remove the calendar from the clock
+la fecha y la hora de la barra se siguen viendo, pero al tocarlas ya no se abre el calendario ni el centro de notificaciones.	the date and time on the taskbar are still shown, but clicking them no longer opens the calendar or the notification center.
+no se abre el panel sin querer en medio de una partida y la barra queda igual.	the panel doesn't open by accident in the middle of a match and the taskbar stays the same.
+no ves el calendario ni el historial de notificaciones; Win + N tampoco lo abre.	you don't see the calendar or the notification history; Win + N doesn't open it either.
+Bloquear las apps de la Store en segundo plano	Block Store apps in the background
+no deja que las apps de la Store sigan corriendo cuando no las usas.	stops Store apps from running when you aren't using them.
+ahorra RAM y CPU.	saves RAM and CPU.
+algunas apps no te avisan de nada hasta que las abris.	some apps don't notify you of anything until you open them.
+Reducir la telemetria y recibir las actualizaciones mas recientes de Windows para menor uso de ram	Reduce telemetry and get the newest Windows updates for lower RAM use
+apaga el servicio que manda datos a Microsoft y sus tareas (diagnostico de discos y de energia, cola de errores, copia de MAR, medicion de inicio y mapas), y deja el nivel que Windows pide para recibir antes las versiones nuevas.	turns off the service that sends data to Microsoft and its tasks (disk and power diagnostics, error queue, MAR backup, startup measurement and maps), and sets the level Windows asks for to get new versions sooner.
+menos procesos de fondo usando disco y CPU, y recibis primero la 26H2, que usa menos RAM.	fewer background processes using disk and CPU, and you get 26H2 first, which uses less RAM.
+no es un apagado total de los datos: es el punto medio para seguir recibiendo lo nuevo. El Administrador de tareas deja de medir el impacto de inicio de los programas.	it's not a total shutdown of data: it's the middle ground to keep getting new things. Task Manager stops measuring the startup impact of programs.
+Desactivar los Widgets	Disable Widgets
+borra el panel de Widgets y oculta el boton Vista de tareas.	removes the Widgets panel and hides the Task View button.
+menos procesos y menos RAM, y la barra queda mas limpia.	fewer processes and less RAM, and a cleaner taskbar.
+perdes el panel de clima y noticias.	you lose the weather and news panel.
+Dejar de repartir actualizaciones a otras PCs	Stop sharing updates with other PCs
+tu PC deja de mandar actualizaciones a otras PCs por internet.	your PC stops sending updates to other PCs over the internet.
+no gasta tu subida de internet y hay menos riesgo de lag en partidas.	it doesn't use your upload bandwidth and there's less risk of lag in matches.
+ninguno para vos.	none for you.
+Que Windows Update no instale drivers	Stop Windows Update from installing drivers
+Windows Update deja de instalar drivers.	Windows Update stops installing drivers.
+no te cambia el driver de video que elegiste ni te pone drivers viejos.	it won't change the graphics driver you chose or install old drivers.
+los drivers los actualizas vos, desde la app de NVIDIA, AMD o el fabricante.	you update drivers yourself, from the NVIDIA, AMD or manufacturer app.
+Poder pausar las actualizaciones de Windows por mucho tiempo	Allow pausing Windows updates for a long time
+te deja elegir en Windows Update una pausa de muchos anos.	lets you choose a pause of many years in Windows Update.
+no se actualiza ni reinicia en un torneo o una partida importante.	it won't update or restart during a tournament or an important match.
+si la dejas pausada mucho tiempo, te perdes parches de seguridad.	if you leave it paused for a long time, you miss security patches.
+Quitar anuncios, sugerencias y Bing	Remove ads, suggestions and Bing
+quita anuncios, el ID de publicidad, apps sugeridas y las que instalan solas Microsoft y el fabricante, recomendaciones del Inicio y Bing de la busqueda.	removes ads, the advertising ID, suggested apps and the ones Microsoft and the manufacturer install on their own, Start recommendations and Bing from search.
+Inicio mas limpio y la busqueda es solo de tu PC, mas rapida.	a cleaner Start and search only looks in your PC, faster.
+la busqueda del Inicio ya no busca en internet.	Start search no longer searches the internet.
+Desactivar servicios y funciones que casi nadie usa	Disable services and features almost nobody uses
+apaga servicios de Fax, Mapas, modo demo, geolocalizacion y reportes de error, y quita Internet Explorer, Fax y Escaner y el Media Player viejo.	turns off Fax, Maps, demo mode, geolocation and error report services, and removes Internet Explorer, Fax and Scan and the old Media Player.
+menos servicios y funciones cargadas en Windows.	fewer services and features loaded in Windows.
+si usas el escaner de Windows o el Media Player viejo, dejan de estar.	if you use the Windows scanner or the old Media Player, they're gone.
+Apagar el rastreo y la recopilacion de datos	Turn off tracking and data collection
+apaga historial de actividad, ubicacion, Wifi Sense, portapapeles y ajustes en la nube, aprendizaje y sugerencias de escritura, voz en la nube y apps escuchando comandos de voz, mapas, DRM y Homegroup.	turns off activity history, location, Wifi Sense, cloud clipboard and settings, typing learning and suggestions, cloud speech and apps listening for voice commands, maps, DRM and Homegroup.
+mas privacidad y menos tareas en segundo plano.	more privacy and fewer background tasks.
+las apps que usan ubicacion, como el clima, no la detectan, y tus ajustes no se copian a otras PCs.	apps that use location, like weather, can't detect it, and your settings aren't copied to other PCs.
+Desactivar Teredo	Disable Teredo
+apaga Teredo, un tunel de IPv6 que Windows usa por encima de IPv4.	turns off Teredo, an IPv6 tunnel Windows uses on top of IPv4.
+puede sacar latencia de mas en algunas conexiones.	it can remove extra latency on some connections.
+puede afectar el chat de grupo de Xbox y el NAT en juegos de Xbox en PC.	it can affect Xbox party chat and NAT in Xbox games on PC.
+Apagar la telemetria de programas	Turn off program telemetry
+apaga la telemetria de Office, NVIDIA y PowerShell 7.	turns off telemetry for Office, NVIDIA and PowerShell 7.
+menos datos enviados y menos tareas de fondo.	less data sent and fewer background tasks.
+ninguno en el uso normal.	none in normal use.
+Bloquear los servidores de telemetria de Microsoft	Block Microsoft telemetry servers
+anota 38 servidores de telemetria en el archivo hosts para que no respondan.	adds 38 telemetry servers to the hosts file so they don't respond.
+corta envios de datos aunque Windows reactive algo despues.	cuts data sending even if Windows turns something back on later.
+Defender a veces avisa por cambios en hosts y algun diagnostico de Microsoft puede fallar.	Defender sometimes warns about hosts changes and some Microsoft diagnostics may fail.
+Reducir el bloat de Edge y Brave	Reduce Edge and Brave bloat
+apaga en Edge y Brave la barra lateral, compras, rewards, wallet, VPN e IA; en Edge tambien saca Copilot (no lee tus paginas ni tu historial), la escritura con IA, los temas con IA, la IA de DevTools y la descarga de modelos de IA locales.	turns off the sidebar, shopping, rewards, wallet, VPN and AI in Edge and Brave; in Edge it also removes Copilot (it doesn't read your pages or your history), AI writing, AI themes, DevTools AI and downloading local AI models.
+navegadores mas livianos y sin publicidad.	lighter browsers without ads.
+perdes esas funciones si las usabas.	you lose those features if you used them.
+Frenar las actualizaciones automaticas de las apps de la Store	Stop automatic updates of Store apps
+las apps de la Store se actualizan solo cuando vos lo pidas.	Store apps only update when you ask for it.
+no descargan nada en medio de una partida.	they don't download anything in the middle of a match.
+tenes que actualizarlas a mano cada tanto.	you have to update them manually now and then.
+Apagar las funciones de IA de Windows	Turn off Windows AI features
+apaga Click to Do, la IA del Bloc de notas y de Paint (creador de imagenes, Cocreator, relleno y borrado generativo, quitar fondo), el agente de IA de Configuracion, Copilot en la busqueda, el acceso de las apps a la IA generativa y Copilot en Word y Excel.	turns off Click to Do, the AI in Notepad and Paint (image creator, Cocreator, generative fill and erase, remove background), the AI agent in Settings, Copilot in search, app access to generative AI and Copilot in Word and Excel.
+menos procesos de IA y mas privacidad.	fewer AI processes and more privacy.
+perdes esas funciones.	you lose those features.
+Borrar las apps basura	Delete bloatware apps
+borra OneDrive, Copilot, los paquetes de IA y las apps que vienen de fabrica.	deletes OneDrive, Copilot, the AI packages and the apps that come preinstalled.
+mas espacio, menos RAM y menos procesos.	more space, less RAM and fewer processes.
+no tiene R: si queres alguna, la reinstalas desde la Store. Tus archivos de OneDrive en la PC no se borran.	it has no R: if you want one back, reinstall it from the Store. Your OneDrive files on the PC are not deleted.
+Quitar Edge, Bing y Primeros pasos	Remove Edge, Bing and Get Started
+desinstala Edge, Bing y Primeros pasos, pero deja WebView2, que usan otros programas.	uninstalls Edge, Bing and Get Started, but keeps WebView2, which other programs use.
+menos procesos de fondo y Edge deja de abrirse solo.	fewer background processes and Edge stops opening by itself.
+una actualizacion grande de Windows puede traerlo de vuelta.	a big Windows update can bring it back.
+Instalar Google Chrome	Install Google Chrome
+instala Google Chrome con winget.	installs Google Chrome with winget.
+tenes navegador aunque hayas quitado Edge.	you have a browser even if you removed Edge.
+Mouse competitivo	Competitive mouse
+saca la aceleracion del mouse y el rastro, y deja la velocidad en el punto medio.	removes mouse acceleration and the pointer trail, and sets the speed to the middle.
+el mismo movimiento de mano siempre mueve lo mismo: mejor punteria.	the same hand movement always moves the same: better aim.
+en el escritorio el mouse puede sentirse distinto hasta que te acostumbras.	on the desktop the mouse may feel different until you get used to it.
+MOUSE	MOUSE
+Desactivar los atajos de accesibilidad	Disable accessibility shortcuts
+apaga los atajos de accesibilidad que se activan sin querer jugando: Shift 5 veces, Shift derecho 8 segundos, Bloq Num 5 segundos, Alt+Shift+Bloq Num (teclas del mouse), Alt+Shift+Impr Pant (alto contraste) y Win+Ctrl+Enter (Narrador).	turns off the accessibility shortcuts that turn on by accident while gaming: Shift 5 times, right Shift for 8 seconds, Num Lock for 5 seconds, Alt+Shift+Num Lock (mouse keys), Alt+Shift+Print Screen (high contrast) and Win+Ctrl+Enter (Narrator).
+no te saca del juego en medio de una partida ni te cambia los colores de toda la pantalla.	it doesn't kick you out of the game mid-match or change the colors of the whole screen.
+si usas alguna de estas funciones por accesibilidad, la activas a mano desde Configuracion.	if you use any of these features for accessibility, turn it on manually from Settings.
+TECLADO	KEYBOARD
+Que Windows no baje el volumen en llamadas	Stop Windows from lowering the volume during calls
+Windows deja de bajar el volumen del juego cuando hay una llamada, por ejemplo en Discord.	Windows stops lowering the game volume when there's a call, for example on Discord.
+el juego suena siempre igual.	the game always sounds the same.
+SONIDO	SOUND
+Dar prioridad multimedia a los juegos	Give games multimedia priority
+el programador multimedia de Windows le da mas prioridad a los juegos. El limite de red queda en 10, el valor de Windows, porque sacarlo puede empeorar la latencia.	the Windows multimedia scheduler gives games more priority. The network limit stays at 10, the Windows value, because removing it can make latency worse.
+un poco mas de CPU para el juego y menos tirones.	a bit more CPU for the game and less stutter.
+el efecto es chico.	the effect is small.
+CPU Y PRIORIDAD	CPU AND PRIORITY
+Dar prioridad alta a tus juegos	Give your games high priority
+cada vez que abris esos juegos, Windows les da mas tiempo de CPU que a lo que corre de fondo.	every time you open those games, Windows gives them more CPU time than what runs in the background.
+menos tirones cuando tenes cosas abiertas atras, como Discord, el navegador u OBS.	less stutter when you have things open in the background, like Discord, the browser or OBS.
+si el CPU llega al 100 por ciento, lo de fondo puede trabarse un poco (por ejemplo, el stream de OBS).	if the CPU reaches 100 percent, background stuff may stutter a bit (for example, the OBS stream).
+Usar afinidad de CPU para tus juegos	Use CPU affinity for your games
+un programa chico en segundo plano pone tus juegos en los mejores nucleos y lleva Discord, Spotify y el navegador a otros.	a small background program puts your games on the best cores and moves Discord, Spotify and the browser to others.
+lo de fondo no le roba nucleos al juego: frametimes mas parejos y menos tirones, sobre todo en Minecraft.	background stuff doesn't steal cores from the game: steadier frametimes and less stutter, especially in Minecraft.
+mientras jugas, lo de fondo anda un poco mas lento. Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad del juego:	while you play, background stuff runs a bit slower. Some anti-cheats (Valorant, Fortnite) don't allow changing the game's affinity:
+Usar el plan Alto rendimiento	Use the High performance plan
+activa el plan de energia Alto rendimiento.	turns on the High performance power plan.
+el CPU responde mas rapido y no baja tanto la frecuencia.	the CPU responds faster and doesn't lower its frequency as much.
+mas consumo y calor, sobre todo en notebook.	more power use and heat, especially on laptops.
+PLAN DE ENERGIA	POWER PLAN
+Activar el Modo Nitro del procesador	Turn on the processor Nitro Mode
+deja todos los nucleos activos, el turbo al maximo y en modo agresivo, la subida de velocidad rapida y los ventiladores antes que bajar la velocidad, con la PC enchufada; ademas Windows deja de frenar los programas de fondo.	keeps all cores active, turbo at maximum and in aggressive mode, fast speed ramp-up and fans before slowing down, with the PC plugged in; also Windows stops throttling background programs.
+menos tirones cuando el juego pide mas CPU de golpe.	less stutter when the game suddenly asks for more CPU.
+mas consumo, calor y ruido de ventiladores.	more power use, heat and fan noise.
+PROCESADOR	PROCESSOR
+Activar Baja latencia	Turn on Low latency
+activa Baja latencia (Low Latency Profile), una funcion oculta de Windows 11 que tambien se activa con ViVeTool y el ID 58989092: al abrir el Inicio, menus, la busqueda o apps, el procesador sube al maximo por 1 a 3 segundos.	turns on Low latency (Low Latency Profile), a hidden Windows 11 feature that can also be turned on with ViVeTool and ID 58989092: when you open Start, menus, search or apps, the processor goes to maximum for 1 to 3 seconds.
+el Inicio, los menus y las apps abren mas rapido, sobre todo en PCs de gama baja.	Start, menus and apps open faster, especially on low-end PCs.
+picos cortos de consumo y calor; Microsoft todavia la esta probando y en PCs potentes casi no se nota.	short spikes of power use and heat; Microsoft is still testing it and on powerful PCs it's barely noticeable.
+Activar el Modo Juego	Turn on Game Mode
+activa el Modo Juego y evita que el boton Xbox del joystick abra la Game Bar.	turns on Game Mode and stops the controller's Xbox button from opening the Game Bar.
+Windows prioriza el juego y frena actualizaciones mientras jugas.	Windows prioritizes the game and holds back updates while you play.
+ninguno importante.	nothing important.
+MODO JUEGO Y GAME BAR	GAME MODE AND GAME BAR
+Borrar la app Xbox Game Bar	Delete the Xbox Game Bar app
+borra la app Xbox Game Bar y apaga sus grabaciones. En los Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D, 9950X3D) solo apaga las grabaciones: ahi la app hace falta.	deletes the Xbox Game Bar app and turns off its recordings. On two-CCD Ryzen X3D (7900X3D, 7950X3D, 9900X3D, 9950X3D) it only turns off the recordings: there the app is needed.
+menos procesos y nada grabando de fondo.	fewer processes and nothing recording in the background.
+perdes las capturas y clips de Windows; podes usar NVIDIA, AMD u OBS.	you lose Windows captures and clips; you can use NVIDIA, AMD or OBS.
+Desactivar las notificaciones de Windows	Disable Windows notifications
+apaga los avisos emergentes y el Centro de notificaciones.	turns off pop-up notifications and the Notification Center.
+nada te tapa la pantalla en partida.	nothing covers your screen in a match.
+no ves avisos de apps como Discord o el correo.	you don't see notifications from apps like Discord or email.
+Optimizar juegos en ventana y GPU por hardware	Optimize windowed games and hardware GPU scheduling
+usa el modo moderno para juegos en ventana y activa la GPU acelerada por hardware.	uses the modern mode for windowed games and turns on hardware-accelerated GPU scheduling.
+menos latencia en ventana y sin bordes, y hace falta para Frame Generation.	less latency in windowed and borderless, and it's needed for Frame Generation.
+en algunas PCs viejas puede dar problemas; R lo vuelve atras.	it can cause problems on some old PCs; R reverts it.
+GRAFICOS	GRAPHICS
+Desactivar MPO	Disable MPO
+desactiva MPO, una funcion de la pantalla que superpone imagenes.	disables MPO, a display feature that overlays images.
+arregla parpadeos, pantallas negras y cursor invisible en algunas PCs.	fixes flickering, black screens and invisible cursor on some PCs.
+si no tenias esos problemas, puede subir un poco el uso de la GPU en ventana.	if you didn't have those problems, GPU use in windowed mode may go up a bit.
+Activar el modo MSI en la placa de video y la de red	Turn on MSI mode on the graphics and network cards
+las placas le avisan al procesador con mensajes (MSI) en vez de usar la linea compartida vieja.	the cards notify the processor with messages (MSI) instead of using the old shared line.
+un poco menos de latencia y de microtirones. Muchas placas nuevas ya vienen asi, en ese caso no cambia nada.	a bit less latency and micro-stutter. Many new cards already come like this, in that case nothing changes.
+si el driver no lo soporta bien, al reiniciar podes ver pantalla negra o quedarte sin internet.	if the driver doesn't support it well, after restarting you may see a black screen or lose internet.
+Desactivar el Asistente de compatibilidad	Disable the Compatibility Assistant
+apaga el Asistente de compatibilidad de programas.	turns off the Program Compatibility Assistant.
+evita ventanas que te roban el foco en partida.	avoids windows that steal focus during a match.
+no te avisa de problemas con programas viejos.	it doesn't warn you about problems with old programs.
+Fijar el temporizador del sistema en el minimo	Lock the system timer at the minimum
+deja el temporizador de Windows fijo en 0.5 ms para todo el sistema.	keeps the Windows timer fixed at 0.5 ms for the whole system.
+menos latencia y tiempos de frame mas parejos.	less latency and steadier frame times.
+TEMPORIZADOR Y LATENCIA	TIMER AND LATENCY
+Activar la limpieza automatica de RAM en espera	Turn on automatic standby RAM cleaning
+vacia la memoria en espera cuando quedan menos de 1024 MB libres.	empties standby memory when less than 1024 MB are free.
+evita tirones cuando la RAM se llena.	avoids stutter when RAM fills up.
+lo que estaba guardado en cache se vuelve a leer del disco.	what was cached is read from disk again.
+LIMPIEZA DE RAM (STANDBY LIST)	RAM CLEANING (STANDBY LIST)
+Desactivar SysMain y Prefetch	Disable SysMain and Prefetch
+apaga SysMain y Prefetch, que precargan programas en la RAM.	turns off SysMain and Prefetch, which preload programs into RAM.
+deja mas RAM libre para el juego.	leaves more RAM free for the game.
+algunos programas abren un poco mas lento la primera vez.	some programs open a bit slower the first time.
+Desactivar el ahorro de energia de USB, PCIe y discos	Disable USB, PCIe and disk power saving
+apaga el ahorro de energia de USB, USB 3 y PCI Express, y con la PC enchufada los discos ya no se apagan solos.	turns off power saving for USB, USB 3 and PCI Express, and with the PC plugged in the disks no longer turn off by themselves.
+evita microcortes del mouse y el teclado, y los tirones de unos segundos cuando un disco HDD se vuelve a encender.	avoids mouse and keyboard micro-drops, and the few-second stutters when an HDD spins back up.
+mas consumo de bateria en notebook; los discos HDD quedan girando mientras la PC esta prendida.	more battery use on laptops; HDDs keep spinning while the PC is on.
+ENERGIA Y RED	POWER AND NETWORK
+Desactivar el ahorro de energia de la red	Disable network power saving
+apaga el ahorro de energia de la placa de red.	turns off power saving on the network card.
+menos picos de ping.	fewer ping spikes.
+un poco mas de consumo; en placas malas puede causar cortes, y R lo vuelve atras.	a bit more power use; on bad cards it can cause drops, and R reverts it.
+Desactivar el algoritmo de Nagle	Disable Nagle's algorithm
+apaga el algoritmo de Nagle en tus conexiones de red: Windows manda cada paquete chico al instante en vez de juntarlos y esperar.	turns off Nagle's algorithm on your network connections: Windows sends each small packet right away instead of bundling them and waiting.
+puede bajar unos milisegundos el ping en juegos que usan TCP, como Minecraft o juegos de MMO y estrategia.	it can lower ping by a few milliseconds in games that use TCP, like Minecraft or MMO and strategy games.
+la mayoria de los shooters modernos usan UDP y no notan cambio; con conexiones lentas puede subir un poco el uso de red.	most modern shooters use UDP and notice no change; on slow connections network use may go up a bit.
+Cambiar el DNS por el mas rapido para tu conexion	Switch DNS to the fastest one for your connection
+mide Cloudflare, Google, Quad9 y OpenDNS desde tu conexion y pone el mas rapido.	measures Cloudflare, Google, Quad9 and OpenDNS from your connection and sets the fastest.
+logins, matchmaking y paginas web cargan mas rapido.	logins, matchmaking and web pages load faster.
+no baja el ping dentro de la partida.	it doesn't lower in-game ping.
+DNS	DNS
+Desactivar la Integridad de memoria	Disable Memory integrity
+apaga la Integridad de memoria de Windows.	turns off Windows Memory integrity.
+mas FPS en algunos juegos.	more FPS in some games.
+menos proteccion contra drivers maliciosos.	less protection against malicious drivers.
+SEGURIDAD (MAS RENDIMIENTO)	SECURITY (MORE PERFORMANCE)
+Que el antivirus use menos CPU	Make the antivirus use less CPU
+limita los analisis de Defender al 5 por ciento de CPU, con prioridad baja.	limits Defender scans to 5 percent of CPU, with low priority.
+los analisis no te bajan FPS.	scans don't lower your FPS.
+los analisis tardan mas en terminar.	scans take longer to finish.
+Desactivar VBS	Disable VBS
+apaga la seguridad basada en virtualizacion.	turns off virtualization-based security.
+entre 5 y 10 por ciento mas de FPS.	between 5 and 10 percent more FPS.
+deja de andar WSL, Docker, Hyper-V y las maquinas virtuales.	WSL, Docker, Hyper-V and virtual machines stop working.
+Desactivar Windows Search	Disable Windows Search
+apaga el indexado de archivos.	turns off file indexing.
+libera disco y CPU.	frees disk and CPU.
+la busqueda del Inicio es mas lenta.	Start search is slower.
+BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR	SEARCH, STORAGE AND EXPLORER
+Desactivar Storage Sense	Disable Storage Sense
+Windows deja de borrar archivos temporales por su cuenta.	Windows stops deleting temporary files on its own.
+no borra nada solo mientras jugas.	it doesn't delete anything by itself while you play.
+la limpieza la haces vos, por ejemplo con limpiar_cache.bat.	you do the cleaning yourself, for example with limpiar_cache.bat.
+Mostrar las extensiones de los archivos	Show file extensions
+muestra el final del nombre de los archivos, como .exe o .txt.	shows the end of file names, like .exe or .txt.
+ves que tipo de archivo es y detectas virus disfrazados.	you see what type of file it is and spot disguised viruses.
+Quitar el retraso de los menus	Remove the menu delay
+baja de 400 a 0 ms la espera al abrir menus.	lowers the wait when opening menus from 400 to 0 ms.
+Windows se siente mas rapido.	Windows feels faster.
+AJUSTES EXTRA	EXTRA TWEAKS
+Preferir IPv4 sobre IPv6	Prefer IPv4 over IPv6
+Windows usa IPv4 antes que IPv6 cuando hay las dos.	Windows uses IPv4 before IPv6 when both are available.
+puede bajar la latencia con algunos servidores.	it can lower latency with some servers.
+casi ninguno; IPv6 sigue funcionando.	almost none; IPv6 keeps working.
+Perfiles	Profiles
+Debloat y privacidad	Debloat and privacy
+Optimizacion gaming	Gaming optimization
+Limpiar cache	Clean cache
+Herramientas	Tools
+Volver a leer los ajustes	Read settings again
+Abrir carpeta de logs	Open logs folder
+Visita mis redes sociales!	Visit my social media!
+Los scripts tambien se pueden usar solos, sin la app.	The scripts can also be used on their own, without the app.
+Marcar todo	Select all
+Desmarcar todo	Unselect all
+Restablecer seleccionadas	Reset selected
+Aplicar seleccionadas	Apply selected
+Limpiar ahora	Clean now
+Leyendo como esta tu Windows	Reading how your Windows is set up
+No, seguir con esta version	No, keep this version
+Esta PC no parece tener un Windows original o estandar	This PC doesn't seem to have an original or standard Windows
+Elegi un perfil armado: aplicalo con un toque, o marcalo para revisar y ajustar las opciones antes de aplicar. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.	Pick a ready-made profile: apply it with one click, or select it to review and adjust the options before applying. Whatever isn't compatible with your PC or is already applied is skipped automatically.
+Lo que se puede sacar o apagar de Windows. Lo que marques aca y en Gaming se aplica junto con un solo Aplicar.	What can be removed or turned off in Windows. What you select here and in Gaming is applied together with a single Apply.
+Ajustes para mas FPS y menos latencia. Lo que marques aca y en Debloat se aplica junto con un solo Aplicar.	Tweaks for more FPS and less latency. What you select here and in Debloat is applied together with a single Apply.
+Libera espacio. Lo de arriba se limpia siempre; lo de abajo solo si lo marcas.	Frees space. The top part is always cleaned; the bottom part only if you select it.
+Opciones que te piden datos en la ventana del script.	Options that ask you for information in the script window.
+No hay opciones marcadas.	No options selected.
+Marcadas: 	Selected: 
+ en Debloat y 	 in Debloat and 
+ en Gaming. Se guardan aunque cambies de pagina.	 in Gaming. They are kept even if you change page.
+Ya aplicado	Applied
+Sin aplicar	Not applied
+No compatible	Not compatible
+Que hace: 	What it does: 
+A favor: 	Pros: 
+En contra: 	Cons: 
+ Puede dar problemas: 	 May cause problems: 
+Ideal para: 	Ideal for: 
+No toca: 	Doesn't touch: 
+ Ojo: 	 Careful: 
+Aplicar perfil	Apply profile
+Marcar y revisar	Select and review
+Opciones: 	Options: 
+ por aplicar	 to apply
+ ya aplicadas	 already applied
+ no compatibles con tu PC	 not compatible with your PC
+No tiene restablecimiento: lo que haga no se puede volver atras desde la app.	Has no reset: what it does can't be undone from the app.
+Usa tu lista de juegos, la misma que la afinidad de CPU.	Uses your games list, the same one as CPU affinity.
+Usa tu lista de juegos, la misma que la prioridad alta. Tu procesador se detecta solo.	Uses your games list, the same one as high priority. Your processor is detected automatically.
+Editar mis juegos	Edit my games
+Editar programas de fondo	Edit background programs
+Tus juegos	Your games
+Programas de fondo	Background programs
+: ninguno elegido.	: none selected.
+ mas	 more
+Siempre se limpia	Always cleaned
+Opcional	Optional
+Agregar	Add
+Cancelar	Cancel
+Guardar	Save
+Entendido	Got it
+Seguir	Continue
+Listo	Done
+Abrir	Open
+Aplicar	Apply
+Restablecer	Reset
+Limpiar	Clean
+Reiniciar	Restart
+Despues	Later
+Cerrar	Close
+Antivirus	Antivirus
+Actualizar	Update
+Preparando	Preparing
+Terminando	Finishing
+Proceso: 	Process: 
+Lista por defecto	Default list
+Vuelve a la lista de fabrica: todos los del catalogo marcados y sin los que agregaste vos.	Goes back to the default list: everything in the catalog selected and without the ones you added.
+Agregar otros juegos: escribi su proceso sin .exe (separados por comas) y toca Agregar. Lo ves con el juego abierto: Administrador de tareas, pestana Detalles.	Add other games: type their process without .exe (separated by commas) and press Add. You can see it with the game open: Task Manager, Details tab.
+Agregar otros programas (separados por comas). No pongas launchers (Steam, Epic, Battle.net): los juegos que abren heredarian esos nucleos.	Add other programs (separated by commas). Don't add launchers (Steam, Epic, Battle.net): the games they open would inherit those cores.
+Esta lista la usan "Prioridad alta" y "Afinidad de CPU": lo que marques aca vale para las dos.	This list is used by "High priority" and "CPU affinity": what you select here applies to both.
+Al guardar, si alguna de las dos ya esta activa, se actualiza sola con la lista nueva.	When you save, if either one is already active, it updates itself with the new list.
+Mientras jugas, estos programas se van a otros nucleos. Cuando cerras el juego vuelven a usar todos.	While you play, these programs move to other cores. When you close the game they use all of them again.
+OBS, Visual Studio, Unreal, Godot, el sistema y los antitrampas nunca se tocan aunque los escribas.	OBS, Visual Studio, Unreal, Godot, the system and anti-cheats are never touched even if you type them.
+Lista guardada. Se usa cuando apliques "Prioridad alta" o "Afinidad".	List saved. It's used when you apply "High priority" or "Affinity".
+Tu lista de juegos	Your games list
+Aplicando tu lista nueva	Applying your new list
+Con prioridad alta ahora: 	With high priority now: 
+Activa: 	Active: 
+Con tu procesador: 	With your processor: 
+Puede mejorar: 	May improve: 
+Puede empeorar: 	May get worse: 
+Conviene: 	Recommended: 
+ Atencion: 	 Warning: 
+Revisando: 	Checking: 
+Windows leido: 	Windows read: 
+ opciones ya estan aplicadas.	 options are already applied.
+ no son compatibles con tu PC.	 are not compatible with your PC.
+No se pudo leer el estado de Windows. Proba con "Volver a leer los ajustes".	Couldn't read the state of Windows. Try "Read settings again".
+Marca al menos una opcion en Debloat o en Gaming.	Select at least one option in Debloat or Gaming.
+Cambio	Change
+de	of
+Ya no vas a poder volver atras con un punto de restauracion.	You won't be able to go back with a restore point anymore.
+Si la Proteccion contra alteraciones sigue encendida, falla. Smart App Control no vuelve sin reinstalar Windows. Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).	If Tamper Protection is still on, it fails. Smart App Control doesn't come back without reinstalling Windows. If it changes anything, it deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client).
+Descifrar el disco puede tardar bastante en segundo plano. Si cambia algo, borra Riot Vanguard.	Decrypting the disk can take quite a while in the background. If it changes anything, it deletes Riot Vanguard.
+No tiene restablecimiento las apps borradas se reinstalan a mano desde la Store.	Has no reset: deleted apps are reinstalled manually from the Store.
+Si no tenes otro navegador, te quedas sin uno. Una actualizacion grande de Windows puede traerlo de vuelta.	If you don't have another browser, you're left without one. A big Windows update can bring it back.
+Defender a veces lo marca como amenaza porque toca el archivo hosts.	Defender sometimes flags it as a threat because it touches the hosts file.
+Puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox en PC.	It can break Xbox party chat and NAT in Xbox games on PC.
+Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.	Some anti-cheats (Valorant, Fortnite) don't allow changing affinity: that game uses all cores, but background stuff is still moved aside.
+Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos.	With undervolt, overclock or a borderline power supply, the PC can freeze or restart when opening games.
+Mas consumo y calor; con undervolt u overclock puede volverse inestable.	More power use and heat; with undervolt or overclock it can become unstable.
+En algunas PCs viejas puede dar problemas.	It can cause problems on some old PCs.
+Es una funcion oculta que Microsoft todavia esta probando: si notas algo raro, restablecelo.	It's a hidden feature Microsoft is still testing: if you notice anything weird, reset it.
+Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro, o con R en el script).	If the driver doesn't support it, after restarting you may see a black screen or lose internet (it's fixed by resetting it from Safe Mode, or with R in the script).
+Mas consumo y calor; con undervolt u overclock puede colgarse en juegos.	More power use and heat; with undervolt or overclock it can freeze in games.
+Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos.	With wireless mice or headsets without their own driver, the battery may last less.
+En placas madre de baja calidad puede cortar el internet.	On low-quality motherboards it can cut the internet.
+Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).	If it changes anything, it deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client).
+Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.	WSL, Docker, Hyper-V and virtual machines stop working. If it changes anything, it deletes Riot Vanguard.
+Tu Windows no lo soporta: necesita 	Your Windows doesn't support it: it needs 
+Windows 11 24H2 o mas nuevo en una PC Copilot+. Tenes 	Windows 11 24H2 or newer on a Copilot+ PC. You have 
+Tu PC no tiene Recall: solo viene en las PCs Copilot+ (con NPU).	Your PC doesn't have Recall: it only comes on Copilot+ PCs (with NPU).
+Windows 11 22H2 o mas nuevo. Tenes 	Windows 11 22H2 or newer. You have 
+Windows 11 24H2 o mas nuevo. Tenes 	Windows 11 24H2 or newer. You have 
+Windows 11 (en Windows 10 el calendario del reloj no se puede quitar). Tenes 	Windows 11 (on Windows 10 the clock calendar can't be removed). You have 
+Windows 11 (los Widgets no existen en Windows 10). Tenes 	Windows 11 (Widgets don't exist on Windows 10). You have 
+Tu edicion de Windows no tiene BitLocker: viene en Pro, Enterprise y Education.	Your Windows edition doesn't have BitLocker: it comes on Pro, Enterprise and Education.
+Falta winget en tu PC: instala o actualiza el "Instalador de aplicaciones" desde la Microsoft Store.	winget is missing on your PC: install or update "App Installer" from the Microsoft Store.
+Windows 11 (el temporizador global fijo no existe en Windows 10). Tenes 	Windows 11 (the fixed global timer doesn't exist on Windows 10). You have 
+Tu Windows todavia no trae Baja latencia: necesita Windows 11 24H2 o 25H2 con la actualizacion de junio de 2026 (build .8655 o mas nueva). Tenes la build 	Your Windows doesn't have Low latency yet: it needs Windows 11 24H2 or 25H2 with the June 2026 update (build .8655 or newer). You have build 
+: actualiza Windows.	: update Windows.
+Windows 10 2004 o mas nuevo. Tenes 	Windows 10 2004 or newer. You have 
+tenes 	you have 
+ GB de RAM	 GB of RAM
+Windows esta en un disco HDD	Windows is on an HDD
+Tu PC no cumple los requisitos: necesita 16 GB de RAM o mas y Windows en un SSD o NVMe (	Your PC doesn't meet the requirements: it needs 16 GB of RAM or more and Windows on an SSD or NVMe (
+No hace falta: tu antivirus ya esta apagado.	Not needed: your antivirus is already off.
+Tu procesador no sirve para esto: 	Your processor doesn't work for this: 
+Marcaste apagar los puntos de restauracion para siempre: no se puede crear uno.	You selected turning off restore points for good: you can't create one.
+Tenes los puntos de restauracion apagados: no se puede crear uno. Para volver a usarlos, marca "Apagar los puntos de restauracion para siempre" y toca Restablecer seleccionadas.	Your restore points are turned off: you can't create one. To use them again, select "Turn off restore points for good" and press Reset selected.
+Vaciar la papelera de reciclaje	Empty the Recycle Bin
+vacia la papelera de todos los discos.	empties the Recycle Bin on all disks.
+libera el espacio de lo que ya borraste.	frees the space of what you already deleted.
+lo que esta en la papelera ya no se puede recuperar.	what's in the Recycle Bin can't be recovered anymore.
+Borrar la cache de shaders	Delete the shader cache
+borra los shaders que los juegos ya compilaron para tu placa de video.	deletes the shaders that games already compiled for your graphics card.
+arregla tirones o graficos raros despues de actualizar el driver de video.	fixes stutter or weird graphics after updating the graphics driver.
+la primera partida de cada juego va a tener tirones mientras los vuelve a armar.	the first match of each game will stutter while it rebuilds them.
+Borrar los puntos de restauracion	Delete restore points
+borra los puntos de restauracion guardados; la proteccion del sistema sigue encendida.	deletes saved restore points; system protection stays on.
+libera varios GB del disco.	frees several GB of disk.
+si algo sale mal, ya no podes volver a como estaba Windows antes.	if something goes wrong, you can't go back to how Windows was before.
+Temporales, cache de Windows Update, Windows.old, volcados y logs de errores, cache de Discord, Steam, Epic y Store, Visor de Eventos, DNS y componentes viejos de Windows (DISM). Los navegadores no se tocan.	Temp files, Windows Update cache, Windows.old, crash dumps and error logs, Discord, Steam, Epic and Store cache, Event Viewer, DNS and old Windows components (DISM). Browsers are not touched.
+Cache de Windows Update	Windows Update cache
+Archivos temporales	Temporary files
+Volcados y logs de errores	Crash dumps and error logs
+Windows.old y caches de apps	Windows.old and app caches
+Cache de shaders	Shader cache
+Visor de Eventos	Event Viewer
+Componentes viejos de Windows (puede tardar varios minutos)	Old Windows components (may take several minutes)
+Papelera y puntos de restauracion	Recycle Bin and restore points
+Limpiando la cache	Cleaning the cache
+Cerra los juegos y programas abiertos antes de seguir.	Close open games and programs before continuing.
+Limpieza terminada	Cleaning finished
+La cache quedo limpia.	The cache is clean.
+Liberaste 	You freed 
+Estas opciones te piden datos o confirmaciones. Al tocar un boton se abre la ventana negra del script: responde ahi.	These options ask you for information or confirmations. When you press a button the black script window opens: answer there.
+Actualizar a 26H2	Update to 26H2
+Actualizar a 25H2	Update to 25H2
+Actualizar Windows 11	Update Windows 11
+si tenes 24H2 o 25H2, pide la 26H2 por Windows Update; si tenes una version mas vieja, instala la 25H2 desde el ISO oficial aunque tu PC no cumpla los requisitos.	if you have 24H2 or 25H2, it requests 26H2 through Windows Update; if you have an older version, it installs 25H2 from the official ISO even if your PC doesn't meet the requirements.
+tenes la version nueva, que usa menos RAM, con sus mejoras y parches.	you get the new version, which uses less RAM, with its improvements and patches.
+desde una version vieja tarda cerca de una hora y en PCs no compatibles puede fallar. Hace backup antes.	from an old version it takes about an hour and it may fail on unsupported PCs. Back up first.
+Elegir cuenta para borrar	Choose account to delete
+Borrar una cuenta de esta PC	Delete an account from this PC
+te muestra las otras cuentas de la PC (usuarios de Windows y cuentas de Microsoft vinculadas) y borras la que elijas. Tu cuenta actual no aparece.	shows you the other accounts on the PC (Windows users and linked Microsoft accounts) and you delete the one you choose. Your current account doesn't appear.
+limpia cuentas viejas que ya no usas.	cleans up old accounts you no longer use.
+si tambien borras su carpeta, se pierden sus archivos.	if you also delete its folder, its files are lost.
+Quitar la contrasena	Remove the password
+Volver a usar contrasena	Use a password again
+Entrar a Windows sin contrasena	Sign in to Windows without a password
+tu cuenta pasa a ser local y sin contrasena. Si es una cuenta de Microsoft, te guia para pasarla a local.	your account becomes local and without a password. If it's a Microsoft account, it guides you to switch it to local.
+entras directo a Windows.	you go straight into Windows.
+cualquiera que prenda la PC entra, y no anda el Escritorio remoto.	anyone who turns on the PC gets in, and Remote Desktop doesn't work.
+Activacion de Windows	Windows activation
+Activar Windows	Activate Windows
+Se abre PowerShell y corre el comando oficial de Massgrave:	PowerShell opens and runs the official Massgrave command:
+ejecuta el comando oficial de Massgrave para activar Windows de manera segura.	runs the official Massgrave command to activate Windows safely.
+Ya tenes la 26H2 o una build mas nueva (build 	You already have 26H2 or a newer build (build 
+Tu build es 	Your build is 
+ (24H2 o 25H2): la 26H2 te llega por Windows Update con un reinicio corto.	 (24H2 or 25H2): 26H2 reaches you through Windows Update with a short restart.
+: primero pasas a la 25H2 desde el ISO oficial; despues la 26H2 te llega por Windows Update.	: first you move to 25H2 from the official ISO; then 26H2 reaches you through Windows Update.
+Borrar una cuenta	Delete an account
+Entrar sin contrasena	Sign in without a password
+Se abre la ventana negra del script y ahi te va pidiendo lo que necesita.	The black script window opens and asks you for what it needs there.
+: responde en la ventana negra del script. Cuando termine, la app sigue sola.	: answer in the black script window. When it finishes, the app continues on its own.
+Seguro (Debloat basico)	Safe (Basic debloat)
+Competitivo	Competitive
+Competitivo + Optimizado	Competitive + Optimized
+Full Optimizado	Full Optimized
+Full Optimizado + Competitivo	Full Optimized + Competitive
+saca publicidad, sugerencias, Bing, telemetria, rastreo y Widgets, y apaga la IA de Windows; suma ajustes comodos para jugar que no tienen riesgo (sin carteles de Teclas especiales, sin bajar el volumen en llamadas, Modo Juego, menus sin retraso).	removes ads, suggestions, Bing, telemetry, tracking and Widgets, and turns off Windows AI; adds comfortable gaming tweaks with no risk (no accessibility shortcut pop-ups, no volume lowering during calls, Game Mode, menus without delay).
+cualquier PC, incluso la de alguien que no sabe de esto.	any PC, even someone's who doesn't know about this.
+la seguridad, las apps instaladas ni el procesador.	security, installed apps or the processor.
+lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro del procesador, temporizador al minimo, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida.	the most for gaming without touching security: mouse without acceleration, priority and affinity for your games, High performance plan, processor Nitro Mode, timer at minimum, hardware GPU scheduling, lower network latency, faster DNS, no Game Bar and no notifications in matches.
+jugar competitivo (Valorant, CS2, Fortnite, Warzone) con la PC protegida.	competitive gaming (Valorant, CS2, Fortnite, Warzone) with the PC protected.
+el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps.	the antivirus, BitLocker, memory integrity or VBS; it doesn't delete apps either.
+el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse.	the High performance plan and the timer at minimum raise power use and heat; with undervolt or overclock the PC can freeze.
+todo lo de Competitivo y lo de Seguro, y ademas borra las apps basura, apaga la hibernacion, los efectos visuales, los sonidos, servicios que casi nadie usa y el Storage Sense, y Windows Update deja de instalar drivers.	everything in Competitive and Safe, and it also deletes bloatware apps, turns off hibernation, visual effects, sounds, services almost nobody uses and Storage Sense, and Windows Update stops installing drivers.
+la PC de juego de todos los dias: el mayor rendimiento con la PC todavia protegida.	the everyday gaming PC: the most performance with the PC still protected.
+el antivirus, BitLocker, la integridad de memoria ni VBS.	the antivirus, BitLocker, memory integrity or VBS.
+borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.	deleting bloatware apps has no reset: they're reinstalled manually from the Store.
+Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga la seguridad (antivirus, BitLocker, integridad de memoria y VBS), activa el modo MSI, bloquea la telemetria en hosts y apaga Teredo y Windows Search.	Windows as light as possible: all the debloat and system optimization, and it also turns off security (antivirus, BitLocker, memory integrity and VBS), turns on MSI mode, blocks telemetry in hosts and turns off Teredo and Windows Search.
+una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.	a weak or old PC that needs all the system performance, knowing what you're doing.
+la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales.	the PC is left without antivirus. It deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client), and WSL, Docker and virtual machines stop working.
+todo, todo: cada opcion de Debloat y de Gaming. Es Full Optimizado mas todos los ajustes competitivos (mouse, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro, temporizador al minimo, red, DNS y notificaciones).	everything, everything: every Debloat and Gaming option. It's Full Optimized plus all the competitive tweaks (mouse, priority and affinity for your games, High performance plan, Nitro Mode, timer at minimum, network, DNS and notifications).
+una PC que es solo para jugar, donde queres el maximo absoluto y sabes lo que haces.	a PC that's only for gaming, where you want the absolute maximum and know what you're doing.
+suma los riesgos de Full Optimizado y de Competitivo: sin antivirus, Vanguard se borra (lo reinstalas abriendo el cliente de Riot), y con undervolt u overclock la PC puede colgarse por el plan de energia y el temporizador.	adds up the risks of Full Optimized and Competitive: no antivirus, Vanguard gets deleted (you reinstall it by opening the Riot client), and with undervolt or overclock the PC can freeze because of the power plan and the timer.
+Tiene la alerta porque apaga el antivirus (Defender, SmartScreen y Smart App Control): la PC queda sin proteccion contra virus.	It has the warning because it turns off the antivirus (Defender, SmartScreen and Smart App Control): the PC is left without virus protection.
+Tambien apaga BitLocker, la integridad de memoria y VBS, y desinstala Riot Vanguard (lo reinstalas abriendo el cliente de Riot).	It also turns off BitLocker, memory integrity and VBS, and uninstalls Riot Vanguard (you reinstall it by opening the Riot client).
+Ya tenes todo este perfil aplicado (o lo que falta no es compatible con tu PC).	You already have this whole profile applied (or what's missing isn't compatible with your PC).
+Este perfil apaga el antivirus, BitLocker, la integridad de memoria y VBS. La PC queda sin proteccion contra virus.	This profile turns off the antivirus, BitLocker, memory integrity and VBS. The PC is left without virus protection.
+Seguir?	Continue?
+ Seguir?	 Continue?
+Si, aplicar	Yes, apply
+Tu PC: leyendo...	Your PC: reading...
+Tu PC: no se pudo leer.	Your PC: couldn't be read.
+Tu PC: 	Your PC: 
+  -  Windows en disco HDD	  -  Windows on an HDD
+ opciones no son compatibles: quedan en gris y se saltean solas	 options are not compatible: they're grayed out and skipped automatically
+Motivo: 	Reason: 
+En versiones recortadas, pirateadas o modificadas (Tiny11, AtlasOS, ReviOS y similares) varias opciones pueden fallar o no aplicar.	On stripped-down, pirated or modified versions (Tiny11, AtlasOS, ReviOS and similar) several options may fail or not apply.
+falta el servicio 	the service is missing: 
+, tipico de versiones recortadas	, typical of stripped-down versions
+Falta el servicio 	The service is missing: 
+no esta la Microsoft Store, tipico de versiones recortadas	the Microsoft Store is missing, typical of stripped-down versions
+No esta la Microsoft Store, tipico de versiones recortadas	The Microsoft Store is missing, typical of stripped-down versions
+edicion de Windows poco comun: 	uncommon Windows edition: 
+Edicion de Windows poco comun: 	Uncommon Windows edition: 
+el nombre de la edicion o el propietario registrado tiene palabras de versiones modificadas	the edition name or the registered owner has words from modified versions
+El nombre de la edicion o el propietario registrado tiene palabras de versiones modificadas	The edition name or the registered owner has words from modified versions
+Buscando actualizaciones	Checking for updates
+Comparando tu version con la de GitHub	Comparing your version with the one on GitHub
+sin version	no version
+ (desactualizada)	 (outdated)
+Hay una actualizacion disponible: tenes la 	An update is available: you have 
+ y en GitHub esta la 	 and GitHub has 
+Toca este cartel para descargarla. Se cierra esta version y se abre la nueva sola.	Click this banner to download it. This version closes and the new one opens on its own.
+. Toca aca para actualizar.	. Click here to update.
+Hay una version nueva de Xuca OPtimizer	There's a new version of Xuca OPtimizer
+Hay una actualizacion disponible	An update is available
+Espera a que termine lo que se esta aplicando y despues toca el cartel amarillo.	Wait for what's being applied to finish and then click the yellow banner.
+Descargando la actualizacion	Downloading the update
+Descargando: 	Downloading: 
+reemplazando la version vieja	replacing the old version
+No se pudo actualizar	Couldn't update
+No se pudo bajar la version nueva: 	Couldn't download the new version: 
+Seguis usando esta version. Podes probar de nuevo con el cartel amarillo de arriba.	You keep using this version. You can try again with the yellow banner at the top.
+Actualizacion lista	Update ready
+Abriendo la version nueva...	Opening the new version...
+Aplicando cambios	Applying changes
+Aplicar cambios	Apply changes
+Restableciendo ajustes	Resetting settings
+Se va a aplicar 1 cambio.	1 change will be applied.
+Se van a aplicar 	Applying 
+ cambios.	 changes.
+No marcaste ninguna opcion.	You didn't select any option.
+No elegiste ningun juego. Elegi al menos uno o desmarca "Prioridad alta" y "Afinidad".	You didn't choose any game. Choose at least one or unselect "High priority" and "Affinity".
+Para apagar el antivirus del todo, primero apaga vos la "Proteccion contra alteraciones" (Windows no deja que un programa la apague).	To turn off the antivirus completely, first turn off "Tamper Protection" yourself (Windows doesn't let a program turn it off).
+Se abrio Seguridad de Windows. Apagala y despues toca Listo.	Windows Security opened. Turn it off and then press Done.
+No marcaste ninguna opcion. Marca las que quieras volver a como vienen en Windows (con "Marcar todo" en Debloat y en Gaming restableces todo).	You didn't select any option. Select the ones you want to return to how they come in Windows (with "Select all" in Debloat and Gaming you reset everything).
+Las opciones que marcaste no tienen restablecimiento: 	The options you selected have no reset: 
+Se va a restablecer 1 opcion a como viene en Windows.	1 option will be reset to how it comes in Windows.
+Se van a restablecer 	Resetting 
+ opciones a como vienen en Windows.	 options to how they come in Windows.
+El antivirus vuelve, pero la Proteccion contra alteraciones la encendes vos y Smart App Control no vuelve sin reinstalar Windows.	The antivirus comes back, but you turn Tamper Protection on yourself and Smart App Control doesn't come back without reinstalling Windows.
+BitLocker solo deja de estar bloqueado: no vuelve a cifrar el disco.	BitLocker just stops being blocked: it doesn't encrypt the disk again.
+Edge, los Widgets y la Game Bar se reinstalan (tarda un poco mas).	Edge, Widgets and the Game Bar are reinstalled (it takes a bit longer).
+Tene en cuenta: 	Keep in mind: 
+Hay ajustes que no se pueden restablecer y se van a saltear:	Some settings can't be reset and will be skipped:
+Deseas continuar igualmente?	Do you want to continue anyway?
+Algunos ajustes no se pueden restablecer	Some settings can't be reset
+Continuar igualmente	Continue anyway
+ Los detalles de cada cambio quedaron en la carpeta de logs.	 The details of each change are in the logs folder.
+Se guardo, pero 	It was saved, but 
+ cambios fallaron al aplicarla (mira la carpeta de logs).	 changes failed when applying it (check the logs folder).
+Listo: tu lista nueva ya esta aplicada, sin reiniciar.	Done: your new list is already applied, without restarting.
+Termino, pero 	It finished, but 
+ cambios fallaron (mira la carpeta de logs).	 changes failed (check the logs folder).
+Se aplico todo bien.	Everything was applied correctly.
+Algunos de estos cambios necesitan reiniciar la PC. Reiniciar ahora?	Some of these changes need the PC to restart. Restart now?
+No hace falta reiniciar.	No restart needed.
+Listo: se aplico todo bien y no hace falta reiniciar. 	Done: everything was applied correctly and no restart is needed. 
+Todavia se estan aplicando cambios. Si cerras la app, el script sigue en segundo plano hasta terminar.	Changes are still being applied. If you close the app, the script keeps running in the background until it finishes.
+Todavia se esta aplicando un script. Si cerras la app, el script sigue solo en su ventana.	A script is still being applied. If you close the app, the script keeps going in its own window.
+Cerrar la app	Close the app
+Cerrar igual?	Close anyway?
+Seguir en la app	Stay in the app
+La app tuvo un error y se cerro:	The app had an error and closed:
+Linea: 	Line: 
+Salir de Xuca OPtimizer	Exit Xuca OPtimizer
+Seguro que queres salir?	Are you sure you want to exit?
+Este proyecto es gratis y lo hago en mi tiempo libre. Si te sirvio y queres apoyarme, podes invitarme un Ko-fi:	This project is free and I make it in my free time. If it helped you and you want to support me, you can buy me a Ko-fi:
+Apoyar en Ko-fi	Support on Ko-fi
+No volver a mostrar el mensaje de Ko-fi	Don't show the Ko-fi message again
+Salir	Exit
+Cambiar idioma	Change language
+No se encontro el archivo de idioma:	The language file wasn't found:
+Espera a que termine lo que se esta aplicando para cambiar el idioma.	Wait for what's being applied to finish before changing the language.
+el juego nunca cae en los E-cores (los lentos) y lo de fondo va ahi: menos tirones, sobre todo en juegos viejos.	the game never lands on the E-cores (the slow ones) and background stuff goes there: less stutter, especially in old games.
+el juego no usa los E-cores: en juegos que usan muchos hilos (Cyberpunk, Battlefield) el FPS promedio puede bajar un poco.	the game doesn't use the E-cores: in games that use many threads (Cyberpunk, Battlefield) average FPS may drop a bit.
+en estos procesadores los E-cores ya son rapidos y varios juegos rinden mejor usandolos: el FPS puede bajar.	on these processors the E-cores are already fast and several games perform better using them: FPS may drop.
+el juego no salta de un bloque de nucleos al otro (eso suma demora): frametimes mas parejos y menos tirones.	the game doesn't jump from one core block to the other (that adds delay): steadier frametimes and less stutter.
+Minecraft, Valorant y otros juegos livianos quedan en un solo bloque de nucleos: menos tirones.	Minecraft, Valorant and other light games stay on a single core block: less stutter.
+lo de fondo (Discord, navegador, stream) queda en un nucleo aparte: los 1% low pueden quedar un poco mas parejos si tenes muchas cosas abiertas mientras jugas.	background stuff (Discord, browser, stream) stays on a separate core: 1% lows may be a bit steadier if you have many things open while you play.
+casi ninguno: el juego sigue usando todos los nucleos.	almost none: the game keeps using all cores.
+casi ninguno: lo de fondo anda un poco mas lento mientras jugas.	almost none: background stuff runs a bit slower while you play.
+lo de fondo anda mas lento mientras jugas.	background stuff runs slower while you play.
+lo de fondo queda en el ultimo nucleo y el juego sigue usando todos.	background stuff stays on the last core and the game keeps using all of them.
+lo de fondo va a los E-cores y deja libres los P-cores para el juego.	background stuff goes to the E-cores and leaves the P-cores free for the game.
+lo de fondo va a los E-cores y el juego queda solo en los P-cores.	background stuff goes to the E-cores and the game stays only on the P-cores.
+los juegos livianos quedan en los P-cores y lo de fondo va a los E-cores: el juego tiene los P-cores libres.	light games stay on the P-cores and background stuff goes to the E-cores: the game has the P-cores free.
+conviene, sobre todo si jugas Minecraft.	recommended, especially if you play Minecraft.
+conviene: no pierde nada.	recommended: you lose nothing.
+conviene probarla: en la mayoria de los juegos ayuda.	worth trying: it helps in most games.
+probala con y sin, y quedate con la que te de mejores 1% low.	try it with and without, and keep whichever gives you better 1% lows.
+probala con y sin; si no notas mejora, dejala apagada.	try it with and without; if you don't notice an improvement, leave it off.
+la diferencia es chica: probala con y sin y quedate con la que ande mejor. Si jugas sin nada abierto atras, no hace falta.	the difference is small: try it with and without and keep whichever works better. If you play with nothing open in the background, you don't need it.
+con tu procesador la Game Bar no hace falta para el rendimiento: se puede borrar sin perder nada.	with your processor the Game Bar isn't needed for performance: it can be deleted without losing anything.
+en tu procesador la Game Bar NO se borra: el driver de AMD la usa para saber cuando jugas y mandar el juego al bloque con V-Cache. Solo se apagan sus grabaciones y capturas, asi que queda casi sin uso para vos, pero sigue haciendo ese trabajo de fondo.	on your processor the Game Bar is NOT deleted: the AMD driver uses it to know when you play and send the game to the V-Cache block. Only its recordings and captures are turned off, so it's almost unused for you, but it keeps doing that background work.
+conviene activarla, junto con la Game Bar instalada y el Modo Juego: la Game Bar cubre los juegos que no estan en tu lista y los que tienen antitrampas (Valorant, Fortnite).	recommended to turn it on, together with the Game Bar installed and Game Mode: the Game Bar covers games that aren't on your list and those with anti-cheat (Valorant, Fortnite).
+lo mejor es usarla junto con la afinidad de CPU: la afinidad asegura los juegos de tu lista y mueve lo de fondo al otro bloque; la Game Bar cubre los juegos que no estan en la lista y los que tienen antitrampas (Valorant, Fortnite). Deja el Modo Juego activado y el driver de chipset de AMD instalado.	the best is to use it together with CPU affinity: affinity secures the games on your list and moves background stuff to the other block; the Game Bar covers games that aren't on the list and those with anti-cheat (Valorant, Fortnite). Leave Game Mode on and the AMD chipset driver installed.
+el procesador tiene mas de 64 hilos y esta opcion no lo soporta	the processor has more than 64 threads and this option doesn't support it
+no se pudo leer como son los nucleos del procesador	couldn't read how the processor cores are laid out
+no se pudo separar los nucleos del procesador	couldn't split the processor cores
+no se puede usar en esta PC: 	can't be used on this PC: 
+el juego queda siempre en el bloque con V-Cache (	the game always stays on the V-Cache block (
+ nucleos). Si cae en el otro bloque pierde muchos FPS, y eso pasa seguido si el driver de AMD o la Game Bar fallan.	 cores). If it lands on the other block it loses a lot of FPS, and that happens often if the AMD driver or the Game Bar fail.
+ nucleos: en juegos que usan muchos hilos (CS2, Battlefield, Cyberpunk) el FPS promedio puede bajar un poco.	 cores: in games that use many threads (CS2, Battlefield, Cyberpunk) average FPS may drop a bit.
+ nucleos: en juegos que usan muchos hilos el FPS promedio puede bajar un poco.	 cores: in games that use many threads average FPS may drop a bit.
+ nucleos: los pocos juegos que aprovechan mas nucleos pueden rendir un poco menos.	 cores: the few games that take advantage of more cores may perform a bit worse.
+ nucleos y lo de fondo anda mas lento mientras jugas.	 cores and background stuff runs slower while you play.
+el juego pierde 	the game loses 
+el juego usa solo 	the game uses only 
+los juegos pesados pierden 	heavy games lose 
+el procesador tiene 	the processor has 
+ nucleos: no alcanza para separar el juego de lo de fondo	 cores: not enough to separate the game from background stuff
+ nucleos iguales en un solo bloque	 equal cores in a single block
+ nucleos: juegos en el primero	 cores: games on the first one
+ nucleos: livianos en el primer bloque, pesados en todos	 cores: light ones on the first block, heavy ones on all
+ bloques: juegos en el de V-Cache (	 blocks: games on the V-Cache one (
+ bloques de 	 blocks of 
+ E-cores: juegos en los P-cores	 E-cores: games on the P-cores
+ P-cores: los juegos pesados usan todo y los livianos solo los P-cores	 P-cores: heavy games use everything and light ones only the P-cores
+ P-cores: los juegos usan todo y lo de fondo va a los E-cores	 P-cores: games use everything and background stuff goes to the E-cores
+y	and
+mas	more
+Apps instaladas	Installed apps
+Plan de energia	Power plan
+Tu procesador	Your processor
+Compatibilidad con tu Windows	Compatibility with your Windows
+Si tu Windows es original	Whether your Windows is original
+Ultimos detalles	Final details
+ - cambio 	 - change 
+CHICO	SMALL
+GRANDE	BIG
+MEDIANO	MEDIUM
+NO SE PUEDE USAR	CAN'T BE USED
+conviene.	recommended.
+los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.	the competitive gaming tweaks (mouse, priority, affinity, power plan, timer and network), or Edge or Chrome. It creates a restore point before starting.
+Edge ni Chrome. No apaga los puntos de restauracion: crea uno antes de empezar.	Edge or Chrome. It doesn't turn off restore points: it creates one before starting.

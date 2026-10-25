@@ -1,6 +1,15 @@
 @echo off
 setlocal EnableExtensions
 set "XUCA_SELF=%~f0"
+rem ============================================================
+rem  ACTUALIZACIONES DESDE GITHUB
+rem  La version se controla con el archivo version.txt del repo.
+rem  Si el version.txt de GitHub es distinto al que tenes en tu PC,
+rem  al abrir sale el cartel amarillo de actualizacion.
+rem ============================================================
+set "XUCA_REPO=011Xuca/xuca-optimizer"
+set "XUCA_RAMA=main"
+set "XUCA_GH=scripts/windows_debloat.bat"
 rem Si el archivo quedo con saltos de linea de Linux (LF), cmd salta a etiquetas equivocadas: se corrige solo y se vuelve a abrir.
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $f=$env:XUCA_SELF; $e=[Text.Encoding]::GetEncoding(28591); $t=$e.GetString([IO.File]::ReadAllBytes($f)); if ($t -match '(^|[^\r])\n') { [IO.File]::WriteAllText($f, ($t -replace '\r?\n', ([string][char]13 + [char]10)), $e); exit 9 }; exit 0 } catch { exit 0 }" >nul 2>&1
 if errorlevel 9 "%~f0" %*
@@ -41,6 +50,14 @@ if %errorlevel% neq 0 (
     if "%~1"=="" (powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs") else (powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '%~1' -Verb RunAs")
     exit /b
 )
+
+rem Buscar actualizacion en GitHub (no corre cuando lo usa la app ni cuando se abre con parametros).
+rem Si hay una version nueva muestra el cartel amarillo y pregunta. Si la bajas, se cierra esta ventana y se abre la nueva.
+if defined XUCA_AUTO goto upd_fin
+if not "%~1"=="" goto upd_fin
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$global:XucaUpd=0; try { $s=[IO.File]::ReadAllText($env:XUCA_SELF); $a='<#'+'XUCA-UPD'; $b='XUCA-UPD'+'#>'; $i=$s.IndexOf($a)+$a.Length; Invoke-Expression $s.Substring($i, $s.IndexOf($b)-$i) } catch { }; exit [int]$global:XucaUpd"
+if errorlevel 10 exit
+:upd_fin
 
 del /q "%TEMP%\xuca_info.txt" >nul 2>&1
 set "ACT=INFO"
@@ -537,9 +554,9 @@ call :opt_fin "Apps de la Store restauradas en segundo plano"
 :apps_fin
 
 echo.
-echo   Que hace: apaga el servicio que manda datos a Microsoft y sus tareas, y deja el nivel que Windows pide para recibir antes las versiones nuevas.
-echo   A favor: menos procesos de fondo y recibis primero la 26H2, que usa menos RAM.
-echo   En contra: no es un apagado total de los datos: es el punto medio para seguir recibiendo lo nuevo.
+echo   Que hace: apaga el servicio que manda datos a Microsoft y sus tareas ^(diagnostico de discos y de energia, cola de errores, copia de MAR, medicion de inicio y mapas^), y deja el nivel que Windows pide para recibir antes las versiones nuevas.
+echo   A favor: menos procesos de fondo usando disco y CPU, y recibis primero la 26H2, que usa menos RAM.
+echo   En contra: no es un apagado total de los datos: es el punto medio para seguir recibiendo lo nuevo. El Administrador de tareas deja de medir el impacto de inicio de los programas.
 set "QID=tel"
 set "Q=- Desea reducir la telemetria y recibir las actualizaciones mas recientes de Windows para menor uso de ram (26H2)?"
 call :askR
@@ -558,6 +575,12 @@ call :tarea "\Microsoft\Windows\Customer Experience Improvement Program\Consolid
 call :tarea "\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" disable
 call :tarea "\Microsoft\Windows\Feedback\Siuf\DmClient" disable
 call :tarea "\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload" disable
+call :tarea "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" disable
+call :tarea "\Microsoft\Windows\Windows Error Reporting\QueueReporting" disable
+call :tarea "\Microsoft\Windows\Application Experience\MareBackup" disable
+call :tarea "\Microsoft\Windows\Application Experience\StartupAppTask" disable
+call :tarea "\Microsoft\Windows\Maps\MapsUpdateTask" disable
+call :tarea "\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem" disable
 gpupdate /force >nul 2>&1
 call :opt_fin "Telemetria reducida"
 goto tel_fin
@@ -573,6 +596,12 @@ call :tarea "\Microsoft\Windows\Customer Experience Improvement Program\Consolid
 call :tarea "\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" enable
 call :tarea "\Microsoft\Windows\Feedback\Siuf\DmClient" enable
 call :tarea "\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload" enable
+call :tarea "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" enable
+call :tarea "\Microsoft\Windows\Windows Error Reporting\QueueReporting" enable
+call :tarea "\Microsoft\Windows\Application Experience\MareBackup" enable
+call :tarea "\Microsoft\Windows\Application Experience\StartupAppTask" enable
+call :tarea "\Microsoft\Windows\Maps\MapsUpdateTask" enable
+call :tarea "\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem" enable
 
 call :opt_fin "Telemetria restaurada"
 :tel_fin
@@ -665,7 +694,7 @@ call :opt_fin "Pausa de actualizaciones vuelve al maximo normal de Windows"
 :wup_fin
 
 echo.
-echo   Que hace: quita anuncios, apps sugeridas, recomendaciones del Inicio y Bing de la busqueda.
+echo   Que hace: quita anuncios, el ID de publicidad, apps sugeridas y las que instalan solas Microsoft y el fabricante, recomendaciones del Inicio y Bing de la busqueda.
 echo   A favor: Inicio mas limpio y la busqueda es solo de tu PC, mas rapida.
 echo   En contra: la busqueda del Inicio ya no busca en internet.
 set "QID=ad"
@@ -675,7 +704,9 @@ if errorlevel 3 goto ad_r
 if errorlevel 2 goto ad_fin
 call :opt_ini "Anuncios, sugerencias y busqueda web"
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" REG_DWORD 0
-for %%K in (SystemPaneSuggestionsEnabled SoftLandingEnabled RotatingLockScreenOverlayEnabled SilentInstalledAppsEnabled PreInstalledAppsEnabled OemPreInstalledAppsEnabled ContentDeliveryAllowed SubscribedContent-310093Enabled SubscribedContent-338387Enabled SubscribedContent-338388Enabled SubscribedContent-338389Enabled SubscribedContent-338393Enabled SubscribedContent-353694Enabled SubscribedContent-353696Enabled SubscribedContent-353698Enabled) do call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "%%K" REG_DWORD 0
+rem Partido en dos lineas: con mas de 512 caracteres cmd confunde el texto ":reg" del medio con una etiqueta
+for %%K in (SystemPaneSuggestionsEnabled SoftLandingEnabled RotatingLockScreenOverlayEnabled SilentInstalledAppsEnabled PreInstalledAppsEnabled OemPreInstalledAppsEnabled PreInstalledAppsEverEnabled SubscribedContentEnabled ContentDeliveryAllowed) do call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "%%K" REG_DWORD 0
+for %%K in (SubscribedContent-310093Enabled SubscribedContent-338387Enabled SubscribedContent-338388Enabled SubscribedContent-338389Enabled SubscribedContent-338393Enabled SubscribedContent-353694Enabled SubscribedContent-353696Enabled SubscribedContent-353698Enabled) do call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "%%K" REG_DWORD 0
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "Start_IrisRecommendations" REG_DWORD 0
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "Start_AccountNotifications" REG_DWORD 0
 call :reg "HKCU\Software\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" REG_DWORD 1
@@ -693,7 +724,8 @@ goto ad_fin
 :ad_r
 call :opt_ini "Anuncios, sugerencias y busqueda web (restaurar)"
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" REG_DWORD 1
-for %%K in (SystemPaneSuggestionsEnabled SoftLandingEnabled RotatingLockScreenOverlayEnabled SilentInstalledAppsEnabled PreInstalledAppsEnabled OemPreInstalledAppsEnabled ContentDeliveryAllowed SubscribedContent-310093Enabled SubscribedContent-338387Enabled SubscribedContent-338388Enabled SubscribedContent-338389Enabled SubscribedContent-338393Enabled SubscribedContent-353694Enabled SubscribedContent-353696Enabled SubscribedContent-353698Enabled) do call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "%%K" REG_DWORD 1
+for %%K in (SystemPaneSuggestionsEnabled SoftLandingEnabled RotatingLockScreenOverlayEnabled SilentInstalledAppsEnabled PreInstalledAppsEnabled OemPreInstalledAppsEnabled PreInstalledAppsEverEnabled SubscribedContentEnabled ContentDeliveryAllowed) do call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "%%K" REG_DWORD 1
+for %%K in (SubscribedContent-310093Enabled SubscribedContent-338387Enabled SubscribedContent-338388Enabled SubscribedContent-338389Enabled SubscribedContent-338393Enabled SubscribedContent-353694Enabled SubscribedContent-353696Enabled SubscribedContent-353698Enabled) do call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "%%K" REG_DWORD 1
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "Start_IrisRecommendations" REG_DWORD 1
 call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "Start_AccountNotifications" REG_DWORD 1
 call :regdel "HKCU\Software\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions"
@@ -745,7 +777,7 @@ call :opt_fin "Servicios y funciones restaurados (algunas se aplican al reinicia
 :sv_fin
 
 echo.
-echo   Que hace: apaga historial de actividad, ubicacion, Wifi Sense, portapapeles y ajustes en la nube, aprendizaje de escritura, voz en la nube, mapas, DRM y Homegroup.
+echo   Que hace: apaga historial de actividad, ubicacion, Wifi Sense, portapapeles y ajustes en la nube, aprendizaje y sugerencias de escritura, voz en la nube y apps escuchando comandos de voz, mapas, DRM y Homegroup.
 echo   A favor: mas privacidad y menos tareas en segundo plano.
 echo   En contra: las apps que usan ubicacion, como el clima, no la detectan, y tus ajustes no se copian a otras PCs.
 set "QID=pv"
@@ -773,6 +805,9 @@ call :reg "HKCU\Software\Microsoft\InputPersonalization" "RestrictImplicitInkCol
 call :reg "HKCU\Software\Microsoft\InputPersonalization" "RestrictImplicitTextCollection" REG_DWORD 1
 call :reg "HKCU\Software\Microsoft\InputPersonalization\TrainedDataStore" "HarvestContacts" REG_DWORD 0
 call :reg "HKCU\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy" "HasAccepted" REG_DWORD 0
+call :reg "HKCU\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps" "AgentActivationEnabled" REG_DWORD 0
+call :reg "HKCU\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps" "AgentActivationLastUsed" REG_DWORD 0
+call :reg "HKCU\Software\Microsoft\input\Settings" "InsightsEnabled" REG_DWORD 0
 call :reg "HKLM\SYSTEM\Maps" "AutoUpdateEnabled" REG_DWORD 0
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\Maps" "AutoDownloadAndUpdateMapData" REG_DWORD 0
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\Maps" "AllowUntriggeredNetworkTrafficOnSettingsPage" REG_DWORD 0
@@ -802,6 +837,9 @@ call :reg "HKCU\Software\Microsoft\InputPersonalization" "RestrictImplicitInkCol
 call :reg "HKCU\Software\Microsoft\InputPersonalization" "RestrictImplicitTextCollection" REG_DWORD 0
 call :reg "HKCU\Software\Microsoft\InputPersonalization\TrainedDataStore" "HarvestContacts" REG_DWORD 1
 call :regdel "HKCU\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy" "HasAccepted"
+call :reg "HKCU\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps" "AgentActivationEnabled" REG_DWORD 1
+call :reg "HKCU\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps" "AgentActivationLastUsed" REG_DWORD 1
+call :reg "HKCU\Software\Microsoft\input\Settings" "InsightsEnabled" REG_DWORD 1
 call :reg "HKLM\SYSTEM\Maps" "AutoUpdateEnabled" REG_DWORD 1
 call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\Maps" "AutoDownloadAndUpdateMapData"
 call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\Maps" "AllowUntriggeredNetworkTrafficOnSettingsPage"
@@ -938,7 +976,7 @@ call :opt_fin "Archivo hosts limpio de entradas de telemetria"
 :hst_fin
 
 echo.
-echo   Que hace: apaga en Edge y Brave la barra lateral, compras, rewards, wallet, VPN e IA.
+echo   Que hace: apaga en Edge y Brave la barra lateral, compras, rewards, wallet, VPN e IA; en Edge tambien saca Copilot ^(no lee tus paginas ni tu historial^), la escritura con IA, los temas con IA, la IA de DevTools y la descarga de modelos de IA locales.
 echo   A favor: navegadores mas livianos y sin publicidad.
 echo   En contra: perdes esas funciones si las usabas.
 set "QID=eb"
@@ -958,6 +996,17 @@ call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "EdgeFollowEnabled" REG_DWORD 
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "ShowRecommendationsEnabled" REG_DWORD 0
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "SpotlightExperiencesAndRecommendationsEnabled" REG_DWORD 0
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "PromotionalTabsEnabled" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "CopilotPageContext" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "CopilotCDPPageContext" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "EdgeEntraCopilotPageContext" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "Microsoft365CopilotChatIconEnabled" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "EdgeHistoryAISearchEnabled" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "ComposeInlineEnabled" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "GenAILocalFoundationalModelSettings" REG_DWORD 1
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "BuiltInAIAPIsEnabled" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "AIGenThemesEnabled" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "DevToolsGenAiSettings" REG_DWORD 2
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Edge" "ShareBrowsingHistoryWithCopilotSearchAllowed" REG_DWORD 0
 call :reg "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" "BraveRewardsDisabled" REG_DWORD 1
 call :reg "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" "BraveWalletDisabled" REG_DWORD 1
 call :reg "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" "BraveVPNDisabled" REG_DWORD 1
@@ -977,6 +1026,17 @@ call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "EdgeFollowEnabled"
 call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "ShowRecommendationsEnabled"
 call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "SpotlightExperiencesAndRecommendationsEnabled"
 call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "PromotionalTabsEnabled"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "CopilotPageContext"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "CopilotCDPPageContext"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "EdgeEntraCopilotPageContext"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "Microsoft365CopilotChatIconEnabled"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "EdgeHistoryAISearchEnabled"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "ComposeInlineEnabled"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "GenAILocalFoundationalModelSettings"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "BuiltInAIAPIsEnabled"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "AIGenThemesEnabled"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "DevToolsGenAiSettings"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Edge" "ShareBrowsingHistoryWithCopilotSearchAllowed"
 call :regdel "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" "BraveRewardsDisabled"
 call :regdel "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" "BraveWalletDisabled"
 call :regdel "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" "BraveVPNDisabled"
@@ -1004,11 +1064,11 @@ call :opt_fin "Actualizaciones automaticas de la Store restauradas"
 :su_fin
 
 echo.
-echo   Que hace: apaga Click to Do y la IA del Bloc de notas.
+echo   Que hace: apaga Click to Do, la IA del Bloc de notas y de Paint ^(creador de imagenes, Cocreator, relleno y borrado generativo, quitar fondo^), el agente de IA de Configuracion, Copilot en la busqueda, el acceso de las apps a la IA generativa y Copilot en Word y Excel.
 echo   A favor: menos procesos de IA y mas privacidad.
 echo   En contra: perdes esas funciones.
 set "QID=ia"
-set "Q=- Desea apagar las funciones de IA de Windows? (Click to Do y la IA del Bloc de notas)"
+set "Q=- Desea apagar las funciones de IA de Windows? (Click to Do, Bloc de notas, Paint, Configuracion, busqueda y Copilot en Office)"
 call :askR
 if errorlevel 3 goto ia_r
 if errorlevel 2 goto ia_fin
@@ -1016,15 +1076,35 @@ call :opt_ini "Funciones de IA"
 call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" "DisableClickToDo" REG_DWORD 1
 call :reg "HKLM\SOFTWARE\Policies\WindowsNotepad" "DisableAIFeatures" REG_DWORD 1
 call :regdel "HKCU\Software\Microsoft\Notepad" "ShowRewriteButton"
+call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" "DisableSettingsAgent" REG_DWORD 1
+call :reg "HKCU\Software\Microsoft\Windows\Shell\Copilot\BingChat" "IsUserEligible" REG_DWORD 0
+call :reg "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\generativeAI" "Value" REG_SZ Deny
+call :reg "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableImageCreator" REG_DWORD 1
+call :reg "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableCocreator" REG_DWORD 1
+call :reg "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableGenerativeFill" REG_DWORD 1
+call :reg "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableGenerativeErase" REG_DWORD 1
+call :reg "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableRemoveBackground" REG_DWORD 1
+call :reg "HKCU\Software\Microsoft\Office\16.0\Word\Options" "EnableCopilot" REG_DWORD 0
+call :reg "HKCU\Software\Microsoft\Office\16.0\Excel\Options" "EnableCopilot" REG_DWORD 0
 set "ACT=NOTEPAD_CHK"
 call :aplicar_ps
 if errorlevel 6 set /a OPT_P+=1
-call :opt_fin "Funciones de IA desactivadas (Click to Do y Bloc de notas)"
+call :opt_fin "Funciones de IA desactivadas"
 goto ia_fin
 :ia_r
 call :opt_ini "Funciones de IA (restaurar)"
 call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" "DisableClickToDo"
 call :regdel "HKLM\SOFTWARE\Policies\WindowsNotepad" "DisableAIFeatures"
+call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" "DisableSettingsAgent"
+call :regdel "HKCU\Software\Microsoft\Windows\Shell\Copilot\BingChat" "IsUserEligible"
+call :reg "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\generativeAI" "Value" REG_SZ Allow
+call :regdel "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableImageCreator"
+call :regdel "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableCocreator"
+call :regdel "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableGenerativeFill"
+call :regdel "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableGenerativeErase"
+call :regdel "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" "DisableRemoveBackground"
+call :regdel "HKCU\Software\Microsoft\Office\16.0\Word\Options" "EnableCopilot"
+call :regdel "HKCU\Software\Microsoft\Office\16.0\Excel\Options" "EnableCopilot"
 call :opt_fin "Funciones de IA restauradas"
 :ia_fin
 
@@ -1262,6 +1342,8 @@ goto rsm_fin
 echo %C_ERR%  Cambios que fallaron: %NFALLO%  -  Opciones con problemas: %NATEN%%C_RST%
 :rsm_fin
 echo   Log completo en: %LOG%
+if not defined XUCA_AUTO echo.
+if not defined XUCA_AUTO echo %C_TIT%Este proyecto es gratis. Si te sirvio y queres apoyarme: https://ko-fi.com/011xuca%C_RST%
 call :log "INFO" "Fin. Cambios fallidos: %NFALLO%, opciones con problemas: %NATEN%"
 exit /b
 
@@ -35900,10 +35982,7 @@ public static class SpiNative {
 
     'ORIG_CHECK' {
         $motivos = New-Object System.Collections.Generic.List[string]
-        try {
-            $lic = Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" -ErrorAction Stop | Select-Object -First 1
-            if ($lic -and $lic.LicenseStatus -ne 1) { $motivos.Add('Windows no esta activado o la activacion no es valida') }
-        } catch { }
+        # Windows sin activar no cuenta como no original (es un Windows normal, solo falta la licencia)
         foreach ($sv in 'TrustedInstaller', 'wuauserv', 'WinDefend') {
             if (-not (Get-Service -Name $sv -ErrorAction SilentlyContinue)) { $motivos.Add('falta el servicio ' + $sv + ', tipico de versiones recortadas') }
         }
@@ -35990,3 +36069,134 @@ public static class SpiNative {
 }
 
 exit $code
+
+<#XUCA-UPD
+# ------------------------------------------------------------
+# Buscador de actualizaciones. Lo corre la parte de arriba del .bat.
+# Esta dentro de un comentario para que el resto del PowerShell de este archivo lo ignore.
+# Compara el version.txt de tu PC con el de GitHub: si son distintos, avisa.
+# ------------------------------------------------------------
+& {
+    $ErrorActionPreference = 'Stop'
+    $repo = [string]$env:XUCA_REPO; $rama = [string]$env:XUCA_RAMA; $gh = [string]$env:XUCA_GH
+    $self = [string]$env:XUCA_SELF
+    if ((-not $repo) -or ($repo -like 'TU_USUARIO*')) { return }
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
+    $latin = [Text.Encoding]::GetEncoding(28591)
+    $base = 'https://raw.githubusercontent.com/' + $repo + '/' + $rama + '/'
+
+    # Si el .bat esta en la carpeta scripts de la app, el version.txt es el de la app (al lado de XucaOP.ps1).
+    # Si esta suelto, el version.txt va en la misma carpeta que el .bat.
+    $dir = Split-Path -Parent $self
+    $arriba = Split-Path -Parent $dir
+    $conApp = [bool]($arriba -and (Test-Path -LiteralPath (Join-Path $arriba 'XucaOP.ps1')))
+    $raiz = $(if ($conApp) { $arriba } else { $dir })
+    $verLocal = Join-Path $raiz 'version.txt'
+
+    function Limpiar([string]$t) { return (($t -replace '^(\u00EF\u00BB\u00BF|\uFEFF)', '') -split "`r?`n")[0].Trim() }
+    function Bajar([string]$remoto, [int]$espera, [string]$etiqueta) {
+        $rq = [Net.HttpWebRequest]::Create($base + $remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
+        $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'XucaOP'
+        $rs = $rq.GetResponse()
+        try {
+            $len = $rs.ContentLength
+            $st = $rs.GetResponseStream(); $ms = New-Object IO.MemoryStream; $buf = New-Object byte[] 65536
+            while (($r = $st.Read($buf, 0, $buf.Length)) -gt 0) {
+                $ms.Write($buf, 0, $r)
+                if ($etiqueta -and ($len -gt 0)) { [Console]::Write("`r  Descargando " + $etiqueta + ': ' + [int](100 * $ms.Length / $len) + '%   ') }
+            }
+            if ($etiqueta) { [Console]::WriteLine('') }
+            return $latin.GetString($ms.ToArray())
+        } finally { $rs.Close() }
+    }
+
+    $local = ''
+    if (Test-Path -LiteralPath $verLocal) { try { $local = Limpiar ([IO.File]::ReadAllText($verLocal)) } catch { } }
+    [Console]::Write('Buscando actualizaciones...')
+    $remota = ''
+    try { $remota = Limpiar (Bajar 'version.txt' 4000 '') } catch { }
+    [Console]::Write("`r" + (' ' * 30) + "`r")
+    if ((-not $remota) -or ($remota -eq $local)) { return }
+
+    # Cartel amarillo. En Windows Terminal se ve el simbolo de advertencia; en la consola vieja va /!\
+    $icono = '/!\'
+    if ($env:WT_SESSION) { $icono = [string][char]0x26A0 }
+    $ancho = 76
+    try { $ancho = [math]::Max(40, [math]::Min([Console]::WindowWidth - 1, 76)) } catch { }
+    $tuya = $(if ($local) { $local } else { 'sin version' })
+    Write-Host ''
+    foreach ($l in @('', ('  ' + $icono + '  HAY UNA ACTUALIZACION DISPONIBLE'), ('     Tenes la version ' + $tuya + ' y en GitHub esta la ' + $remota + '.'), '     Si la bajas, se cierra esta ventana y se abre la version nueva sola.', '')) {
+        $t = $l; if ($t.Length -gt $ancho) { $t = $t.Substring(0, $ancho) }
+        Write-Host ($t.PadRight($ancho)) -ForegroundColor Black -BackgroundColor Yellow
+    }
+    Write-Host ''
+    Write-Host '- Desea descargar la actualizacion? [S] Si  [N] No: ' -NoNewline -ForegroundColor Yellow
+    $k = ''
+    while (@('S', 'N') -notcontains $k) { $k = ([string][Console]::ReadKey($true).KeyChar).ToUpper() }
+    Write-Host $k
+    if ($k -eq 'N') {
+        Write-Host '  Seguis con esta version.' -ForegroundColor DarkGray
+        Write-Host ''
+        return
+    }
+
+    # Que se baja: con la app, todo (app y los 3 scripts). Suelto, este .bat y los otros scripts que esten en la misma carpeta.
+    $lista = @()
+    if ($conApp) {
+        foreach ($r in 'XucaOP.ps1', 'scripts/windows_debloat.bat', 'scripts/optimizacion_gaming.bat', 'scripts/limpiar_cache.bat', 'lang/en-en/textos.txt', 'lang/es-mx/textos.txt') {
+            $lista += [pscustomobject]@{ Remoto = $r; Local = (Join-Path $raiz ($r -replace '/', '\')); Opc = ($r -like 'lang/*') }
+        }
+    } else {
+        $lista += [pscustomobject]@{ Remoto = $gh; Local = $self }
+        foreach ($n in 'windows_debloat.bat', 'optimizacion_gaming.bat', 'limpiar_cache.bat') {
+            $p = Join-Path $dir $n
+            if (('scripts/' + $n) -ne $gh -and (Test-Path -LiteralPath $p)) { $lista += [pscustomobject]@{ Remoto = ('scripts/' + $n); Local = $p } }
+        }
+    }
+
+    # Se baja todo a archivos .nuevo; el version.txt va ultimo
+    $nuevos = @()
+    try {
+        foreach ($a in $lista) {
+            # Los opcionales (los idiomas de la app) se saltean si todavia no estan en GitHub
+            try { $txt = Bajar $a.Remoto 30000 (Split-Path -Leaf $a.Remoto) } catch { if ($a.Opc) { continue }; throw }
+            if ($txt.Length -lt 100) { if ($a.Opc) { continue }; throw ('lo que llego de GitHub para ' + $a.Remoto + ' no es el archivo esperado') }
+            $tmp = $a.Local + '.nuevo'
+            $dd = Split-Path -Parent $tmp
+            if (-not (Test-Path -LiteralPath $dd)) { New-Item -ItemType Directory -Path $dd -Force | Out-Null }
+            [IO.File]::WriteAllText($tmp, ($txt -replace '\r?\n', "`r`n"), $latin)
+            $nuevos += [pscustomobject]@{ Tmp = $tmp; Local = $a.Local }
+        }
+        $tmp = $verLocal + '.nuevo'
+        [IO.File]::WriteAllText($tmp, ($remota + "`r`n"), $latin)
+        $nuevos += [pscustomobject]@{ Tmp = $tmp; Local = $verLocal }
+    } catch {
+        foreach ($n in $nuevos) { Remove-Item -LiteralPath $n.Tmp -Force -ErrorAction SilentlyContinue }
+        Remove-Item -LiteralPath ($verLocal + '.nuevo') -Force -ErrorAction SilentlyContinue
+        Write-Host ('  No se pudo descargar: ' + $_.Exception.Message) -ForegroundColor Red
+        Write-Host '  Seguis con esta version.' -ForegroundColor DarkGray
+        Start-Sleep -Seconds 3
+        return
+    }
+
+    # Un ayudante oculto espera a que se cierre esta ventana, pone los archivos nuevos en lugar de los viejos y abre este .bat.
+    $padre = 0
+    try { $padre = [int](Get-CimInstance Win32_Process -Filter ('ProcessId=' + $PID)).ParentProcessId } catch { }
+    $c = { param($s) "'" + ($s -replace "'", "''") + "'" }
+    $h = @(
+        ('$p = ' + $padre),
+        'Start-Sleep -Milliseconds 800',
+        '$fin = (Get-Date).AddSeconds(30)',
+        'while (($p -gt 0) -and (Get-Process -Id $p -ErrorAction SilentlyContinue) -and ((Get-Date) -lt $fin)) { Start-Sleep -Milliseconds 200 }'
+    )
+    foreach ($n in $nuevos) {
+        $h += ('for ($i = 0; $i -lt 30; $i++) { try { Move-Item -LiteralPath ' + (& $c $n.Tmp) + ' -Destination ' + (& $c $n.Local) + ' -Force -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 300 } }')
+    }
+    $h += ('Start-Process -FilePath ' + (& $c $self) + ' -WorkingDirectory ' + (& $c $dir))
+    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes(($h -join "`n")))
+    Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -EncodedCommand ' + $enc)
+    Write-Host '  Listo. Se cierra esta ventana y se abre la version nueva.' -ForegroundColor Green
+    Start-Sleep -Milliseconds 1200
+    $global:XucaUpd = 10
+}
+XUCA-UPD#>

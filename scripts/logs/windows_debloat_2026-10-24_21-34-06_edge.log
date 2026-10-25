@@ -1,0 +1,1572 @@
+xuca_Edge.bat 11/26/2025 
+[main_script.start] 
+[uac()] 
+err: 0; EXEC_SID: "S-1-5-21-3808974701-1218051665-3351078521-1001"; USER_SID: "-auto" 
+[uac().success] 
+[uac().done] 
+has network: 1 
+[prepare()] 
+[prepare().amd64] 
+[file_obtain()] 
+  name: "setup.x64.exe" 
+  hash: "0950336e0d633eb645e0cf66780d2102a182caa184264d4f62146fe229f636e7" 
+  url:  "https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/_Source/setup.x64.exe" 
+  var:  "file_setup_loc" 
+[file_obtain().check] "C:\Users\Xuca\AppData\Local\Temp\setup.x64.exe"; on_hash_err: "download" 
+[file_obtain().done] 
+[file_obtain()] 
+  name: "System.Data.SQLite.x64.dll" 
+  hash: "1b3742c5bd1b3051ae396c6e62d1037565ca0cbbedb35b460f7d10a70c30376f" 
+  url:  "https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/_Source/System.Data.SQLite.x64.dll" 
+  var:  "file_SQLite_loc" 
+[file_obtain().check] "C:\Users\Xuca\AppData\Local\Temp\System.Data.SQLite.x64.dll"; on_hash_err: "download" 
+[file_obtain().done] 
+[prepare().end] 
+No se pudo encontrar C:\Users\Xuca\AppData\Local\Temp\setup.exe
+No se pudo encontrar C:\Users\Xuca\AppData\Local\Temp\System.Data.SQLite.dll
+V°nculos permanentes creados por C:\Users\Xuca\AppData\Local\Temp\setup.exe <<===>> C:\Users\Xuca\AppData\Local\Temp\setup.x64.exe
+V°nculos permanentes creados por C:\Users\Xuca\AppData\Local\Temp\System.Data.SQLite.dll <<===>> C:\Users\Xuca\AppData\Local\Temp\System.Data.SQLite.x64.dll
+x86ProgramsFolder: C:\Program Files (x86) 
+[prepare().done] 
+query packages 
+"1Microsoft.MicrosoftEdgeDevToolsClient_1000.25128.1000.0_neutral_neutral_8wekyb3d8bbwe" 
+packages queried 
+[uninstall()] 
+[uninstall().edge.init] 
+INFORMACI‡N: no se pudo encontrar ning£n archivo para los patrones dados.
+[uninstall().edge.done] 
+[uninstall().appx.init] 
+[uninstall().appx.init.reg_SFT] 
+[uninstall().appx.init.reg_CLS] 
+[uninstall().appx] 
+[appx_unlock_and_delete()] 
+[appx_unlock_and_delete().psl] 
+[Unlock-Packages()]
+stopping services
+Stop-Service : El tiempo de espera ha transcurrido y no se ha completado la operaci¢n.
+En l°nea: 1 Car†cter: 2401
++ ...  $rslt.Value = $false;    Stop-Service StateRepository -Force;        ...
++                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Stop-Service], TimeoutException
+    + FullyQualifiedErrorId : System.ServiceProcess.TimeoutException,Microsoft.PowerShell.Commands.StopServiceCommand
+ 
+acessing db files
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd" ahora es propiedad del usuario "XUCA\Xuca".
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-shm" ahora es propiedad del usuario "XUCA\Xuca".
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-wal" ahora es propiedad del usuario "XUCA\Xuca".
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-shm
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-wal
+Se procesaron correctamente 3 archivos; error al procesar 0 archivos
+unlocking
+Excepci¢n al llamar a "ExecuteNonQuery" con los argumentos "0": "attempt to write a readonly database
+attempt to write a readonly database"
+En l°nea: 1 Car†cter: 3136
++ ... ommandText = "DROP TRIGGER $trg_name"; $cmd.ExecuteNonQuery() }       ...
++                                            ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : SQLiteException
+ 
+unlocking failed
+[Unlock-Packages().end]
+[Unlock-Packages()]
+stopping services
+Stop-Service : No se puede detener el servicio 'State Repository Service (StateRepository)' debido al error siguiente: 
+No se puede detener el servicio AppXSvc en el equipo '.'.
+En l°nea: 1 Car†cter: 2401
++ ...  $rslt.Value = $false;    Stop-Service StateRepository -Force;        ...
++                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : CloseError: (System.ServiceProcess.ServiceController:ServiceController) [Stop-Service],  
+   ServiceCommandException
+    + FullyQualifiedErrorId : CouldNotStopService,Microsoft.PowerShell.Commands.StopServiceCommand
+ 
+acessing db files
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd" ahora es propiedad del usuario "XUCA\Xuca".
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-shm" ahora es propiedad del usuario "XUCA\Xuca".
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-wal" ahora es propiedad del usuario "XUCA\Xuca".
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-shm
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-wal
+Se procesaron correctamente 3 archivos; error al procesar 0 archivos
+unlocking
+Excepci¢n al llamar a "ExecuteNonQuery" con los argumentos "0": "attempt to write a readonly database
+attempt to write a readonly database"
+En l°nea: 1 Car†cter: 3136
++ ... ommandText = "DROP TRIGGER $trg_name"; $cmd.ExecuteNonQuery() }       ...
++                                            ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : SQLiteException
+ 
+unlocking failed
+[Unlock-Packages().end]
+[Unlock-Packages()]
+stopping services
+Stop-Service : No se puede detener el servicio 'State Repository Service (StateRepository)' debido al error siguiente: 
+No se puede detener el servicio AppXSvc en el equipo '.'.
+En l°nea: 1 Car†cter: 2401
++ ...  $rslt.Value = $false;    Stop-Service StateRepository -Force;        ...
++                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : CloseError: (System.ServiceProcess.ServiceController:ServiceController) [Stop-Service],  
+   ServiceCommandException
+    + FullyQualifiedErrorId : CouldNotStopService,Microsoft.PowerShell.Commands.StopServiceCommand
+ 
+acessing db files
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd" ahora es propiedad del usuario "XUCA\Xuca".
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-shm" ahora es propiedad del usuario "XUCA\Xuca".
+
+CORRECTO: el archivo (o carpeta): "C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-wal" ahora es propiedad del usuario "XUCA\Xuca".
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-shm
+archivo procesado: C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Machine.srd-wal
+Se procesaron correctamente 3 archivos; error al procesar 0 archivos
+unlocking
+Excepci¢n al llamar a "ExecuteNonQuery" con los argumentos "0": "attempt to write a readonly database
+attempt to write a readonly database"
+En l°nea: 1 Car†cter: 3136
++ ... ommandText = "DROP TRIGGER $trg_name"; $cmd.ExecuteNonQuery() }       ...
++                                            ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : SQLiteException
+ 
+unlocking failed
+[Unlock-Packages().end]
+package(s) still locked, exclude:
+Microsoft.MicrosoftEdgeDevToolsClient_1000.25128.1000.0_neutral_neutral_8wekyb3d8bbwe
+removing
+[appx_unlock_and_delete().end] 
+[uninstall().appx.done] 
+[uninstall().end] 
+[cleanup()] 
+[cleanup().edge] 
+[cleanup().edge.dirs] 
+El sistema no puede encontrar el archivo especificado.
+[edgecore_cleanup()] 
+webview2_ver: "155.0.4283.62" 
+keeping (in use by WebView2): "C:\Program Files (x86)\Microsoft\EdgeCore\155.0.4283.62" 
+[edgecore_cleanup().end] 
+El sistema no puede encontrar el archivo especificado.
+El sistema no puede encontrar el archivo especificado.
+El sistema no puede encontrar el archivo especificado.
+[cleanup().edge.tasks] 
+[cleanup().edge.services] 
+[service_remove()] "edgeupdate" 
+[SC] OpenService ERROR 1060:
+
+El servicio especificado no existe como servicio instalado.
+
+[service_remove().end] 
+[service_remove()] "edgeupdatem" 
+[SC] OpenService ERROR 1060:
+
+El servicio especificado no existe como servicio instalado.
+
+[service_remove().end] 
+[service_remove()] "microsoftedgeelevationservice" 
+[SC] OpenService ERROR 1060:
+
+El servicio especificado no existe como servicio instalado.
+
+[service_remove().end] 
+[cleanup().edge.users] 
+[user_lnks_remove_by_path()] "C:\Users\Public" 
+No se pudo encontrar C:\Users\Public\Desktop\edge.lnk
+El sistema no puede encontrar la ruta especificada.
+El sistema no puede encontrar la ruta especificada.
+El sistema no puede encontrar la ruta especificada.
+No se pudo encontrar C:\Users\Public\Desktop\Microsoft Edge.lnk
+El sistema no puede encontrar la ruta especificada.
+El sistema no puede encontrar la ruta especificada.
+El sistema no puede encontrar la ruta especificada.
+[user_lnks_remove_by_path().end] 
+No se pudo encontrar C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk
+[user_lnks_remove_by_path()] "C:\Users\Default" 
+No se pudo encontrar C:\Users\Default\Desktop\edge.lnk
+No se pudo encontrar C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\edge.lnk
+No se pudo encontrar C:\Users\Default\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\edge.lnk
+El sistema no puede encontrar la ruta especificada.
+No se pudo encontrar C:\Users\Default\Desktop\Microsoft Edge.lnk
+No se pudo encontrar C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk
+No se pudo encontrar C:\Users\Default\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\Microsoft Edge.lnk
+El sistema no puede encontrar la ruta especificada.
+[user_lnks_remove_by_path().end] 
+[user_reg_cleanup()] 
+  SID:  ".DEFAULT" 
+  path: "C:\Users\Default" 
+prepare main hive 
+
+HKEY_USERS\.DEFAULT
+    (Predeterminado)    REG_SZ    (valor no establecido)
+
+main hive ready 
+cleanup main hive 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+[user_reg_cleanup().sft.done] 
+probing "SOFTWARE\Classes" 
+
+HKEY_USERS\.DEFAULT\SOFTWARE\Classes
+    (Predeterminado)    REG_SZ    (valor no establecido)
+
+classes hive ready 
+cleanup classes hive 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+[user_reg_cleanup().cls.done] 
+[user_reg_cleanup().end] 
+[user_cleanup_by_sid()] "S-1-5-18" 
+[user_cleanup_by_sid().end] 
+[user_cleanup_by_sid()] "S-1-5-19" 
+[user_cleanup_by_sid().end] 
+[user_cleanup_by_sid()] "S-1-5-20" 
+[user_cleanup_by_sid().end] 
+[user_cleanup_by_sid()] "S-1-5-21-3808974701-1218051665-3351078521-1001" 
+accepted 
+[user_lnks_remove_by_path()] "C:\Users\Xuca" 
+No se pudo encontrar C:\Users\Xuca\Desktop\edge.lnk
+No se pudo encontrar C:\Users\Xuca\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\edge.lnk
+No se pudo encontrar C:\Users\Xuca\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\edge.lnk
+No se pudo encontrar C:\Users\Xuca\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\edge.lnk
+No se pudo encontrar C:\Users\Xuca\Desktop\Microsoft Edge.lnk
+No se pudo encontrar C:\Users\Xuca\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk
+No se pudo encontrar C:\Users\Xuca\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\Microsoft Edge.lnk
+No se pudo encontrar C:\Users\Xuca\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Edge.lnk
+[user_lnks_remove_by_path().end] 
+[user_reg_cleanup()] 
+  SID:  "S-1-5-21-3808974701-1218051665-3351078521-1001" 
+  path: "C:\Users\Xuca" 
+prepare main hive 
+
+HKEY_USERS\S-1-5-21-3808974701-1218051665-3351078521-1001
+    (Predeterminado)    REG_SZ    (valor no establecido)
+
+main hive ready 
+cleanup main hive 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+La operaci¢n se complet¢ correctamente.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+La operaci¢n se complet¢ correctamente.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+La operaci¢n se complet¢ correctamente.
+[user_reg_cleanup().sft.done] 
+probing "SOFTWARE\Classes" 
+
+HKEY_USERS\S-1-5-21-3808974701-1218051665-3351078521-1001\SOFTWARE\Classes
+    (Predeterminado)    REG_SZ    (valor no establecido)
+
+classes hive ready 
+cleanup classes hive 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+[user_reg_cleanup().cls.done] 
+[user_reg_cleanup().end] 
+[user_cleanup_by_sid().end] 
+[user_cleanup_by_sid()] "S-1-5-21-3808974701-1218051665-3351078521-1002" 
+accepted 
+[user_lnks_remove_by_path()] "C:\Users\WsiAccount" 
+No se pudo encontrar C:\Users\WsiAccount\Desktop\edge.lnk
+No se pudo encontrar C:\Users\WsiAccount\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\edge.lnk
+No se pudo encontrar C:\Users\WsiAccount\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\edge.lnk
+El sistema no puede encontrar el archivo especificado.
+No se pudo encontrar C:\Users\WsiAccount\Desktop\Microsoft Edge.lnk
+No se pudo encontrar C:\Users\WsiAccount\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk
+No se pudo encontrar C:\Users\WsiAccount\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\Microsoft Edge.lnk
+El sistema no puede encontrar el archivo especificado.
+[user_lnks_remove_by_path().end] 
+[user_reg_cleanup()] 
+  SID:  "S-1-5-21-3808974701-1218051665-3351078521-1002" 
+  path: "C:\Users\WsiAccount" 
+prepare main hive 
+
+HKEY_USERS\S-1-5-21-3808974701-1218051665-3351078521-1002
+    (Predeterminado)    REG_SZ    (valor no establecido)
+
+main hive ready 
+cleanup main hive 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+[user_reg_cleanup().sft.done] 
+probing "SOFTWARE\Classes" 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+prepare classes hive 
+
+HKEY_USERS\S-1-5-21-3808974701-1218051665-3351078521-1002_Classes
+    (Predeterminado)    REG_SZ    (valor no establecido)
+
+classes hive ready 
+cleanup classes hive 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+[user_reg_cleanup().cls.done] 
+[user_reg_cleanup().end] 
+[user_cleanup_by_sid().end] 
+[user_cleanup_by_sid()] "S-1-5-80-1400568552-4251862193-1325744417-2399102824-748846479" 
+accepted 
+[user_lnks_remove_by_path()] "C:\WINDOWS\ServiceProfiles\NoipClientService" 
+No se pudo encontrar C:\WINDOWS\ServiceProfiles\NoipClientService\Desktop\edge.lnk
+No se pudo encontrar C:\WINDOWS\ServiceProfiles\NoipClientService\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\edge.lnk
+No se pudo encontrar C:\WINDOWS\ServiceProfiles\NoipClientService\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\edge.lnk
+El sistema no puede encontrar la ruta especificada.
+No se pudo encontrar C:\WINDOWS\ServiceProfiles\NoipClientService\Desktop\Microsoft Edge.lnk
+No se pudo encontrar C:\WINDOWS\ServiceProfiles\NoipClientService\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk
+No se pudo encontrar C:\WINDOWS\ServiceProfiles\NoipClientService\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\Microsoft Edge.lnk
+El sistema no puede encontrar la ruta especificada.
+[user_lnks_remove_by_path().end] 
+[user_reg_cleanup()] 
+  SID:  "S-1-5-80-1400568552-4251862193-1325744417-2399102824-748846479" 
+  path: "C:\WINDOWS\ServiceProfiles\NoipClientService" 
+prepare main hive 
+
+HKEY_USERS\S-1-5-80-1400568552-4251862193-1325744417-2399102824-748846479
+    (Predeterminado)    REG_SZ    (valor no establecido)
+
+main hive ready 
+cleanup main hive 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+[user_reg_cleanup().sft.done] 
+probing "SOFTWARE\Classes" 
+
+HKEY_USERS\S-1-5-80-1400568552-4251862193-1325744417-2399102824-748846479\SOFTWARE\Classes
+    (Predeterminado)    REG_SZ    (valor no establecido)
+
+classes hive ready 
+cleanup classes hive 
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+[user_reg_cleanup().cls.done] 
+[user_reg_cleanup().end] 
+[user_cleanup_by_sid().end] 
+[cleanup().edge.done] 
+[cleanup().appx] 
+[cleanup().appx.SystemApps] 
+dir: "C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe" 
+ERROR: Sintaxis no v†lida. El valor "y" no est† permitido para la opci¢n "/d".
+Escriba "TAKEOWN /?" para su uso.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe: Acceso denegado.
+archivo procesado: C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\AppxBlockMap.xml: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\AppxManifest.xml: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\AppxSignature.p7x: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\pris: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\resources.pri: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\console: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\remote: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\assert.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\button.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\common.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\common.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\CommonMerged.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\controls: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\CssUtilities.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\CutCopyPasteContextMenu.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\dataTreeView.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\daytonaOptOut.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\DomMutations: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\editor: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\EncodingUtilities.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\external: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Grid: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\htmlTreeView.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Intellisense: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\isDebugBuild.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\jQuery: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\listBox.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\MediaTypeManager.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\messageThrottle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ModelView: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monacoResolver.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ObjectView: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Remote: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\remoteEditStack.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\remoteHelpers.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ResourcesView: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\TabControl: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\toolwindow.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\toolwindow.f12.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\trace.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\uri.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\controls\controls.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\controls\ListControl: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\controls\ListControl\ListControl.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\DomMutations\dmbp.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\DomMutations\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\DomMutations\images\domDeleteAllBreakpoints.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\DomMutations\images\domSelectAllBreakpoints.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\editor\editor.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\editor\editorDefinitions.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\editor\f12Nls.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\external\JSTreeGridControl.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Base64.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\FormattedTextMapping.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Formatter.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\FormatterOptions.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\formatWorker.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\htmlScriptFinder.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\IFormatService.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\position.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\sourcemapMappings.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\sourcemapParser.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\SourceMapParserWorker.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\sourceSpan.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\sourceSpanBuilder.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\StateMachine.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\typescript: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\UnmappedTextMapping.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\workerMessaging.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css\CssEmitter.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css\CssFormatter.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css\CssFormatWorker.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css\CssParser.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlEmitter.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlFormatter.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlFormatWorker.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlParser.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlTokenizer.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\typescript\formatterTypescriptServices.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\typescript\formatterTypescriptServices.nls.keys.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Grid\commonGridControl.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Grid\gridCellEditControl.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Grid\gridControl.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\add_row.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\checkmark.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\columnmove.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\commonclose.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\commonhelp.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\common_icons.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\critical.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\debuggerNextTab.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\debuggerPrevTab.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\diffIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\F12Logo.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\filepicker.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\forceStorageCapState.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\itemCollapsedIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\itemExpandedIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_delete.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_filtering_options.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_next.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_previous.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_warning.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\maximize.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\minimize.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\misc_icons.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\options.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\previewTabClose.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\previewTabIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\refresh.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\refreshState.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\restore.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\tabclose.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\togglePrettyPrint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\toggleWordWrap.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\tree_icons.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\alphaColorBar.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\checkeredBackground.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\hueColorBar.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\lightnessColorBar.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\saturationColorBar.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\sliderButton.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Intellisense\intellisenseListBox.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Intellisense\intellisenseRemoteHelpers.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\jQuery\jquery-2.1.1.min.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\jQuery\jquery.event.drag-2.2.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ModelView\expandingListView.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\base: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\editor: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\loader.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\base\worker: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\base\worker\workerMain.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\coffee.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\csharp.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\css.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\html.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\less.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\scss.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\xml.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\editor\editor.main.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\editor\editor.main.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\editor\editor.main.nls.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\json: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\css\cssMode.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\css\cssWorker.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\html\htmlMode.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\html\htmlWorker.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\json\jsonMode.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\json\jsonWorker.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript\lib: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript\src: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript\lib\typescriptServices.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript\src\mode.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript\src\worker.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ObjectView\objectTreeView.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\common.f12.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\commonPlugin.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\PerfRemoteHelpers.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\TokenExtractor.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\gridControl.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\hubControls.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\menuControl.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\MultiLineGraph.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\Renderer.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\Ruler.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\Scrollbar.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\Swimlane.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\CustomMark5_18x.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_appevent.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_checkered_background.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_open.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_save.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_sort_down.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_sort_up.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_start.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_stop.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_usermark.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Remote\etw.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Remote\RemoteDiagnostics.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Remote\rpc.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ResourcesView\resourcesView.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\plugins: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.core.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.dataview.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.editors.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.formatters.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.grid.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.grid.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\plugins\slick.rowselectionmodel.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\TabControl\sharedTabControl.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\console\console.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\console\global.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Callstack: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Cursor: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\debugger.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\debugger.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\debugger.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Remote: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Watches: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\breakpoints.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\addEventBreakpoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\addEventTracepoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\addXHRBreakpoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\breakpointDisabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\breakpointGlyph.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\breakpointUnbound.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\conditionalBreakpoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\deleteAllBreakpoints.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\editCurrentBreakpoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventBreakpoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventBreakpointConditional.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventBreakpointDisabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventBreakpointUnbound.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventTracepoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventTracepointDisabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventTracepointUnbound.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\selectAllBreakpoints.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\tracepointBreakpoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\xhrBreakpoint.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\xhrBreakpointDisabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\xhrBreakpointUnbound.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Callstack\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Callstack\images\activeFrameGlyph.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Callstack\images\instructionPointerGlyph.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Cursor\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Cursor\images\currentLocationArrow.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\breakAll.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\breakOnExceptions.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\breakWorker.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\contentScriptEngineIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\continue.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\copyToClipboard.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\cssfileicon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\diffTabIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\disconnectIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\filesnodeicon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\functionIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\functionIconMapped.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\htmlfileicon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\libraryCodeIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\notAFunctionIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\notAFunctionIconMapped.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\redirectIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\returnValue.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\saveicon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\scriptfileicon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\search.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\stepInto.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\stepOut.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\stepOver.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\toggleSourceMap.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\toolbarMyCodeIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\tsfileicon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\clearResults.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\debuggerclose.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\findResults.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\nextResult.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\pin.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\previousResult.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\unpin.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Remote\debuggerDiagRemote.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Remote\debuggerRemote.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Watches\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Watches\watches.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Watches\images\addWatch.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Watches\images\deleteAll.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\dom.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\domExplorer.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\domExplorer.f12.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\DomExplorerMerged.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\DomExplorerRemote.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\DomTree: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\events.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\inspect.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\layout.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\DomTree\domTree.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\accessibility.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\AddNewRuleIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\BreadcrumbScrollLeft.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\BreadcrumbScrollLeftHover.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\BreadcrumbScrollRight.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\BreadcrumbScrollRightHover.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\checkered_background.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\EventsCollapseAll.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_error.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_inspect.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_just_my_code.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_refresh.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_show_layout.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_show_pseudo_classes.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\red_squiggly.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\ChangesView: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\StyleView: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\WinningView: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\ChangesView\changesView.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\StyleView\styleView.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\WinningView\winningStyles.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\emulation.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\emulation.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\emulation.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\infoButton.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\i_persistSettings.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\i_resetSettings.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\f12host.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\f12host.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\f12host.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\pluginHostShim.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\popupWindow.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\uwp.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\console.bundle.js: Acceso denegado.
+archivo procesado: C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host
+archivo procesado: C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\closeErrorBox.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\f12.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\helpErrorBox.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\i_alerterror.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\i_alertinfo.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\plugin.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\header.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\header.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\HeaderMerged.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Remote: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\badgeAlert.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\badgeBreak.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\badgeInfo.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\badgeRunning.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\console.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\dockH.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\dockV.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\emulation.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\emulationCombo.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\feedback.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\foreground.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerBadgeError.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headercheckmark.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerclose.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerhelp.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headermaximize.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerminimize.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerrestore.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\NavOverFlow_Break.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\NavOverFlow_Info.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\NavOverFlow_Start.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\NavOverFlow_Warning.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\nextTab.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\overflow.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\prevTab.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\undock.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Remote\headerRemote.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzer.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzer.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzer.f12.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzer.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzerRemote.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\snapshotTileView.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\tabControl.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\i_foldin.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\i_info.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\i_snapshot.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\i_table_options.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\status_heap_decrease.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\status_heap_increase.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\takeSnapshot.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\network.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\network.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_bypassServiceWorkers.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_clearCache.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_clearCookies.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_clearOnNavigate.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_clearSession.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_refreshServer.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\networkBadgeError.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\NetworkStatus-Error.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\NetworkStatus-OK.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\NetworkStatus-Warning.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\remote\console: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\remote\console\console.remote.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\remote: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\serviceworker.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\serviceworker.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\serviceworker.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\images\serviceworkericon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\remote\serviceworkerRemote.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\remote: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\storage.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\storage.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\storage.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\cacheIcon.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\clearCookies.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\clearSessionCookies.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\cookies.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\gridHeaderHttpOnly.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\gridHeaderSecure.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\localStorage.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\remote\storageRemote.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\DataCategoryStyles.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\visualProfiler.bundle.js: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\VisualProfiler.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\VisualProfiler.f12.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\VisualProfiler.html: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartselection_clear.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartselection_clear_disabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartzoom_in.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartzoom_in_disabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartzoom_reset.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartzoom_reset_disabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_chartselection_clear.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_chartzoom_in.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_chartzoom_reset.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartselection_clear.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartselection_clear_disabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartzoom_in.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartzoom_in_disabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartzoom_reset.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartzoom_reset_disabled.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_frame_grouping.png: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\controls: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\CpuUsage: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\hubGraphs: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\controls\Divider.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\CpuUsage\CpuUsageTreeGrid.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\CpuUsage\Grid.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\CpuUsage\MessageOverlayControl.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\hubGraphs\StackedBarChart.css: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\pris\resources.en-US.pri: Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\pris\resources.es-MX.pri: Acceso denegado.
+Se procesaron correctamente 3 archivos; error al procesar 470 archivos
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\assert.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\button.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\common.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\common.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\CommonMerged.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\controls\controls.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\controls\ListControl\ListControl.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\CssUtilities.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\CutCopyPasteContextMenu.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\dataTreeView.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\daytonaOptOut.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\DomMutations\dmbp.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\DomMutations\images\domDeleteAllBreakpoints.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\DomMutations\images\domSelectAllBreakpoints.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\editor\editor.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\editor\editorDefinitions.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\editor\f12Nls.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\EncodingUtilities.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\external\JSTreeGridControl.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Base64.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css\CssEmitter.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css\CssFormatter.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css\CssFormatWorker.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Css\CssParser.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\FormattedTextMapping.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Formatter.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\FormatterOptions.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\formatWorker.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlEmitter.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlFormatter.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlFormatWorker.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlParser.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\Html\HtmlTokenizer.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\htmlScriptFinder.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\IFormatService.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\position.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\sourcemapMappings.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\sourcemapParser.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\SourceMapParserWorker.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\sourceSpan.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\sourceSpanBuilder.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\StateMachine.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\typescript\formatterTypescriptServices.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\typescript\formatterTypescriptServices.nls.keys.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\UnmappedTextMapping.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Formatter\workerMessaging.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Grid\commonGridControl.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Grid\gridCellEditControl.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Grid\gridControl.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\htmlTreeView.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\add_row.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\checkmark.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\alphaColorBar.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\checkeredBackground.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\hueColorBar.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\lightnessColorBar.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\saturationColorBar.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\colorPicker\sliderButton.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\columnmove.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\commonclose.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\commonhelp.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\common_icons.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\critical.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\debuggerNextTab.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\debuggerPrevTab.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\diffIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\F12Logo.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\filepicker.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\forceStorageCapState.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\itemCollapsedIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\itemExpandedIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_delete.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_filtering_options.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_next.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_previous.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\i_warning.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\maximize.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\minimize.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\misc_icons.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\options.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\previewTabClose.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\previewTabIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\refresh.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\refreshState.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\restore.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\tabclose.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\togglePrettyPrint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\toggleWordWrap.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\images\tree_icons.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Intellisense\intellisenseListBox.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Intellisense\intellisenseRemoteHelpers.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\isDebugBuild.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\jQuery\jquery-2.1.1.min.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\jQuery\jquery.event.drag-2.2.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\listBox.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\MediaTypeManager.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\messageThrottle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ModelView\expandingListView.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\base\worker\workerMain.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\coffee.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\csharp.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\css.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\html.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\less.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\scss.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\basic-languages\src\xml.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\editor\editor.main.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\editor\editor.main.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\editor\editor.main.nls.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\css\cssMode.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\css\cssWorker.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\html\htmlMode.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\html\htmlWorker.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\json\jsonMode.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\json\jsonWorker.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript\lib\typescriptServices.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript\src\mode.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\language\typescript\src\worker.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monaco-editor\min\vs\loader.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\monacoResolver.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ObjectView\objectTreeView.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\common.f12.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\commonPlugin.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\gridControl.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\hubControls.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\menuControl.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\MultiLineGraph.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\Renderer.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\Ruler.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\Scrollbar.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\controls\Swimlane.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\CustomMark5_18x.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_appevent.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_checkered_background.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_open.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_save.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_sort_down.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_sort_up.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_start.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_stop.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\images\i_usermark.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\PerfRemoteHelpers.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\perftools\TokenExtractor.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Remote\etw.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Remote\RemoteDiagnostics.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\Remote\rpc.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\remoteEditStack.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\remoteHelpers.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\ResourcesView\resourcesView.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\plugins\slick.rowselectionmodel.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.core.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.dataview.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.editors.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.formatters.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.grid.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\SlickGrid\slick.grid.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\TabControl\sharedTabControl.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\toolwindow.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\toolwindow.f12.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\trace.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\common\uri.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\console\console.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\console\global.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\breakpoints.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\addEventBreakpoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\addEventTracepoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\addXHRBreakpoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\breakpointDisabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\breakpointGlyph.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\breakpointUnbound.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\conditionalBreakpoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\deleteAllBreakpoints.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\editCurrentBreakpoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventBreakpoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventBreakpointConditional.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventBreakpointDisabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventBreakpointUnbound.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventTracepoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventTracepointDisabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\eventTracepointUnbound.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\selectAllBreakpoints.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\tracepointBreakpoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\xhrBreakpoint.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\xhrBreakpointDisabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Breakpoints\images\xhrBreakpointUnbound.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Callstack\images\activeFrameGlyph.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Callstack\images\instructionPointerGlyph.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Cursor\images\currentLocationArrow.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\debugger.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\debugger.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\debugger.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\breakAll.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\breakOnExceptions.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\breakWorker.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\contentScriptEngineIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\continue.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\copyToClipboard.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\cssfileicon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\diffTabIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\disconnectIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\filesnodeicon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\functionIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\functionIconMapped.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\htmlfileicon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\libraryCodeIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\notAFunctionIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\notAFunctionIconMapped.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\redirectIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\returnValue.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\saveicon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\scriptfileicon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\search.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\stepInto.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\stepOut.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\stepOver.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\toggleSourceMap.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\toolbarMyCodeIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\images\tsfileicon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\clearResults.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\debuggerclose.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\findResults.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\nextResult.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\pin.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\previousResult.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\LanguageService\images\unpin.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Remote\debuggerDiagRemote.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Remote\debuggerRemote.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Watches\images\addWatch.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Watches\images\deleteAll.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\debugger\Watches\watches.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\dom.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\domExplorer.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\domExplorer.f12.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\DomExplorerMerged.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\DomExplorerRemote.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\DomTree\domTree.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\events.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\accessibility.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\AddNewRuleIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\BreadcrumbScrollLeft.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\BreadcrumbScrollLeftHover.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\BreadcrumbScrollRight.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\BreadcrumbScrollRightHover.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\checkered_background.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\EventsCollapseAll.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_error.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_inspect.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_just_my_code.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_refresh.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_show_layout.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\i_show_pseudo_classes.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\images\red_squiggly.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\inspect.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\layout.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\ChangesView\changesView.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\StyleView\styleView.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\dom\Styles\WinningView\winningStyles.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\emulation.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\emulation.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\emulation.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\infoButton.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\i_persistSettings.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\emulation\i_resetSettings.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\f12host.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\f12host.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\f12host.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\pluginHostShim.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\popupWindow.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\f12host\uwp.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\console.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\closeErrorBox.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\f12.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\helpErrorBox.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\i_alerterror.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\i_alertinfo.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\frontend\host\api\data\plugin.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\header.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\header.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\HeaderMerged.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\badgeAlert.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\badgeBreak.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\badgeInfo.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\badgeRunning.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\console.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\dockH.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\dockV.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\emulation.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\emulationCombo.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\feedback.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\foreground.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerBadgeError.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headercheckmark.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerclose.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerhelp.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headermaximize.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerminimize.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\headerrestore.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\NavOverFlow_Break.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\NavOverFlow_Info.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\NavOverFlow_Start.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\NavOverFlow_Warning.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\nextTab.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\overflow.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\prevTab.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Images\undock.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\header\Remote\headerRemote.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\i_foldin.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\i_info.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\i_snapshot.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\i_table_options.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\status_heap_decrease.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\status_heap_increase.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\images\takeSnapshot.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzer.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzer.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzer.f12.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzer.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\memoryAnalyzerRemote.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\snapshotTileView.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\memoryAnalyzer\tabControl.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_bypassServiceWorkers.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_clearCache.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_clearCookies.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_clearOnNavigate.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_clearSession.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\i_refreshServer.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\networkBadgeError.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\NetworkStatus-Error.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\NetworkStatus-OK.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\Images\NetworkStatus-Warning.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\network.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\network\network.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\remote\console\console.remote.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\images\serviceworkericon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\remote\serviceworkerRemote.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\serviceworker.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\serviceworker.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\serviceworker\serviceworker.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\cacheIcon.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\clearCookies.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\clearSessionCookies.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\cookies.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\gridHeaderHttpOnly.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\gridHeaderSecure.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\images\localStorage.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\remote\storageRemote.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\storage.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\storage.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\storage\storage.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\DataCategoryStyles.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartselection_clear.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartselection_clear_disabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartzoom_in.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartzoom_in_disabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartzoom_reset.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_chartzoom_reset_disabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_chartselection_clear.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_chartzoom_in.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_chartzoom_reset.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartselection_clear.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartselection_clear_disabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartzoom_in.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartzoom_in_disabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartzoom_reset.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_f12_context_chartzoom_reset_disabled.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\images\i_frame_grouping.png - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\controls\Divider.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\CpuUsage\CpuUsageTreeGrid.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\CpuUsage\Grid.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\CpuUsage\MessageOverlayControl.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\js\hubGraphs\StackedBarChart.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\visualProfiler.bundle.js - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\VisualProfiler.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\VisualProfiler.f12.css - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\23\VisualProfiler\VisualProfiler.html - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\AppxBlockMap.xml - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\AppxManifest.xml - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\AppxSignature.p7x - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\pris\resources.en-US.pri - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\pris\resources.es-MX.pri - Acceso denegado.
+C:\WINDOWS\SystemApps\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe\resources.pri - Acceso denegado.
+[cleanup().appx.WindowsApps] 
+dir: "C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe" 
+ERROR: Sintaxis no v†lida. El valor "y" no est† permitido para la opci¢n "/d".
+Escriba "TAKEOWN /?" para su uso.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe: Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\AppxBlockMap.xml: Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\AppxManifest.xml: Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\AppxSignature.p7x: Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\Logo.png: Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\microsoft.system.package.metadata: Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\SmallLogo.png: Acceso denegado.
+Se procesaron correctamente 0 archivos; error al procesar 7 archivos
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\AppxBlockMap.xml - Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\AppxManifest.xml - Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\AppxSignature.p7x - Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\Logo.png - Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\MICROS~1.MET - Acceso denegado.
+C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge.Stable_151.0.4129.59_neutral__8wekyb3d8bbwe\SmallLogo.png - Acceso denegado.
+Acceso denegado.
+[cleanup().appx.done] 
+[cleanup().end] 
+[extra_cleanup()] 
+[extra_cleanup().registry.regular] 
+La operaci¢n se complet¢ correctamente.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+La operaci¢n se complet¢ correctamente.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+La operaci¢n se complet¢ correctamente.
+ERROR: El sistema no ha podido encontrar la clave o el valor del Registro
+especificados.
+[extra_cleanup().registry.inaccessible.init] 
+La operaci¢n se complet¢ correctamente.
+La operaci¢n se complet¢ correctamente.
+[extra_cleanup().registry.inaccessible] 
+[reg_HKLM_keys_access_and_delete()] 
+[reg_HKLM_keys_access_and_delete().psl] 
+accessing
+SOFTWARE\Microsoft\Windows\CurrentVersion\MicrosoftEdge
+Excepci¢n al llamar a "SetOwner" con los argumentos "1": "No se pudieron convertir algunas o todas las referencias de 
+identidad."
+En l°nea: 1 Car†cter: 990
++ ... ontinue };                ($acl = $key_obj.GetAccessControl()).SetOwn ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+Excepci¢n al llamar a "AddAccessRule" con los argumentos "1": "No se pudieron convertir algunas o todas las 
+referencias de identidad."
+En l°nea: 1 Car†cter: 1084
++ ... tAccessControl($acl);        $acl.AddAccessRule($access_rule);        ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\MicrosoftEdge
+Excepci¢n al llamar a "SetOwner" con los argumentos "1": "No se pudieron convertir algunas o todas las referencias de 
+identidad."
+En l°nea: 1 Car†cter: 990
++ ... ontinue };                ($acl = $key_obj.GetAccessControl()).SetOwn ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+Excepci¢n al llamar a "AddAccessRule" con los argumentos "1": "No se pudieron convertir algunas o todas las 
+referencias de identidad."
+En l°nea: 1 Car†cter: 1084
++ ... tAccessControl($acl);        $acl.AddAccessRule($access_rule);        ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.BCHostServer
+Excepci¢n al llamar a "SetOwner" con los argumentos "1": "No se pudieron convertir algunas o todas las referencias de 
+identidad."
+En l°nea: 1 Car†cter: 990
++ ... ontinue };                ($acl = $key_obj.GetAccessControl()).SetOwn ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+Excepci¢n al llamar a "AddAccessRule" con los argumentos "1": "No se pudieron convertir algunas o todas las 
+referencias de identidad."
+En l°nea: 1 Car†cter: 1084
++ ... tAccessControl($acl);        $acl.AddAccessRule($access_rule);        ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.ContentProcessServer
+Excepci¢n al llamar a "SetOwner" con los argumentos "1": "No se pudieron convertir algunas o todas las referencias de 
+identidad."
+En l°nea: 1 Car†cter: 990
++ ... ontinue };                ($acl = $key_obj.GetAccessControl()).SetOwn ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+Excepci¢n al llamar a "AddAccessRule" con los argumentos "1": "No se pudieron convertir algunas o todas las 
+referencias de identidad."
+En l°nea: 1 Car†cter: 1084
++ ... tAccessControl($acl);        $acl.AddAccessRule($access_rule);        ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.F12Server
+Excepci¢n al llamar a "SetOwner" con los argumentos "1": "No se pudieron convertir algunas o todas las referencias de 
+identidad."
+En l°nea: 1 Car†cter: 990
++ ... ontinue };                ($acl = $key_obj.GetAccessControl()).SetOwn ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+Excepci¢n al llamar a "AddAccessRule" con los argumentos "1": "No se pudieron convertir algunas o todas las 
+referencias de identidad."
+En l°nea: 1 Car†cter: 1084
++ ... tAccessControl($acl);        $acl.AddAccessRule($access_rule);        ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : IdentityNotMappedException
+ 
+0
+removing
+SOFTWARE\Microsoft\Windows\CurrentVersion\MicrosoftEdge
+Excepci¢n al llamar a "DeleteSubKeyTree" con los argumentos "1": "No se puede eliminar el †rbol de subclave porque no 
+existe la subclave."
+En l°nea: 1 Car†cter: 1376
++ ... key_paths_del) { $key_path; $hive_HKLM.DeleteSubKeyTree($key_path) };
++                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : ArgumentException
+ 
+SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\MicrosoftEdge
+Excepci¢n al llamar a "DeleteSubKeyTree" con los argumentos "1": "No se puede eliminar el †rbol de subclave porque no 
+existe la subclave."
+En l°nea: 1 Car†cter: 1376
++ ... key_paths_del) { $key_path; $hive_HKLM.DeleteSubKeyTree($key_path) };
++                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : ArgumentException
+ 
+SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.BCHostServer
+Excepci¢n al llamar a "DeleteSubKeyTree" con los argumentos "1": "No se puede eliminar el †rbol de subclave porque no 
+existe la subclave."
+En l°nea: 1 Car†cter: 1376
++ ... key_paths_del) { $key_path; $hive_HKLM.DeleteSubKeyTree($key_path) };
++                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : ArgumentException
+ 
+SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.ContentProcessServer
+Excepci¢n al llamar a "DeleteSubKeyTree" con los argumentos "1": "No se puede eliminar el †rbol de subclave porque no 
+existe la subclave."
+En l°nea: 1 Car†cter: 1376
++ ... key_paths_del) { $key_path; $hive_HKLM.DeleteSubKeyTree($key_path) };
++                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : ArgumentException
+ 
+SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.F12Server
+Excepci¢n al llamar a "DeleteSubKeyTree" con los argumentos "1": "No se puede eliminar el †rbol de subclave porque no 
+existe la subclave."
+En l°nea: 1 Car†cter: 1376
++ ... key_paths_del) { $key_path; $hive_HKLM.DeleteSubKeyTree($key_path) };
++                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : ArgumentException
+ 
+[reg_HKLM_keys_access_and_delete().end] 
+[extra_cleanup().files.System32] 
+file: "C:\WINDOWS\System32\MicrosoftEdgeBCHost.exe" 
+
+CORRECTO: el archivo (o carpeta): "C:\WINDOWS\System32\MicrosoftEdgeBCHost.exe" ahora es propiedad del usuario "XUCA\Xuca".
+archivo procesado: C:\WINDOWS\System32\MicrosoftEdgeBCHost.exe
+Se procesaron correctamente 1 archivos; error al procesar 0 archivos
+C:\WINDOWS\System32\MicrosoftEdgeBCHost.exe
+Acceso denegado.
+file: "C:\WINDOWS\System32\MicrosoftEdgeCP.exe" 
+
+CORRECTO: el archivo (o carpeta): "C:\WINDOWS\System32\MicrosoftEdgeCP.exe" ahora es propiedad del usuario "XUCA\Xuca".
+archivo procesado: C:\WINDOWS\System32\MicrosoftEdgeCP.exe
+Se procesaron correctamente 1 archivos; error al procesar 0 archivos
+C:\WINDOWS\System32\MicrosoftEdgeCP.exe
+Acceso denegado.
+file: "C:\WINDOWS\System32\MicrosoftEdgeDevTools.exe" 
+
+CORRECTO: el archivo (o carpeta): "C:\WINDOWS\System32\MicrosoftEdgeDevTools.exe" ahora es propiedad del usuario "XUCA\Xuca".
+archivo procesado: C:\WINDOWS\System32\MicrosoftEdgeDevTools.exe
+Se procesaron correctamente 1 archivos; error al procesar 0 archivos
+C:\WINDOWS\System32\MicrosoftEdgeDevTools.exe
+Acceso denegado.
+file: "C:\WINDOWS\System32\MicrosoftEdgeSH.exe" 
+
+CORRECTO: el archivo (o carpeta): "C:\WINDOWS\System32\MicrosoftEdgeSH.exe" ahora es propiedad del usuario "XUCA\Xuca".
+archivo procesado: C:\WINDOWS\System32\MicrosoftEdgeSH.exe
+Se procesaron correctamente 1 archivos; error al procesar 0 archivos
+C:\WINDOWS\System32\MicrosoftEdgeSH.exe
+Acceso denegado.
+[extra_cleanup().registry.fix] 
+[extra_cleanup().end] 
+[main_script.end] 
+[main_script.done] 

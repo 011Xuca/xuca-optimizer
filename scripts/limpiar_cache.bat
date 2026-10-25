@@ -1,6 +1,15 @@
 @echo off
 setlocal EnableExtensions
 set "XUCA_SELF=%~f0"
+rem ============================================================
+rem  ACTUALIZACIONES DESDE GITHUB
+rem  La version se controla con el archivo version.txt del repo.
+rem  Si el version.txt de GitHub es distinto al que tenes en tu PC,
+rem  al abrir sale el cartel amarillo de actualizacion.
+rem ============================================================
+set "XUCA_REPO=011Xuca/xuca-optimizer"
+set "XUCA_RAMA=main"
+set "XUCA_GH=scripts/limpiar_cache.bat"
 rem Si el archivo quedo con saltos de linea de Linux (LF), cmd salta a etiquetas equivocadas: se corrige solo y se vuelve a abrir.
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $f=$env:XUCA_SELF; $e=[Text.Encoding]::GetEncoding(28591); $t=$e.GetString([IO.File]::ReadAllBytes($f)); if ($t -match '(^|[^\r])\n') { [IO.File]::WriteAllText($f, ($t -replace '\r?\n', ([string][char]13 + [char]10)), $e); exit 9 }; exit 0 } catch { exit 0 }" >nul 2>&1
 if errorlevel 9 "%~f0" %*
@@ -13,6 +22,14 @@ if %errorlevel% neq 0 (
     powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
     exit /b
 )
+
+rem Buscar actualizacion en GitHub (no corre cuando lo usa la app ni cuando se abre con parametros).
+rem Si hay una version nueva muestra el cartel amarillo y pregunta. Si la bajas, se cierra esta ventana y se abre la nueva.
+if defined XUCA_AUTO goto upd_fin
+if not "%~1"=="" goto upd_fin
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$global:XucaUpd=0; try { $s=[IO.File]::ReadAllText($env:XUCA_SELF); $a='<#'+'XUCA-UPD'; $b='XUCA-UPD'+'#>'; $i=$s.IndexOf($a)+$a.Length; Invoke-Expression $s.Substring($i, $s.IndexOf($b)-$i) } catch { }; exit [int]$global:XucaUpd"
+if errorlevel 10 exit
+:upd_fin
 
 echo.
 echo ==========================================
@@ -57,6 +74,8 @@ echo.
 set "XUCA_ARCH=%~f0"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $s=[IO.File]::ReadAllText($env:XUCA_ARCH); Invoke-Expression $s.Substring($s.IndexOf('#PS_'+'START')) } catch { Write-Host ('Error en la limpieza: ' + $_.Exception.Message) -ForegroundColor Red }"
 
+if not defined XUCA_AUTO echo.
+if not defined XUCA_AUTO echo Este proyecto es gratis. Si te sirvio y queres apoyarme: https://ko-fi.com/011xuca
 echo.
 if not defined XUCA_AUTO pause
 exit /b
@@ -313,3 +332,134 @@ Write-Host ''
 Write-Host '=========================================='
 Write-Host 'Limpieza terminada.'
 Write-Host '=========================================='
+
+<#XUCA-UPD
+# ------------------------------------------------------------
+# Buscador de actualizaciones. Lo corre la parte de arriba del .bat.
+# Esta dentro de un comentario para que el resto del PowerShell de este archivo lo ignore.
+# Compara el version.txt de tu PC con el de GitHub: si son distintos, avisa.
+# ------------------------------------------------------------
+& {
+    $ErrorActionPreference = 'Stop'
+    $repo = [string]$env:XUCA_REPO; $rama = [string]$env:XUCA_RAMA; $gh = [string]$env:XUCA_GH
+    $self = [string]$env:XUCA_SELF
+    if ((-not $repo) -or ($repo -like 'TU_USUARIO*')) { return }
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
+    $latin = [Text.Encoding]::GetEncoding(28591)
+    $base = 'https://raw.githubusercontent.com/' + $repo + '/' + $rama + '/'
+
+    # Si el .bat esta en la carpeta scripts de la app, el version.txt es el de la app (al lado de XucaOP.ps1).
+    # Si esta suelto, el version.txt va en la misma carpeta que el .bat.
+    $dir = Split-Path -Parent $self
+    $arriba = Split-Path -Parent $dir
+    $conApp = [bool]($arriba -and (Test-Path -LiteralPath (Join-Path $arriba 'XucaOP.ps1')))
+    $raiz = $(if ($conApp) { $arriba } else { $dir })
+    $verLocal = Join-Path $raiz 'version.txt'
+
+    function Limpiar([string]$t) { return (($t -replace '^(\u00EF\u00BB\u00BF|\uFEFF)', '') -split "`r?`n")[0].Trim() }
+    function Bajar([string]$remoto, [int]$espera, [string]$etiqueta) {
+        $rq = [Net.HttpWebRequest]::Create($base + $remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
+        $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'XucaOP'
+        $rs = $rq.GetResponse()
+        try {
+            $len = $rs.ContentLength
+            $st = $rs.GetResponseStream(); $ms = New-Object IO.MemoryStream; $buf = New-Object byte[] 65536
+            while (($r = $st.Read($buf, 0, $buf.Length)) -gt 0) {
+                $ms.Write($buf, 0, $r)
+                if ($etiqueta -and ($len -gt 0)) { [Console]::Write("`r  Descargando " + $etiqueta + ': ' + [int](100 * $ms.Length / $len) + '%   ') }
+            }
+            if ($etiqueta) { [Console]::WriteLine('') }
+            return $latin.GetString($ms.ToArray())
+        } finally { $rs.Close() }
+    }
+
+    $local = ''
+    if (Test-Path -LiteralPath $verLocal) { try { $local = Limpiar ([IO.File]::ReadAllText($verLocal)) } catch { } }
+    [Console]::Write('Buscando actualizaciones...')
+    $remota = ''
+    try { $remota = Limpiar (Bajar 'version.txt' 4000 '') } catch { }
+    [Console]::Write("`r" + (' ' * 30) + "`r")
+    if ((-not $remota) -or ($remota -eq $local)) { return }
+
+    # Cartel amarillo. En Windows Terminal se ve el simbolo de advertencia; en la consola vieja va /!\
+    $icono = '/!\'
+    if ($env:WT_SESSION) { $icono = [string][char]0x26A0 }
+    $ancho = 76
+    try { $ancho = [math]::Max(40, [math]::Min([Console]::WindowWidth - 1, 76)) } catch { }
+    $tuya = $(if ($local) { $local } else { 'sin version' })
+    Write-Host ''
+    foreach ($l in @('', ('  ' + $icono + '  HAY UNA ACTUALIZACION DISPONIBLE'), ('     Tenes la version ' + $tuya + ' y en GitHub esta la ' + $remota + '.'), '     Si la bajas, se cierra esta ventana y se abre la version nueva sola.', '')) {
+        $t = $l; if ($t.Length -gt $ancho) { $t = $t.Substring(0, $ancho) }
+        Write-Host ($t.PadRight($ancho)) -ForegroundColor Black -BackgroundColor Yellow
+    }
+    Write-Host ''
+    Write-Host '- Desea descargar la actualizacion? [S] Si  [N] No: ' -NoNewline -ForegroundColor Yellow
+    $k = ''
+    while (@('S', 'N') -notcontains $k) { $k = ([string][Console]::ReadKey($true).KeyChar).ToUpper() }
+    Write-Host $k
+    if ($k -eq 'N') {
+        Write-Host '  Seguis con esta version.' -ForegroundColor DarkGray
+        Write-Host ''
+        return
+    }
+
+    # Que se baja: con la app, todo (app y los 3 scripts). Suelto, este .bat y los otros scripts que esten en la misma carpeta.
+    $lista = @()
+    if ($conApp) {
+        foreach ($r in 'XucaOP.ps1', 'scripts/windows_debloat.bat', 'scripts/optimizacion_gaming.bat', 'scripts/limpiar_cache.bat', 'lang/en-en/textos.txt', 'lang/es-mx/textos.txt') {
+            $lista += [pscustomobject]@{ Remoto = $r; Local = (Join-Path $raiz ($r -replace '/', '\')); Opc = ($r -like 'lang/*') }
+        }
+    } else {
+        $lista += [pscustomobject]@{ Remoto = $gh; Local = $self }
+        foreach ($n in 'windows_debloat.bat', 'optimizacion_gaming.bat', 'limpiar_cache.bat') {
+            $p = Join-Path $dir $n
+            if (('scripts/' + $n) -ne $gh -and (Test-Path -LiteralPath $p)) { $lista += [pscustomobject]@{ Remoto = ('scripts/' + $n); Local = $p } }
+        }
+    }
+
+    # Se baja todo a archivos .nuevo; el version.txt va ultimo
+    $nuevos = @()
+    try {
+        foreach ($a in $lista) {
+            # Los opcionales (los idiomas de la app) se saltean si todavia no estan en GitHub
+            try { $txt = Bajar $a.Remoto 30000 (Split-Path -Leaf $a.Remoto) } catch { if ($a.Opc) { continue }; throw }
+            if ($txt.Length -lt 100) { if ($a.Opc) { continue }; throw ('lo que llego de GitHub para ' + $a.Remoto + ' no es el archivo esperado') }
+            $tmp = $a.Local + '.nuevo'
+            $dd = Split-Path -Parent $tmp
+            if (-not (Test-Path -LiteralPath $dd)) { New-Item -ItemType Directory -Path $dd -Force | Out-Null }
+            [IO.File]::WriteAllText($tmp, ($txt -replace '\r?\n', "`r`n"), $latin)
+            $nuevos += [pscustomobject]@{ Tmp = $tmp; Local = $a.Local }
+        }
+        $tmp = $verLocal + '.nuevo'
+        [IO.File]::WriteAllText($tmp, ($remota + "`r`n"), $latin)
+        $nuevos += [pscustomobject]@{ Tmp = $tmp; Local = $verLocal }
+    } catch {
+        foreach ($n in $nuevos) { Remove-Item -LiteralPath $n.Tmp -Force -ErrorAction SilentlyContinue }
+        Remove-Item -LiteralPath ($verLocal + '.nuevo') -Force -ErrorAction SilentlyContinue
+        Write-Host ('  No se pudo descargar: ' + $_.Exception.Message) -ForegroundColor Red
+        Write-Host '  Seguis con esta version.' -ForegroundColor DarkGray
+        Start-Sleep -Seconds 3
+        return
+    }
+
+    # Un ayudante oculto espera a que se cierre esta ventana, pone los archivos nuevos en lugar de los viejos y abre este .bat.
+    $padre = 0
+    try { $padre = [int](Get-CimInstance Win32_Process -Filter ('ProcessId=' + $PID)).ParentProcessId } catch { }
+    $c = { param($s) "'" + ($s -replace "'", "''") + "'" }
+    $h = @(
+        ('$p = ' + $padre),
+        'Start-Sleep -Milliseconds 800',
+        '$fin = (Get-Date).AddSeconds(30)',
+        'while (($p -gt 0) -and (Get-Process -Id $p -ErrorAction SilentlyContinue) -and ((Get-Date) -lt $fin)) { Start-Sleep -Milliseconds 200 }'
+    )
+    foreach ($n in $nuevos) {
+        $h += ('for ($i = 0; $i -lt 30; $i++) { try { Move-Item -LiteralPath ' + (& $c $n.Tmp) + ' -Destination ' + (& $c $n.Local) + ' -Force -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 300 } }')
+    }
+    $h += ('Start-Process -FilePath ' + (& $c $self) + ' -WorkingDirectory ' + (& $c $dir))
+    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes(($h -join "`n")))
+    Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -EncodedCommand ' + $enc)
+    Write-Host '  Listo. Se cierra esta ventana y se abre la version nueva.' -ForegroundColor Green
+    Start-Sleep -Milliseconds 1200
+    $global:XucaUpd = 10
+}
+XUCA-UPD#>

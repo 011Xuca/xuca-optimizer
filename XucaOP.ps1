@@ -1,3 +1,12 @@
+# ============================================================
+#  ACTUALIZACIONES DESDE GITHUB
+#  La version se controla con el archivo version.txt del repo.
+#  Si el version.txt de GitHub es distinto al de tu PC (al lado de este archivo),
+#  al abrir la app sale el cartel amarillo de actualizacion.
+# ============================================================
+$XucaRepo = '011Xuca/xuca-optimizer'
+$XucaRama = 'main'
+
 $ErrorActionPreference = 'Stop'
 
 # --- Permisos de administrador ---
@@ -15,7 +24,8 @@ function Mostrar-Error($msg) {
 
 try {
 
-$Root = Split-Path -Parent $PSCommandPath
+$AppPath = $PSCommandPath
+$Root = Split-Path -Parent $AppPath
 $Redes = 'https://linktr.ee/011xuca'
 $Scripts = Join-Path $Root 'scripts'
 $Rutas = [ordered]@{
@@ -23,6 +33,105 @@ $Rutas = [ordered]@{
     Gaming   = Join-Path $Scripts 'optimizacion_gaming.bat'
     Limpieza = Join-Path $Scripts 'limpiar_cache.bat'
 }
+# Archivos que se bajan al actualizar (Remoto = donde esta cada uno dentro del repo). El version.txt se baja ultimo.
+$VersionLocal = Join-Path $Root 'version.txt'
+$ArchivosUpd = @(
+    [pscustomobject]@{ Nombre = 'XucaOP.ps1'; Local = $AppPath; Remoto = 'XucaOP.ps1' },
+    [pscustomobject]@{ Nombre = 'windows_debloat.bat'; Local = $Rutas.Debloat; Remoto = 'scripts/windows_debloat.bat' },
+    [pscustomobject]@{ Nombre = 'optimizacion_gaming.bat'; Local = $Rutas.Gaming; Remoto = 'scripts/optimizacion_gaming.bat' },
+    [pscustomobject]@{ Nombre = 'limpiar_cache.bat'; Local = $Rutas.Limpieza; Remoto = 'scripts/limpiar_cache.bat' },
+    [pscustomobject]@{ Nombre = 'lang/en-en/textos.txt'; Local = (Join-Path $Root 'lang\en-en\textos.txt'); Remoto = 'lang/en-en/textos.txt'; Opc = $true },
+    [pscustomobject]@{ Nombre = 'lang/es-mx/textos.txt'; Local = (Join-Path $Root 'lang\es-mx\textos.txt'); Remoto = 'lang/es-mx/textos.txt'; Opc = $true }
+)
+
+# ------------------------------------------------------------
+# Preferencias de la app (idioma y mensaje de Ko-fi). Se guardan en ProgramData\XucaScripts\app_config.txt
+# ------------------------------------------------------------
+$ConfigArchivo = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'app_config.txt'
+function Leer-Config {
+    $c = @{}
+    try {
+        if (Test-Path -LiteralPath $ConfigArchivo) {
+            foreach ($l in @(Get-Content -LiteralPath $ConfigArchivo -ErrorAction Stop)) { $i = $l.IndexOf('='); if ($i -gt 0) { $c[$l.Substring(0, $i).Trim()] = $l.Substring($i + 1).Trim() } }
+        }
+    } catch { }
+    return $c
+}
+function Guardar-Config([string]$clave, [string]$valor) {
+    try {
+        $c = Leer-Config
+        $c[$clave] = $valor
+        $d = Split-Path -Parent $ConfigArchivo
+        if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+        Set-Content -LiteralPath $ConfigArchivo -Value @($c.Keys | Sort-Object | ForEach-Object { $_ + '=' + $c[$_] }) -Encoding ASCII
+    } catch { }
+}
+
+# ------------------------------------------------------------
+# Idioma (por defecto ingles). Cada idioma tiene su carpeta en lang\<idioma>\textos.txt
+# (cada linea: texto en espanol tal cual esta en la app o en los .bat, TAB, texto a mostrar).
+# El espanol viene adentro de la app: lang\es-mx\textos.txt sirve para corregir textos sin tocar el codigo.
+# Si falta el archivo de ingles, la app se muestra en espanol.
+# ------------------------------------------------------------
+$LangDir = Join-Path $Root 'lang'
+$script:Idioma = [string](Leer-Config)['idioma']
+if (-not $script:Idioma) { $script:Idioma = 'en-en' }
+$script:Trad = $null
+$script:TradRx = $null
+$script:TradCache = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([StringComparer]::Ordinal)
+function Cargar-Idioma([string]$id) {
+    $script:Trad = $null; $script:TradRx = $null; $script:TradCache.Clear()
+    $f = Join-Path (Join-Path $LangDir $id) 'textos.txt'
+    if (-not (Test-Path -LiteralPath $f)) { return ($id -eq 'es-mx') }
+    $d = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([StringComparer]::Ordinal)
+    foreach ($l in [IO.File]::ReadAllLines($f, [Text.Encoding]::UTF8)) {
+        if ((-not $l) -or $l.StartsWith('#')) { continue }
+        $i = $l.IndexOf([char]9)
+        if ($i -lt 1) { continue }
+        $d[$l.Substring(0, $i)] = $l.Substring($i + 1)
+    }
+    if ($d.Count -eq 0) { return ($id -eq 'es-mx') }
+    $script:Trad = $d
+    # Para textos armados con partes (por ejemplo "Tenes " + version), se traducen los pedazos que esten en el archivo
+    $pats = foreach ($k in @($d.Keys | Where-Object { $_.Length -ge 5 } | Sort-Object Length -Descending)) {
+        $p = [regex]::Escape($k)
+        if ($k -match '^\w') { $p = '(?<!\w)' + $p }
+        if ($k -match '\w$') { $p = $p + '(?!\w)' }
+        $p
+    }
+    if ($pats) { $script:TradRx = New-Object Text.RegularExpressions.Regex (($pats -join '|')) }
+    return $true
+}
+function Traducir([string]$t) {
+    if ((-not $t) -or (-not $script:Trad)) { return $t }
+    $v = $null
+    if ($script:Trad.TryGetValue($t, [ref]$v)) { return $v }
+    if ($script:TradCache.TryGetValue($t, [ref]$v)) { return $v }
+    $r = $t
+    if ($script:TradRx) { $r = $script:TradRx.Replace($t, [Text.RegularExpressions.MatchEvaluator] { param($m) $script:Trad[$m.Value] }) }
+    $script:TradCache[$t] = $r
+    return $r
+}
+if (-not (Cargar-Idioma $script:Idioma)) { $script:Idioma = 'es-mx'; Cargar-Idioma 'es-mx' | Out-Null }
+
+# Los .bat y este archivo van sin acentos (para que cmd y PowerShell no los rompan segun la PC);
+# al mostrar el texto en la app se ponen las palabras con enie. La enie se arma con [char] para que el archivo siga en ASCII.
+$Enie = [string][char]0xF1
+$ConEnie = @(
+    @('\bcontrasenas\b', ('contrase' + $Enie + 'as')),
+    @('\bcontrasena\b', ('contrase' + $Enie + 'a')),
+    @('\bContrasena\b', ('Contrase' + $Enie + 'a')),
+    @('\bpestana\b', ('pesta' + $Enie + 'a')),
+    @('\banos\b', ('a' + $Enie + 'os'))
+)
+function Con-Enie([string]$t) {
+    if (-not $t) { return $t }
+    if ($script:Trad) { $t = Traducir $t }
+    if ($script:Idioma -ne 'es-mx') { return $t }
+    foreach ($par in $ConEnie) { $t = [regex]::Replace($t, $par[0], $par[1]) }
+    return $t
+}
+
 $faltan = @($Rutas.Values | Where-Object { -not (Test-Path -LiteralPath $_) })
 if ($faltan.Count -gt 0) {
     Mostrar-Error ("Faltan estos archivos:`n`n" + ($faltan -join "`n") + "`n`nLos tres .bat van en la carpeta 'scripts', al lado de XucaOP.ps1.")
@@ -190,7 +299,7 @@ function Resumen-De([string]$cat, $actual, [string]$etiqueta) {
     $n = @($its | Where-Object { $_.Marcado } | ForEach-Object { $_.Nombre })
     if ($n.Count -eq 0) { return ($etiqueta + ': ninguno elegido.') }
     $t = ($n | Select-Object -First 4) -join ', '
-    if ($n.Count -gt 4) { $t += (' y ' + ($n.Count - 4) + ' mas') }
+    if ($n.Count -gt 4) { $t += (' ' + (Con-Enie 'y') + ' ' + ($n.Count - 4) + ' ' + (Con-Enie 'mas')) }
     return ($etiqueta + ' (' + $n.Count + '): ' + $t)
 }
 
@@ -265,10 +374,19 @@ $Chequeos = @{
         if ($vals.Count -eq 0) { return $null }
         @($vals | Where-Object { $_ -ne '0' }).Count -eq 0
     }
+    'Gaming|nag'    = {
+        $vals = @()
+        foreach ($k in @(Get-ChildItem -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces' -ErrorAction SilentlyContinue)) {
+            $pp = Get-ItemProperty -Path $k.PSPath -ErrorAction SilentlyContinue
+            $ips = @(@($pp.DhcpIPAddress) + @($pp.IPAddress) | Where-Object { ([string]$_) -match '^\d+\.\d+\.\d+\.\d+$' -and ([string]$_) -ne '0.0.0.0' })
+            if ($ips.Count -gt 0) { $vals += (($pp.TcpAckFrequency -eq 1) -and ($pp.TCPNoDelay -eq 1)) }
+        }
+        if ($vals.Count -eq 0) { return $null }
+        @($vals | Where-Object { -not $_ }).Count -eq 0
+    }
     'Gaming|dns'    = { @(Get-ChildItem -LiteralPath (Join-Path $env:ProgramData 'XucaScripts') -Filter 'dns_*.txt' -ErrorAction SilentlyContinue).Count -gt 0 }
     'Gaming|mi'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' 'Enabled') -eq 0 }
     'Gaming|avl'    = { (Get-MpPreference -ErrorAction Stop).ScanAvgCPULoadFactor -eq 5 }
-    'Gaming|ex'     = { ([string](Get-ProcessMitigation -System -ErrorAction Stop).DEP.Enable) -eq 'OFF' }
     'Gaming|vbs'    = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard' 'EnableVirtualizationBasedSecurity') -eq 0 }
     'Gaming|wsr'    = { (Leer-Svc 'WSearch') -eq 4 }
     'Gaming|stg'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\StorageSense' 'AllowStorageSenseGlobal') -eq 0 }
@@ -329,6 +447,21 @@ try {
         $sv = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
         $i.AvOff = (-not $sv) -or ($sv.Status -ne 'Running') -or ((Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled -eq $false)
     } catch { }
+    # Windows original o modificado (la misma revision que hacen los .bat al arrancar)
+    $Sync.Paso = 'Si tu Windows es original'
+    $mot = New-Object System.Collections.Generic.List[string]
+    # Windows sin activar no cuenta como no original (es un Windows normal, solo falta la licencia)
+    foreach ($sv in 'TrustedInstaller', 'wuauserv', 'WinDefend') {
+        if (-not (Get-Service -Name $sv -ErrorAction SilentlyContinue)) { $mot.Add('falta el servicio ' + $sv + ', tipico de versiones recortadas') }
+    }
+    if (($global:XAppx.Count -gt 0) -and ($global:XAppx -notcontains 'Microsoft.WindowsStore')) { $mot.Add('no esta la Microsoft Store, tipico de versiones recortadas') }
+    $editOk = 'Core', 'CoreSingleLanguage', 'Professional', 'ProfessionalN', 'ProfessionalWorkstation', 'ProfessionalEducation', 'Enterprise', 'EnterpriseN', 'Education', 'EducationN', 'ServerStandard', 'ServerDatacenter', 'CloudEdition'
+    if ($i.Edicion -and ($editOk -notcontains $i.Edicion)) { $mot.Add('edicion de Windows poco comun: ' + $i.Edicion) }
+    $txtCv = (([string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'RegisteredOwner')) + ' ' + ([string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'ProductName'))).ToLower()
+    foreach ($pal in 'tiny', 'atlas', 'revi', 'ghost', 'lite', 'mini', 'kernel', 'custom') {
+        if ($txtCv.Contains($pal)) { $mot.Add('el nombre de la edicion o el propietario registrado tiene palabras de versiones modificadas'); break }
+    }
+    $i.Orig = @($mot | Select-Object -Unique)
     $Sync.Info = $i
     $Sync.Hecho = $Sync.Hecho + 1
     $Sync.Paso = 'Ultimos detalles'
@@ -343,7 +476,7 @@ try {
 # ------------------------------------------------------------
 # Ventana
 # ------------------------------------------------------------
-[xml]$xaml = @'
+$XamlTexto = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Xuca OPtimizer" Width="1080" Height="740" MinWidth="880" MinHeight="580"
@@ -399,6 +532,28 @@ try {
         </Setter.Value>
       </Setter>
     </Style>
+    <!-- Cartel amarillo de actualizacion -->
+    <Style x:Key="Amarillo" TargetType="Button">
+      <Setter Property="Padding" Value="16,12"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="b" Background="#F2C94C" CornerRadius="10" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="b" Property="Background" Value="#F7D96B"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </Window.Resources>
   <Grid>
     <Grid.ColumnDefinitions>
@@ -417,6 +572,12 @@ try {
           <Button x:Name="NavHerr" Style="{StaticResource Nav}" Content="Herramientas"/>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom">
+          <Button x:Name="BtnIdioma" Style="{StaticResource Nav}" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,10,0"/>
+              <TextBlock x:Name="IdiomaTxt" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
           <Button x:Name="BtnRefrescar" Style="{StaticResource Nav}" Content="Volver a leer los ajustes"/>
           <Button x:Name="BtnLogs" Style="{StaticResource Nav}" Content="Abrir carpeta de logs"/>
           <Button x:Name="BtnRedes" Style="{StaticResource Nav}" Content="Visita mis redes sociales!" Foreground="#F9A8D4" FontWeight="SemiBold"/>
@@ -432,6 +593,22 @@ try {
         <RowDefinition Height="Auto"/>
       </Grid.RowDefinitions>
       <StackPanel Grid.Row="0" Margin="0,0,0,14">
+        <Button x:Name="BtnUpdBarra" Style="{StaticResource Amarillo}" Padding="14,9" Margin="0,0,0,14" Visibility="Collapsed">
+          <DockPanel>
+            <TextBlock Text="&#x26A0;" DockPanel.Dock="Left" FontSize="18" Foreground="#3B2F00" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock x:Name="UpdBarraTexto" Foreground="#1F1A08" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </DockPanel>
+        </Button>
+        <!-- Aviso de Windows no original o modificado (Tiny11, AtlasOS, ReviOS...) -->
+        <Border x:Name="OrigBarra" Background="#3A1F1F" BorderBrush="#F28B82" BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,0,14" Visibility="Collapsed">
+          <DockPanel>
+            <TextBlock Text="&#x26A0;" DockPanel.Dock="Left" FontSize="18" Foreground="#F28B82" VerticalAlignment="Top" Margin="0,0,10,0"/>
+            <StackPanel>
+              <TextBlock Text="Esta PC no parece tener un Windows original o estandar" Foreground="#F28B82" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/>
+              <TextBlock x:Name="OrigTexto" Foreground="#E8C4C0" FontSize="12.5" TextWrapping="Wrap" Margin="0,3,0,0"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
         <TextBlock x:Name="Titulo" Foreground="White" FontSize="24" FontWeight="SemiBold"/>
         <TextBlock x:Name="Descripcion" Foreground="#9AA0A6" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0"/>
       </StackPanel>
@@ -452,7 +629,7 @@ try {
       <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="440">
         <TextBlock Text="Xuca OPtimizer" Foreground="White" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center"/>
         <TextBlock x:Name="CargaTitulo" Text="Leyendo como esta tu Windows" Foreground="#C3C8D0" FontSize="15" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-        <Grid Margin="0,24,0,0" Height="8">
+        <Grid x:Name="CargaZona" Margin="0,24,0,0" Height="8">
           <Border Background="#232833" CornerRadius="4"/>
           <Border x:Name="CargaBarra" HorizontalAlignment="Left" Width="0" CornerRadius="4">
             <Border.Background>
@@ -463,40 +640,57 @@ try {
             </Border.Background>
           </Border>
         </Grid>
-        <DockPanel Margin="0,10,0,0">
+        <DockPanel x:Name="CargaInfo" Margin="0,10,0,0">
           <TextBlock x:Name="CargaPct" DockPanel.Dock="Right" Foreground="#9AA0A6" FontSize="12.5" Text="0%" Margin="12,0,0,0"/>
           <TextBlock x:Name="CargaDetalle" Foreground="#7D8590" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
         </DockPanel>
+        <!-- Aparece al abrir la app si hay una version nueva en GitHub -->
+        <StackPanel x:Name="UpdCarga" Margin="0,24,0,0" Visibility="Collapsed">
+          <Button x:Name="BtnUpd" Style="{StaticResource Amarillo}">
+            <DockPanel>
+              <TextBlock Text="&#x26A0;" DockPanel.Dock="Left" FontSize="28" Foreground="#3B2F00" VerticalAlignment="Center" Margin="0,0,14,0"/>
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock x:Name="UpdTitulo" FontSize="15" FontWeight="SemiBold" Foreground="#1F1A08" TextWrapping="Wrap"/>
+                <TextBlock x:Name="UpdTexto" FontSize="12.5" Foreground="#4A3F12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+              </StackPanel>
+            </DockPanel>
+          </Button>
+          <Button x:Name="BtnUpdNo" Style="{StaticResource Nav}" HorizontalAlignment="Center" Margin="0,12,0,0" Foreground="#9AA0A6" FontSize="13" Content="No, seguir con esta version"/>
+        </StackPanel>
       </StackPanel>
     </Grid>
+
+    <!-- Numero de version arriba a la derecha: siempre a la vista, incluso sobre la pantalla de carga. En rojo si esta desactualizada. -->
+    <TextBlock x:Name="VersionTxt" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,12,0"
+               Panel.ZIndex="20" FontSize="12" FontWeight="SemiBold" Foreground="#5C6370" IsHitTestVisible="False"/>
   </Grid>
 </Window>
 '@
+# Los textos fijos de la ventana tambien pasan por el idioma elegido
+if ($script:Trad) {
+    $XamlTexto = [regex]::Replace($XamlTexto, '(?<=\s(?:Text|Content)=")[^"&]*[A-Za-z][^"&]*(?=")', [Text.RegularExpressions.MatchEvaluator] { param($m) [Security.SecurityElement]::Escape((Traducir $m.Value)) })
+}
+[xml]$xaml = $XamlTexto
 
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 $ui = @{}
-foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'Scroll', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle') { $ui[$n] = $win.FindName($n) }
+foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'Scroll', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt') { $ui[$n] = $win.FindName($n) }
+
+# Numero de version (sale del version.txt de tu PC)
+function Poner-Version([bool]$vieja) {
+    $v = ''
+    try { if (Test-Path -LiteralPath $VersionLocal) { $v = (([IO.File]::ReadAllText($VersionLocal) -replace '^\uFEFF', '') -split "`r?`n")[0].Trim() } } catch { }
+    if (-not $v) { $v = 'sin version' } elseif ($v -notmatch '^[vV]') { $v = 'v' + $v }
+    if ($vieja) { $v += (Con-Enie ' (desactualizada)') }
+    $ui.VersionTxt.Text = (Con-Enie $v)
+    $ui.VersionTxt.Foreground = $(if ($vieja) { (New-Object Windows.Media.BrushConverter).ConvertFromString('#F28B82') } else { (New-Object Windows.Media.BrushConverter).ConvertFromString('#5C6370') })
+}
+Poner-Version $false
 
 foreach ($b in @($ui.BtnAplicar, $ui.BtnRestablecer)) { [Windows.Controls.ToolTipService]::SetShowOnDisabled($b, $true) }
 
 $bc = New-Object Windows.Media.BrushConverter
 function Pincel([string]$hex) { return $bc.ConvertFromString($hex) }
-
-# Los .bat y este archivo van sin acentos (para que cmd y PowerShell no los rompan segun la PC);
-# al mostrar el texto en la app se ponen las palabras con enie. La enie se arma con [char] para que el archivo siga en ASCII.
-$Enie = [string][char]0xF1
-$ConEnie = @(
-    @('\bcontrasenas\b', ('contrase' + $Enie + 'as')),
-    @('\bcontrasena\b', ('contrase' + $Enie + 'a')),
-    @('\bContrasena\b', ('Contrase' + $Enie + 'a')),
-    @('\bpestana\b', ('pesta' + $Enie + 'a')),
-    @('\banos\b', ('a' + $Enie + 'os'))
-)
-function Con-Enie([string]$t) {
-    if (-not $t) { return $t }
-    foreach ($par in $ConEnie) { $t = [regex]::Replace($t, $par[0], $par[1]) }
-    return $t
-}
 
 function Nuevo-Texto([string]$t, [double]$tam, [string]$color, [bool]$negrita) {
     $tb = New-Object Windows.Controls.TextBlock
@@ -611,7 +805,7 @@ function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaE
     $filaAg.Children.Add($tx) | Out-Null
     $abajo.Children.Add($filaAg) | Out-Null
     $bTodo = Nuevo-Boton 'Marcar todo'; $bNada = Nuevo-Boton 'Desmarcar todo'; $bDef = Nuevo-Boton 'Lista por defecto'
-    $bDef.ToolTip = 'Vuelve a la lista de fabrica: todos los del catalogo marcados y sin los que agregaste vos.'
+    $bDef.ToolTip = (Con-Enie 'Vuelve a la lista de fabrica: todos los del catalogo marcados y sin los que agregaste vos.')
     $bc1 = Nuevo-Boton 'Cancelar'; $bc1.IsCancel = $true
     $bok = Nuevo-Boton 'Guardar' '#3D6FD9'
     $abajo.Children.Add((Fila-Botones @($bTodo, $bNada, $bDef) @($bc1, $bok))) | Out-Null
@@ -648,7 +842,7 @@ function Lista-Agregar([string]$nombre, $procs, [bool]$marcado) {
     $cb = New-Object Windows.Controls.CheckBox
     $cb.Margin = '2,4,8,4'; $cb.VerticalContentAlignment = 'Center'; $cb.IsChecked = $marcado
     $cb.Tag = (@($procs) -join ',')
-    $cb.ToolTip = ('Proceso: ' + (@($procs) -join ', '))
+    $cb.ToolTip = ((Con-Enie 'Proceso: ') + (@($procs) -join ', '))
     $t = New-Object Windows.Controls.TextBlock
     $t.TextWrapping = 'Wrap'
     $r1 = New-Object Windows.Documents.Run($nombre); $r1.Foreground = (Pincel '#FFFFFF'); $r1.FontSize = 13.5
@@ -711,7 +905,7 @@ function Editar-Fondo([bool]$aplicar) {
 function Aplicar-ListaActiva([bool]$pri, [bool]$afi) {
     $pri = $pri -and (@(Prio-Actuales).Count -gt 0)
     $afi = $afi -and [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue)
-    if (-not ($pri -or $afi)) { $ui.Estado.Text = 'Lista guardada. Se usa cuando apliques "Prioridad alta" o "Afinidad".'; return }
+    if (-not ($pri -or $afi)) { $ui.Estado.Text = (Con-Enie 'Lista guardada. Se usa cuando apliques "Prioridad alta" o "Afinidad".'); return }
     $L = Leer-Listas
     $jug = @(Procesos-De $AfiJuegosCat $L.juegos)
     $fon = @(Procesos-De $AfiFondoCat $L.fondo)
@@ -744,8 +938,8 @@ function Nueva-Pill {
 function Poner-Pill($pb, $estado) {
     if ($null -eq $estado) { $pb.Visibility = 'Collapsed'; return }
     $pb.Visibility = 'Visible'
-    if ($estado) { $pb.Background = (Pincel '#1E3A2B'); $pb.Child.Foreground = (Pincel '#81C995'); $pb.Child.Text = 'Ya aplicado' }
-    else { $pb.Background = (Pincel '#262B34'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = 'Sin aplicar' }
+    if ($estado) { $pb.Background = (Pincel '#1E3A2B'); $pb.Child.Foreground = (Pincel '#81C995'); $pb.Child.Text = (Con-Enie 'Ya aplicado') }
+    else { $pb.Background = (Pincel '#262B34'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'Sin aplicar') }
 }
 
 function Nota([string]$t, [string]$color, [string]$margen) {
@@ -784,7 +978,6 @@ $Advertencias = @{
     'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos.'
     'Gaming|nic'   = 'En placas madre de baja calidad puede cortar el internet.'
     'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
-    'Gaming|ex'    = 'Valorant puede crashear al abrir o dar el error VAN9002 (Riot pide dejar DEP y ASLR como vienen). Si cambia algo, borra Riot Vanguard.'
     'Gaming|vbs'   = 'Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.'
 }
 
@@ -808,7 +1001,7 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     }
     if ($adv) {
         $ic = Nuevo-Texto $Aviso 15 '#E5B567' $true
-        $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'; $ic.ToolTip = $adv
+        $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'; $ic.ToolTip = (Con-Enie $adv)
         $tit.Children.Add($ic) | Out-Null
     }
     $cb.Content = $tit; $cb.VerticalContentAlignment = 'Center'; $cb.IsChecked = $marcada
@@ -876,12 +1069,12 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
 function Actualizar-Resumenes {
     $L = Leer-Listas
     $tj = Resumen-De $AfiJuegosCat $L.juegos 'Tus juegos'
-    foreach ($t in $script:TxtJuegos) { $t.Text = $tj }
-    if ($script:TxtFondo) { $script:TxtFondo.Text = (Resumen-De $AfiFondoCat $L.fondo 'Programas de fondo') }
+    foreach ($t in $script:TxtJuegos) { $t.Text = (Con-Enie $tj) }
+    if ($script:TxtFondo) { $script:TxtFondo.Text = (Con-Enie (Resumen-De $AfiFondoCat $L.fondo 'Programas de fondo')) }
 }
 
 function Nueva-Seccion([string]$t) {
-    $tb = Nuevo-Texto ($t.ToUpper()) 12 '#7D8590' $true
+    $tb = Nuevo-Texto ((Con-Enie $t).ToUpper()) 12 '#7D8590' $true
     $tb.Margin = '2,12,0,8'
     return $tb
 }
@@ -950,6 +1143,7 @@ function Actualizar-Bloqueos {
             $t.Cb.IsChecked = $false; $t.Cb.IsEnabled = $false
             $t.Card.Opacity = $(if ($noComp) { 0.4 } else { 0.55 })
             $t.Card.Background = (Pincel $(if ($noComp) { '#181A1F' } else { '#1C2027' }))
+            $motivo = Con-Enie $motivo
             $t.Nota.Text = $motivo; $t.Nota.Foreground = (Pincel $(if ($noComp) { '#9AA0A6' } else { '#E5B567' })); $t.Nota.Visibility = 'Visible'
             $t.Card.ToolTip = $motivo; $t.Cb.ToolTip = $motivo
         } else {
@@ -967,7 +1161,7 @@ function Actualizar-Bloqueos {
 function Actualizar-BotonesAccion {
     if ($script:Ocupado) { return }
     $hay = (@(Elegidas 'Debloat').Count + @(Elegidas 'Gaming').Count) -gt 0
-    $msg = 'Marca al menos una opcion en Debloat o en Gaming.'
+    $msg = Con-Enie 'Marca al menos una opcion en Debloat o en Gaming.'
     $ui.BtnAplicar.IsEnabled = ($hay -or ($script:Pagina -eq 'Limpieza'))
     $ui.BtnAplicar.ToolTip = $(if ($ui.BtnAplicar.IsEnabled) { $null } else { $msg })
     $ui.BtnRestablecer.IsEnabled = $hay
@@ -1039,14 +1233,14 @@ function Actualizar-Version {
     $bld = 0
     try { $bld = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'CurrentBuildNumber') } catch { }
     if ($bld -ge 26300) {
-        $script:BtnVer.Content = 'Actualizar a 26H2'; $script:BtnVer.IsEnabled = $false
-        $script:VerTexto.Text = ('Ya tenes la 26H2 o una build mas nueva (build ' + $bld + ').')
+        $script:BtnVer.Content = (Con-Enie 'Actualizar a 26H2'); $script:BtnVer.IsEnabled = $false
+        $script:VerTexto.Text = (Con-Enie ('Ya tenes la 26H2 o una build mas nueva (build ' + $bld + ').'))
     } elseif ($bld -ge 26100) {
-        $script:BtnVer.Content = 'Actualizar a 26H2'; $script:BtnVer.IsEnabled = $true
-        $script:VerTexto.Text = ('Tu build es ' + $bld + ' (24H2 o 25H2): la 26H2 te llega por Windows Update con un reinicio corto.')
+        $script:BtnVer.Content = (Con-Enie 'Actualizar a 26H2'); $script:BtnVer.IsEnabled = $true
+        $script:VerTexto.Text = (Con-Enie ('Tu build es ' + $bld + ' (24H2 o 25H2): la 26H2 te llega por Windows Update con un reinicio corto.'))
     } else {
-        $script:BtnVer.Content = 'Actualizar a 25H2'; $script:BtnVer.IsEnabled = $true
-        $script:VerTexto.Text = ('Tu build es ' + $bld + ': primero pasas a la 25H2 desde el ISO oficial; despues la 26H2 te llega por Windows Update.')
+        $script:BtnVer.Content = (Con-Enie 'Actualizar a 25H2'); $script:BtnVer.IsEnabled = $true
+        $script:VerTexto.Text = (Con-Enie ('Tu build es ' + $bld + ': primero pasas a la 25H2 desde el ISO oficial; despues la 26H2 te llega por Windows Update.'))
     }
 }
 
@@ -1069,7 +1263,7 @@ $Perfiles = @(
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps.'
         Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse.'
         D = @('rp')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'dns', 'avl', 'md', 'v4')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'avl', 'md', 'v4')
     },
     [pscustomobject]@{
         Id = 'compopt'; Nombre = 'Competitivo + Optimizado'; Color = '#C58AF9'
@@ -1078,13 +1272,13 @@ $Perfiles = @(
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS.'
         Adv = 'borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
         D = @('rp', 'rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
     },
     [pscustomobject]@{
         Id = 'full'; Nombre = 'Full Optimizado'; Color = '#F28B82'
         Hace = 'Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga la seguridad (antivirus, BitLocker, integridad de memoria y VBS), activa el modo MSI, bloquea la telemetria en hosts y apaga Teredo y Windows Search.'
         Ideal = 'una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.'
-        NoToca = 'los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Tampoco la proteccion contra vulnerabilidades (DEP y ASLR), porque puede hacer crashear Valorant y otros juegos. Crea un punto de restauracion antes de empezar.'
+        NoToca = 'los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
         Adv = 'la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales.'
         D = @('rp', 'rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db', 'av', 'bl', 'hst', 'ter')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'mm', 'll', 'xb', 'gf', 'pca', 'ram', 'sm', 'stg', 'msi', 'mi', 'vbs', 'wsr')
@@ -1093,10 +1287,10 @@ $Perfiles = @(
         Id = 'fullcomp'; Nombre = 'Full Optimizado + Competitivo'; Color = '#FF6B6B'
         Hace = 'todo, todo: cada opcion de Debloat y de Gaming. Es Full Optimizado mas todos los ajustes competitivos (mouse, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro, temporizador al minimo, red, DNS y notificaciones).'
         Ideal = 'una PC que es solo para jugar, donde queres el maximo absoluto y sabes lo que haces.'
-        NoToca = 'Edge ni Chrome, ni la proteccion contra vulnerabilidades (DEP y ASLR), porque puede hacer crashear Valorant y otros juegos. No apaga los puntos de restauracion: crea uno antes de empezar.'
+        NoToca = 'Edge ni Chrome. No apaga los puntos de restauracion: crea uno antes de empezar.'
         Adv = 'suma los riesgos de Full Optimizado y de Competitivo: sin antivirus, Vanguard se borra (lo reinstalas abriendo el cliente de Riot), y con undervolt u overclock la PC puede colgarse por el plan de energia y el temporizador.'
         D = @('rp', 'av', 'bl', 'hib', 'rc', 'sch', 'fx', 'et', 'apps', 'tel', 'wg', 'do', 'wud', 'wup', 'ad', 'sv', 'pv', 'ter', 'tp', 'hst', 'eb', 'su', 'ia', 'db')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'dns', 'mi', 'vbs', 'wsr', 'stg', 'ext', 'md', 'v4')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'mi', 'vbs', 'wsr', 'stg', 'ext', 'md', 'v4')
     }
 )
 
@@ -1113,11 +1307,11 @@ foreach ($pf in $Perfiles) {
     $tit.Orientation = 'Horizontal'
     $tit.Children.Add((Nuevo-Texto $pf.Nombre 17 '#FFFFFF' $true)) | Out-Null
     if ($pf.Id -like 'full*') {
-        $porque = ('Tiene la alerta porque apaga el antivirus (Defender, SmartScreen y Smart App Control): la PC queda sin proteccion contra virus.' + "`n" + 'Tambien apaga BitLocker, la integridad de memoria y VBS, y desinstala Riot Vanguard (lo reinstalas abriendo el cliente de Riot).' + "`n" + 'La proteccion contra vulnerabilidades (DEP y ASLR) no se toca, para que Valorant y otros juegos no crasheen.')
+        $porque = ('Tiene la alerta porque apaga el antivirus (Defender, SmartScreen y Smart App Control): la PC queda sin proteccion contra virus.' + "`n" + 'Tambien apaga BitLocker, la integridad de memoria y VBS, y desinstala Riot Vanguard (lo reinstalas abriendo el cliente de Riot).')
         $ic = Nuevo-Texto $Aviso 17 '#E5B567' $true
         $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'
         $tit.Children.Add($ic) | Out-Null
-        $card.ToolTip = $porque
+        $card.ToolTip = (Con-Enie $porque)
         [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
     }
     $sp.Children.Add($tit) | Out-Null
@@ -1166,19 +1360,28 @@ function Actualizar-Perfiles {
         $t = ([string]$falta + ' por aplicar')
         if ($ya -gt 0) { $t += (', ' + $ya + ' ya aplicadas') }
         if ($nd -gt 0) { $t += (', ' + $nd + ' no compatibles con tu PC') }
-        $script:PerfilTxt[$pf.Id].Text = ('Opciones: ' + $t + '.')
+        $script:PerfilTxt[$pf.Id].Text = (Con-Enie ('Opciones: ' + $t + '.'))
     }
 }
 
 function Actualizar-InfoPC($i) {
-    if (-not $i) { $script:InfoPC.Text = 'Tu PC: no se pudo leer.'; return }
+    # Aviso rojo arriba (se ve en todas las paginas) si el Windows parece no original o modificado
+    $mot = @()
+    if ($i -and $i.Orig) { $mot = @($i.Orig) }
+    if ($mot.Count -gt 0) {
+        $m = $mot[0].Substring(0, 1).ToUpper() + $mot[0].Substring(1)
+        if ($mot.Count -gt 1) { $m += '; ' + (($mot | Select-Object -Skip 1) -join '; ') }
+        $ui.OrigTexto.Text = (Con-Enie ('Motivo: ' + $m + '.' + "`n" + 'En versiones recortadas, pirateadas o modificadas (Tiny11, AtlasOS, ReviOS y similares) varias opciones pueden fallar o no aplicar.'))
+        $ui.OrigBarra.Visibility = 'Visible'
+    } else { $ui.OrigBarra.Visibility = 'Collapsed' }
+    if (-not $i) { $script:InfoPC.Text = (Con-Enie 'Tu PC: no se pudo leer.'); return }
     $nombre = $(if ([int]$i.Build -ge 22000) { 'Windows 11' } else { 'Windows 10' })
     $ed = switch -Regex ([string]$i.Edicion) { '^Core' { 'Home' } '^Professional' { 'Pro' } '^Enterprise' { 'Enterprise' } '^Education' { 'Education' } default { [string]$i.Edicion } }
     $t = ('Tu PC: ' + $nombre + ' ' + $ed + ' ' + $i.Display + ' (build ' + $i.Build + ')')
     if ([int]$i.RamGB -gt 0) { $t += ('  -  ' + $i.RamGB + ' GB de RAM') }
     $t += $(if ($i.Hdd) { '  -  Windows en disco HDD' } else { '' })
     if ($script:NoDisp.Count -gt 0) { $t += ('  -  ' + $script:NoDisp.Count + ' opciones no son compatibles: quedan en gris y se saltean solas') }
-    $script:InfoPC.Text = $t
+    $script:InfoPC.Text = (Con-Enie $t)
 }
 
 # Marca solo las opciones del perfil (desmarca el resto). Saltea lo no compatible y lo que ya esta aplicado.
@@ -1231,22 +1434,22 @@ function Actualizar-Contador {
     Actualizar-Bloqueos
     if ($script:Ocupado) { return }
     $d = (Elegidas 'Debloat').Count; $g = (Elegidas 'Gaming').Count
-    if (($d + $g) -eq 0) { $ui.Estado.Text = $(if ($script:EstadoLeido) { $script:EstadoLeido } else { 'No hay opciones marcadas.' }) }
-    else { $ui.Estado.Text = ('Marcadas: ' + $d + ' en Debloat y ' + $g + ' en Gaming. Se guardan aunque cambies de pagina.') }
+    if (($d + $g) -eq 0) { $ui.Estado.Text = (Con-Enie $(if ($script:EstadoLeido) { $script:EstadoLeido } else { 'No hay opciones marcadas.' })) }
+    else { $ui.Estado.Text = (Con-Enie ('Marcadas: ' + $d + ' en Debloat y ' + $g + ' en Gaming. Se guardan aunque cambies de pagina.')) }
 }
 
 function Ir-A([string]$p) {
     $script:Pagina = $p
     foreach ($k in $Nav.Keys) { $Nav[$k].Background = (Pincel $(if ($k -eq $p) { '#232833' } else { '#00000000' })) }
-    $ui.Titulo.Text = $Textos[$p][0]
-    $ui.Descripcion.Text = $Textos[$p][1]
+    $ui.Titulo.Text = (Con-Enie $Textos[$p][0])
+    $ui.Descripcion.Text = (Con-Enie $Textos[$p][1])
     $ui.Scroll.Content = $Paginas[$p]
     $ui.Scroll.ScrollToTop()
     $vis = $(if ($p -in 'Herr', 'Perfiles') { 'Collapsed' } else { 'Visible' })
     $ui.BtnTodo.Visibility = $vis; $ui.BtnNada.Visibility = $vis
     $ui.BtnRestablecer.Visibility = $(if ($p -in 'Debloat', 'Gaming') { 'Visible' } else { 'Collapsed' })
     $ui.BtnAplicar.Visibility = $(if ($p -in 'Herr', 'Perfiles') { 'Collapsed' } else { 'Visible' })
-    $ui.BtnAplicar.Content = $(if ($p -eq 'Limpieza') { 'Limpiar ahora' } else { 'Aplicar seleccionadas' })
+    $ui.BtnAplicar.Content = (Con-Enie $(if ($p -eq 'Limpieza') { 'Limpiar ahora' } else { 'Aplicar seleccionadas' }))
     Actualizar-BotonesAccion
 }
 
@@ -1281,7 +1484,7 @@ function Mostrar-Carga([string]$titulo, [bool]$conFade) {
     $c = $script:Carga
     $c.Objetivo = 0.0; $c.Mostrado = 0.0; $c.Cerrar = $false
     $ui.CargaBarra.Width = 0; $ui.CargaPct.Text = '0%'
-    $ui.CargaTitulo.Text = $titulo; $ui.CargaDetalle.Text = ''
+    $ui.CargaTitulo.Text = (Con-Enie $titulo); $ui.CargaDetalle.Text = ''
     $ui.Carga.BeginAnimation([Windows.UIElement]::OpacityProperty, $null)
     $yaVisible = ($ui.Carga.Visibility -eq 'Visible')
     $ui.Carga.Visibility = 'Visible'
@@ -1295,7 +1498,7 @@ function Mostrar-Carga([string]$titulo, [bool]$conFade) {
 function Poner-Progreso([double]$v, [string]$detalle) {
     if ($v -gt 1) { $v = 1 }
     if ($v -gt $script:Carga.Objetivo) { $script:Carga.Objetivo = $v }
-    if ($null -ne $detalle) { $ui.CargaDetalle.Text = $detalle }
+    if ($null -ne $detalle) { $ui.CargaDetalle.Text = (Con-Enie $detalle) }
 }
 
 # Llena la barra hasta el final y despues se desvanece; $alCerrar corre cuando ya no se ve
@@ -1361,10 +1564,10 @@ $lecturaTimer.Add_Tick({
     try { $l.PS.Dispose() } catch { }
     $script:Lectura = $null
     Aplicar-Lectura $s
-    $ui.CargaDetalle.Text = 'Listo'
+    $ui.CargaDetalle.Text = (Con-Enie 'Listo')
     Cerrar-Carga {
         Bloquear $false
-        $ui.Estado.Text = $script:EstadoLeido
+        $ui.Estado.Text = (Con-Enie $script:EstadoLeido)
         Actualizar-Bloqueos
         $f = $script:DespuesLectura
         $script:DespuesLectura = $null
@@ -1407,7 +1610,7 @@ function Aplicar-Lectura($s) {
         $script:Estados[$k] = $est
         if ($script:NoDisp.ContainsKey($k)) {
             $pb = $script:Pills[$k]
-            $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#2A2D33'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = 'No compatible'
+            $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#2A2D33'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'No compatible')
             continue
         }
         Poner-Pill $script:Pills[$k] $est
@@ -1415,11 +1618,11 @@ function Aplicar-Lectura($s) {
     }
     if ($script:PrioTexto) {
         $pr = @($s.Prio)
-        $script:PrioTexto.Text = $(if ($pr.Count -gt 0) { 'Con prioridad alta ahora: ' + ($pr -join ', ') } else { '' })
+        $script:PrioTexto.Text = $(if ($pr.Count -gt 0) { (Con-Enie 'Con prioridad alta ahora: ') + ($pr -join ', ') } else { '' })
     }
     if ($script:AfiTexto) {
         $ac = Afi-Config
-        $script:AfiTexto.Text = $(if ($ac['desc'] -and $s.TareaAfi) { 'Activa: ' + $ac['desc'] } else { '' })
+        $script:AfiTexto.Text = $(if ($ac['desc'] -and $s.TareaAfi) { (Con-Enie 'Activa: ') + (Con-Enie $ac['desc']) } else { '' })
     }
     Actualizar-Cpu $s.Cpu
     Actualizar-Resumenes
@@ -1427,11 +1630,179 @@ function Aplicar-Lectura($s) {
     Actualizar-InfoPC $s.Info
     Actualizar-Perfiles
     if ($res) {
-        $script:EstadoLeido = ('Windows leido: ' + $apl + ' de ' + $tot + ' opciones ya estan aplicadas.')
+        $script:EstadoLeido = ('Windows leido: ' + $apl + ' ' + (Con-Enie 'de') + ' ' + $tot + ' opciones ya estan aplicadas.')
         if ($script:NoDisp.Count -gt 0) { $script:EstadoLeido += (' ' + $script:NoDisp.Count + ' no son compatibles con tu PC.') }
     }
     else { $script:EstadoLeido = 'No se pudo leer el estado de Windows. Proba con "Volver a leer los ajustes".' }
+    $script:Leido = $true
 }
+
+# ------------------------------------------------------------
+# Actualizaciones desde GitHub
+# Al abrir, compara el version.txt de tu PC con el de GitHub. Si son distintos,
+# la pantalla de carga muestra el cartel amarillo.
+# Al tocarlo baja la app y los scripts, reemplaza los viejos y abre la app de nuevo.
+# ------------------------------------------------------------
+$CodigoUpd = @'
+param($lista, $sync, $bajar)
+$ErrorActionPreference = 'Stop'
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
+$latin = [Text.Encoding]::GetEncoding(28591)
+
+function Limpiar([string]$t) { return (($t -replace '^(\u00EF\u00BB\u00BF|\uFEFF)', '') -split "`r?`n")[0].Trim() }
+function Bajar([string]$remoto, [int]$espera, [double]$desde, [double]$peso) {
+    $rq = [Net.HttpWebRequest]::Create($sync.Base + $remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
+    $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'XucaOP'
+    $rs = $rq.GetResponse()
+    try {
+        $len = $rs.ContentLength
+        $st = $rs.GetResponseStream(); $ms = New-Object IO.MemoryStream; $buf = New-Object byte[] 65536
+        while (($r = $st.Read($buf, 0, $buf.Length)) -gt 0) {
+            $ms.Write($buf, 0, $r)
+            if (($peso -gt 0) -and ($len -gt 0)) { $sync.Prog = $desde + $peso * [math]::Min(1.0, $ms.Length / $len) }
+        }
+        return $latin.GetString($ms.ToArray())
+    } finally { $rs.Close() }
+}
+
+if (-not $bajar) {
+    # Buscar: compara el texto del version.txt de tu PC con el de GitHub
+    $local = ''
+    if (Test-Path -LiteralPath $sync.VerLocal) { try { $local = Limpiar ([IO.File]::ReadAllText($sync.VerLocal)) } catch { } }
+    $remota = ''
+    try { $remota = Limpiar (Bajar 'version.txt' 4000 0 0) } catch { }
+    $sync.Local = $local
+    $sync.Remota = $remota
+    $sync.Hay = [bool]($remota -and ($remota -ne $local))
+    $sync.Listo = $true
+    return
+}
+
+# Descargar: baja todo a archivos .nuevo y recien al final reemplaza los viejos (el version.txt ultimo)
+$listos = @()
+try {
+    $cant = [math]::Max(@($lista).Count, 1); $i = 0
+    foreach ($a in $lista) {
+        $sync.Paso = $a.Nombre
+        # Los opcionales (los idiomas) se saltean si todavia no estan en GitHub
+        try { $txt = Bajar $a.Remoto 30000 ($i / $cant) (1.0 / $cant) } catch { if ($a.Opc) { $i++; continue }; throw }
+        if ($txt.Length -lt 100) { if ($a.Opc) { $i++; continue }; throw ('lo que llego de GitHub para ' + $a.Nombre + ' no es el archivo esperado') }
+        $tmp = $a.Local + '.nuevo'
+        $dd = Split-Path -Parent $tmp
+        if (-not (Test-Path -LiteralPath $dd)) { New-Item -ItemType Directory -Path $dd -Force | Out-Null }
+        [IO.File]::WriteAllText($tmp, ($txt -replace '\r?\n', "`r`n"), $latin)
+        $listos += [pscustomobject]@{ Tmp = $tmp; Local = $a.Local }
+        $i++
+    }
+    $tmp = $sync.VerLocal + '.nuevo'
+    [IO.File]::WriteAllText($tmp, ($sync.Remota + "`r`n"), $latin)
+    $listos += [pscustomobject]@{ Tmp = $tmp; Local = $sync.VerLocal }
+    $sync.Paso = 'reemplazando la version vieja'
+    foreach ($l in $listos) { Move-Item -LiteralPath $l.Tmp -Destination $l.Local -Force }
+} catch {
+    foreach ($l in $listos) { Remove-Item -LiteralPath $l.Tmp -Force -ErrorAction SilentlyContinue }
+    $sync.Error = $_.Exception.Message
+}
+$sync.Listo = $true
+'@
+
+$script:UpdRemota = ''
+$script:UpdHay = $false
+$script:UpdRun = $null
+$script:Leido = $false
+$updTimer = New-Object Windows.Threading.DispatcherTimer
+$updTimer.Interval = [TimeSpan]::FromMilliseconds(40)
+
+function Upd-Iniciar([bool]$bajar) {
+    $base = 'https://raw.githubusercontent.com/' + $XucaRepo + '/' + $XucaRama + '/'
+    $sync = [hashtable]::Synchronized(@{ Base = $base; VerLocal = $VersionLocal; Remota = $script:UpdRemota; Local = ''; Hay = $false; Listo = $false; Prog = 0.0; Paso = ''; Error = $null })
+    $ps = [powershell]::Create()
+    [void]$ps.AddScript($CodigoUpd).AddArgument(@($ArchivosUpd)).AddArgument($sync).AddArgument($bajar)
+    $script:UpdRun = @{ PS = $ps; Handle = $ps.BeginInvoke(); Sync = $sync; Bajar = $bajar; Desde = (Get-Date) }
+    $updTimer.Start()
+}
+
+# Se llama al abrir la app (antes de leer Windows)
+function Buscar-Actualizacion {
+    if ((-not $XucaRepo) -or ($XucaRepo -like 'TU_USUARIO*')) { Refrescar-Estado; return }
+    Bloquear $true
+    Mostrar-Carga 'Buscando actualizaciones' $false
+    Upd-Iniciar $false
+}
+
+function Upd-MostrarCartel([bool]$si) {
+    $vis = $(if ($si) { 'Collapsed' } else { 'Visible' })
+    $ui.CargaZona.Visibility = $vis; $ui.CargaInfo.Visibility = $vis
+    $ui.UpdCarga.Visibility = $(if ($si) { 'Visible' } else { 'Collapsed' })
+}
+
+function Fin-Busqueda($s) {
+    $script:UpdHay = [bool]$s.Hay
+    $script:UpdRemota = [string]$s.Remota
+    if (-not $script:UpdHay) { Refrescar-Estado; return }
+    Poner-Version $true
+    $tuya = $(if ($s.Local) { [string]$s.Local } else { 'sin version' })
+    $t = 'Hay una actualizacion disponible: tenes la ' + $tuya + ' y en GitHub esta la ' + $script:UpdRemota
+    $ui.UpdTitulo.Text = (Con-Enie $t)
+    $ui.UpdTexto.Text = (Con-Enie 'Toca este cartel para descargarla. Se cierra esta version y se abre la nueva sola.')
+    $ui.UpdBarraTexto.Text = (Con-Enie ($t + '. Toca aca para actualizar.'))
+    $animTimer.Stop()
+    $ui.CargaTitulo.Text = (Con-Enie 'Hay una version nueva de Xuca OPtimizer')
+    $ui.CargaDetalle.Text = ''
+    Upd-MostrarCartel $true
+}
+
+function Descargar-Actualizacion {
+    if ($script:UpdRun -or $script:Lectura -or (-not $script:UpdHay)) { return }
+    if ($script:Proc -and -not $script:Proc.HasExited) { Avisar 'Actualizar' 'Espera a que termine lo que se esta aplicando y despues toca el cartel amarillo.'; return }
+    Upd-MostrarCartel $false
+    Bloquear $true
+    Mostrar-Carga 'Descargando la actualizacion' $true
+    Upd-Iniciar $true
+}
+
+function Fin-Descarga($s) {
+    if ($s.Error) {
+        $script:UpdError = $s.Error
+        Cerrar-Carga {
+            $ui.BtnUpdBarra.Visibility = 'Visible'
+            Avisar 'No se pudo actualizar' ('No se pudo bajar la version nueva: ' + $script:UpdError + "`n`n" + 'Seguis usando esta version. Podes probar de nuevo con el cartel amarillo de arriba.')
+            if ($script:Leido) { Bloquear $false } else { Refrescar-Estado }
+        }
+        return
+    }
+    # Todo bajado y reemplazado: se abre la app nueva y se cierra esta
+    $ui.CargaTitulo.Text = (Con-Enie 'Actualizacion lista')
+    Poner-Progreso 1 'Abriendo la version nueva...'
+    Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $AppPath + '"')
+    $script:CierreTimer = New-Object Windows.Threading.DispatcherTimer
+    $script:CierreTimer.Interval = [TimeSpan]::FromMilliseconds(900)
+    $script:CierreTimer.Add_Tick({ $script:CierreTimer.Stop(); $script:SalirYa = $true; $win.Close() })
+    $script:CierreTimer.Start()
+}
+
+$updTimer.Add_Tick({
+    $u = $script:UpdRun
+    if (-not $u) { $updTimer.Stop(); return }
+    $s = $u.Sync
+    if ($u.Bajar) { Poner-Progreso (0.95 * $s.Prog) $(if ($s.Paso) { 'Descargando: ' + $s.Paso } else { '' }) }
+    else { Poner-Progreso ((1 - [math]::Exp(-((Get-Date) - $u.Desde).TotalSeconds / 1.5)) * 0.9) 'Comparando tu version con la de GitHub' }
+    if (-not $u.Handle.IsCompleted) { return }
+    $updTimer.Stop()
+    try { $u.PS.EndInvoke($u.Handle) | Out-Null } catch { if ($u.Bajar -and -not $s.Error) { $s.Error = $_.Exception.Message } }
+    try { $u.PS.Dispose() } catch { }
+    $script:UpdRun = $null
+    if ($u.Bajar) { Fin-Descarga $s } else { Fin-Busqueda $s }
+})
+
+$ui.BtnUpd.Add_Click({ Descargar-Actualizacion })
+$ui.BtnUpdBarra.Add_Click({ Descargar-Actualizacion })
+$ui.BtnUpdNo.Add_Click({
+    # Sigue con esta version: el cartel queda chiquito arriba por si despues queres actualizar
+    Upd-MostrarCartel $false
+    $ui.BtnUpdBarra.Visibility = 'Visible'
+    Refrescar-Estado
+})
 
 # ------------------------------------------------------------
 # Correr scripts en modo app (uno atras de otro)
@@ -1532,7 +1903,7 @@ function Actualizar-Progreso {
     $act = $(if ($ms.Count -gt 0) { Titulo-Corto $ms[$ms.Count - 1].Groups[1].Value } else { 'Preparando' })
     $num = [math]::Min($C.Hechos + [math]::Max($n, 1), $C.Total)
     $base = $C.Hechos + [math]::Max($n - 1, 0) + $(if ($n -gt 0) { Avance-Tiempo $t.UltCambio 6 } else { 0 })
-    Poner-Progreso (($base / $C.Total) * 0.97) (Con-Enie ('Cambio ' + $num + ' de ' + $C.Total + '  -  ' + $act))
+    Poner-Progreso (($base / $C.Total) * 0.97) (Con-Enie ((Con-Enie 'Cambio') + ' ' + $num + ' ' + (Con-Enie 'de') + ' ' + $C.Total + '  -  ' + $act))
 }
 
 function Fin-Tarea {
@@ -1577,7 +1948,7 @@ function Terminar-Corrida {
         $C = $script:Corrida
         $script:Corrida = $null
         if (-not $C) { return }
-        $ui.Estado.Text = ($ui.Estado.Text + ' Los detalles de cada cambio quedaron en la carpeta de logs.')
+        $ui.Estado.Text = ($ui.Estado.Text + (Con-Enie ' Los detalles de cada cambio quedaron en la carpeta de logs.'))
         if ($C.Tipo -eq 'limpieza') {
             $m = 'La cache quedo limpia.'
             if ($C.Liberado) { $m = ('Liberaste ' + $C.Liberado + '.') }
@@ -1586,7 +1957,7 @@ function Terminar-Corrida {
         }
         if ($C.Tipo -eq 'lista') {
             if ($C.Fallos -gt 0) { Avisar 'Tu lista de juegos' ('Se guardo, pero ' + $C.Fallos + ' cambios fallaron al aplicarla (mira la carpeta de logs).') }
-            else { $ui.Estado.Text = 'Listo: tu lista nueva ya esta aplicada, sin reiniciar.' }
+            else { $ui.Estado.Text = (Con-Enie 'Listo: tu lista nueva ya esta aplicada, sin reiniciar.') }
             return
         }
         if (-not $C.Reinicio) { return }
@@ -1596,7 +1967,7 @@ function Terminar-Corrida {
         } elseif ($C.Fallos -gt 0) {
             Avisar 'Listo' ($m + "`n`n" + 'No hace falta reiniciar.')
         } else {
-            $ui.Estado.Text = ('Listo: se aplico todo bien y no hace falta reiniciar. ' + $ui.Estado.Text)
+            $ui.Estado.Text = ((Con-Enie 'Listo: se aplico todo bien y no hace falta reiniciar. ') + $ui.Estado.Text)
         }
     }
 }
@@ -1729,14 +2100,79 @@ $ui.BtnAplicar.Add_Click({
     Aplicar-Seleccion
 })
 
+# ------------------------------------------------------------
+# Salir: pregunta si queres salir y, si no lo apagaste, muestra el mensaje de Ko-fi
+# ------------------------------------------------------------
+$KoFi = 'https://ko-fi.com/011xuca'
+$script:SalirYa = $false
+function Confirmar-Salida {
+    $mostrarKofi = ([string](Leer-Config)['kofi']) -ne '0'
+    $w = Nuevo-Dialogo 500
+    $sp = New-Object Windows.Controls.StackPanel
+    $sp.Children.Add((Nuevo-Texto 'Seguro que queres salir?' 17 '#FFFFFF' $true)) | Out-Null
+    $chk = $null
+    if ($mostrarKofi) {
+        $caja = New-Object Windows.Controls.Border
+        $caja.CornerRadius = 10; $caja.Background = (Pincel '#2A2130'); $caja.BorderBrush = (Pincel '#F9A8D4'); $caja.BorderThickness = 1
+        $caja.Padding = '14,12'; $caja.Margin = '0,14,0,0'
+        $sk = New-Object Windows.Controls.StackPanel
+        $m = Nuevo-Texto 'Este proyecto es gratis y lo hago en mi tiempo libre. Si te sirvio y queres apoyarme, podes invitarme un Ko-fi:' 13 '#E8D5E0' $false
+        $m.LineHeight = 20
+        $sk.Children.Add($m) | Out-Null
+        $link = Nuevo-Texto $KoFi 12.5 '#F9A8D4' $false
+        $link.Margin = '0,4,0,0'
+        $sk.Children.Add($link) | Out-Null
+        $bK = Nuevo-Boton 'Apoyar en Ko-fi' '#FF5E5B'
+        $bK.HorizontalAlignment = 'Left'
+        $bK.Add_Click({ Start-Process $KoFi })
+        $sk.Children.Add($bK) | Out-Null
+        $caja.Child = $sk
+        $sp.Children.Add($caja) | Out-Null
+        $chk = New-Object Windows.Controls.CheckBox
+        $chk.Margin = '0,12,0,0'; $chk.VerticalContentAlignment = 'Center'
+        $chk.Content = (Nuevo-Texto 'No volver a mostrar el mensaje de Ko-fi' 12.5 '#C3C8D0' $false)
+        $sp.Children.Add($chk) | Out-Null
+    }
+    $bNo = Nuevo-Boton 'Cancelar'; $bNo.IsCancel = $true
+    $bSi = Nuevo-Boton 'Salir' '#B3412F'; $bSi.IsDefault = $true
+    $bSi.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
+    $sp.Children.Add((Fila-Botones @() @($bNo, $bSi))) | Out-Null
+    $w.Content.Child = $sp
+    $ok = ($w.ShowDialog() -eq $true)
+    # "No volver a mostrar" se guarda aunque toques Cancelar
+    if ($chk -and ($chk.IsChecked -eq $true)) { Guardar-Config 'kofi' '0' }
+    return $ok
+}
+
 $win.Add_Closing({
+    param($s, $e)
+    # Al actualizar o cambiar de idioma la app se cierra sola para abrirse de nuevo: no se pregunta nada
+    if ($script:SalirYa) { return }
     if ($script:Proc -and -not $script:Proc.HasExited) {
         $m = $(if ($script:Tarea -and -not $script:Tarea.Visible) { 'Todavia se estan aplicando cambios. Si cerras la app, el script sigue en segundo plano hasta terminar.' } else { 'Todavia se esta aplicando un script. Si cerras la app, el script sigue solo en su ventana.' })
-        if (-not (Confirmar 'Cerrar la app' ($m + "`n`n" + 'Cerrar igual?') 'Cerrar' '#B3412F' 'Seguir en la app')) { $_.Cancel = $true }
+        if (-not (Confirmar 'Cerrar la app' ($m + "`n`n" + 'Cerrar igual?') 'Cerrar' '#B3412F' 'Seguir en la app')) { $e.Cancel = $true }
+        return
     }
+    if (-not (Confirmar-Salida)) { $e.Cancel = $true }
 })
 
-$win.Add_ContentRendered({ Refrescar-Estado })
+# ------------------------------------------------------------
+# Idioma: el boton de abajo a la izquierda cambia entre ingles y espanol, lo guarda y abre la app de nuevo
+# ------------------------------------------------------------
+$ui.IdiomaTxt.Text = $(if ($script:Idioma -eq 'es-mx') { 'English' } else { 'Espa' + $Enie + 'ol' })
+$ui.BtnIdioma.ToolTip = (Con-Enie 'Cambiar idioma')
+$ui.BtnIdioma.Add_Click({
+    if (($script:Proc -and -not $script:Proc.HasExited) -or $script:UpdRun -or $script:Lectura) { Avisar 'Cambiar idioma' 'Espera a que termine lo que se esta aplicando para cambiar el idioma.'; return }
+    $nuevo = $(if ($script:Idioma -eq 'es-mx') { 'en-en' } else { 'es-mx' })
+    $f = Join-Path (Join-Path $LangDir $nuevo) 'textos.txt'
+    if (($nuevo -ne 'es-mx') -and (-not (Test-Path -LiteralPath $f))) { Avisar 'Cambiar idioma' ((Con-Enie 'No se encontro el archivo de idioma:') + "`n" + $f); return }
+    Guardar-Config 'idioma' $nuevo
+    Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $AppPath + '"')
+    $script:SalirYa = $true
+    $win.Close()
+})
+
+$win.Add_ContentRendered({ Buscar-Actualizacion })
 
 Ir-A 'Perfiles'
 $ui.Estado.Text = ''

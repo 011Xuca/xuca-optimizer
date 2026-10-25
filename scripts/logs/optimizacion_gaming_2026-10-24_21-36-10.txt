@@ -1,0 +1,217 @@
+[21:36:11] [INFO] Microsoft Windows 11 Pro (build 26300.9711)
+[21:36:11] [INFO] CPU: AMD Ryzen 7 9800X3D 8-Core Processor
+[21:36:11] [INFO] GPU: Parsec Virtual Display Adapter / NVIDIA GeForce RTX 3080
+[21:36:11] [INFO] RAM: 32 GB
+[21:36:11] [INFO] Usuario: Xuca - Equipo: XUCA
+[21:36:11] [INFO] Inicio de optimizacion_gaming.bat
+[21:36:11] [PREG] S (app) - - Desea mouse competitivo? (Sin aceleracion ni rastro, velocidad media)
+[21:36:11] [INFO] == Mouse competitivo
+[21:36:11] [LISTO] Mouse en modo competitivo - ya estaba todo aplicado
+[21:36:11] [PREG] S (app) - - Desea desactivar los atajos de accesibilidad? (Shift x5, Alt+Shift y otros ya 
+[21:36:11] [INFO] == Atajos de accesibilidad
+[21:36:11] [OK] ya estaba HKCU\Control Panel\Accessibility\StickyKeys Flags = 506
+[21:36:12] [OK] ya estaba HKCU\Control Panel\Accessibility\Keyboard Response Flags = 122
+[21:36:12] [OK] ya estaba HKCU\Control Panel\Accessibility\ToggleKeys Flags = 58
+[21:36:12] [OK] HKCU\Control Panel\Accessibility\MouseKeys Flags = 58
+[21:36:12] [OK] HKCU\Control Panel\Accessibility\HighContrast Flags = 122
+[21:36:12] [OK] HKCU\Software\Microsoft\Narrator\NoRoam WinEnterLaunchEnabled = 0
+[21:36:12] [LISTO] Atajos de accesibilidad desactivados - 3 cambios hechos y verificados, 3 ya estaban
+[21:36:12] [PREG] S (app) - - Desea que Windows no baje el volumen en llamadas? (Sonido, Comunicaciones: No 
+[21:36:12] [INFO] == Comunicaciones de Windows
+[21:36:12] [OK] ya estaba HKCU\Software\Microsoft\Multimedia\Audio UserDuckingPreference = 3
+[21:36:12] [LISTO] Windows ya no reduce el volumen de los demas sonidos (si no lo notas, reinicia) - ya estaba todo aplicado
+[21:36:12] [PREG] S (app) - - Desea dar prioridad multimedia a los juegos? (Mas CPU para el juego; efecto ch
+[21:36:12] [INFO] == Prioridad multimedia (MMCSS)
+[21:36:12] [OK] ya estaba HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games GPU Priority = 8
+[21:36:12] [OK] ya estaba HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games Priority = 6
+[21:36:12] [OK] ya estaba HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games Scheduling Category = High
+[21:36:12] [OK] ya estaba HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games SFIO Priority = High
+[21:36:12] [OK] HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile NetworkThrottlingIndex = 10
+[21:36:12] [OK] ya estaba HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile SystemResponsiveness = 10
+[21:36:12] [LISTO] Prioridad multimedia para juegos aplicada - 1 cambios hechos y verificados, 5 ya estaban
+[21:36:12] [PREG] S (app) - - Desea dar prioridad alta a tus juegos? (Escribis sus procesos separados por co
+[21:36:12] [INFO] == Prioridad alta para juegos
+[21:36:12] [OK] ya estaba: arkascended.exe con prioridad alta
+[21:36:12] [OK] ya estaba: bf6.exe con prioridad alta
+[21:36:12] [OK] ya estaba: blackops.exe con prioridad alta
+[21:36:12] [OK] ya estaba: blackops3.exe con prioridad alta
+[21:36:12] [OK] ya estaba: blackops4.exe con prioridad alta
+[21:36:12] [OK] ya estaba: blackopsmp.exe con prioridad alta
+[21:36:12] [OK] ya estaba: cod.exe con prioridad alta
+[21:36:12] [OK] ya estaba: codwaw.exe con prioridad alta
+[21:36:12] [OK] ya estaba: codwawmp.exe con prioridad alta
+[21:36:12] [OK] ya estaba: cs2.exe con prioridad alta
+[21:36:12] [OK] ya estaba: cyberpunk2077.exe con prioridad alta
+[21:36:12] [OK] ya estaba: eldenring.exe con prioridad alta
+[21:36:12] [OK] ya estaba: fortniteclient-win64-shipping.exe con prioridad alta
+[21:36:12] [OK] ya estaba: gta5.exe con prioridad alta
+[21:36:12] [OK] ya estaba: gta5_enhanced.exe con prioridad alta
+[21:36:12] [OK] ya estaba: hytaleclient.exe con prioridad alta
+[21:36:12] [OK] ya estaba: javaw.exe con prioridad alta
+[21:36:12] [OK] ya estaba: league of legends.exe con prioridad alta
+[21:36:12] [OK] ya estaba: marvel-win64-shipping.exe con prioridad alta
+[21:36:12] [OK] ya estaba: milesmorales.exe con prioridad alta
+[21:36:12] [OK] ya estaba: minecraft.windows.exe con prioridad alta
+[21:36:12] [OK] ya estaba: overwatch.exe con prioridad alta
+[21:36:12] [OK] ya estaba: r5apex.exe con prioridad alta
+[21:36:12] [OK] ya estaba: r5apex_dx12.exe con prioridad alta
+[21:36:12] [OK] ya estaba: rainbowsix.exe con prioridad alta
+[21:36:12] [OK] ya estaba: rdr2.exe con prioridad alta
+[21:36:12] [OK] ya estaba: roblox.exe con prioridad alta
+[21:36:12] [OK] ya estaba: robloxplayerbeta.exe con prioridad alta
+[21:36:13] [OK] ya estaba: rocketleague.exe con prioridad alta
+[21:36:13] [OK] ya estaba: rustclient.exe con prioridad alta
+[21:36:13] [OK] ya estaba: shootergame.exe con prioridad alta
+[21:36:13] [OK] ya estaba: spider-man.exe con prioridad alta
+[21:36:13] [OK] ya estaba: spider-man2.exe con prioridad alta
+[21:36:13] [OK] ya estaba: t6mp.exe con prioridad alta
+[21:36:13] [OK] ya estaba: t6sp.exe con prioridad alta
+[21:36:13] [OK] ya estaba: t6zm.exe con prioridad alta
+[21:36:13] [OK] ya estaba: tslgame.exe con prioridad alta
+[21:36:13] [OK] ya estaba: valorant-win64-shipping.exe con prioridad alta
+[21:36:13] [OK] ya estaba: zenlesszonezero.exe con prioridad alta
+[21:36:13] [OK] ya estaba asi, no se toco nada
+[21:36:13] [LISTO] Prioridad alta aplicada (cerra y abri el juego para que la tome) - ya estaba todo aplicado
+[21:36:13] [PREG] S (app) - - Desea usar afinidad de CPU para tus juegos? (Juegos en los mejores nucleos y p
+[21:36:13] [INFO] == Afinidad de CPU para juegos
+[21:36:14] [INFO] Procesador: AMD Ryzen 7 9800X3D 8-Core Processor (8 nucleos iguales en un solo bloque): juegos en CPU 0-13, livianos en CPU 0-13, fondo en CPU 14-15
+[21:36:14] [OK] ya estaba: afinidad corriendo con los mismos juegos y programas
+[21:36:14] [OK] ya estaba asi, no se toco nada
+[21:36:14] [LISTO] Afinidad activa (si el juego ya estaba abierto, se aplica en unos segundos) - ya estaba todo aplicado
+[21:36:14] [PREG] S (app) - - Desea usar el plan Alto rendimiento? (Mas consumo y calor en notebook)
+[21:36:14] [INFO] == Plan de energia
+[21:36:14] [LISTO] Plan Alto rendimiento activo - ya estaba todo aplicado
+[21:36:14] [PREG] S (app) - - Desea activar el Modo Nitro del procesador? (Nucleos siempre despiertos, turbo
+[21:36:14] [INFO] == Modo Nitro del procesador
+[21:36:15] [OK] ya estaba: Modo Nitro del procesador en el plan 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+[21:36:15] [OK] ya estaba asi, no se toco nada
+[21:36:15] [OK] HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling PowerThrottlingOff = 1
+[21:36:15] [LISTO] Modo Nitro activo: nucleos 100, frecuencia 0 a 100, turbo 100 agresivo, subida rapida, ventiladores primero (con corriente) y sin limitar programas de fondo - 1 cambios hechos y verificados, 1 ya estaban
+[21:36:15] [PREG] S (app) - - Desea activar Baja latencia? (El CPU sube al maximo 1 a 3 segundos al abrir me
+[21:36:15] [INFO] == Baja latencia
+[21:36:15] [OK] ya estaba: Baja latencia activada (ID 58989092)
+[21:36:15] [OK] ya estaba asi, no se toco nada
+[21:36:15] [LISTO] Baja latencia activada (se aplica al reiniciar) - ya estaba todo aplicado
+[21:36:15] [PREG] S (app) - - Desea activar el Modo Juego? (Y evitar que el joystick abra la Game Bar)
+[21:36:15] [INFO] == Modo Juego
+[21:36:15] [OK] ya estaba HKCU\Software\Microsoft\GameBar AutoGameModeEnabled = 1
+[21:36:15] [OK] ya estaba HKCU\Software\Microsoft\GameBar AllowAutoGameMode = 1
+[21:36:15] [OK] ya estaba HKCU\Software\Microsoft\GameBar UseNexusForGameBarEnabled = 0
+[21:36:15] [OK] ya estaba HKCU\Software\Microsoft\GameBar GamepadNexusChordEnabled = 0
+[21:36:15] [LISTO] Modo Juego activo y Game Bar sin atajo del joystick - ya estaba todo aplicado
+[21:36:15] [PREG] S (app) - - Desea borrar la app Xbox Game Bar? (No toca los servicios de Xbox que usan los
+[21:36:15] [INFO] == Xbox Game Bar
+[21:36:16] [OK] ya estaba HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR AppCaptureEnabled = 0
+[21:36:16] [OK] ya estaba HKCU\System\GameConfigStore GameDVR_Enabled = 0
+[21:36:16] [OK] ya estaba HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR AllowGameDVR = 0
+[21:36:16] [OK] el protocolo ms-gamingoverlay ya estaba redirigido
+[21:36:16] [OK] el protocolo ms-gamebar ya estaba redirigido
+[21:36:16] [OK] el protocolo ms-gamebarservices ya estaba redirigido
+[21:36:16] [OK] ya estaba: la app Xbox Game Bar no esta instalada
+[21:36:16] [OK] ya estaba asi, no se toco nada
+[21:36:16] [LISTO] Xbox Game Bar borrada - ya estaba todo aplicado
+[21:36:16] [PREG] S (app) - - Desea desactivar las notificaciones de Windows? (Apaga los avisos emergentes y
+[21:36:16] [INFO] == Notificaciones de Windows
+[21:36:16] [OK] ya estaba HKCU\Software\Policies\Microsoft\Windows\Explorer DisableNotificationCenter = 1
+[21:36:16] [OK] ya estaba HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications ToastEnabled = 0
+[21:36:16] [LISTO] Notificaciones desactivadas (se aplica al reiniciar el Explorador o la PC) - ya estaba todo aplicado
+[21:36:16] [PREG] S (app) - - Desea optimizar juegos en ventana y GPU por hardware? (Menos latencia; pide re
+[21:36:16] [INFO] == Graficos
+[21:36:16] [OK] ya estaba asi en DirectXUserGlobalSettings
+[21:36:16] [OK] ya estaba asi, no se toco nada
+[21:36:16] [OK] ya estaba HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers HwSchMode = 2
+[21:36:16] [LISTO] Juegos en ventana optimizados y GPU acelerada por hardware (se aplica al reiniciar) - ya estaba todo aplicado
+[21:36:16] [PREG] S (app) - - Desea desactivar MPO? (Evita parpadeos y cursor invisible; pide reiniciar)
+[21:36:16] [INFO] == MPO
+[21:36:16] [OK] ya estaba HKLM\SOFTWARE\Microsoft\Windows\Dwm OverlayTestMode = 5
+[21:36:17] [LISTO] MPO desactivado (se aplica al reiniciar) - ya estaba todo aplicado
+[21:36:17] [PREG] S (app) - - Desea activar el modo MSI en la placa de video y la de red? (Menos latencia; p
+[21:36:17] [INFO] == Modo MSI
+[21:36:17] [OK] ya estaba: Intel(R) Wi-Fi 6E AX210 160MHz en modo MSI
+[21:36:17] [OK] ya estaba: Realtek Gaming 2.5GbE Family Controller en modo MSI
+[21:36:17] [OK] ya estaba: NVIDIA GeForce RTX 3080 en modo MSI
+[21:36:17] [OK] ya estaba asi, no se toco nada
+[21:36:17] [LISTO] Modo MSI activado (se aplica al reiniciar) - ya estaba todo aplicado
+[21:36:17] [PREG] S (app) - - Desea desactivar el Asistente de compatibilidad (PcaSvc)? (Evita ventanas que 
+[21:36:17] [INFO] == Asistente de compatibilidad (PcaSvc)
+[21:36:17] [OK] el servicio PcaSvc ya estaba con inicio disabled
+[21:36:17] [LISTO] Asistente de compatibilidad desactivado (se aplica al reiniciar) - ya estaba todo aplicado
+[21:36:17] [PREG] S (app) - - Desea fijar el temporizador del sistema en el minimo? (Siempre 0.5 ms; menos l
+[21:36:17] [INFO] == Temporizador al minimo
+[21:36:18] [OK] ya estaba: temporizador corriendo para todo el sistema
+[21:36:18] [OK] ya estaba asi, no se toco nada
+[21:36:18] [LISTO] Temporizador fijo en el minimo para todo el sistema (se aplica del todo al reiniciar) - ya estaba todo aplicado
+[21:36:18] [PREG] S (app) - - Desea activar la limpieza automatica de RAM en espera? (Vacia el cache al baja
+[21:36:18] [INFO] == Limpieza de RAM automatica
+[21:36:19] [OK] ya estaba: limpiador RAM corriendo
+[21:36:19] [OK] ya estaba asi, no se toco nada
+[21:36:19] [LISTO] Limpiador de RAM activado - ya estaba todo aplicado
+[21:36:19] [PREG] S (app) - - Desea desactivar SysMain y Prefetch? (Deja la RAM libre; hace falta 16 GB y SS
+[21:36:19] [INFO] == SysMain y Prefetch
+[21:36:19] [OK] el servicio SysMain ya estaba con inicio disabled
+[21:36:19] [OK] ya estaba HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters EnablePrefetcher = 0
+[21:36:19] [OK] ya estaba HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters EnableSuperfetch = 0
+[21:36:19] [LISTO] SysMain y Prefetch desactivados - ya estaba todo aplicado
+[21:36:19] [PREG] S (app) - - Desea desactivar el ahorro de energia de USB, PCIe y discos? (Evita microcorte
+[21:36:19] [INFO] == Ahorro de energia USB, PCIe y discos
+[21:36:19] [OK] ya estaba: suspension selectiva USB = corriente 0, bateria 0 en el plan 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+[21:36:19] [OK] ya estaba: ahorro de energia PCI Express = corriente 0, bateria 0 en el plan 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+[21:36:19] [OK] verificado: ahorro de energia de USB 3 (0 = apagado, 2 = moderado) = corriente 0, bateria 0 en el plan 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+[21:36:19] [OK] verificado: apagar el disco con corriente (segundos, 0 = nunca) = corriente 0 en el plan 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+[21:36:19] [LISTO] Ahorro de energia de USB, PCIe y discos desactivado - 1 cambios hechos y verificados, 0 ya estaban
+[21:36:19] [PREG] S (app) - - Desea desactivar el ahorro de energia de la red? (Menos picos de ping; no toca
+[21:36:19] [INFO] == Ahorro de energia de la placa de red
+[21:36:20] [OK] verificado por registro: Ethernet *EEE = 0 (se aplica al reiniciar la red)
+[21:36:20] [OK] verificado: Ethernet AdvancedEEE = 0
+[21:36:20] [OK] verificado: Ethernet EnableGreenEthernet = 0
+[21:36:20] [OK] verificado: Ethernet PowerSavingMode = 0
+[21:36:20] [LISTO] Ahorro de energia de la placa de red desactivado - 1 cambios hechos y verificados, 0 ya estaban
+[21:36:20] [PREG] N (app) - - Desea desactivar el algoritmo de Nagle? (Paquetes de red sin espera; menos pin
+[21:36:21] [PREG] S (app) - - Desea cambiar el DNS por el mas rapido para tu conexion? (R vuelve al DNS que 
+[21:36:21] [INFO] == DNS mas rapido
+[21:36:24] [INFO] prueba DNS Cloudflare: 31.1 ms (mediana), 0 fallos
+[21:36:24] [INFO] prueba DNS Google: 4.7 ms (mediana), 0 fallos
+[21:36:25] [INFO] prueba DNS Quad9: 4.6 ms (mediana), 0 fallos
+[21:36:26] [INFO] prueba DNS OpenDNS: 31.3 ms (mediana), 0 fallos
+[21:36:26] [INFO] DNS elegido: Quad9 9.9.9.9, 149.112.112.112
+[21:36:26] [OK] ya estaba: Ethernet usa 9.9.9.9, 149.112.112.112
+[21:36:26] [OK] ya estaba asi, no se toco nada
+[21:36:26] [LISTO] DNS cambiado por el mas rapido (los tiempos de cada uno estan en el log) - ya estaba todo aplicado
+[21:36:26] [PREG] S (app) - - Desea desactivar la Integridad de memoria? (Mas rendimiento, menos proteccion 
+[21:36:26] [INFO] == Integridad de memoria
+[21:36:26] [OK] ya estaba HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity Enabled = 0
+[21:36:26] [LISTO] Integridad de memoria desactivada (se aplica al reiniciar) - ya estaba todo aplicado
+[21:36:27] [OMITIDO] Antivirus liviano: el antivirus esta desactivado
+[21:36:27] [PREG] S (app) - - Desea desactivar VBS? (5 a 10 por ciento mas en juegos; rompe Docker, WSL y Hy
+[21:36:27] [INFO] == VBS
+[21:36:30] [OK] ya estaba: ninguna caracteristica de virtualizacion esta activa
+[21:36:30] [OK] ya estaba asi, no se toco nada
+[21:36:30] [OK] bcdedit hypervisorlaunchtype ya estaba en off
+[21:36:30] [OK] bcdedit vsmlaunchtype ya estaba en off
+[21:36:30] [OK] ya estaba HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard EnableVirtualizationBasedSecurity = 0
+[21:36:30] [OK] ya estaba HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard EnableVirtualizationBasedSecurity = 0
+[21:36:30] [OK] ya estaba HKLM\SYSTEM\CurrentControlSet\Control\Lsa LsaCfgFlags = 0
+[21:36:30] [LISTO] VBS desactivado (se aplica al reiniciar) - ya estaba todo aplicado
+[21:36:30] [PREG] S (app) - - Desea desactivar Windows Search? (Sin indexado: libera disco y CPU, pero la bu
+[21:36:30] [INFO] == Windows Search
+[21:36:30] [OK] el servicio WSearch ya estaba con inicio disabled
+[21:36:30] [LISTO] Windows Search desactivado - ya estaba todo aplicado
+[21:36:30] [PREG] S (app) - - Desea desactivar Storage Sense? (Windows deja de borrar archivos temporales po
+[21:36:30] [INFO] == Storage Sense
+[21:36:31] [OK] ya estaba HKLM\SOFTWARE\Policies\Microsoft\Windows\StorageSense AllowStorageSenseGlobal = 0
+[21:36:31] [LISTO] Storage Sense desactivado - ya estaba todo aplicado
+[21:36:31] [PREG] S (app) - - Desea mostrar las extensiones de los archivos? (Ves .exe, .bat, .txt al final 
+[21:36:31] [INFO] == Extensiones de archivo
+[21:36:31] [OK] ya estaba HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced HideFileExt = 0
+[21:36:31] [LISTO] Extensiones de archivo visibles - ya estaba todo aplicado
+[21:36:31] [PREG] S (app) - - Desea quitar el retraso de los menus? (Baja de 400 a 0 ms la espera al abrir m
+[21:36:31] [INFO] == Retraso de menus
+[21:36:31] [OK] ya estaba HKCU\Control Panel\Desktop MenuShowDelay = 0
+[21:36:31] [LISTO] Retraso de menus quitado (se aplica al volver a iniciar sesion) - ya estaba todo aplicado
+[21:36:31] [PREG] S (app) - - Desea preferir IPv4 sobre IPv6? (Puede bajar la latencia en juegos; IPv6 sigue
+[21:36:31] [INFO] == IPv4 preferido
+[21:36:31] [OK] ya estaba HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters DisabledComponents = 32
+[21:36:31] [LISTO] IPv4 preferido (se aplica al reiniciar) - ya estaba todo aplicado
+[21:36:31] [INFO] Fin. Cambios fallidos: 0, opciones con problemas: 0
+[21:36:31] [PREG] N (app) - Desea abrir el log ahora?
+[21:36:31] [PREG] N (app) - Desea reiniciar ahora?

@@ -1,6 +1,15 @@
 @echo off
 setlocal EnableExtensions
 set "XUCA_SELF=%~f0"
+rem ============================================================
+rem  ACTUALIZACIONES DESDE GITHUB
+rem  La version se controla con el archivo version.txt del repo.
+rem  Si el version.txt de GitHub es distinto al que tenes en tu PC,
+rem  al abrir sale el cartel amarillo de actualizacion.
+rem ============================================================
+set "XUCA_REPO=011Xuca/xuca-optimizer"
+set "XUCA_RAMA=main"
+set "XUCA_GH=scripts/optimizacion_gaming.bat"
 rem Si el archivo quedo con saltos de linea de Linux (LF), cmd salta a etiquetas equivocadas: se corrige solo y se vuelve a abrir.
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $f=$env:XUCA_SELF; $e=[Text.Encoding]::GetEncoding(28591); $t=$e.GetString([IO.File]::ReadAllBytes($f)); if ($t -match '(^|[^\r])\n') { [IO.File]::WriteAllText($f, ($t -replace '\r?\n', ([string][char]13 + [char]10)), $e); exit 9 }; exit 0 } catch { exit 0 }" >nul 2>&1
 if errorlevel 9 "%~f0" %*
@@ -33,7 +42,7 @@ set "VGT="
 set "QACT="
 set "REINICIO="
 rem Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
-set "REIN_IDS= tk mm notif gf mpo msi pca tr mi ex vbs md v4 ll "
+set "REIN_IDS= tk mm notif gf mpo msi pca tr mi vbs md v4 ll nag "
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
@@ -41,6 +50,14 @@ if %errorlevel% neq 0 (
     powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
     exit /b
 )
+
+rem Buscar actualizacion en GitHub (no corre cuando lo usa la app ni cuando se abre con parametros).
+rem Si hay una version nueva muestra el cartel amarillo y pregunta. Si la bajas, se cierra esta ventana y se abre la nueva.
+if defined XUCA_AUTO goto upd_fin
+if not "%~1"=="" goto upd_fin
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$global:XucaUpd=0; try { $s=[IO.File]::ReadAllText($env:XUCA_SELF); $a='<#'+'XUCA-UPD'; $b='XUCA-UPD'+'#>'; $i=$s.IndexOf($a)+$a.Length; Invoke-Expression $s.Substring($i, $s.IndexOf($b)-$i) } catch { }; exit [int]$global:XucaUpd"
+if errorlevel 10 exit
+:upd_fin
 
 del /q "%TEMP%\xuca_info.txt" >nul 2>&1
 set "ACT=INFO"
@@ -170,26 +187,32 @@ echo.
 echo %C_TIT%=== TECLADO ===%C_RST%
 
 echo.
-echo   Que hace: apretar Shift 5 veces ya no abre carteles de accesibilidad.
-echo   A favor: no te saca del juego en medio de una partida.
-echo   En contra: si usas Teclas especiales por accesibilidad, las activas a mano.
+echo   Que hace: apaga los atajos de accesibilidad que se activan sin querer jugando: Shift 5 veces, Shift derecho 8 segundos, Bloq Num 5 segundos, Alt+Shift+Bloq Num ^(teclas del mouse^), Alt+Shift+Impr Pant ^(alto contraste^) y Win+Ctrl+Enter ^(Narrador^).
+echo   A favor: no te saca del juego en medio de una partida ni te cambia los colores de toda la pantalla.
+echo   En contra: si usas alguna de estas funciones por accesibilidad, la activas a mano desde Configuracion.
 set "QID=tk"
-set "Q=- Desea desactivar los avisos de Teclas especiales? (Shift x5 ya no abre carteles en partida)"
+set "Q=- Desea desactivar los atajos de accesibilidad? (Shift x5, Alt+Shift y otros ya no abren carteles en partida)"
 call :askR
 if errorlevel 3 goto tk_r
 if errorlevel 2 goto tk_fin
-call :opt_ini "Teclas especiales"
+call :opt_ini "Atajos de accesibilidad"
 call :reg "HKCU\Control Panel\Accessibility\StickyKeys" "Flags" REG_SZ 506
 call :reg "HKCU\Control Panel\Accessibility\Keyboard Response" "Flags" REG_SZ 122
 call :reg "HKCU\Control Panel\Accessibility\ToggleKeys" "Flags" REG_SZ 58
-call :opt_fin "Avisos de Teclas especiales desactivados"
+call :reg "HKCU\Control Panel\Accessibility\MouseKeys" "Flags" REG_SZ 58
+call :reg "HKCU\Control Panel\Accessibility\HighContrast" "Flags" REG_SZ 122
+call :reg "HKCU\Software\Microsoft\Narrator\NoRoam" "WinEnterLaunchEnabled" REG_DWORD 0
+call :opt_fin "Atajos de accesibilidad desactivados"
 goto tk_fin
 :tk_r
-call :opt_ini "Teclas especiales (restaurar)"
+call :opt_ini "Atajos de accesibilidad (restaurar)"
 call :reg "HKCU\Control Panel\Accessibility\StickyKeys" "Flags" REG_SZ 510
 call :reg "HKCU\Control Panel\Accessibility\Keyboard Response" "Flags" REG_SZ 126
 call :reg "HKCU\Control Panel\Accessibility\ToggleKeys" "Flags" REG_SZ 62
-call :opt_fin "Avisos de Teclas especiales restaurados"
+call :reg "HKCU\Control Panel\Accessibility\MouseKeys" "Flags" REG_SZ 62
+call :reg "HKCU\Control Panel\Accessibility\HighContrast" "Flags" REG_SZ 126
+call :reg "HKCU\Software\Microsoft\Narrator\NoRoam" "WinEnterLaunchEnabled" REG_DWORD 1
+call :opt_fin "Atajos de accesibilidad restaurados"
 :tk_fin
 
 echo.
@@ -220,7 +243,7 @@ echo.
 echo %C_TIT%=== CPU Y PRIORIDAD ===%C_RST%
 
 echo.
-echo   Que hace: el programador multimedia de Windows le da mas prioridad a los juegos y saca el limite de red.
+echo   Que hace: el programador multimedia de Windows le da mas prioridad a los juegos. El limite de red queda en 10, el valor de Windows, porque sacarlo puede empeorar la latencia.
 echo   A favor: un poco mas de CPU para el juego y menos tirones.
 echo   En contra: el efecto es chico.
 set "QID=mm"
@@ -233,7 +256,7 @@ call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemPr
 call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "Priority" REG_DWORD 6
 call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "Scheduling Category" REG_SZ High
 call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "SFIO Priority" REG_SZ High
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" "NetworkThrottlingIndex" REG_DWORD 0xffffffff
+call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" "NetworkThrottlingIndex" REG_DWORD 10
 call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" "SystemResponsiveness" REG_DWORD 10
 call :opt_fin "Prioridad multimedia para juegos aplicada"
 goto mm_fin
@@ -400,12 +423,16 @@ echo     lo que da mas FPS cuando el juego lo necesita.
 echo   - Rendimiento al maximo: Windows prioriza la velocidad por sobre el ahorro de energia.
 echo   - Frecuencia minima en 0: en reposo el procesador puede bajar su velocidad para no calentarse de mas.
 echo     No limita el rendimiento cuando juegas.
+echo   - Frecuencia maxima en 100 y turbo agresivo: el procesador sube por encima de su base todo lo que puede.
+echo   - Subida rapida: cuando el juego pide mas CPU, la velocidad sube de golpe y no de a poco ^(en procesadores viejos^).
+echo   - Ventiladores primero: si se calienta, Windows acelera los ventiladores antes de bajarle la velocidad al procesador.
+echo   - Sin limitar programas de fondo: Windows deja de frenar los procesos en segundo plano para ahorrar energia.
 echo.
-echo %C_WARN%AVISO: a cambio hay un poco mas de consumo y calor, sobre todo en reposo.%C_RST%
+echo %C_WARN%AVISO: a cambio hay un poco mas de consumo, calor y ruido de ventiladores, sobre todo en reposo.%C_RST%
 echo.
-echo   Que hace: deja todos los nucleos activos y el turbo y el rendimiento al maximo, solo con la PC enchufada.
+echo   Que hace: deja todos los nucleos activos, el turbo al maximo y en modo agresivo, la subida de velocidad rapida y los ventiladores antes que bajar la velocidad, con la PC enchufada; ademas Windows deja de frenar los programas de fondo.
 echo   A favor: menos tirones cuando el juego pide mas CPU de golpe.
-echo   En contra: un poco mas de consumo y calor.
+echo   En contra: mas consumo, calor y ruido de ventiladores.
 set "QID=cpu"
 set "Q=- Desea activar el Modo Nitro del procesador? (Nucleos siempre despiertos, turbo y rendimiento al maximo, solo con corriente)"
 call :askR
@@ -415,13 +442,15 @@ call :opt_ini "Modo Nitro del procesador"
 set "ACT=CPU_ON"
 call :aplicar_ps
 call :resps
-call :opt_fin "Modo Nitro activo: nucleos 100, frecuencia 0, turbo 100, rendimiento 100 (con corriente)"
+call :reg "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" "PowerThrottlingOff" REG_DWORD 1
+call :opt_fin "Modo Nitro activo: nucleos 100, frecuencia 0 a 100, turbo 100 agresivo, subida rapida, ventiladores primero (con corriente) y sin limitar programas de fondo"
 goto cpu_fin
 :cpu_r
 call :opt_ini "Modo Nitro del procesador (restaurar)"
 set "ACT=CPU_OFF"
 call :aplicar_ps
 call :resps
+call :regdel "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" "PowerThrottlingOff"
 call :opt_fin "Procesador restaurado a tus valores anteriores"
 :cpu_fin
 
@@ -737,26 +766,26 @@ echo %C_TIT%=== ENERGIA Y RED ===%C_RST%
 echo.
 echo %C_WARN%AVISO: Si tienes dispositivos inalambricos (Bluetooth o 2.4 GHz), desactivar esto puede bajar la bateria mas rapido si no tienen un driver dedicado que los apague.%C_RST%
 echo.
-echo   Que hace: apaga el ahorro de energia de USB y PCI Express.
-echo   A favor: evita microcortes del mouse y el teclado.
-echo   En contra: mas consumo de bateria en notebook.
+echo   Que hace: apaga el ahorro de energia de USB, USB 3 y PCI Express, y con la PC enchufada los discos ya no se apagan solos.
+echo   A favor: evita microcortes del mouse y el teclado, y los tirones de unos segundos cuando un disco HDD se vuelve a encender.
+echo   En contra: mas consumo de bateria en notebook; los discos HDD quedan girando mientras la PC esta prendida.
 set "QID=pe"
-set "Q=- Desea desactivar el ahorro de energia de USB y PCIe? (Evita microcortes de mouse y teclado)"
+set "Q=- Desea desactivar el ahorro de energia de USB, PCIe y discos? (Evita microcortes de mouse y teclado, y tirones de discos HDD)"
 call :askR
 if errorlevel 3 goto pe_r
 if errorlevel 2 goto pe_fin
-call :opt_ini "Ahorro de energia USB y PCIe"
+call :opt_ini "Ahorro de energia USB, PCIe y discos"
 set "ACT=PWR_OFF"
 call :aplicar_ps
 call :resps
-call :opt_fin "Ahorro de energia de USB y PCIe desactivado"
+call :opt_fin "Ahorro de energia de USB, PCIe y discos desactivado"
 goto pe_fin
 :pe_r
-call :opt_ini "Ahorro de energia USB y PCIe (restaurar)"
+call :opt_ini "Ahorro de energia USB, PCIe y discos (restaurar)"
 set "ACT=PWR_ON"
 call :aplicar_ps
 call :resps
-call :opt_fin "Ahorro de energia de USB y PCIe restaurado"
+call :opt_fin "Ahorro de energia de USB, PCIe y discos restaurado"
 :pe_fin
 
 echo.
@@ -784,6 +813,28 @@ call :aplicar_ps
 call :resps
 call :opt_fin "Ahorro de energia de la placa de red restaurado"
 :nic_fin
+echo.
+echo   Que hace: apaga el algoritmo de Nagle en tus conexiones de red: Windows manda cada paquete chico al instante en vez de juntarlos y esperar.
+echo   A favor: puede bajar unos milisegundos el ping en juegos que usan TCP, como Minecraft o juegos de MMO y estrategia.
+echo   En contra: la mayoria de los shooters modernos usan UDP y no notan cambio; con conexiones lentas puede subir un poco el uso de red.
+set "QID=nag"
+set "Q=- Desea desactivar el algoritmo de Nagle? (Paquetes de red sin espera; menos ping en juegos que usan TCP; pide reiniciar)"
+call :askR
+if errorlevel 3 goto nag_r
+if errorlevel 2 goto nag_fin
+call :opt_ini "Algoritmo de Nagle"
+set "ACT=NAGLE_OFF"
+call :aplicar_ps
+call :resps
+call :opt_fin "Algoritmo de Nagle desactivado (se aplica al reiniciar)"
+goto nag_fin
+:nag_r
+call :opt_ini "Algoritmo de Nagle (restaurar)"
+set "ACT=NAGLE_ON"
+call :aplicar_ps
+call :resps
+call :opt_fin "Algoritmo de Nagle restaurado a como viene en Windows (se aplica al reiniciar)"
+:nag_fin
 
 echo.
 echo.
@@ -873,32 +924,6 @@ call :opt_fin "Antivirus con su limite de CPU original"
 
 :av_skip_avl
 
-echo.
-echo %C_WARN%AVISO: Riot recomienda dejar DEP, ASLR, SEHOP y heap en predeterminado para Valorant.%C_RST%
-echo %C_WARN%Si da el error VAN9002 despues de esto, usa R.%C_RST%
-echo.
-echo   Que hace: apaga DEP, ASLR, SEHOP y la proteccion del heap; CFG queda activo.
-echo   A favor: algo de rendimiento y menos cierres raros en juegos viejos.
-echo   En contra: menos proteccion contra ataques, y Valorant puede dar el error VAN9002.
-set "QID=ex"
-set "Q=- Desea apagar la Proteccion contra vulnerabilidades? (DEP, ASLR, SEHOP y heap; el CFG queda activo)"
-call :askR
-if errorlevel 3 goto ex_r
-if errorlevel 2 goto ex_fin
-call :opt_ini "Proteccion contra vulnerabilidades"
-set "ACT=EXPLOIT_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Proteccion contra vulnerabilidades apagada, CFG intacto (se aplica al reiniciar)"
-call :vanguard_check
-goto ex_fin
-:ex_r
-call :opt_ini "Proteccion contra vulnerabilidades (restaurar)"
-set "ACT=EXPLOIT_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Proteccion contra vulnerabilidades restaurada (se aplica al reiniciar)"
-:ex_fin
 
 echo.
 echo   Que hace: apaga la seguridad basada en virtualizacion.
@@ -1052,6 +1077,8 @@ goto rsm_fin
 echo %C_ERR%  Cambios que fallaron: %NFALLO%  -  Opciones con problemas: %NATEN%%C_RST%
 :rsm_fin
 echo   Log completo en: %LOG%
+if not defined XUCA_AUTO echo.
+if not defined XUCA_AUTO echo %C_TIT%Este proyecto es gratis. Si te sirvio y queres apoyarme: https://ko-fi.com/011xuca%C_RST%
 call :log "INFO" "Fin. Cambios fallidos: %NFALLO%, opciones con problemas: %NATEN%"
 
 if not defined VGAVISO goto sin_aviso_vg
@@ -1763,10 +1790,7 @@ switch ($env:ACT) {
 
     'ORIG_CHECK' {
         $motivos = New-Object System.Collections.Generic.List[string]
-        try {
-            $lic = Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" -ErrorAction Stop | Select-Object -First 1
-            if ($lic -and $lic.LicenseStatus -ne 1) { $motivos.Add('Windows no esta activado o la activacion no es valida') }
-        } catch { }
+        # Windows sin activar no cuenta como no original (es un Windows normal, solo falta la licencia)
         foreach ($sv in 'TrustedInstaller', 'wuauserv', 'WinDefend') {
             if (-not (Get-Service -Name $sv -ErrorAction SilentlyContinue)) { $motivos.Add('falta el servicio ' + $sv + ', tipico de versiones recortadas') }
         }
@@ -1908,37 +1932,85 @@ switch ($env:ACT) {
             Log 'FALLO' 'no se pudo leer el plan de energia activo'
             $code = 1
         } else {
+            $on = ($env:ACT -eq 'PWR_ON')
             $usb = 0
             $pcie = 0
-            if ($env:ACT -eq 'PWR_ON') {
+            if ($on) {
                 $usb = 1
                 $pcie = 1
                 if ($g -in '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c', 'e9a42b02-d5df-448d-aa00-03f14749eb61') { $pcie = 0 }
             }
+            # Ac / Dc = valor con corriente / con bateria ($null = no se toca). Opc = si no existe en esta PC, se saltea.
             $cfg = @(
-                @{ Nom = 'suspension selectiva USB'; Sub = '2a737441-1930-4402-8d77-b2bebba308a3'; Cfg = '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'; Val = $usb },
-                @{ Nom = 'ahorro de energia PCI Express'; Sub = '501a4d13-42af-4429-9fd1-a8218c268e20'; Cfg = 'ee12f906-d277-404b-b6da-e5fa1a576df5'; Val = $pcie }
+                @{ Nom = 'suspension selectiva USB'; Sub = '2a737441-1930-4402-8d77-b2bebba308a3'; Cfg = '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'; Ac = $usb; Dc = $usb },
+                @{ Nom = 'ahorro de energia PCI Express'; Sub = '501a4d13-42af-4429-9fd1-a8218c268e20'; Cfg = 'ee12f906-d277-404b-b6da-e5fa1a576df5'; Ac = $pcie; Dc = $pcie },
+                @{ Nom = 'ahorro de energia de USB 3 (0 = apagado, 2 = moderado)'; Sub = '2a737441-1930-4402-8d77-b2bebba308a3'; Cfg = 'd4e98f31-5ffe-4ce1-be31-1b38b384c009'; Ac = $(if ($on) { 2 } else { 0 }); Dc = $(if ($on) { 2 } else { 0 }); Opc = $true },
+                @{ Nom = 'apagar el disco con corriente (segundos, 0 = nunca)'; Sub = '0012ee47-9041-4b5d-9b77-535fba8b1442'; Cfg = '6738e2c4-e8a5-4a42-b16a-e040e769756e'; Ac = $(if ($on) { 1200 } else { 0 }); Dc = $null; Opc = $true }
             )
             $hizo = $false
             foreach ($c in $cfg) {
+                if ($c.Opc) {
+                    & powercfg /query $g $c.Sub $c.Cfg *> $null
+                    if ($LASTEXITCODE -ne 0) { Log 'OMITIDO' ('no existe en esta PC: ' + $c.Nom); continue }
+                }
                 $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $g + '\' + $c.Sub + '\' + $c.Cfg
                 $ac = (Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue).ACSettingIndex
                 $dc = (Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue).DCSettingIndex
-                if (($ac -eq $c.Val) -and ($dc -eq $c.Val)) {
-                    Log 'OK' ('ya estaba: ' + $c.Nom + ' = ' + $c.Val + ' en el plan ' + $g)
+                $txt = 'corriente ' + $c.Ac + $(if ($null -ne $c.Dc) { ', bateria ' + $c.Dc } else { '' })
+                if (($ac -eq $c.Ac) -and (($null -eq $c.Dc) -or ($dc -eq $c.Dc))) {
+                    Log 'OK' ('ya estaba: ' + $c.Nom + ' = ' + $txt + ' en el plan ' + $g)
                     continue
                 }
                 $hizo = $true
-                & powercfg /setacvalueindex $g $c.Sub $c.Cfg $c.Val
+                & powercfg /setacvalueindex $g $c.Sub $c.Cfg $c.Ac
                 $a = $LASTEXITCODE
-                & powercfg /setdcvalueindex $g $c.Sub $c.Cfg $c.Val
-                $d = $LASTEXITCODE
+                $d = 0
+                if ($null -ne $c.Dc) { & powercfg /setdcvalueindex $g $c.Sub $c.Cfg $c.Dc; $d = $LASTEXITCODE }
                 $v = (Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue).ACSettingIndex
-                if ($a -eq 0 -and $d -eq 0 -and $v -eq $c.Val) { Log 'OK' ('verificado: ' + $c.Nom + ' = ' + $c.Val + ' en el plan ' + $g) }
+                if ($a -eq 0 -and $d -eq 0 -and $v -eq $c.Ac) { Log 'OK' ('verificado: ' + $c.Nom + ' = ' + $txt + ' en el plan ' + $g) }
                 else { Log 'FALLO' ('no se pudo verificar ' + $c.Nom); $code = 1 }
             }
             if ($hizo) { & powercfg /setactive $g }
             elseif ($code -eq 0) { $code = 5 }
+        }
+    }
+
+    { $_ -eq 'NAGLE_OFF' -or $_ -eq 'NAGLE_ON' } {
+        # NAGLE_OFF: TcpAckFrequency 1, TCPNoDelay 1 y TcpDelAckTicks 0 en cada conexion con IP.
+        # NAGLE_ON: se borran esos valores y Windows vuelve a su comportamiento normal.
+        $base = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces'
+        $vals = [ordered]@{ TcpAckFrequency = 1; TCPNoDelay = 1; TcpDelAckTicks = 0 }
+        $ifs = @(Get-ChildItem -Path $base -ErrorAction SilentlyContinue | Where-Object {
+            $pp = Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue
+            $ips = @(@($pp.DhcpIPAddress) + @($pp.IPAddress) | Where-Object { ([string]$_) -match '^\d+\.\d+\.\d+\.\d+$' -and ([string]$_) -ne '0.0.0.0' })
+            $ips.Count -gt 0
+        })
+        if ($ifs.Count -eq 0) {
+            Log 'OMITIDO' 'no se encontro ninguna conexion de red con IP'
+            $code = 2
+        } else {
+            $hizo = $false
+            foreach ($k in $ifs) {
+                $id = Split-Path -Leaf $k.Name
+                foreach ($n in @($vals.Keys)) {
+                    $act = (Get-ItemProperty -Path $k.PSPath -ErrorAction SilentlyContinue).$n
+                    if ($env:ACT -eq 'NAGLE_OFF') {
+                        if (($null -ne $act) -and ([int]$act -eq $vals[$n])) { Log 'OK' ('ya estaba: ' + $id + ' ' + $n + ' = ' + $vals[$n]); continue }
+                        $hizo = $true
+                        try { New-ItemProperty -Path $k.PSPath -Name $n -Value $vals[$n] -PropertyType DWord -Force -ErrorAction Stop | Out-Null } catch { }
+                        $v = (Get-ItemProperty -Path $k.PSPath -ErrorAction SilentlyContinue).$n
+                        if (($null -ne $v) -and ([int]$v -eq $vals[$n])) { Log 'OK' ('verificado: ' + $id + ' ' + $n + ' = ' + $vals[$n]) }
+                        else { Log 'FALLO' ('no se pudo poner ' + $id + ' ' + $n); $code = 1 }
+                    } else {
+                        if ($null -eq $act) { Log 'OK' ('ya no existia: ' + $id + ' ' + $n); continue }
+                        $hizo = $true
+                        try { Remove-ItemProperty -Path $k.PSPath -Name $n -ErrorAction Stop } catch { }
+                        if ($null -eq (Get-ItemProperty -Path $k.PSPath -ErrorAction SilentlyContinue).$n) { Log 'OK' ('borrado: ' + $id + ' ' + $n) }
+                        else { Log 'FALLO' ('no se pudo borrar ' + $id + ' ' + $n); $code = 1 }
+                    }
+                }
+            }
+            if ((-not $hizo) -and ($code -eq 0)) { $code = 5 }
         }
     }
 
@@ -2263,7 +2335,12 @@ switch ($env:ACT) {
                 @{ Nom = 'nucleos activos (core parking)'; Cfg = '0cc5b647-c1df-4637-891a-dec35c318583'; Val = 100 },
                 @{ Nom = 'estado minimo del procesador (frequency scaling)'; Cfg = '893dee8e-2bef-41e0-89c6-b55d0929964c'; Val = 0 },
                 @{ Nom = 'turbo boost'; Cfg = '45bcc044-d885-43e2-8605-ee0ec6e96b59'; Val = 100 },
-                @{ Nom = 'rendimiento (preferencia energia-rendimiento, 0 = maximo)'; Cfg = '36687f9e-e3a5-4dbf-b1dc-15eb381c6863'; Val = 0 }
+                @{ Nom = 'rendimiento (preferencia energia-rendimiento, 0 = maximo)'; Cfg = '36687f9e-e3a5-4dbf-b1dc-15eb381c6863'; Val = 0 },
+                # Extras: si alguno no existe en esta PC (depende del procesador y de Windows) se saltea sin dar error
+                @{ Nom = 'estado maximo del procesador'; Cfg = 'bc5038f7-23e0-4960-96da-33abaf5935ec'; Val = 100; Opc = $true },
+                @{ Nom = 'modo del turbo (2 = agresivo)'; Cfg = 'be337238-6d82-4146-a960-4f3749d470c7'; Val = 2; Opc = $true },
+                @{ Nom = 'subida de velocidad (2 = rapida, Rocket)'; Cfg = '465e1f50-b610-473a-ab58-00d1077dc418'; Val = 2; Opc = $true },
+                @{ Nom = 'enfriamiento (1 = ventiladores primero, activo)'; Cfg = '94d3a615-a899-4ac5-ae2b-e4d8f634367f'; Val = 1; Opc = $true }
             )
             $dir = Join-Path $env:ProgramData 'XucaScripts'
             $bak = Join-Path $dir ('cpu_' + $g + '.txt')
@@ -2295,6 +2372,8 @@ switch ($env:ACT) {
                 Log 'INFO' ('detalle ' + $c.Nom + ': codigo de powercfg=' + $a + ', antes=' + $antes + ', pedido=' + $val + ', leido con powercfg=' + $q + ', leido en el registro=' + $r + ', mensaje=' + ($out -replace '\s+', ' ') + ' ' + $raw)
                 return $false
             }
+            # Los extras que no existen en esta PC se sacan de la lista
+            $cfg = @($cfg | Where-Object { (-not $_.Opc) -or ($null -ne (Actual $_.Cfg)) })
             if ($env:ACT -eq 'CPU_ON') {
                 $faltan = @($cfg | Where-Object { (Actual $_.Cfg) -ne $_.Val })
                 if ($faltan.Count -eq 0) {
@@ -2304,6 +2383,10 @@ switch ($env:ACT) {
                     $sinCopia = $false
                     if (Test-Path $bak) {
                         Log 'INFO' ('ya existia una copia de tus valores anteriores, se conserva: ' + $bak)
+                        # Si la copia es de una version vieja del script, se le suman los ajustes nuevos con su valor de ahora
+                        $tiene = @(Get-Content $bak | ForEach-Object { ($_ -split '=')[0] })
+                        $suma = @(foreach ($c in $cfg) { if ($tiene -notcontains $c.Cfg) { $c.Cfg + '=' + (Actual $c.Cfg) } })
+                        if ($suma.Count -gt 0) { Add-Content -Path $bak -Value $suma; Log 'INFO' ('se sumaron ' + $suma.Count + ' ajustes nuevos a la copia de tus valores anteriores') }
                     } else {
                         if (-not (Test-Path $dir)) {
                             New-Item -Path $dir -ItemType Directory -Force | Out-Null
@@ -2410,59 +2493,6 @@ public static class SpiNative {
             $m = Get-MpPreference
             if ($m.ScanAvgCPULoadFactor -eq 50 -and $m.EnableLowCpuPriority -eq $false) { Log 'OK' 'verificado: limite de CPU del antivirus restaurado' }
             else { Log 'FALLO' 'no se pudo verificar el limite de CPU del antivirus'; $code = 1 }
-        }
-    }
-
-     'EXPLOIT_OFF' {
-        $pm = Get-ProcessMitigation -System
-        $ya = (([string]$pm.DEP.Enable -in 'OFF','NOTSET') -and ([string]$pm.SEHOP.Enable -in 'OFF','NOTSET') -and ([string]$pm.ASLR.BottomUp -in 'OFF','NOTSET') -and ([string]$pm.ASLR.HighEntropy -in 'OFF','NOTSET') -and ([string]$pm.Heap.TerminateOnError -in 'OFF','NOTSET'))
-        if ($ya) {
-            Log 'OK' 'ya estaba: DEP, SEHOP, ASLR e integridad del heap apagados'
-            $code = 5
-        } else {
-            foreach ($i in 'DEP', 'SEHOP', 'BottomUp', 'HighEntropy', 'TerminateOnError') {
-                try { Set-ProcessMitigation -System -Disable $i -ErrorAction Stop } catch { Log 'FALLO' ($i + ': ' + $_.Exception.Message); $code = 1 }
-            }
-            $pm = Get-ProcessMitigation -System
-            $vals = @(
-                @{ N = 'DEP'; V = [string]$pm.DEP.Enable },
-                @{ N = 'SEHOP'; V = [string]$pm.SEHOP.Enable },
-                @{ N = 'ASLR ascendente'; V = [string]$pm.ASLR.BottomUp },
-                @{ N = 'ASLR de alta entropia'; V = [string]$pm.ASLR.HighEntropy },
-                @{ N = 'integridad del heap'; V = [string]$pm.Heap.TerminateOnError }
-            )
-            foreach ($x in $vals) {
-                if (($x.V -eq 'OFF') -or ($x.V -eq 'NOTSET')) { Log 'OK' ('verificado: ' + $x.N + ' apagado (' + $x.V + ')') }
-                else { Log 'FALLO' ($x.N + ' quedo en ' + $x.V); $code = 1 }
-            }
-        }
-        $cfg = [string]$pm.CFG.Enable
-        if ($cfg -ne 'OFF') { Log 'OK' ('verificado: CFG intacto (' + $cfg + ')') }
-        else { Log 'FALLO' 'el CFG aparece apagado, activalo en Seguridad de Windows > Proteccion contra vulnerabilidades'; $code = 1 }
-    }
-
-    'EXPLOIT_ON' {
-        $pm = Get-ProcessMitigation -System
-        $ya = (([string]$pm.DEP.Enable -in 'ON','NOTSET') -and ([string]$pm.SEHOP.Enable -in 'ON','NOTSET') -and ([string]$pm.ASLR.BottomUp -in 'ON','NOTSET') -and ([string]$pm.ASLR.HighEntropy -in 'ON','NOTSET') -and ([string]$pm.Heap.TerminateOnError -in 'ON','NOTSET'))
-        if ($ya) {
-            Log 'OK' 'ya estaba: DEP, SEHOP, ASLR e integridad del heap activados'
-            $code = 5
-        } else {
-            foreach ($i in 'DEP', 'SEHOP', 'BottomUp', 'HighEntropy', 'TerminateOnError') {
-                try { Set-ProcessMitigation -System -Enable $i -ErrorAction Stop } catch { Log 'FALLO' ($i + ': ' + $_.Exception.Message); $code = 1 }
-            }
-            $pm = Get-ProcessMitigation -System
-            $vals = @(
-                @{ N = 'DEP'; V = [string]$pm.DEP.Enable },
-                @{ N = 'SEHOP'; V = [string]$pm.SEHOP.Enable },
-                @{ N = 'ASLR ascendente'; V = [string]$pm.ASLR.BottomUp },
-                @{ N = 'ASLR de alta entropia'; V = [string]$pm.ASLR.HighEntropy },
-                @{ N = 'integridad del heap'; V = [string]$pm.Heap.TerminateOnError }
-            )
-            foreach ($x in $vals) {
-                if (($x.V -eq 'ON') -or ($x.V -eq 'NOTSET')) { Log 'OK' ('verificado: ' + $x.N + ' en su valor por defecto (' + $x.V + ')') }
-                else { Log 'FALLO' ($x.N + ' quedo en ' + $x.V); $code = 1 }
-            }
         }
     }
 
@@ -2795,3 +2825,134 @@ public static class SpiNative {
 }
 
 exit $code
+
+<#XUCA-UPD
+# ------------------------------------------------------------
+# Buscador de actualizaciones. Lo corre la parte de arriba del .bat.
+# Esta dentro de un comentario para que el resto del PowerShell de este archivo lo ignore.
+# Compara el version.txt de tu PC con el de GitHub: si son distintos, avisa.
+# ------------------------------------------------------------
+& {
+    $ErrorActionPreference = 'Stop'
+    $repo = [string]$env:XUCA_REPO; $rama = [string]$env:XUCA_RAMA; $gh = [string]$env:XUCA_GH
+    $self = [string]$env:XUCA_SELF
+    if ((-not $repo) -or ($repo -like 'TU_USUARIO*')) { return }
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
+    $latin = [Text.Encoding]::GetEncoding(28591)
+    $base = 'https://raw.githubusercontent.com/' + $repo + '/' + $rama + '/'
+
+    # Si el .bat esta en la carpeta scripts de la app, el version.txt es el de la app (al lado de XucaOP.ps1).
+    # Si esta suelto, el version.txt va en la misma carpeta que el .bat.
+    $dir = Split-Path -Parent $self
+    $arriba = Split-Path -Parent $dir
+    $conApp = [bool]($arriba -and (Test-Path -LiteralPath (Join-Path $arriba 'XucaOP.ps1')))
+    $raiz = $(if ($conApp) { $arriba } else { $dir })
+    $verLocal = Join-Path $raiz 'version.txt'
+
+    function Limpiar([string]$t) { return (($t -replace '^(\u00EF\u00BB\u00BF|\uFEFF)', '') -split "`r?`n")[0].Trim() }
+    function Bajar([string]$remoto, [int]$espera, [string]$etiqueta) {
+        $rq = [Net.HttpWebRequest]::Create($base + $remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
+        $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'XucaOP'
+        $rs = $rq.GetResponse()
+        try {
+            $len = $rs.ContentLength
+            $st = $rs.GetResponseStream(); $ms = New-Object IO.MemoryStream; $buf = New-Object byte[] 65536
+            while (($r = $st.Read($buf, 0, $buf.Length)) -gt 0) {
+                $ms.Write($buf, 0, $r)
+                if ($etiqueta -and ($len -gt 0)) { [Console]::Write("`r  Descargando " + $etiqueta + ': ' + [int](100 * $ms.Length / $len) + '%   ') }
+            }
+            if ($etiqueta) { [Console]::WriteLine('') }
+            return $latin.GetString($ms.ToArray())
+        } finally { $rs.Close() }
+    }
+
+    $local = ''
+    if (Test-Path -LiteralPath $verLocal) { try { $local = Limpiar ([IO.File]::ReadAllText($verLocal)) } catch { } }
+    [Console]::Write('Buscando actualizaciones...')
+    $remota = ''
+    try { $remota = Limpiar (Bajar 'version.txt' 4000 '') } catch { }
+    [Console]::Write("`r" + (' ' * 30) + "`r")
+    if ((-not $remota) -or ($remota -eq $local)) { return }
+
+    # Cartel amarillo. En Windows Terminal se ve el simbolo de advertencia; en la consola vieja va /!\
+    $icono = '/!\'
+    if ($env:WT_SESSION) { $icono = [string][char]0x26A0 }
+    $ancho = 76
+    try { $ancho = [math]::Max(40, [math]::Min([Console]::WindowWidth - 1, 76)) } catch { }
+    $tuya = $(if ($local) { $local } else { 'sin version' })
+    Write-Host ''
+    foreach ($l in @('', ('  ' + $icono + '  HAY UNA ACTUALIZACION DISPONIBLE'), ('     Tenes la version ' + $tuya + ' y en GitHub esta la ' + $remota + '.'), '     Si la bajas, se cierra esta ventana y se abre la version nueva sola.', '')) {
+        $t = $l; if ($t.Length -gt $ancho) { $t = $t.Substring(0, $ancho) }
+        Write-Host ($t.PadRight($ancho)) -ForegroundColor Black -BackgroundColor Yellow
+    }
+    Write-Host ''
+    Write-Host '- Desea descargar la actualizacion? [S] Si  [N] No: ' -NoNewline -ForegroundColor Yellow
+    $k = ''
+    while (@('S', 'N') -notcontains $k) { $k = ([string][Console]::ReadKey($true).KeyChar).ToUpper() }
+    Write-Host $k
+    if ($k -eq 'N') {
+        Write-Host '  Seguis con esta version.' -ForegroundColor DarkGray
+        Write-Host ''
+        return
+    }
+
+    # Que se baja: con la app, todo (app y los 3 scripts). Suelto, este .bat y los otros scripts que esten en la misma carpeta.
+    $lista = @()
+    if ($conApp) {
+        foreach ($r in 'XucaOP.ps1', 'scripts/windows_debloat.bat', 'scripts/optimizacion_gaming.bat', 'scripts/limpiar_cache.bat', 'lang/en-en/textos.txt', 'lang/es-mx/textos.txt') {
+            $lista += [pscustomobject]@{ Remoto = $r; Local = (Join-Path $raiz ($r -replace '/', '\')); Opc = ($r -like 'lang/*') }
+        }
+    } else {
+        $lista += [pscustomobject]@{ Remoto = $gh; Local = $self }
+        foreach ($n in 'windows_debloat.bat', 'optimizacion_gaming.bat', 'limpiar_cache.bat') {
+            $p = Join-Path $dir $n
+            if (('scripts/' + $n) -ne $gh -and (Test-Path -LiteralPath $p)) { $lista += [pscustomobject]@{ Remoto = ('scripts/' + $n); Local = $p } }
+        }
+    }
+
+    # Se baja todo a archivos .nuevo; el version.txt va ultimo
+    $nuevos = @()
+    try {
+        foreach ($a in $lista) {
+            # Los opcionales (los idiomas de la app) se saltean si todavia no estan en GitHub
+            try { $txt = Bajar $a.Remoto 30000 (Split-Path -Leaf $a.Remoto) } catch { if ($a.Opc) { continue }; throw }
+            if ($txt.Length -lt 100) { if ($a.Opc) { continue }; throw ('lo que llego de GitHub para ' + $a.Remoto + ' no es el archivo esperado') }
+            $tmp = $a.Local + '.nuevo'
+            $dd = Split-Path -Parent $tmp
+            if (-not (Test-Path -LiteralPath $dd)) { New-Item -ItemType Directory -Path $dd -Force | Out-Null }
+            [IO.File]::WriteAllText($tmp, ($txt -replace '\r?\n', "`r`n"), $latin)
+            $nuevos += [pscustomobject]@{ Tmp = $tmp; Local = $a.Local }
+        }
+        $tmp = $verLocal + '.nuevo'
+        [IO.File]::WriteAllText($tmp, ($remota + "`r`n"), $latin)
+        $nuevos += [pscustomobject]@{ Tmp = $tmp; Local = $verLocal }
+    } catch {
+        foreach ($n in $nuevos) { Remove-Item -LiteralPath $n.Tmp -Force -ErrorAction SilentlyContinue }
+        Remove-Item -LiteralPath ($verLocal + '.nuevo') -Force -ErrorAction SilentlyContinue
+        Write-Host ('  No se pudo descargar: ' + $_.Exception.Message) -ForegroundColor Red
+        Write-Host '  Seguis con esta version.' -ForegroundColor DarkGray
+        Start-Sleep -Seconds 3
+        return
+    }
+
+    # Un ayudante oculto espera a que se cierre esta ventana, pone los archivos nuevos en lugar de los viejos y abre este .bat.
+    $padre = 0
+    try { $padre = [int](Get-CimInstance Win32_Process -Filter ('ProcessId=' + $PID)).ParentProcessId } catch { }
+    $c = { param($s) "'" + ($s -replace "'", "''") + "'" }
+    $h = @(
+        ('$p = ' + $padre),
+        'Start-Sleep -Milliseconds 800',
+        '$fin = (Get-Date).AddSeconds(30)',
+        'while (($p -gt 0) -and (Get-Process -Id $p -ErrorAction SilentlyContinue) -and ((Get-Date) -lt $fin)) { Start-Sleep -Milliseconds 200 }'
+    )
+    foreach ($n in $nuevos) {
+        $h += ('for ($i = 0; $i -lt 30; $i++) { try { Move-Item -LiteralPath ' + (& $c $n.Tmp) + ' -Destination ' + (& $c $n.Local) + ' -Force -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 300 } }')
+    }
+    $h += ('Start-Process -FilePath ' + (& $c $self) + ' -WorkingDirectory ' + (& $c $dir))
+    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes(($h -join "`n")))
+    Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -EncodedCommand ' + $enc)
+    Write-Host '  Listo. Se cierra esta ventana y se abre la version nueva.' -ForegroundColor Green
+    Start-Sleep -Milliseconds 1200
+    $global:XucaUpd = 10
+}
+XUCA-UPD#>
