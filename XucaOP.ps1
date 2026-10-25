@@ -198,6 +198,12 @@ $ConEnie = @(
     @('\banos\b', ('a' + $Enie + 'os')),
     @('\btamano\b', ('tama' + $Enie + 'o'))
 )
+# Para buscar sin mayusculas ni acentos: "optimizacion" encuentra "Optimizacion"
+function Sin-Acentos([string]$t) {
+    if (-not $t) { return '' }
+    return ([regex]::Replace($t.Normalize([Text.NormalizationForm]::FormD), '\p{Mn}', '')).ToLowerInvariant()
+}
+
 function Con-Enie([string]$t) {
     if (-not $t) { return $t }
     if ($script:Trad) { $t = Traducir $t }
@@ -978,6 +984,18 @@ $XamlTexto = @'
             </StackPanel>
           </DockPanel>
         </Border>
+        <!-- Barra de busqueda: en Debloat y Gaming busca en las dos; en Apps y Configs, solo en esa seccion -->
+        <Border x:Name="BuscarCaja" Background="#1C2027" BorderBrush="#2E3440" BorderThickness="1" CornerRadius="10" Height="34" Margin="0,12,0,0" Padding="12,0" Cursor="IBeam" Visibility="Collapsed">
+          <DockPanel>
+            <TextBlock x:Name="BuscarLupa" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#FFFFFF" Opacity="0.5" VerticalAlignment="Center" Margin="0,0,10,0" DockPanel.Dock="Left"/>
+            <TextBlock x:Name="BuscarBorrar" Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#9AA0A6" VerticalAlignment="Center" Margin="10,0,0,0" DockPanel.Dock="Right" Cursor="Hand" Visibility="Collapsed"/>
+            <Grid>
+              <TextBlock x:Name="BuscarPista" Text="Barra de busqueda" Foreground="#FFFFFF" Opacity="0.5" FontSize="13" Margin="2,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+              <TextBox x:Name="Buscar" Background="Transparent" BorderThickness="0" Foreground="#FFFFFF" CaretBrush="#FFFFFF" FontSize="13" Padding="0" VerticalAlignment="Center" FocusVisualStyle="{x:Null}"/>
+            </Grid>
+          </DockPanel>
+        </Border>
+        <TextBlock x:Name="BuscarInfo" Foreground="#9AA0A6" FontSize="12" TextWrapping="Wrap" Margin="4,6,0,0" Visibility="Collapsed"/>
       </StackPanel>
       <ScrollViewer x:Name="Scroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0"/>
       <DockPanel Grid.Row="2" Margin="0,14,0,0">
@@ -1215,7 +1233,7 @@ if (Test-Path -LiteralPath $IconoExe) {
 }
 
 $ui = @{}
-foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavApps', 'NavAdicional', 'CfgInsignia', 'CfgInsigniaTxt', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'TituloCaja', 'TituloIcono', 'Scroll', 'BtnSeguras', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'BtnTema', 'TemaTxt', 'Marco', 'Raiz', 'Barra', 'Contenido', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista', 'CargaCaja', 'CargaMarca') { $ui[$n] = $win.FindName($n) }
+foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavApps', 'NavAdicional', 'CfgInsignia', 'CfgInsigniaTxt', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'TituloCaja', 'TituloIcono', 'Scroll', 'BtnSeguras', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'BtnTema', 'TemaTxt', 'Marco', 'Raiz', 'Barra', 'Contenido', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista', 'CargaCaja', 'CargaMarca', 'BuscarCaja', 'BuscarLupa', 'BuscarBorrar', 'BuscarPista', 'Buscar', 'BuscarInfo') { $ui[$n] = $win.FindName($n) }
 
 # Numero de version (sale del version.txt de tu PC)
 function Poner-Version([bool]$vieja, [bool]$distinta) {
@@ -1884,6 +1902,8 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
 
     # Si tiene las dos cosas gana el color de drivers (es lo mas importante)
     if ($drv) { Caja-Borde $card $ColorDrv } elseif ($adv) { Caja-Borde $card '#E5B567' }
+    # Lo que encuentra la barra de busqueda (ya traducido)
+    $card.Tag.Busca = Sin-Acentos ((@($it.Titulo, $it.Seccion, $it.Hace, $it.Favor, $it.Contra, $adv, $drv) | Where-Object { $_ } | ForEach-Object { Con-Enie $_ }) -join ' ')
     $card.Child = $sp
     $casillas[$it.Id] = $cb
     if ($pagina) {
@@ -1905,6 +1925,8 @@ function Actualizar-Resumenes {
 function Nueva-Seccion([string]$t) {
     $tb = Nuevo-Texto ((Con-Enie $t).ToUpper()) 12 '#7D8590' $true
     $tb.Margin = '2,12,0,8'
+    # La busqueda esconde los titulos de seccion que quedan sin resultados
+    $tb.Tag = 'Seccion'
     return $tb
 }
 
@@ -2195,6 +2217,7 @@ function Nueva-AppRec($a) {
     $sp.Children.Add($fila) | Out-Null
     $g.Children.Add($sp) | Out-Null
     $card.Child = $g
+    $card.Tag.Busca = Sin-Acentos ((@($a.Nombre, $a.Texto, $a.Sec) | ForEach-Object { Con-Enie $_ }) -join ' ')
     return $card
 }
 
@@ -2431,6 +2454,7 @@ function Nueva-Config($c) {
     $sp.Children.Add($b) | Out-Null
     $g.Children.Add($sp) | Out-Null
     $card.Child = $g
+    $card.Tag.Busca = Sin-Acentos ($c.Nombre + ' ' + $c.Desc)
     return $card
 }
 
@@ -2467,6 +2491,8 @@ function Mostrar-Configs($lista) {
     } else {
         foreach ($c in @($lista)) { $spA.Children.Add((Nueva-Config $c)) | Out-Null }
     }
+    # Si estabas buscando algo, se vuelve a filtrar con la lista nueva
+    if (($script:Pagina -eq 'Adicional') -and $ui.Buscar.Text -and $script:BuscaTimer) { $script:BuscaTimer.Stop(); $script:BuscaTimer.Start() }
     if ($script:Pagina -eq 'Adicional') { Desplegar $spA }
 }
 
@@ -2769,6 +2795,8 @@ function Actualizar-Contador {
 $NavColores = @{ Apps = @('#182008', '#263512', '#BEF264', '#E3FBB0'); Adicional = @('#221A0E', '#3A2A12', '#F6AD55', '#FFD08A') }
 if ($script:Claro) { $NavColores = @{ Apps = @('#F1FAE0', '#DCF0BC', '#4D7C0F', '#365314'); Adicional = @('#FDF2E4', '#FAE2C4', '#C2410C', '#9A3412') } }
 function Ir-A([string]$p) {
+    if ($script:Buscando -or $ui.Buscar.Text) { Terminar-Busqueda }
+    $ui.BuscarCaja.Visibility = $(if ($p -in $PagBusca) { 'Visible' } else { 'Collapsed' })
     $script:Pagina = $p
     foreach ($k in $Nav.Keys) {
         # Apps recomendadas (lima) y Configs (naranja) tienen su color propio
@@ -2813,10 +2841,144 @@ function Ir-A([string]$p) {
 
 function Bloquear([bool]$si) {
     $script:Ocupado = $si
-    foreach ($b in @($ui.NavPerfiles, $ui.NavDebloat, $ui.NavGaming, $ui.NavLimpieza, $ui.NavHerr, $ui.NavApps, $ui.NavAdicional, $ui.BtnRefrescar, $ui.BtnSeguras, $ui.BtnTodo, $ui.BtnNada, $ui.BtnRestablecer, $ui.BtnAplicar)) { $b.IsEnabled = -not $si }
+    foreach ($b in @($ui.NavPerfiles, $ui.NavDebloat, $ui.NavGaming, $ui.NavLimpieza, $ui.NavHerr, $ui.NavApps, $ui.NavAdicional, $ui.Buscar, $ui.BtnRefrescar, $ui.BtnSeguras, $ui.BtnTodo, $ui.BtnNada, $ui.BtnRestablecer, $ui.BtnAplicar)) { $b.IsEnabled = -not $si }
     $ui.Scroll.IsEnabled = -not $si
     if (-not $si) { Actualizar-BotonesAccion }
 }
+
+# ------------------------------------------------------------
+# Barra de busqueda
+# En Debloat y Gaming se muestran las dos paginas juntas con solo las tarjetas que coinciden:
+# se marcan ahi mismo y "Aplicar seleccionadas" aplica lo marcado de las dos.
+# En Apps recomendadas y Configs recomendadas filtra solo esa pagina.
+# ------------------------------------------------------------
+$PagBusca = @('Debloat', 'Gaming', 'Apps', 'Adicional')
+$script:Buscando = $false
+$script:BuscaQuieto = $false
+$spBusca = New-Object Windows.Controls.StackPanel
+$script:BuscaCab = @{}
+foreach ($k in 'Debloat', 'Gaming') {
+    $cab = Nuevo-Texto $Textos[$k][0] 15 '#8FD3F4' $true
+    $cab.Margin = '12,6,0,2'
+    $script:BuscaCab[$k] = $cab
+}
+$ui.BuscarBorrar.ToolTip = (Con-Enie 'Borrar busqueda')
+
+function Es-Buscable($h) { return (($h.Tag -is [hashtable]) -and $h.Tag.ContainsKey('Busca')) }
+function Es-Seccion($h) { return (($h.Tag -is [string]) -and ($h.Tag -eq 'Seccion')) }
+
+# Deja solo las tarjetas que tienen todas las palabras; devuelve cuantas quedaron
+function Filtrar-Panel($panel, $pal) {
+    $n = 0; $cab = $null; $cabVis = $false
+    foreach ($h in @($panel.Children)) {
+        if (Es-Seccion $h) {
+            if ($cab) { $cab.Visibility = $(if ($cabVis) { 'Visible' } else { 'Collapsed' }) }
+            $cab = $h; $cabVis = $false
+            continue
+        }
+        if (-not (Es-Buscable $h)) { continue }
+        $ok = $true
+        foreach ($w in $pal) { if (-not $h.Tag.Busca.Contains($w)) { $ok = $false; break } }
+        $h.Visibility = $(if ($ok) { 'Visible' } else { 'Collapsed' })
+        if ($ok) { $n++; $cabVis = $true }
+    }
+    if ($cab) { $cab.Visibility = $(if ($cabVis) { 'Visible' } else { 'Collapsed' }) }
+    return $n
+}
+
+function Mostrar-TodoPanel($panel) {
+    foreach ($h in @($panel.Children)) { if ((Es-Buscable $h) -or (Es-Seccion $h)) { $h.Visibility = 'Visible' } }
+    $panel.Visibility = 'Visible'
+}
+
+# Debloat y Gaming juntas (primero la pagina en la que estas)
+function Empezar-Busqueda {
+    $script:Buscando = $true
+    $ui.Scroll.Content = $null
+    $spBusca.Children.Clear()
+    $orden = $(if ($script:Pagina -eq 'Gaming') { @('Gaming', 'Debloat') } else { @('Debloat', 'Gaming') })
+    foreach ($k in $orden) {
+        $spBusca.Children.Add($script:BuscaCab[$k]) | Out-Null
+        $Paginas[$k].Margin = '10,4,12,8'
+        $spBusca.Children.Add($Paginas[$k]) | Out-Null
+    }
+    $ui.Scroll.Content = $spBusca
+    # Marcar todo / Desmarcar todo / Solo seguras son de una pagina: mientras buscas no se ven
+    foreach ($b in @($ui.BtnTodo, $ui.BtnNada, $ui.BtnSeguras)) { $b.Visibility = 'Collapsed' }
+}
+
+function Terminar-Busqueda {
+    if ($script:Buscando) {
+        $script:Buscando = $false
+        $ui.Scroll.Content = $null
+        $spBusca.Children.Clear()
+    }
+    foreach ($k in $PagBusca) { Mostrar-TodoPanel $Paginas[$k] }
+    $ui.BuscarInfo.Visibility = 'Collapsed'
+    if ($ui.Buscar.Text) { $script:BuscaQuieto = $true; $ui.Buscar.Text = ''; $script:BuscaQuieto = $false }
+}
+
+# Busca un ratito despues de la ultima letra (asi no se traba mientras escribis)
+$script:BuscaTimer = New-Object Windows.Threading.DispatcherTimer
+$script:BuscaTimer.Interval = [TimeSpan]::FromMilliseconds(160)
+$script:BuscaTimer.Add_Tick({
+    $script:BuscaTimer.Stop()
+    $p = $script:Pagina
+    if (($p -notin $PagBusca) -or $script:Ocupado) { return }
+    $q = ([string]$ui.Buscar.Text).Trim()
+    if (-not $q) {
+        $habia = $script:Buscando
+        Terminar-Busqueda
+        if ($habia) { Ir-A $p }
+        return
+    }
+    $pal = @((Sin-Acentos $q) -split '\s+' | Where-Object { $_ })
+    $n = 0
+    if ($p -in 'Debloat', 'Gaming') {
+        if (-not $script:Buscando) { Empezar-Busqueda }
+        foreach ($k in 'Debloat', 'Gaming') {
+            $c = Filtrar-Panel $Paginas[$k] $pal
+            $v = $(if ($c -gt 0) { 'Visible' } else { 'Collapsed' })
+            $script:BuscaCab[$k].Visibility = $v; $Paginas[$k].Visibility = $v
+            $n += $c
+        }
+    } else {
+        $n = Filtrar-Panel $Paginas[$p] $pal
+    }
+    if ($n -eq 0) { $t = (Con-Enie 'No hay nada que coincida con') + ' "' + $q + '".' }
+    else {
+        $t = (Con-Enie 'Resultados:') + ' ' + $n + '.'
+        if ($p -in 'Debloat', 'Gaming') { $t += ' ' + (Con-Enie 'Marcalos aca mismo y toca Aplicar seleccionadas.') }
+    }
+    $ui.BuscarInfo.Text = $t
+    $ui.BuscarInfo.Visibility = 'Visible'
+    $ui.Scroll.ScrollToTop()
+})
+
+# La palabra "Barra de busqueda" se ve a medias; cuando escribis desaparece y todo queda al 100%
+$ui.Buscar.Add_TextChanged({
+    $hay = [bool]$ui.Buscar.Text
+    $ui.BuscarPista.Visibility = $(if ($hay) { 'Collapsed' } else { 'Visible' })
+    $ui.BuscarBorrar.Visibility = $(if ($hay) { 'Visible' } else { 'Collapsed' })
+    Animar $ui.BuscarLupa ([Windows.UIElement]::OpacityProperty) $(if ($hay) { 1.0 } else { 0.5 }) 180
+    if ($script:BuscaQuieto) { return }
+    $script:BuscaTimer.Stop(); $script:BuscaTimer.Start()
+})
+$ui.Buscar.Add_PreviewKeyDown({
+    param($s, $e)
+    if ($e.Key -eq 'Escape') { $ui.Buscar.Text = ''; $e.Handled = $true }
+})
+# Borde celeste mientras estas escribiendo
+$ui.Buscar.Add_GotFocus({ $ui.BuscarCaja.BorderBrush = $script:bc.ConvertFromString((Tema-Letra '#8FD3F4')) })
+$ui.Buscar.Add_LostFocus({ $ui.BuscarCaja.BorderBrush = (Pincel '#2E3440') })
+# Tocar en cualquier parte del recuadro pone el cursor para escribir
+$ui.BuscarCaja.Add_MouseLeftButtonDown({ if ($ui.Buscar.IsEnabled) { $ui.Buscar.Focus() | Out-Null } })
+$ui.BuscarBorrar.Add_MouseLeftButtonDown({
+    param($s, $e)
+    $ui.Buscar.Text = ''
+    $ui.Buscar.Focus() | Out-Null
+    $e.Handled = $true
+})
 
 # ------------------------------------------------------------
 # Pantalla de carga (barra que se llena suave y se desvanece al terminar)
@@ -4128,6 +4290,7 @@ $win.Add_PreviewKeyDown({
     if ($k -in 'OemPlus', 'Add') { Cambiar-Zoom ($script:ZoomUsuario + 0.1); $e.Handled = $true }
     elseif ($k -in 'OemMinus', 'Subtract') { Cambiar-Zoom ($script:ZoomUsuario - 0.1); $e.Handled = $true }
     elseif ($k -in 'D0', 'NumPad0') { Cambiar-Zoom 1.0; $e.Handled = $true }
+    elseif (($k -eq 'F') -and ($ui.BuscarCaja.Visibility -eq 'Visible') -and $ui.Buscar.IsEnabled) { $ui.Buscar.Focus() | Out-Null; $ui.Buscar.SelectAll(); $e.Handled = $true }
 })
 
 $win.Add_ContentRendered({ Buscar-Actualizacion; Cargar-Configs $false })

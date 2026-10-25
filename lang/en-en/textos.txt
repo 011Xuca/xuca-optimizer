@@ -827,3 +827,8 @@ Si tocas este cartel se baja la publicada y reemplaza la tuya.	If you click this
 Tu version de Xuca OPtimizer es distinta	Your Xuca OPtimizer version is different
  y la nueva es la 	 and the new one is 
 Buscando versiones nuevas	Looking for new versions
+Barra de busqueda	Search bar
+Borrar busqueda	Clear search
+No hay nada que coincida con	Nothing matches
+Resultados:	Results:
+Marcalos aca mismo y toca Aplicar seleccionadas.	Check them right here and press Apply selected.

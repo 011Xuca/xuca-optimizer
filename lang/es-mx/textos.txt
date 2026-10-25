@@ -1,4 +1,0 @@
-# Textos en espanol de Xuca OPtimizer.
-# El espanol ya viene adentro de la app: este archivo sirve para cambiar algun texto sin tocar el codigo.
-# Cada linea: texto en espanol tal cual esta en la app o en los .bat, un TAB, y el texto que queres que se muestre.
-# Las lineas que empiezan con # se ignoran.
