@@ -413,6 +413,29 @@ call :opt_fin "Plan Equilibrado activo"
 :pw_fin
 
 echo.
+echo   Que hace: solo con la notebook a bateria: el turbo se usa cuando hace falta, el procesador prioriza el ahorro de energia, baja la velocidad antes de prender los ventiladores y el ahorro de bateria de Windows se prende solo al 30 por ciento. Enchufada no cambia nada.
+echo   A favor: la bateria dura bastante mas y la notebook calienta y hace menos ruido fuera del cargador.
+echo   En contra: a bateria rinde un poco menos; para jugar, enchufala.
+set "QID=nb"
+set "Q=- Desea priorizar la bateria de la notebook? (Solo a bateria: turbo eficiente, ahorro de energia y ahorro de bateria al 30 por ciento)"
+call :askR
+if errorlevel 3 goto nb_r
+if errorlevel 2 goto nb_fin
+call :opt_ini "Bateria de la notebook"
+set "ACT=NB_ON"
+call :aplicar_ps
+call :resps
+call :opt_fin "Bateria priorizada: turbo eficiente, ahorro de energia y ahorro de bateria al 30 por ciento (solo a bateria)"
+goto nb_fin
+:nb_r
+call :opt_ini "Bateria de la notebook (restaurar)"
+set "ACT=NB_OFF"
+call :aplicar_ps
+call :resps
+call :opt_fin "Bateria de la notebook: vuelven tus valores anteriores"
+:nb_fin
+
+echo.
 echo.
 echo %C_TIT%=== PROCESADOR ===%C_RST%
 echo.
@@ -2968,6 +2991,107 @@ switch ($env:ACT) {
                         if ((Actual $c.Cfg) -eq $val) { Log 'OK' ('ya estaba: ' + $c.Nom + ' = ' + $val); continue }
                         $hizo = $true
                         if (Poner $c $val) { Log 'OK' ('verificado: ' + $c.Nom + ' = ' + $val + ' (restaurado)') }
+                        else { Log 'FALLO' ('no se pudo restaurar ' + $c.Nom); $code = 1 }
+                    }
+                    if ($hizo) { & powercfg /setactive $g }
+                    elseif ($code -eq 0) { $code = 5 }
+                    if ($code -ne 1) { Remove-Item -Path $bak -Force }
+                }
+            }
+        }
+    }
+
+    { $_ -eq 'NB_ON' -or $_ -eq 'NB_OFF' } {
+        # Solo cambia los valores "a bateria" (DC) del plan activo: enchufada la notebook rinde igual que antes
+        $g = [regex]::Match((& powercfg /getactivescheme | Out-String), '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}').Value
+        $bat = $false
+        try { $bat = (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) } catch { }
+        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        $bak = Join-Path $dir ('nb_' + $g + '.txt')
+        if (-not $g) {
+            Log 'FALLO' 'no se pudo leer el plan de energia activo'
+            $code = 1
+        } elseif (($env:ACT -eq 'NB_ON') -and (-not $bat)) {
+            Log 'OMITIDO' 'esta PC no tiene bateria: es para notebooks'
+            Say '  Tu PC no tiene bateria: esto es para notebooks.' 'Yellow'
+            $code = 2
+        } else {
+            $sp = '54533251-82be-4824-96c1-47b60b740d00'
+            # Si alguno no existe en esta PC (depende del procesador y de Windows) se saltea sin dar error
+            $cfg = @(
+                @{ Nom = 'turbo a bateria (3 = eficiente)'; Sub = $sp; Cfg = 'be337238-6d82-4146-a960-4f3749d470c7'; Val = 3 },
+                @{ Nom = 'preferencia energia-rendimiento a bateria (70 = prioriza la bateria)'; Sub = $sp; Cfg = '36687f9e-e3a5-4dbf-b1dc-15eb381c6863'; Val = 70 },
+                @{ Nom = 'enfriamiento a bateria (0 = baja la velocidad antes de prender los ventiladores)'; Sub = $sp; Cfg = '94d3a615-a899-4ac5-ae2b-e4d8f634367f'; Val = 0 },
+                @{ Nom = 'ahorro de bateria automatico (30 por ciento)'; Sub = 'de830923-a562-41af-a086-e3a2c6bad2da'; Cfg = 'e69653ca-cf7f-4f05-aa73-cb833fa90ad4'; Val = 30 }
+            )
+            function LeerDc($c) {
+                $o = & powercfg /query $g $c.Sub $c.Cfg | Out-String
+                $m = [regex]::Matches($o, '0x[0-9a-fA-F]{8}')
+                if ($m.Count -lt 2) { return $null }
+                return [Convert]::ToInt32($m[$m.Count - 1].Value.Substring(2), 16)
+            }
+            function LeerRegDc($c) {
+                $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $g + '\' + $c.Sub + '\' + $c.Cfg
+                return (Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue).DCSettingIndex
+            }
+            function ActualDc($c) {
+                $x = LeerDc $c
+                if ($null -eq $x) { $x = LeerRegDc $c }
+                return $x
+            }
+            function PonerDc($c, $val) {
+                & powercfg /setdcvalueindex $g $c.Sub $c.Cfg $val 2>&1 | Out-Null
+                return (((LeerDc $c) -eq $val) -or ((LeerRegDc $c) -eq $val))
+            }
+            $cfg = @($cfg | Where-Object { $null -ne (ActualDc $_) })
+            if ($env:ACT -eq 'NB_ON') {
+                $faltan = @($cfg | Where-Object { (ActualDc $_) -ne $_.Val })
+                if ($cfg.Count -eq 0) {
+                    Log 'OMITIDO' 'este plan de energia no tiene ninguno de estos ajustes'
+                    $code = 2
+                } elseif ($faltan.Count -eq 0) {
+                    Log 'OK' ('ya estaba: bateria priorizada en el plan ' + $g)
+                    $code = 5
+                } else {
+                    $sinCopia = $false
+                    if (Test-Path $bak) {
+                        Log 'INFO' ('ya existia una copia de tus valores anteriores, se conserva: ' + $bak)
+                    } else {
+                        if (-not (Test-Path $dir)) {
+                            New-Item -Path $dir -ItemType Directory -Force | Out-Null
+                            Proteger-Carpeta $dir
+                        }
+                        Set-Content -Path $bak -Value @(foreach ($c in $cfg) { $c.Cfg + '=' + (ActualDc $c) })
+                        if (Test-Path $bak) { Log 'INFO' ('copia de tus valores anteriores guardada en ' + $bak) }
+                        else { Log 'FALLO' 'no se pudo guardar la copia de tus valores anteriores, no se cambio nada'; $code = 1; $sinCopia = $true }
+                    }
+                    if (-not $sinCopia) {
+                        foreach ($c in $cfg) {
+                            if ((ActualDc $c) -eq $c.Val) { Log 'OK' ('ya estaba: ' + $c.Nom + ' = ' + $c.Val); continue }
+                            if (PonerDc $c $c.Val) { Log 'OK' ('verificado: ' + $c.Nom + ' = ' + $c.Val + ' en el plan ' + $g) }
+                            else { Log 'FALLO' ('no se pudo verificar ' + $c.Nom); $code = 1 }
+                        }
+                        & powercfg /setactive $g
+                    }
+                }
+            } else {
+                if (-not (Test-Path $bak)) {
+                    Log 'OMITIDO' 'no hay copia de tus valores anteriores para este plan, no se cambio nada'
+                    Say '  No hay copia de tus valores anteriores, no se cambio nada.' 'Yellow'
+                    $code = 2
+                } else {
+                    $guardado = @{}
+                    foreach ($l in (Get-Content $bak)) {
+                        $pz = $l -split '='
+                        if ($pz.Count -eq 2 -and $pz[1] -match '^\d+$') { $guardado[$pz[0]] = [int]$pz[1] }
+                    }
+                    $hizo = $false
+                    foreach ($c in $cfg) {
+                        if (-not $guardado.ContainsKey($c.Cfg)) { continue }
+                        $val = $guardado[$c.Cfg]
+                        if ((ActualDc $c) -eq $val) { Log 'OK' ('ya estaba: ' + $c.Nom + ' = ' + $val); continue }
+                        $hizo = $true
+                        if (PonerDc $c $val) { Log 'OK' ('verificado: ' + $c.Nom + ' = ' + $val + ' (restaurado)') }
                         else { Log 'FALLO' ('no se pudo restaurar ' + $c.Nom); $code = 1 }
                     }
                     if ($hizo) { & powercfg /setactive $g }

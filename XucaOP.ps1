@@ -238,6 +238,12 @@ function Titulo-Corto([string]$q) {
     return $t
 }
 
+# En la consola se restablece con la letra R; en la app eso no existe (esta el boton Restablecer)
+function Sin-R([string]$t) {
+    $t = $t -replace ',? y R lo vuelve atras', '' -replace ';\s*R lo vuelve atras', '' -replace '^no tiene R:', 'no se puede restablecer:'
+    return $t
+}
+
 # ------------------------------------------------------------
 # Leer las opciones de un .bat
 # ------------------------------------------------------------
@@ -258,7 +264,7 @@ function Leer-Opciones([string]$ruta) {
             $q = $Matches[1]
             $conR = ($i + 1 -lt $lineas.Count) -and ($lineas[$i + 1] -match 'call :askR')
             if ($qid -and ($SoloScript -notcontains $qid)) {
-                $items.Add([pscustomobject]@{ Id = $qid; Titulo = (Titulo-Corto $q); Hace = $h; Favor = $a; Contra = $c; ConR = $conR; Seccion = $sec })
+                $items.Add([pscustomobject]@{ Id = $qid; Titulo = (Titulo-Corto $q); Hace = (Sin-R $h); Favor = (Sin-R $a); Contra = (Sin-R $c); ConR = $conR; Seccion = $sec })
             }
             $h = ''; $a = ''; $c = ''; $qid = $null
         }
@@ -490,6 +496,7 @@ $Chequeos = @{
     'Gaming|afi'    = { [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue) }
     'Gaming|pw'     = { $global:XPlan -eq '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' }
     'Gaming|cpu'    = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt')) }
+    'Gaming|nb'     = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\nb_' + $global:XPlan + '.txt')) }
     'Gaming|ll'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446' 'EnabledState') -eq 2 }
     'Gaming|gm'     = { ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled') -eq 1) -and ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled') -eq 0) }
     'Gaming|xb'     = { if ($global:XCpuClase -eq 'x3d') { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled') -eq 0 } else { -not (HasAppx 'Microsoft.XboxGamingOverlay') } }
@@ -587,6 +594,9 @@ try {
     if ($i.Build -ge 26100) { try { $i.Recall = [bool](Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction Stop) } catch { } }
     $i.BitLocker = [bool](Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)
     $i.Winget = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+    # Notebook = tiene bateria
+    $i.Bateria = $false
+    try { $i.Bateria = (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) } catch { }
     # Placas de red fisicas: 9 = WiFi, 14 = cable (para "WiFi y cable a la vez")
     # Las placas apagadas en el Administrador de dispositivos no cuentan. WifiSinRed = la placa WiFi no ve ninguna red (sin antena, por ejemplo)
     $i.Wifi = 0; $i.Lan = 0; $i.WifiSinRed = $false
@@ -1770,7 +1780,7 @@ $Advertencias = @{
     'Gaming|cpu'   = 'Mas consumo y calor; con undervolt u overclock puede volverse inestable.'
     'Gaming|gf'    = 'En algunas PCs viejas puede dar problemas.'
     'Gaming|ll'    = 'Es una funcion oculta que Microsoft todavia esta probando: si notas algo raro, restablecelo.'
-    'Gaming|msi'   = 'Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro, o con R en el script).'
+    'Gaming|msi'   = 'Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro).'
     'Gaming|tr'    = 'Mas consumo y calor; con undervolt u overclock puede colgarse en juegos.'
     'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos.'
     'Gaming|nic'   = 'En placas madre de baja calidad puede cortar el internet.'
@@ -1973,6 +1983,7 @@ function Calcular-NoDisp($i, $cpu) {
         if ($i.Hdd) { $q += 'Windows esta en un disco HDD' }
         $r['Gaming|sm'] = ('Tu PC no cumple los requisitos: necesita 16 GB de RAM o mas y Windows en un SSD o NVMe (' + ($q -join ' y ') + ').')
     }
+    if (-not $i.Bateria) { $r['Gaming|nb'] = 'No hace falta: es para notebooks y tu PC no tiene bateria.' }
     if ($i.AvOff) { $r['Gaming|avl'] = 'No hace falta: tu antivirus ya esta apagado.' }
     if (([int]$i.NicPlacas -gt 0) -and ([int]$i.NicOpc -eq 0) -and -not ($i.DrvFalta -and $i.DrvFalta.ContainsKey('Gaming|nic'))) { $r['Gaming|nic'] = 'Tu placa de red no tiene opciones de ahorro de energia para cambiar (depende del driver): no hace falta.' }
     if ($cpu -and (-not $cpu.Ok)) { $r['Gaming|afi'] = ('Tu procesador no sirve para esto: ' + $cpu.Motivo + '.') }
@@ -2580,6 +2591,24 @@ $Perfiles = @(
         G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'avl', 'md', 'v4', 'ext', 'stg', 'xm')
     },
     [pscustomobject]@{
+        Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#6EE7B7'
+        Hace = 'lo de Seguro (sin publicidad, Bing, telemetria, rastreo, Widgets ni IA de Windows), y ademas apaga las apps basura de inicio, los servicios que casi nadie usa y los efectos visuales, y prioriza la bateria cuando la notebook no esta enchufada.'
+        Ideal = 'una notebook para estudiar, trabajar o usar todos los dias: la bateria dura mas y anda mas liviana.'
+        NoToca = 'la seguridad, la hibernacion (la notebook la usa cuando se queda sin bateria), los drivers de Windows Update, las apps instaladas ni el rendimiento enchufada.'
+        Adv = ''
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'fx', 'sv', 'ini')
+        G = @('tk', 'du', 'gm', 'ext', 'md', 'nb')
+    },
+    [pscustomobject]@{
+        Id = 'nbcomp'; Nombre = 'Competitivo - Notebook'; Color = '#8FD3F4'
+        Hace = 'lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida. A bateria prioriza la duracion.'
+        Ideal = 'jugar competitivo en una notebook: enchufada rinde al maximo y a bateria dura mas.'
+        NoToca = 'el antivirus ni la seguridad. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.'
+        Adv = 'para jugar, enchufa la notebook: a bateria rinde menos a proposito. Con undervolt u overclock, el Modo Nitro puede volverla inestable.'
+        D = @()
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'cpu', 'gm', 'xb', 'xm', 'notif', 'gf', 'pca', 'ram', 'sm', 'nag', 'dns', 'avl', 'md', 'v4', 'nb')
+    },
+    [pscustomobject]@{
         Id = 'full'; Nombre = 'Full Optimizado'; Color = '#F28B82'
         Hace = 'Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga la seguridad (antivirus, BitLocker, integridad de memoria y VBS), activa el modo MSI, bloquea la telemetria en hosts y apaga Teredo y Windows Search.'
         Ideal = 'una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.'
@@ -2604,6 +2633,9 @@ $script:InfoPC = Nuevo-Texto 'Tu PC: leyendo...' 13 '#9AA0A6' $false
 $script:InfoPC.Margin = '2,0,0,12'
 $spP.Children.Add($script:InfoPC) | Out-Null
 $script:PerfilTxt = @{}
+# Perfiles de notebook: icono y aviso amarillo si la PC es de escritorio (no tiene bateria)
+$script:PerfilEscr = @{}
+$script:SinBateria = $false
 foreach ($pf in $Perfiles) {
     $card = Nueva-Caja
     $card.BorderBrush = (Pincel $pf.Color); $card.BorderThickness = '4,0,0,0'; $card.Tag = $null
@@ -2620,6 +2652,15 @@ foreach ($pf in $Perfiles) {
         [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
     }
     $sp.Children.Add($tit) | Out-Null
+    if ($pf.Id -like 'nb*') {
+        $icN = Nuevo-Texto $Aviso 17 '#E5B567' $true
+        $icN.FontFamily = 'Segoe UI Symbol'; $icN.Margin = '8,0,0,0'; $icN.Visibility = 'Collapsed'; $icN.ToolTip = (Con-Enie 'Solo para notebooks')
+        $tit.Children.Add($icN) | Out-Null
+        $avN = Nota 'Tu PC es de escritorio (no tiene bateria): este perfil es para notebooks. Si lo aplicas igual, lo de la bateria se saltea solo.' '#E5B567' '0,6,0,0'
+        $avN.FontWeight = 'SemiBold'; $avN.Visibility = 'Collapsed'
+        $sp.Children.Add($avN) | Out-Null
+        $script:PerfilEscr[$pf.Id] = @($icN, $avN)
+    }
     $d = New-Object Windows.Controls.TextBlock
     $d.TextWrapping = 'Wrap'; $d.FontSize = 12.5; $d.Foreground = (Pincel '#C3C8D0'); $d.Margin = '0,6,0,0'; $d.LineHeight = 19
     Agregar-Linea $d 'Que hace: ' '#8AB4F8' $pf.Hace
@@ -2667,6 +2708,10 @@ function Actualizar-Perfiles {
         if ($ya -gt 0) { $t += (', ' + $ya + ' ya aplicadas') }
         if ($nd -gt 0) { $t += (', ' + $nd + ' no compatibles con tu PC') }
         $script:PerfilTxt[$pf.Id].Text = (Con-Enie ('Opciones: ' + $t + '.'))
+        if ($script:PerfilEscr.ContainsKey($pf.Id)) {
+            $v = $(if ($script:SinBateria) { 'Visible' } else { 'Collapsed' })
+            foreach ($x in $script:PerfilEscr[$pf.Id]) { $x.Visibility = $v }
+        }
     }
 }
 
@@ -2680,6 +2725,7 @@ function Actualizar-InfoPC($i) {
         $ui.OrigTexto.Text = (Con-Enie ('Motivo: ' + $m + '.' + "`n" + 'En versiones recortadas, pirateadas o modificadas (Tiny11, AtlasOS, ReviOS y similares) varias opciones pueden fallar o no aplicar.'))
         $ui.OrigBarra.Visibility = 'Visible'
     } else { $ui.OrigBarra.Visibility = 'Collapsed' }
+    $script:SinBateria = [bool]($i -and (-not $i.Bateria))
     if (-not $i) { $script:InfoPC.Text = (Con-Enie 'Tu PC: no se pudo leer.'); return }
     $nombre = $(if ([int]$i.Build -ge 22000) { 'Windows 11' } else { 'Windows 10' })
     $ed = switch -Regex ([string]$i.Edicion) { '^Core' { 'Home' } '^Professional' { 'Pro' } '^Enterprise' { 'Enterprise' } '^Education' { 'Education' } default { [string]$i.Edicion } }

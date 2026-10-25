@@ -832,3 +832,23 @@ Borrar busqueda	Clear search
 No hay nada que coincida con	Nothing matches
 Resultados:	Results:
 Marcalos aca mismo y toca Aplicar seleccionadas.	Check them right here and press Apply selected.
+Priorizar la bateria de la notebook	Prioritize the laptop battery
+solo con la notebook a bateria: el turbo se usa cuando hace falta, el procesador prioriza el ahorro de energia, baja la velocidad antes de prender los ventiladores y el ahorro de bateria de Windows se prende solo al 30 por ciento. Enchufada no cambia nada.	only when the laptop is on battery: turbo is used only when needed, the processor favors saving power, it slows down before spinning up the fans, and Windows battery saver turns on by itself at 30 percent. Plugged in, nothing changes.
+la bateria dura bastante mas y la notebook calienta y hace menos ruido fuera del cargador.	the battery lasts quite a bit longer and the laptop runs cooler and quieter off the charger.
+a bateria rinde un poco menos; para jugar, enchufala.	on battery it performs a bit less; plug it in to play.
+No hace falta: es para notebooks y tu PC no tiene bateria.	Not needed: it's for laptops and your PC has no battery.
+en algunas PCs viejas puede dar problemas.	it can cause problems on some old PCs.
+un poco mas de consumo; en placas malas puede causar cortes.	a bit more power use; on bad cards it can cause drops.
+no se puede restablecer: si queres alguna, la reinstalas desde la Store. Tus archivos de OneDrive en la PC no se borran.	it can't be reset: if you want one back, reinstall it from the Store. Your OneDrive files on the PC are not deleted.
+Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro).	If the driver doesn't support it, after restarting you may see a black screen or lose internet (it's fixed by resetting it from Safe Mode).
+Debloat - Notebook	Debloat - Laptop
+lo de Seguro (sin publicidad, Bing, telemetria, rastreo, Widgets ni IA de Windows), y ademas apaga las apps basura de inicio, los servicios que casi nadie usa y los efectos visuales, y prioriza la bateria cuando la notebook no esta enchufada.	everything in Safe (no ads, Bing, telemetry, tracking, Widgets or Windows AI), plus it turns off junk startup apps, services almost nobody uses and visual effects, and prioritizes the battery when the laptop isn't plugged in.
+una notebook para estudiar, trabajar o usar todos los dias: la bateria dura mas y anda mas liviana.	a laptop for studying, working or everyday use: the battery lasts longer and it runs lighter.
+la seguridad, la hibernacion (la notebook la usa cuando se queda sin bateria), los drivers de Windows Update, las apps instaladas ni el rendimiento enchufada.	security, hibernation (the laptop uses it when the battery runs out), Windows Update drivers, installed apps or plugged-in performance.
+Competitivo - Notebook	Competitive - Laptop
+lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida. A bateria prioriza la duracion.	the parts of Competitive that don't drain the battery: mouse without acceleration, priority and affinity for your games, Nitro Mode only when plugged in, hardware GPU, lower network latency, faster DNS, no Game Bar, no Xbox Mode and no notifications in game. On battery it prioritizes battery life.
+jugar competitivo en una notebook: enchufada rinde al maximo y a bateria dura mas.	playing competitive on a laptop: plugged in it performs at its best and on battery it lasts longer.
+el antivirus ni la seguridad. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.	the antivirus or security. It also doesn't set the High performance plan or the minimum timer, or turn off USB, PCIe and network power saving, because those drain the battery all the time.
+para jugar, enchufa la notebook: a bateria rinde menos a proposito. Con undervolt u overclock, el Modo Nitro puede volverla inestable.	plug the laptop in to play: on battery it performs less on purpose. With undervolt or overclock, Nitro Mode can make it unstable.
+Solo para notebooks	Laptops only
+Tu PC es de escritorio (no tiene bateria): este perfil es para notebooks. Si lo aplicas igual, lo de la bateria se saltea solo.	Your PC is a desktop (it has no battery): this profile is for laptops. If you apply it anyway, the battery part is skipped on its own.
