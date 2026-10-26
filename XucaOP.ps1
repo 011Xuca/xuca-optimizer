@@ -49,6 +49,7 @@ $VersionLocal = Join-Path $Root 'version.txt'
 $ArchivosUpd = @(
     [pscustomobject]@{ Nombre = 'XucaOP.ps1'; Local = $AppPath; Remoto = 'XucaOP.ps1' },
     [pscustomobject]@{ Nombre = 'XucaOP.bat'; Local = (Join-Path $Root 'XucaOP.bat'); Remoto = 'XucaOP.bat' },
+    [pscustomobject]@{ Nombre = 'XucaOP.ico'; Local = (Join-Path $Root 'XucaOP.ico'); Remoto = 'XucaOP.ico'; Opc = $true },
     [pscustomobject]@{ Nombre = 'LEEME.txt'; Local = (Join-Path $Root 'LEEME.txt'); Remoto = 'LEEME.txt'; Opc = $true },
     [pscustomobject]@{ Nombre = 'windows_debloat.bat'; Local = $Rutas.Debloat; Remoto = 'scripts/windows_debloat.bat' },
     [pscustomobject]@{ Nombre = 'optimizacion_gaming.bat'; Local = $Rutas.Gaming; Remoto = 'scripts/optimizacion_gaming.bat' },
@@ -1330,20 +1331,28 @@ $EstilosXaml = @'
 function Nuevos-Estilos { return [Windows.Markup.XamlReader]::Parse((Tema-Texto $EstilosXaml)) }
 $win.Resources.MergedDictionaries.Add((Nuevos-Estilos))
 
-# Icono: el del Administrador de tareas (rendimiento; esta en Windows 10 y 11), en la ventana, la barra de tareas y el acceso directo del escritorio
+# Icono propio (XucaOP.ico, al lado de la app) en la ventana, la barra de tareas y el acceso directo del escritorio.
+# Si falta el archivo (por ejemplo, una version vieja que todavia no lo bajo) se usa el del Administrador de tareas.
+$IconoArchivo = Join-Path $Root 'XucaOP.ico'
 $IconoExe = Join-Path $env:SystemRoot 'System32\Taskmgr.exe'
-if (Test-Path -LiteralPath $IconoExe) {
+$quiero = $null
+if (Test-Path -LiteralPath $IconoArchivo) {
+    try { $win.Icon = [Windows.Media.Imaging.BitmapFrame]::Create((New-Object Uri($IconoArchivo))) } catch { }
+    $quiero = $IconoArchivo + ',0'
+} elseif (Test-Path -LiteralPath $IconoExe) {
     try {
         Add-Type -AssemblyName System.Drawing
         $ico = [System.Drawing.Icon]::ExtractAssociatedIcon($IconoExe)
         $win.Icon = [System.Windows.Interop.Imaging]::CreateBitmapSourceFromHIcon($ico.Handle, [Windows.Int32Rect]::Empty, [Windows.Media.Imaging.BitmapSizeOptions]::FromEmptyOptions())
     } catch { }
-    # Los que instalaron antes tienen el acceso directo con el icono viejo: se cambia solo
+    $quiero = $IconoExe + ',0'
+}
+# Los que instalaron antes tienen el acceso directo con el icono viejo: se cambia solo
+if ($quiero) {
     try {
         $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Xuca OPtimizer.lnk'
         if (Test-Path -LiteralPath $lnk) {
             $acc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
-            $quiero = $IconoExe + ',0'
             if (($acc.TargetPath -like '*XucaOP.bat') -and ($acc.IconLocation -ne $quiero)) { $acc.IconLocation = $quiero; $acc.Save() }
         }
     } catch { }

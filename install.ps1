@@ -26,8 +26,9 @@ try {
     $acc = $ws.CreateShortcut($lnk)
     $acc.TargetPath = Join-Path $Destino 'XucaOP.bat'
     $acc.WorkingDirectory = $Destino
-    # Icono: el del Administrador de tareas
-    $ico = Join-Path $env:SystemRoot 'System32\Taskmgr.exe'
+    # Icono propio de la app (si no esta, el del Administrador de tareas)
+    $ico = Join-Path $Destino 'XucaOP.ico'
+    if (-not (Test-Path -LiteralPath $ico)) { $ico = Join-Path $env:SystemRoot 'System32\Taskmgr.exe' }
     if (Test-Path -LiteralPath $ico) { $acc.IconLocation = $ico + ',0' }
     $acc.Save()
 
