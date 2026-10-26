@@ -538,9 +538,13 @@ $Chequeos = @{
     'Gaming|gf'     = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode') -eq 2) -and (([Environment]::OSVersion.Version.Build -lt 22000) -or (([string](Leer-Reg 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences' 'DirectXUserGlobalSettings')) -like '*SwapEffectUpgradeEnable=1*')) }
     'Gaming|mpo'    = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Dwm' 'OverlayTestMode') -eq 5 }
     'Gaming|msi'    = {
-        $gpus = @(Get-PnpDevice -PresentOnly -Class Display -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'PCI\*' })
-        if ($gpus.Count -eq 0) { return $null }
-        @($gpus | Where-Object { (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Enum\' + $_.InstanceId + '\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties') 'MSISupported') -ne 1 }).Count -eq 0
+        # Las mismas placas que toca MSI_ON: video y red PCI que andan bien. Se leen por CIM (Get-PnpDevice a veces no
+        # devuelve nada en la lectura en paralelo y la tarjeta quedaba sin etiqueta).
+        $ids = @(Get-CimInstance Win32_PnPEntity -Filter "PNPClass='Display' OR PNPClass='Net'" -ErrorAction SilentlyContinue |
+            Where-Object { ([string]$_.PNPDeviceID) -like 'PCI\*' -and ([int]$_.ConfigManagerErrorCode -eq 0) } | ForEach-Object { [string]$_.PNPDeviceID })
+        if ($ids.Count -eq 0) { $ids = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { ($_.Class -in 'Display', 'Net') -and ($_.InstanceId -like 'PCI\*') -and ($_.Status -eq 'OK') } | ForEach-Object { [string]$_.InstanceId }) }
+        if ($ids.Count -eq 0) { return $null }
+        @($ids | Where-Object { (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Enum\' + $_ + '\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties') 'MSISupported') -ne 1 }).Count -eq 0
     }
     'Gaming|pca'    = { (Leer-Svc 'PcaSvc') -eq 4 }
     'Gaming|tr'     = { if ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel' 'GlobalTimerResolutionRequests') -ne 1) { $false } else { Prog-Estado 'XucaTimer' 'XucaTimer.exe' $CodTimer } }

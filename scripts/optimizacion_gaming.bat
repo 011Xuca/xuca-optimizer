@@ -2852,6 +2852,9 @@ switch ($env:ACT) {
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
             Proteger-Carpeta $dir
             $cs = $CodTimer
+            # Se borra el programa viejo (de cualquier version) antes de compilar: si quedara trabado, no se instala encima con la huella nueva.
+            Start-Sleep -Milliseconds 500
+            Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar TIMER: ' + $_.Exception.Message); $code = 1 }
             if (Test-Path $exe) {
                 $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
@@ -2892,6 +2895,9 @@ switch ($env:ACT) {
             Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
             $cs = $CodRam
+            # Se borra el programa viejo (de cualquier version) antes de compilar: si quedara trabado, no se instala encima con la huella nueva.
+            Start-Sleep -Milliseconds 500
+            Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar RAM: ' + $_.Exception.Message); $code = 1 }
             if (Test-Path $exe) {
                 $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
