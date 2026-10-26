@@ -36591,17 +36591,85 @@ public static class SpiNative {
             $s = Get-Service -Name $sv -ErrorAction SilentlyContinue
             if ($s) { & sc.exe stop $sv 2>&1 | Out-Null; & sc.exe delete $sv 2>&1 | Out-Null }
         }
-        if (Test-Path $vgDir) { Remove-Item -Path $vgDir -Recurse -Force -ErrorAction SilentlyContinue }
         foreach ($e in $entradas) { if (Test-Path -LiteralPath $e.PSPath) { Remove-Item -LiteralPath $e.PSPath -Recurse -Force -ErrorAction SilentlyContinue } }
+        # 4) Restos en el disco principal: carpetas "Riot Vanguard" (o "Vanguard" dentro de una carpeta de Riot) en
+        #    Archivos de programa, ProgramData, AppData de cada usuario y Temp; el driver vgk.sys y el inicio automatico
+        #    de la bandeja (vgtray). No toca el cliente de Riot ni los juegos.
+        $sd = $env:SystemDrive
+        # Cada raiz con cuantos niveles se revisan (pocos, para que sea rapido)
+        $raices = @(@($pf, 1), @(${env:ProgramFiles(x86)}, 1), @($env:ProgramData, 2), @((Join-Path $env:SystemRoot 'Temp'), 1))
+        foreach ($u in @(Get-ChildItem -LiteralPath ($sd + '\Users') -Directory -Force -ErrorAction SilentlyContinue | Where-Object { -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) })) {
+            foreach ($sub in 'AppData\Local', 'AppData\Roaming', 'AppData\LocalLow') { $raices += , @((Join-Path $u.FullName $sub), 2) }
+            $raices += , @((Join-Path $u.FullName 'AppData\Local\Temp'), 1)
+        }
+        $rp = [IO.FileAttributes]::ReparsePoint
+        $restos = New-Object System.Collections.Generic.List[string]
+        # Sin entrar en accesos directos de carpeta (junctions)
+        foreach ($par in $raices) {
+            $r0 = [string]$par[0]
+            if ((-not $r0) -or (-not (Test-Path -LiteralPath $r0))) { continue }
+            $nivel = @(Get-Item -LiteralPath $r0 -Force -ErrorAction SilentlyContinue)
+            for ($d = 0; $d -lt [int]$par[1] -and $nivel.Count -gt 0; $d++) {
+                $sig = @()
+                foreach ($c in $nivel) {
+                    foreach ($h in @(Get-ChildItem -LiteralPath $c.FullName -Directory -Force -ErrorAction SilentlyContinue)) {
+                        if ($h.Attributes -band $rp) { continue }
+                        $esVg = ($h.Name -like '*Riot Vanguard*') -or (($h.Name -eq 'Vanguard') -and ($c.Name -like '*Riot*'))
+                        if ($esVg) { $restos.Add($h.FullName) } else { $sig += $h }
+                    }
+                }
+                $nivel = $sig
+            }
+        }
+        $drvVgk = Join-Path $env:SystemRoot 'System32\drivers\vgk.sys'
+        if (Test-Path -LiteralPath $drvVgk) { $restos.Add($drvVgk) }
+        $quedan = @()
+        foreach ($x in @($restos | Select-Object -Unique)) {
+            if (Test-Path -LiteralPath $x -PathType Container) {
+                # rd no sigue los accesos directos de carpeta que haya adentro: solo borra lo que es de Vanguard
+                & takeown.exe /f $x /a /r /d s 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) { & takeown.exe /f $x /a /r /d y 2>&1 | Out-Null }
+                & icacls.exe $x /grant '*S-1-5-32-544:F' /t /c /q 2>&1 | Out-Null
+                & cmd.exe /c ('rd /s /q "' + $x + '"') 2>&1 | Out-Null
+            } else {
+                & takeown.exe /f $x /a 2>&1 | Out-Null
+                & icacls.exe $x /grant '*S-1-5-32-544:F' /c /q 2>&1 | Out-Null
+                Remove-Item -LiteralPath $x -Force -ErrorAction SilentlyContinue
+            }
+            if (Test-Path -LiteralPath $x) { $quedan += $x; Log 'INFO' ('resto de Vanguard en uso, se borra al reiniciar: ' + $x) }
+            else { Log 'OK' ('resto de Vanguard borrado: ' + $x) }
+        }
+        # Inicio automatico de la bandeja de Vanguard
+        foreach ($rk in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run') {
+            $vals = Get-ItemProperty -LiteralPath $rk -ErrorAction SilentlyContinue
+            if (-not $vals) { continue }
+            foreach ($pp in @($vals.PSObject.Properties | Where-Object { ($_.Name -notlike 'PS*') -and (([string]$_.Value -like '*Riot Vanguard*') -or ([string]$_.Value -like '*vgtray*')) })) {
+                Remove-ItemProperty -LiteralPath $rk -Name $pp.Name -Force -ErrorAction SilentlyContinue
+                Log 'OK' ('inicio automatico de Vanguard quitado: ' + $pp.Name)
+            }
+        }
+        # Lo que esta en uso (por ejemplo el driver cargado) se borra solo al reiniciar, antes de que nada lo use
+        if ($quedan.Count -gt 0) {
+            $tn = 'BorrarRestosVanguard'
+            $cmds = @(foreach ($x in $quedan) { if ($x -like '*.sys') { 'del /f /q "' + $x + '"' } else { 'rd /s /q "' + $x + '"' } })
+            try {
+                $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/c ' + ($cmds -join ' & ') + ' & schtasks.exe /delete /tn ' + $tn + ' /f')
+                $trg = New-ScheduledTaskTrigger -AtStartup
+                $prn = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+                Register-ScheduledTask -TaskName $tn -Action $act -Trigger $trg -Principal $prn -Force | Out-Null
+            } catch { Log 'INFO' ('no se pudo programar el borrado al reiniciar: ' + $_.Exception.Message) }
+        }
+        $nRestos = @($restos | Select-Object -Unique).Count - $quedan.Count
+        if ($nRestos -gt 0) { Say ('  Restos de Vanguard borrados del disco: ' + $nRestos + '.') }
         Start-Sleep -Seconds 1
-        $queda = (Get-Service -Name 'vgc','vgk' -ErrorAction SilentlyContinue) -or (Test-Path $vgDir)
+        $queda = (Get-Service -Name 'vgc','vgk' -ErrorAction SilentlyContinue) -or (Test-Path $vgDir) -or ($quedan.Count -gt 0)
         if (-not $queda) {
-            Log 'OK' 'Riot Vanguard desinstalado del todo: abri el cliente de Riot y te pide instalarlo de nuevo'
-            Say '  Riot Vanguard desinstalado. Reinicia, abri el cliente de Riot y te pide instalarlo de nuevo.' 'Yellow'
+            Log 'OK' 'Riot Vanguard desinstalado del todo, sin restos en el disco: abri el cliente de Riot y te pide instalarlo de nuevo'
+            Say '  Riot Vanguard desinstalado, sin restos. Reinicia, abri el cliente de Riot y te pide instalarlo de nuevo.' 'Yellow'
             $code = 0
         } else {
-            Log 'PENDIENTE' 'Riot Vanguard quitado: quedan restos que se limpian al reiniciar'
-            Say '  Riot Vanguard quitado: termina de borrarse al reiniciar. Despues abri el cliente de Riot y te pide instalarlo.' 'Yellow'
+            Log 'PENDIENTE' 'Riot Vanguard quitado: quedan restos en uso que se borran al reiniciar'
+            Say '  Riot Vanguard quitado: los restos que estaban en uso se borran al reiniciar. Despues abri el cliente de Riot y te pide instalarlo.' 'Yellow'
             $code = 6
         }
     }
