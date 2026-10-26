@@ -1914,7 +1914,7 @@ $Advertencias = @{
     'Gaming|ll'    = 'Es una funcion oculta que Microsoft todavia esta probando: si notas algo raro, restablecelo.'
     'Gaming|msi'   = 'Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro).'
     'Gaming|tr'    = 'Mas consumo y calor; con undervolt u overclock puede colgarse en juegos.'
-    'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos.'
+    'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos. En notebooks la bateria baja mas rapido, incluso suspendida.'
     'Gaming|nic'   = 'En placas madre de baja calidad puede cortar el internet.'
     'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
     'Gaming|vbs'   = 'Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.'
@@ -2196,7 +2196,7 @@ $Casillas.Limpieza = @{}
 $spL = New-Object Windows.Controls.StackPanel
 $spL.Children.Add((Nueva-Seccion 'Siempre se limpia')) | Out-Null
 $fijo = Nueva-Caja
-$fijo.Child = (Nuevo-Texto 'Temporales, cache de Windows Update, Windows.old, volcados y logs de errores, cache de Discord, Steam, Epic y Store, Visor de Eventos, DNS y componentes viejos de Windows (DISM). Los navegadores no se tocan.' 13 '#C3C8D0' $false)
+$fijo.Child = (Nuevo-Texto 'Temporales, cache de Windows Update, Windows.old, volcados y logs de errores, restos de instalaciones (drivers de video ya instalados, OneDrive, actualizaciones de Windows), cache de Discord, Steam, Epic y Store, Visor de Eventos, DNS y componentes viejos de Windows (DISM). Los navegadores no se tocan.' 13 '#C3C8D0' $false)
 $spL.Children.Add($fijo) | Out-Null
 $spL.Children.Add((Nueva-Seccion 'Opcional')) | Out-Null
 foreach ($it in $Limp) { $spL.Children.Add((Nueva-Tarjeta $it $Casillas.Limpieza $false '')) | Out-Null }
@@ -2705,21 +2705,21 @@ $Perfiles = @(
     },
     [pscustomobject]@{
         Id = 'comp'; Nombre = 'Competitivo'; Color = '#8AB4F8'
-        Hace = 'lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro y baja latencia del procesador, temporizador al minimo, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida.'
+        Hace = 'lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro y baja latencia del procesador, temporizador al minimo, juegos en ventana y GPU por hardware, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida.'
         Ideal = 'jugar competitivo (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL y Deadlock) con la PC protegida. Los antitrampas de esos juegos siguen andando.'
-        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps.'
+        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps. Por las dudas tampoco apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle: en algunas PCs dan cortes o lag.'
         Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse.'
         D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'avl', 'md', 'v4')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4')
     },
     [pscustomobject]@{
         Id = 'compopt'; Nombre = 'Competitivo + Optimizado'; Color = '#C58AF9'
         Hace = 'todo lo de Competitivo y lo de Seguro, y ademas borra las apps basura, apaga la hibernacion, los efectos visuales, los sonidos, servicios que casi nadie usa y el Storage Sense, y Windows Update deja de instalar drivers.'
         Ideal = 'la PC de juego de todos los dias: el mayor rendimiento con la PC todavia protegida.'
-        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS.'
-        Adv = 'borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
+        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS. Igual que Competitivo, no apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle.'
+        Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
         D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db', 'ini')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'avl', 'md', 'v4', 'ext', 'stg', 'xm')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg', 'xm')
     },
     [pscustomobject]@{
         Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#6EE7B7'
@@ -2780,6 +2780,14 @@ foreach ($pf in $Perfiles) {
         $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'
         $tit.Children.Add($ic) | Out-Null
         $card.ToolTip = (Con-Enie $porque)
+        [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
+    }
+    if ($pf.Id -in 'comp', 'compopt') {
+        $porqueC = ('Tiene la alerta por los ajustes del procesador: plan Alto rendimiento, Modo Nitro, Baja latencia y temporizador al minimo suben el consumo y el calor, y con undervolt u overclock la PC puede colgarse.' + "`n" + 'Ademas "Optimizar juegos en ventana y GPU por hardware" y la afinidad en Ryzen X3D necesitan los drivers al dia: si te faltan, el perfil no se aplica hasta que los instales.')
+        $icC = Nuevo-Texto $Aviso 17 '#E5B567' $true
+        $icC.FontFamily = 'Segoe UI Symbol'; $icC.Margin = '8,0,0,0'
+        $tit.Children.Add($icC) | Out-Null
+        $card.ToolTip = (Con-Enie $porqueC)
         [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
     }
     $sp.Children.Add($tit) | Out-Null
@@ -2886,6 +2894,8 @@ function Faltan-Perfil($pf) {
 
 # Antes de marcar o aplicar un perfil: si le faltan drivers, avisa y te manda a Herramientas. Devuelve $true si se puede seguir.
 function Perfil-ConDrivers($pf) {
+    # Hasta que no se termina de leer Windows no se sabe que drivers faltan: se espera
+    if (-not $script:Leido) { Avisar $pf.Nombre 'Espera a que termine de leer tu Windows (abajo dice cuando termina) y volve a tocar.'; if ((-not $script:Lectura) -and (-not $script:Ocupado)) { Refrescar-Estado }; return $false }
     $f = @(Faltan-Perfil $pf)
     if ($f.Count -eq 0) { return $true }
     Pedir-Drivers $f ('El perfil "' + $pf.Nombre + '" tiene ajustes que necesitan drivers que te faltan. Antes de seguir, instalalos:')
@@ -3719,7 +3729,8 @@ $PasosLimpieza = @(
     @('Deteniendo servicios de actualizacion', 'Cache de Windows Update'),
     @('(?m)^Windows Update\s+encontrados', 'Archivos temporales'),
     @('(?m)^Temporales\s+encontrados', 'Volcados y logs de errores'),
-    @('(?m)^Errores, volcados y logs', 'Windows.old y caches de apps'),
+    @('(?m)^Errores, volcados y logs', 'Restos de instalaciones y actualizaciones'),
+    @('(?m)^Restos de instalaciones', 'Windows.old y caches de apps'),
     @('Borrando Windows\.old', 'Windows.old: siempre tarda mucho (de 5 a 20 minutos). No esta trabado'),
     @('(?m)^Apps \(Discord', 'Cache de shaders'),
     @('Vaciando Visor de Eventos', 'Visor de Eventos'),

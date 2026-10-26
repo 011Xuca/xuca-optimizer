@@ -826,7 +826,7 @@ echo %C_WARN%AVISO: Si tienes dispositivos inalambricos (Bluetooth o 2.4 GHz), d
 echo.
 echo   Que hace: apaga el ahorro de energia de USB, USB 3 y PCI Express, y con la PC enchufada los discos ya no se apagan solos.
 echo   A favor: evita microcortes del mouse y el teclado, y los tirones de unos segundos cuando un disco HDD se vuelve a encender.
-echo   En contra: mas consumo de bateria en notebook; los discos HDD quedan girando mientras la PC esta prendida.
+echo   En contra: en reposo la PC gasta unos vatios mas y la placa de video y los SSD NVMe pueden calentar un poco mas; en notebook la bateria dura menos (tambien con la tapa cerrada) y los discos HDD quedan girando mientras la PC esta prendida.
 set "QID=pe"
 set "Q=- Desea desactivar el ahorro de energia de USB, PCIe y discos? (Evita microcortes de mouse y teclado, y tirones de discos HDD)"
 call :askR

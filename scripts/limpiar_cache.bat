@@ -38,7 +38,8 @@ echo ==========================================
 echo.
 
 echo Se va a limpiar, sin preguntar: temporales, cache de Windows Update, Windows.old,
-echo volcados y logs de errores, caches de apps, Visor de Eventos,
+echo volcados y logs de errores, restos de instalaciones (drivers, OneDrive, actualizaciones),
+echo caches de apps, Visor de Eventos,
 echo Microsoft Store, DNS y componentes viejos de Windows (DISM).
 echo Antes te pregunta por tres cosas que conviene decidir vos.
 rem Modo app: las tres respuestas ya vienen en CLEAN_BIN, CLEAN_GPU y CLEAN_RP.
@@ -204,6 +205,43 @@ $errPaths = @(
 $r = Clear-Group 'Errores, volcados y logs' $errPaths
 $totalFiles += $r.Deleted
 $totalBytes += $r.Bytes
+
+# Restos que dejan las instalaciones y actualizaciones en C:\ (instaladores de drivers ya descomprimidos,
+# descargas de actualizaciones de Windows que ya se usaron, temporales de OneDrive y logs de rendimiento).
+# NO se tocan a proposito: C:\inetpub (desde abril 2025 Windows la crea como proteccion de seguridad y Microsoft
+# pide no borrarla) ni ProgramData\Package Cache (sin eso no se pueden desinstalar ni reparar Visual C++, Visual Studio, etc.).
+# Igual que con Temp, Archivos-Seguro no entra en enlaces: si alguien crea C:\NVIDIA como enlace a otro lado, no se toca.
+$restos = @(
+    ($sysDrive + '\OneDriveTemp'),
+    ($sysDrive + '\PerfLogs'),
+    ($sysDrive + '\$WINDOWS.~BT'),
+    ($sysDrive + '\$WINDOWS.~WS'),
+    ($sysDrive + '\$GetCurrent'),
+    ($sysDrive + '\$SysReset'),
+    ($sysDrive + '\ESD\Download'),
+    ($sysDrive + '\ESD\Windows'),
+    ($sysDrive + '\NVIDIA'),
+    ($sysDrive + '\AMD'),
+    ($env:ProgramData + '\NVIDIA Corporation\Downloader')
+)
+$r = Clear-Group 'Restos de instalaciones' $restos
+$totalFiles += $r.Deleted
+$totalBytes += $r.Bytes
+# Las carpetas que quedaron vacias tambien se borran (de la mas profunda a la de arriba; los enlaces no se tocan).
+# PerfLogs se deja vacia porque es de Windows.
+foreach ($raizR in $restos) {
+    if ($raizR -like '*\PerfLogs') { continue }
+    $ri = New-Object IO.DirectoryInfo($raizR)
+    if ((-not $ri.Exists) -or (($ri.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)) { continue }
+    $dirs = New-Object System.Collections.Generic.List[IO.DirectoryInfo]
+    $pilaR = New-Object System.Collections.Generic.Stack[IO.DirectoryInfo]
+    $pilaR.Push($ri)
+    while ($pilaR.Count -gt 0) {
+        $d = $pilaR.Pop(); $dirs.Add($d)
+        try { foreach ($h in $d.GetDirectories()) { if (($h.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) { $pilaR.Push($h) } } } catch { }
+    }
+    for ($k = $dirs.Count - 1; $k -ge 0; $k--) { try { [IO.Directory]::Delete($dirs[$k].FullName, $false) } catch { } }
+}
 
 $old = $sysDrive + '\Windows.old'
 # Solo se borra si es la carpeta que dejo Windows: no un enlace y con duenio SYSTEM, TrustedInstaller o Administradores.
