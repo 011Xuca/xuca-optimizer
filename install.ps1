@@ -31,6 +31,9 @@ try {
     if (Test-Path -LiteralPath $ico) { $acc.IconLocation = $ico + ',0' }
     $acc.Save()
 
+    # Contador de instalaciones (solo suma 1, no manda ningun dato). Si falla, no pasa nada.
+    try { Invoke-RestMethod -Uri 'https://abacus.jasoncameron.dev/hit/011xuca/xuca-optimizer-instalaciones' -TimeoutSec 4 -UseBasicParsing | Out-Null } catch {}
+
     Write-Host ('Listo: instalado en ' + $Destino) -ForegroundColor Green
     Write-Host 'Tambien quedo un acceso directo "Xuca OPtimizer" en el escritorio.' -ForegroundColor Green
     Start-Process -FilePath (Join-Path $Destino 'XucaOP.bat') -WorkingDirectory $Destino

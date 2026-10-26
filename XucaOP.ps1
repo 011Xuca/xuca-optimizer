@@ -3524,6 +3524,12 @@ if (-not $bajar) {
     $vr = $null; $vl = $null
     $sync.TuyaMasNueva = ($remota -and [version]::TryParse(($remota -replace '^[vV]', ''), [ref]$vr) -and [version]::TryParse(($local -replace '^[vV]', ''), [ref]$vl) -and ($vl -gt $vr))
     $sync.Listo = $true
+    # Mantiene vivo el contador de descargas de la pagina (solo lo lee, no suma ni manda datos)
+    try {
+        $rc = [Net.HttpWebRequest]::Create('https://abacus.jasoncameron.dev/get/011xuca/xuca-optimizer-instalaciones')
+        $rc.Timeout = 3000; $rc.ReadWriteTimeout = 3000; $rc.UserAgent = 'XucaOP'
+        $rc.GetResponse().Close()
+    } catch { }
     return
 }
 
