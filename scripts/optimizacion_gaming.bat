@@ -59,11 +59,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "$global:XucaUpd=0; try {
 if errorlevel 10 exit
 :upd_fin
 
+rem Desde la app ya vienen la build, la RAM, el disco y la fecha (XUCA_INFO): asi no se abre PowerShell solo para eso
+set "INFO="
+if defined XUCA_AUTO if defined XUCA_INFO set "INFO=%XUCA_INFO%"
+if defined INFO goto info_ok
 del /q "%TEMP%\xuca_info.txt" >nul 2>&1
 set "ACT=INFO"
 call :aplicar_ps
-set "INFO="
 if exist "%TEMP%\xuca_info.txt" set /p INFO=<"%TEMP%\xuca_info.txt"
+:info_ok
 set "PSMAL=0"
 if not defined INFO set "PSMAL=1"
 if defined INFO for /f "tokens=1-4" %%A in ("%INFO%") do (set "BUILD=%%A" & set "RAMGB=%%B" & set "ESHDD=%%C" & set "STAMP=%%D")
@@ -94,11 +98,14 @@ call :aplicar_ps
 call :log "INFO" "Inicio de optimizacion_gaming.bat"
 if "%PSMAL%"=="1" call :log "ATENCION" "PowerShell no devolvio datos: puede estar bloqueado por el antivirus. Mira las lineas PS-ERROR"
 
+rem Desde la app no hace falta: la app ya revisa si tu Windows es original y lo muestra arriba
+set "ORIGMSG="
+if defined XUCA_AUTO goto orig_ok
 del /q "%TEMP%\xuca_orig.txt" >nul 2>&1
 set "ACT=ORIG_CHECK"
 call :aplicar_ps
-set "ORIGMSG="
 if exist "%TEMP%\xuca_orig.txt" set /p ORIGMSG=<"%TEMP%\xuca_orig.txt"
+:orig_ok
 if defined ORIGMSG set "ORIGMSG=%ORIGMSG:&= %"
 if defined ORIGMSG set "ORIGMSG=%ORIGMSG:|= %"
 if defined ORIGMSG set "ORIGMSG=%ORIGMSG:<= %"
@@ -967,6 +974,8 @@ call :reg "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\Hyperviso
 call :opt_fin "Integridad de memoria restaurada (se aplica al reiniciar)"
 :mi_fin
 
+rem Desde la app, si no marcaste "Antivirus liviano" no se revisa el antivirus
+if defined XUCA_AUTO if /i not "%XR_avl%"=="S" if /i not "%XR_avl%"=="R" goto av_skip_avl
 set "ACT=AV_STATUS"
 call :aplicar_ps
 if errorlevel 10 (
@@ -1686,6 +1695,25 @@ function Afi-Elegir([string]$cat, [string]$clave, [string]$cambios, [string]$ext
     $sel = @($items | Where-Object { $_.Marcado } | ForEach-Object { $_.Procs })
     return (($sel -join ',') + ',' + $extra)
 }
+# >>> XUCA-PROGRAMAS (la app XucaOP copia todo lo que esta entre estas dos marcas para saber si el programa instalado es el de esta version)
+# Codigo de los programitas que se instalan en ProgramData\XucaScripts (temporizador, limpiador de RAM y afinidad).
+# Al instalarlos se guarda al lado un .ver con la huella del codigo. Si una version nueva del script cambia el codigo,
+# la huella no coincide: la app lo muestra como no aplicado y al aplicarlo se vuelve a instalar el nuevo.
+$CodTimer = 'using System.Runtime.InteropServices; using System.Threading; public class P { [DllImport("ntdll.dll")] public static extern int NtSetTimerResolution(uint d, bool s, out uint c); public static void Main() { uint c; NtSetTimerResolution(5000, true, out c); Thread.Sleep(Timeout.Infinite); } }'
+$CodRam = 'using System; using System.Runtime.InteropServices; using System.Threading; public class P { [DllImport("ntdll.dll")] public static extern int NtSetSystemInformation(int i, ref int n, int l); [DllImport("advapi32.dll", SetLastError=true)] static extern bool OpenProcessToken(IntPtr p, uint d, out IntPtr t); [DllImport("advapi32.dll")] static extern bool LookupPrivilegeValue(string s, string n, out long l); [DllImport("advapi32.dll")] static extern bool AdjustTokenPrivileges(IntPtr t, bool d, ref TP n, uint b, IntPtr p, IntPtr r); [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess(); [DllImport("kernel32.dll")] static extern bool GlobalMemoryStatusEx(ref MS b); [StructLayout(LayoutKind.Sequential)] struct MS { public uint d; public uint l; public ulong tp; public ulong ap; public ulong tpf; public ulong apf; public ulong tv; public ulong av; public ulong aev; } [StructLayout(LayoutKind.Sequential, Pack=1)] struct TP { public uint c; public long l; public uint a; } public static void Main() { IntPtr t; if (OpenProcessToken(GetCurrentProcess(), 40, out t)) { TP tp = new TP(); tp.c = 1; tp.a = 2; LookupPrivilegeValue(null, "SeProfileSingleProcessPrivilege", out tp.l); AdjustTokenPrivileges(t, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero); } while(true) { MS m = new MS(); m.d = (uint)Marshal.SizeOf(typeof(MS)); if (GlobalMemoryStatusEx(ref m)) { if ((m.ap / 1048576) < 1024) { int c = 4; NtSetSystemInformation(80, ref c, 4); } } Thread.Sleep(10000); } } }'
+$CodAfi = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static bool Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); p.Refresh(); return (long)p.ProcessorAffinity == m; } catch { return false; } } public static void Main() { string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "XucaScripts\\afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> rendidos = new HashSet<int>(); Dictionary<int, int> fallos = new Dictionary<int, int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m == 0) continue; hayJuego = true; if (rendidos.Contains(p.Id)) continue; if (Poner(p, m)) fallos.Remove(p.Id); else { int c = 0; fallos.TryGetValue(p.Id, out c); c++; fallos[p.Id] = c; if (c >= 3) rendidos.Add(p.Id); } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom) && Poner(p, fondo)) hechosF.Add(p.Id); } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } rendidos.IntersectWith(vivos); hechosF.IntersectWith(vivos); List<int> viejos = new List<int>(); foreach (int k in fallos.Keys) if (!vivos.Contains(k)) viejos.Add(k); foreach (int k in viejos) fallos.Remove(k); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
+function Ver-Codigo([string]$c) {
+    $h = [Security.Cryptography.SHA256]::Create()
+    try { return (-join @($h.ComputeHash([Text.Encoding]::UTF8.GetBytes($c))[0..7] | ForEach-Object { $_.ToString('x2') })) } finally { $h.Dispose() }
+}
+function Ver-Igual([string]$exe, [string]$c) {
+    $f = $exe + '.ver'
+    if (-not (Test-Path -LiteralPath $f)) { return $false }
+    return (([string](Get-Content -LiteralPath $f -TotalCount 1)).Trim() -eq (Ver-Codigo $c))
+}
+function Ver-Guardar([string]$exe, [string]$c) { try { Set-Content -LiteralPath ($exe + '.ver') -Value (Ver-Codigo $c) -Encoding ASCII } catch { } }
+# <<< XUCA-PROGRAMAS
+
 # >>> XUCA-CPU (la app XucaOP copia todo lo que esta entre estas dos marcas para leer el procesador)
 function Afi-Bit([long]$m, [int]$i) { return (($m -band ([long]1 -shl $i)) -ne 0) }
 function Afi-BitBajo([long]$m) { for ($i = 0; $i -lt 64; $i++) { if (Afi-Bit $m $i) { return $i } }; return 64 }
@@ -2814,7 +2842,7 @@ switch ($env:ACT) {
             else { Log 'FALLO' 'no se pudo escribir GlobalTimerResolutionRequests'; $code = 1 }
         }
         $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-        if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe)) {
+        if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and (Ver-Igual $exe $CodTimer)) {
             if ($globOk) { Log 'OK' 'ya estaba: temporizador corriendo para todo el sistema'; $code = 5 }
             else { Log 'OK' 'ya estaba: temporizador corriendo' }
         }
@@ -2823,14 +2851,14 @@ switch ($env:ACT) {
             Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue | Stop-Process -Force
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
             Proteger-Carpeta $dir
-            $cs = 'using System.Runtime.InteropServices; using System.Threading; public class P { [DllImport("ntdll.dll")] public static extern int NtSetTimerResolution(uint d, bool s, out uint c); public static void Main() { uint c; NtSetTimerResolution(5000, true, out c); Thread.Sleep(Timeout.Infinite); } }'
+            $cs = $CodTimer
             try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar TIMER: ' + $_.Exception.Message); $code = 1 }
             if (Test-Path $exe) {
                 $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                 Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
                 Start-ScheduledTask -TaskName $tn; Start-Sleep -Seconds 2
                 $t2 = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-                if ($t2 -and ($t2.State -eq 'Running')) { Log 'OK' 'verificado: temporizador a 0.5ms' } else { Log 'FALLO' 'la tarea XucaTimer no quedo corriendo'; $code = 1 }
+                if ($t2 -and ($t2.State -eq 'Running')) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: temporizador a 0.5ms' } else { Log 'FALLO' 'la tarea XucaTimer no quedo corriendo'; $code = 1 }
             }
         }
     }
@@ -2846,7 +2874,7 @@ switch ($env:ACT) {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
             Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue | Stop-Process -Force
             Start-Sleep -Milliseconds 500
-            Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             Remove-ItemProperty -Path $kk -Name 'GlobalTimerResolutionRequests' -ErrorAction SilentlyContinue
             $queda = (Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue) -or ($null -ne (Get-ItemProperty -Path $kk -ErrorAction SilentlyContinue).GlobalTimerResolutionRequests)
             if ($queda) { Log 'FALLO' 'el temporizador no se pudo borrar del todo'; $code = 1 }
@@ -2858,19 +2886,19 @@ switch ($env:ACT) {
         $tn = 'XucaRAM'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaRAM.exe'
         Proteger-Carpeta $dir
         $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-        if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe)) { Log 'OK' 'ya estaba: limpiador RAM corriendo'; $code = 5 }
+        if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and (Ver-Igual $exe $CodRam)) { Log 'OK' 'ya estaba: limpiador RAM corriendo'; $code = 5 }
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
             Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
-            $cs = 'using System; using System.Runtime.InteropServices; using System.Threading; public class P { [DllImport("ntdll.dll")] public static extern int NtSetSystemInformation(int i, ref int n, int l); [DllImport("advapi32.dll", SetLastError=true)] static extern bool OpenProcessToken(IntPtr p, uint d, out IntPtr t); [DllImport("advapi32.dll")] static extern bool LookupPrivilegeValue(string s, string n, out long l); [DllImport("advapi32.dll")] static extern bool AdjustTokenPrivileges(IntPtr t, bool d, ref TP n, uint b, IntPtr p, IntPtr r); [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess(); [DllImport("kernel32.dll")] static extern bool GlobalMemoryStatusEx(ref MS b); [StructLayout(LayoutKind.Sequential)] struct MS { public uint d; public uint l; public ulong tp; public ulong ap; public ulong tpf; public ulong apf; public ulong tv; public ulong av; public ulong aev; } [StructLayout(LayoutKind.Sequential, Pack=1)] struct TP { public uint c; public long l; public uint a; } public static void Main() { IntPtr t; if (OpenProcessToken(GetCurrentProcess(), 40, out t)) { TP tp = new TP(); tp.c = 1; tp.a = 2; LookupPrivilegeValue(null, "SeProfileSingleProcessPrivilege", out tp.l); AdjustTokenPrivileges(t, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero); } while(true) { MS m = new MS(); m.d = (uint)Marshal.SizeOf(typeof(MS)); if (GlobalMemoryStatusEx(ref m)) { if ((m.ap / 1048576) < 1024) { int c = 4; NtSetSystemInformation(80, ref c, 4); } } Thread.Sleep(10000); } } }'
+            $cs = $CodRam
             try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar RAM: ' + $_.Exception.Message); $code = 1 }
             if (Test-Path $exe) {
                 $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                 Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
                 Start-ScheduledTask -TaskName $tn; Start-Sleep -Seconds 2
                 $t2 = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-                if ($t2 -and ($t2.State -eq 'Running')) { Log 'OK' 'verificado: limpiador RAM (< 1024MB)' } else { Log 'FALLO' 'la tarea XucaRAM no quedo corriendo'; $code = 1 }
+                if ($t2 -and ($t2.State -eq 'Running')) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: limpiador RAM (< 1024MB)' } else { Log 'FALLO' 'la tarea XucaRAM no quedo corriendo'; $code = 1 }
             }
         }
     }
@@ -2884,7 +2912,7 @@ switch ($env:ACT) {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
             Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
             Start-Sleep -Milliseconds 500
-            Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue)) { Log 'FALLO' 'el limpiador de RAM no se pudo borrar del todo'; $code = 1 }
             else { Log 'OK' 'verificado: limpiador RAM borrado' }
         }
@@ -3287,7 +3315,7 @@ public static class SpiNative {
                 $txt = (@(('juego=' + $pl.Juego), ('liviano=' + $pl.Liviano), ('fondo=' + $pl.Fondo), ('todo=' + $pl.Todo), ('juegos=' + ($pesados -join ',')), ('livianos=' + ($livianos -join ',')), ('apps=' + ($apps -join ',')), ('desc=' + $desc), ('detectados=' + ((Afi-DetectadosProcs) -join ',')), 'ver=3') -join "`r`n")
                 $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
                 $viejo = ''; if (Test-Path -LiteralPath $cfg) { $viejo = [string](Get-Content -LiteralPath $cfg -Raw) }
-                if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and ($viejo.Trim() -eq $txt.Trim())) {
+                if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and (Ver-Igual $exe $CodAfi) -and ($viejo.Trim() -eq $txt.Trim())) {
                     Log 'OK' 'ya estaba: afinidad corriendo con los mismos juegos y programas'; $code = 5
                 } else {
                     if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
@@ -3302,15 +3330,15 @@ public static class SpiNative {
                     # Programa chico: cada 2 segundos mira que hay abierto y le vuelve a poner sus nucleos a cada juego si se los cambiaron
                     # (CS2 y otros los vuelven a poner en todos al arrancar). Si el antitrampas no deja (Valorant, Fortnite), lo saltea.
                     # Mientras haya un juego abierto, aunque sea uno protegido, lleva lo de fondo a sus nucleos; al cerrarlo, lo devuelve a todos.
-                    $cs = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static bool Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); p.Refresh(); return (long)p.ProcessorAffinity == m; } catch { return false; } } public static void Main() { string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "XucaScripts\\afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> rendidos = new HashSet<int>(); Dictionary<int, int> fallos = new Dictionary<int, int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m == 0) continue; hayJuego = true; if (rendidos.Contains(p.Id)) continue; if (Poner(p, m)) fallos.Remove(p.Id); else { int c = 0; fallos.TryGetValue(p.Id, out c); c++; fallos[p.Id] = c; if (c >= 3) rendidos.Add(p.Id); } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom) && Poner(p, fondo)) hechosF.Add(p.Id); } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } rendidos.IntersectWith(vivos); hechosF.IntersectWith(vivos); List<int> viejos = new List<int>(); foreach (int k in fallos.Keys) if (!vivos.Contains(k)) viejos.Add(k); foreach (int k in viejos) fallos.Remove(k); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
-                    Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+                    $cs = $CodAfi
+                    Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
                     try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar AFINIDAD: ' + $_.Exception.Message); $code = 1 }
                     if (Test-Path $exe) {
                         $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                         Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
                         Start-ScheduledTask -TaskName $tn; Start-Sleep -Seconds 2
                         $t2 = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-                        if ($t2 -and ($t2.State -eq 'Running')) { Log 'OK' ('verificado: afinidad corriendo - ' + $desc) } else { Log 'FALLO' 'la tarea XucaAfinidad no quedo corriendo'; $code = 1 }
+                        if ($t2 -and ($t2.State -eq 'Running')) { Ver-Guardar $exe $cs; Log 'OK' ('verificado: afinidad corriendo - ' + $desc) } else { Log 'FALLO' 'la tarea XucaAfinidad no quedo corriendo'; $code = 1 }
                     }
                 }
             }
@@ -3337,7 +3365,7 @@ public static class SpiNative {
                     Log 'OK' 'lo que estaba abierto vuelve a usar todos los nucleos'
                 }
             }
-            Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $cfg -Force -ErrorAction SilentlyContinue
             if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue)) { Log 'FALLO' 'la afinidad no se pudo quitar del todo'; $code = 1 }
             else { Log 'OK' 'verificado: afinidad quitada' }

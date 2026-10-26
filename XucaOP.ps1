@@ -320,6 +320,14 @@ function Apps-Conteo {
     $total = @($AppsBasura).Count + 1
     return @{ Hechas = ($total - $quedan); Total = $total; Que = 'borradas'; Quedan = $quedan }
 }
+# Programitas de Gaming (tarea + .exe en ProgramData\XucaScripts): $false si no esta, $true si es el de esta version,
+# 'vieja' si lo instalo una version anterior del script (la app lo muestra como "Desactualizada").
+function Prog-Estado([string]$tarea, [string]$exe, [string]$cod) {
+    if (-not (Get-ScheduledTask -TaskName $tarea -ErrorAction SilentlyContinue)) { return $false }
+    if ((-not $cod) -or (-not (Get-Command Ver-Igual -ErrorAction SilentlyContinue))) { return $true }
+    if (Ver-Igual (Join-Path $env:ProgramData ('XucaScripts\' + $exe)) $cod) { return $true }
+    return 'vieja'
+}
 function Inicio-Conteo {
     if (-not (Get-Command Inicio-Lista -ErrorAction SilentlyContinue)) { return $null }
     $basura = @(Inicio-Lista | Where-Object { -not $_.Dejar })
@@ -350,6 +358,9 @@ try {
     # Lista de apps basura (para el contador de "Borrar las apps basura")
     $FuncApps = [regex]::Match([IO.File]::ReadAllText($Rutas.Debloat), '(?s)# >>> XUCA-APPS.*?# <<< XUCA-APPS').Value
     if ($FuncApps) { $FuncLectura += ("`n" + ($FuncApps -replace '(?m)^\s+', '')) }
+    # Codigo de los programitas de Gaming (temporizador, RAM, afinidad): para saber si el instalado es el de esta version
+    $FuncProg = [regex]::Match([IO.File]::ReadAllText($Rutas.Gaming), '(?s)# >>> XUCA-PROGRAMAS.*?# <<< XUCA-PROGRAMAS').Value
+    if ($FuncProg) { $FuncLectura += ("`n" + $FuncProg) }
 } catch { }
 # Las funciones de juegos tambien se cargan aca, para poner el nombre a los que agregas a mano
 try { if ($FuncJuegos) { . ([scriptblock]::Create($FuncJuegos)) } } catch { }
@@ -507,14 +518,14 @@ $Chequeos = @{
     'Debloat|su'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload') -eq 2 }
     'Debloat|ia'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\WindowsNotepad' 'DisableAIFeatures') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableClickToDo') -eq 1) }
     'Debloat|db'    = { Apps-Conteo }
-    'Debloat|edge'  = { -not (Test-Path -LiteralPath (${env:ProgramFiles(x86)} + '\Microsoft\Edge\Application\msedge.exe')) }
+    'Debloat|edge'  = { @(@((${env:ProgramFiles(x86)} + '\Microsoft\Edge\Application\msedge.exe'), ($env:ProgramFiles + '\Microsoft\Edge\Application\msedge.exe')) | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0 }
     'Debloat|chr'   = { @(@(($env:ProgramFiles + '\Google\Chrome\Application\chrome.exe'), (${env:ProgramFiles(x86)} + '\Google\Chrome\Application\chrome.exe'), ($env:LOCALAPPDATA + '\Google\Chrome\Application\chrome.exe')) | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0 }
     'Gaming|ms'     = { ((Leer-Reg 'HKCU:\Control Panel\Mouse' 'MouseSpeed') -eq '0') -and ((Leer-Reg 'HKCU:\Control Panel\Mouse' 'MouseThreshold1') -eq '0') }
     'Gaming|tk'     = { (Leer-Reg 'HKCU:\Control Panel\Accessibility\StickyKeys' 'Flags') -eq '506' }
     'Gaming|du'     = { (Leer-Reg 'HKCU:\Software\Microsoft\Multimedia\Audio' 'UserDuckingPreference') -eq 3 }
     'Gaming|mm'     = { ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games' 'Scheduling Category') -eq 'High') -and ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile' 'SystemResponsiveness') -eq 10) }
     'Gaming|pri'    = { (Prio-Actuales).Count -gt 0 }
-    'Gaming|afi'    = { [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue) }
+    'Gaming|afi'    = { Prog-Estado 'XucaAfinidad' 'XucaAfinidad.exe' $CodAfi }
     'Gaming|pw'     = { $global:XPlan -eq '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' }
     'Gaming|cpu'    = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt')) }
     'Gaming|nb'     = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\nb_' + $global:XPlan + '.txt')) }
@@ -532,8 +543,8 @@ $Chequeos = @{
         @($gpus | Where-Object { (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Enum\' + $_.InstanceId + '\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties') 'MSISupported') -ne 1 }).Count -eq 0
     }
     'Gaming|pca'    = { (Leer-Svc 'PcaSvc') -eq 4 }
-    'Gaming|tr'     = { ([bool](Get-ScheduledTask -TaskName 'XucaTimer' -ErrorAction SilentlyContinue)) -and ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel' 'GlobalTimerResolutionRequests') -eq 1) }
-    'Gaming|ram'    = { [bool](Get-ScheduledTask -TaskName 'XucaRAM' -ErrorAction SilentlyContinue) }
+    'Gaming|tr'     = { if ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel' 'GlobalTimerResolutionRequests') -ne 1) { $false } else { Prog-Estado 'XucaTimer' 'XucaTimer.exe' $CodTimer } }
+    'Gaming|ram'    = { Prog-Estado 'XucaRAM' 'XucaRAM.exe' $CodRam }
     'Gaming|sm'     = { (Leer-Svc 'SysMain') -eq 4 }
     'Gaming|pe'     = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\2a737441-1930-4402-8d77-b2bebba308a3\48e6b7a6-50f5-4782-a5d4-53bb8f07e226') 'ACSettingIndex') -eq 0 }
     'Gaming|nic'    = {
@@ -569,8 +580,167 @@ param($Funcs, $Lista, $Sync)
 $ErrorActionPreference = 'Stop'
 . ([scriptblock]::Create($Funcs))
 $res = @{}
+$Sync.Lock = New-Object object
+# Lo lento (apps, Defender, discos, placas de red, juegos, procesador) corre en varios hilos a la vez:
+# cada hilo hace su parte y suma a $Sync.Hecho, asi la barra avanza igual que antes pero termina antes.
+$Previo = {
+    param($Funcs, $Sync, $Plan)
+    $ErrorActionPreference = 'Stop'
+    . ([scriptblock]::Create($Funcs))
+    $global:XPlan = $Plan; $global:XAppx = @(); $global:XAppxFijas = @(); $global:XCpuClase = ''
+    function Sumar { [Threading.Monitor]::Enter($Sync.Lock); try { $Sync.Hecho = $Sync.Hecho + 1 } finally { [Threading.Monitor]::Exit($Sync.Lock) } }
+}
+$Chequear = {
+    param($Items)
+    $out = @{}
+    foreach ($e in $Items) {
+        $Sync.Paso = $e.Titulo
+        $est = $null
+        # Un contador (@{ Hechas; Total }) pasa tal cual; 'vieja' = la puso una version anterior del script; lo demas es si o no
+        try { $r = & ([scriptblock]::Create($e.Codigo)); if ($null -ne $r) { $u = @($r)[-1]; if ($u -is [hashtable]) { $est = $u } elseif (($u -is [string]) -and ($u -eq 'vieja')) { $est = 'vieja' } else { $est = [bool]$u } } } catch { $est = $null }
+        $out[$e.Clave] = $est
+        Sumar
+    }
+    $out
+}
+$Compat = {
+        $i = @{ Build = 0; Ubr = 0; Display = ''; Edicion = ''; RamGB = 0; Hdd = $false; Recall = $false; BitLocker = $false; Winget = $false; AvOff = $false }
+        try { $i.Build = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'CurrentBuildNumber') } catch { }
+        try { $i.Ubr = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'UBR') } catch { }
+        $i.Display = [string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'DisplayVersion')
+        $i.Edicion = [string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'EditionID')
+        try { $i.RamGB = [int][math]::Round((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1GB) } catch { }
+        try {
+            $dk = Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1) -ErrorAction Stop | Get-Disk -ErrorAction Stop | Get-PhysicalDisk -ErrorAction Stop
+            $i.Hdd = ([string]$dk.MediaType -eq 'HDD')
+        } catch { }
+        if ($i.Build -ge 26100) { try { $i.Recall = [bool](Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction Stop) } catch { } }
+        $i.BitLocker = [bool](Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)
+        $i.Winget = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+        $i.Chrome = (@(@(($env:ProgramFiles + '\Google\Chrome\Application\chrome.exe'), (${env:ProgramFiles(x86)} + '\Google\Chrome\Application\chrome.exe'), ($env:LOCALAPPDATA + '\Google\Chrome\Application\chrome.exe')) | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0)
+        # Notebook = tiene bateria
+        $i.Bateria = $false
+        try { $i.Bateria = (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) } catch { }
+        # Placas de red fisicas: 9 = WiFi, 14 = cable (para "WiFi y cable a la vez")
+        # Las placas apagadas en el Administrador de dispositivos no cuentan. WifiSinRed = la placa WiFi no ve ninguna red (sin antena, por ejemplo)
+        $i.Wifi = 0; $i.Lan = 0; $i.WifiSinRed = $false
+        try {
+            $fis = @(Get-NetAdapter -Physical -ErrorAction Stop | Where-Object { [string]$_.Status -ne 'Disabled' })
+            $wfs = @($fis | Where-Object { $_.NdisPhysicalMedium -eq 9 })
+            $i.Wifi = $wfs.Count
+            $i.Lan = @($fis | Where-Object { $_.NdisPhysicalMedium -eq 14 }).Count
+            if (($wfs.Count -gt 0) -and (@($wfs | Where-Object { [string]$_.Status -eq 'Up' }).Count -eq 0)) {
+                $o = (& netsh.exe wlan show networks 2>$null | Out-String)
+                $m = [regex]::Match($o, '(\d+)\s+(networks?|redes)')
+                if ($m.Success -and ([int]$m.Groups[1].Value -eq 0)) { $i.WifiSinRed = $true }
+            }
+        } catch { }
+        $i.NicPlacas = 0; $i.NicOpc = 0
+        try { $nn = Leer-Nic; $i.NicPlacas = [int]$nn.Placas; $i.NicOpc = @($nn.Vals).Count } catch { }
+        # Opciones que necesitan un driver que no tenes instalado (la app te manda a instalarlo antes de aplicarlas)
+        $i.DrvFalta = @{}
+        try {
+            $gpu = @(Get-CimInstance Win32_VideoController -ErrorAction Stop | Where-Object { ([string]$_.PNPDeviceID) -like 'PCI\*' })
+            if (@($gpu | Where-Object { (@('display.inf', 'basicdisplay.inf') -contains ([string]$_.InfFilename).ToLower()) -or ([int]$_.ConfigManagerErrorCode -ne 0) }).Count -gt 0) {
+                $i.DrvFalta['Gaming|gf'] = 'tu placa de video usa el driver basico de Windows'
+                $i.DrvFalta['Gaming|msi'] = 'tu placa de video usa el driver basico de Windows'
+            }
+        } catch { }
+        try {
+            $fis2 = @(Get-NetAdapter -Physical -ErrorAction Stop)
+            if (@($fis2 | Where-Object { ($_.NdisPhysicalMedium -eq 14) -and ([string]$_.Status -ne 'Disabled') -and ([string]$_.DriverProvider -eq 'Microsoft') }).Count -gt 0) {
+                $i.DrvFalta['Gaming|nic'] = 'tu placa de red usa el driver generico de Windows'
+                if (-not $i.DrvFalta.ContainsKey('Gaming|msi')) { $i.DrvFalta['Gaming|msi'] = 'tu placa de red usa el driver generico de Windows' }
+            }
+            if ((-not $i.WifiSinRed) -and (@($fis2 | Where-Object { ($_.NdisPhysicalMedium -eq 9) -and ([string]$_.Status -ne 'Disabled') -and ([string]$_.DriverProvider -eq 'Microsoft') }).Count -gt 0)) {
+                $i.DrvFalta['Gaming|wf'] = 'tu placa WiFi usa el driver generico de Windows'
+            }
+        } catch { }
+        try {
+            # Ryzen X3D de dos bloques: sin el driver de chipset de AMD falta el "3D V-Cache Performance Optimizer"
+            $cpuN = [string](@(Get-CimInstance Win32_Processor -ErrorAction Stop)[0].Name)
+            if ($cpuN -match '(7900|7950|9900|9950)X3D') {
+                if (@(Get-CimInstance Win32_PnPEntity -Filter "Name LIKE '%3D V-Cache%'" -ErrorAction Stop).Count -eq 0) {
+                    $i.DrvFalta['Gaming|afi'] = 'falta el driver de chipset de AMD (3D V-Cache Performance Optimizer)'
+                }
+            }
+        } catch { }
+        try {
+            $sv = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
+            $i.AvOff = (-not $sv) -or ($sv.Status -ne 'Running') -or ((Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled -eq $false)
+        } catch { }
+        # Windows original o modificado (la misma revision que hacen los .bat al arrancar)
+        $mot = New-Object System.Collections.Generic.List[string]
+        # Windows sin activar no cuenta como no original (es un Windows normal, solo falta la licencia)
+        foreach ($sv in 'TrustedInstaller', 'wuauserv', 'WinDefend') {
+            if (-not (Get-Service -Name $sv -ErrorAction SilentlyContinue)) { $mot.Add('falta el servicio ' + $sv + ', tipico de versiones recortadas') }
+        }
+        $editOk = 'Core', 'CoreSingleLanguage', 'Professional', 'ProfessionalN', 'ProfessionalWorkstation', 'ProfessionalEducation', 'Enterprise', 'EnterpriseN', 'Education', 'EducationN', 'ServerStandard', 'ServerDatacenter', 'CloudEdition'
+        if ($i.Edicion -and ($editOk -notcontains $i.Edicion)) { $mot.Add('edicion de Windows poco comun: ' + $i.Edicion) }
+        $txtCv = (([string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'RegisteredOwner')) + ' ' + ([string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'ProductName'))).ToLower()
+        foreach ($pal in 'tiny', 'atlas', 'revi', 'ghost', 'lite', 'mini', 'kernel', 'custom') {
+            if ($txtCv.Contains($pal)) { $mot.Add('el nombre de la edicion o el propietario registrado tiene palabras de versiones modificadas'); break }
+        }
+        $i.Orig = @($mot | Select-Object -Unique)
+    Sumar
+    $i
+}
+$Juegos = {
+    if ($Sync.FuncJuegos) {
+        try { . ([scriptblock]::Create($Sync.FuncJuegos)); $Sync.Juegos = @(Juegos-Detectados) } catch { }
+    }
+    Sumar
+}
+$Procesador = {
+    $clase = ''
+    if ($Sync.FuncCpu) {
+        try {
+            function Log($a, $b) { }
+            . ([scriptblock]::Create($Sync.FuncCpu))
+            $pl = Afi-Plan
+            $clase = [string]$pl.Clase
+            $Sync.Cpu = @{ Nombre = $pl.Cpu; Ok = [bool]$pl.Ok; Motivo = [string]$pl.Motivo; Afi = (Afi-Consejo $pl); Gb = (Gb-Consejo $pl) }
+        } catch { }
+    }
+    try { $Sync.Prio = @(Prio-Actuales) } catch { $Sync.Prio = @() }
+    try { $Sync.TareaAfi = [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue) } catch { $Sync.TareaAfi = $false }
+    Sumar
+    $clase
+}
+$pool = $null; $hilos = @()
 try {
-    $Sync.Paso = 'Apps instaladas'
+    $Sync.Paso = 'Plan de energia'
+    $global:XPlan = ''
+    try { $global:XPlan = ([regex]::Match((& powercfg.exe /getactivescheme | Out-String), '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}').Value).ToLower() } catch { }
+    $Sync.Hecho = $Sync.Hecho + 1
+    # Los chequeos que usan las apps instaladas o el procesador esperan a que esten; el resto arranca ya, repartido en 3 hilos
+    $tarde = @($Lista | Where-Object { $_.Codigo -match 'HasAppx|XAppx|Apps-Conteo|XCpuClase' })
+    $ya = @($Lista | Where-Object { $_.Codigo -notmatch 'HasAppx|XAppx|Apps-Conteo|XCpuClase' })
+    $pool = [runspacefactory]::CreateRunspacePool(1, 6)
+    $pool.Open()
+    $lanzar = {
+        param([scriptblock]$cuerpo, $arg)
+        $p = [powershell]::Create(); $p.RunspacePool = $pool
+        [void]$p.AddScript(($Previo.ToString() + "`n" + $cuerpo.ToString())).AddArgument($Funcs).AddArgument($Sync).AddArgument($global:XPlan)
+        if ($null -ne $arg) { [void]$p.AddArgument($arg) }
+        @{ PS = $p; H = $p.BeginInvoke() }
+    }
+    # El scriptblock de cada hilo recibe sus cosas despues de $Funcs, $Sync y $Plan
+    $cuerpoChk = [scriptblock]::Create("param(`$Funcs, `$Sync, `$Plan, `$Items)`n" + ($Previo.ToString() -replace '(?s)^\s*param\([^)]*\)', '') + "`n" + ($Chequear.ToString() -replace '(?s)^\s*param\([^)]*\)', ''))
+    $hCompat = & $lanzar $Compat $null
+    $hJuegos = & $lanzar $Juegos $null
+    $hCpu = & $lanzar $Procesador $null
+    $hChk = @()
+    $n = 3
+    for ($k = 0; $k -lt $n; $k++) {
+        $parte = @(for ($j = $k; $j -lt $ya.Count; $j += $n) { $ya[$j] })
+        if ($parte.Count -eq 0) { continue }
+        $p = [powershell]::Create(); $p.RunspacePool = $pool
+        [void]$p.AddScript($cuerpoChk.ToString()).AddArgument($Funcs).AddArgument($Sync).AddArgument($global:XPlan).AddArgument($parte)
+        $hChk += @{ PS = $p; H = $p.BeginInvoke() }
+    }
+    $hilos = @($hCompat, $hJuegos, $hCpu) + $hChk
+    # Mientras tanto, en este hilo: las apps instaladas (lo mas lento en muchas PCs)
     $global:XAppx = @()
     $global:XAppxFijas = @()
     try {
@@ -578,121 +748,27 @@ try {
         $global:XAppx = @($pkx | ForEach-Object { $_.Name })
         $global:XAppxFijas = @($pkx | Where-Object { $_.NonRemovable } | ForEach-Object { $_.Name })
     } catch { }
-    $Sync.Hecho = 1
-    $Sync.Paso = 'Plan de energia'
-    $global:XPlan = ''
-    try { $global:XPlan = ([regex]::Match((& powercfg.exe /getactivescheme | Out-String), '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}').Value).ToLower() } catch { }
-    $Sync.Hecho = 2
-    $Sync.Paso = 'Tu procesador'
+    [Threading.Monitor]::Enter($Sync.Lock); try { $Sync.Hecho = $Sync.Hecho + 1 } finally { [Threading.Monitor]::Exit($Sync.Lock) }
     $global:XCpuClase = ''
-    if ($Sync.FuncCpu) {
-        try {
-            function Log($a, $b) { }
-            . ([scriptblock]::Create($Sync.FuncCpu))
-            $pl = Afi-Plan
-            $global:XCpuClase = [string]$pl.Clase
-            $Sync.Cpu = @{ Nombre = $pl.Cpu; Ok = [bool]$pl.Ok; Motivo = [string]$pl.Motivo; Afi = (Afi-Consejo $pl); Gb = (Gb-Consejo $pl) }
-        } catch { }
+    try { $global:XCpuClase = [string](@($hCpu.PS.EndInvoke($hCpu.H))[-1]) } catch { }
+    function Sumar { [Threading.Monitor]::Enter($Sync.Lock); try { $Sync.Hecho = $Sync.Hecho + 1 } finally { [Threading.Monitor]::Exit($Sync.Lock) } }
+    $r1 = & $Chequear $tarde
+    foreach ($c in $r1.Keys) { $res[$c] = $r1[$c] }
+    foreach ($h in $hChk) {
+        try { $r2 = @($h.PS.EndInvoke($h.H))[-1]; if ($r2 -is [hashtable]) { foreach ($c in $r2.Keys) { $res[$c] = $r2[$c] } } } catch { }
     }
-    foreach ($e in $Lista) {
-        $Sync.Paso = $e.Titulo
-        $est = $null
-        # Un contador (@{ Hechas; Total }) pasa tal cual; lo demas es si o no
-        try { $r = & ([scriptblock]::Create($e.Codigo)); if ($null -ne $r) { $u = @($r)[-1]; if ($u -is [hashtable]) { $est = $u } else { $est = [bool]$u } } } catch { $est = $null }
-        $res[$e.Clave] = $est
-        $Sync.Hecho = $Sync.Hecho + 1
-    }
-    $Sync.Paso = 'Juegos instalados'
-    if ($Sync.FuncJuegos) {
-        try { . ([scriptblock]::Create($Sync.FuncJuegos)); $Sync.Juegos = @(Juegos-Detectados) } catch { }
-    }
-    $Sync.Hecho = $Sync.Hecho + 1
-    $Sync.Paso = 'Compatibilidad con tu Windows'
-    $i = @{ Build = 0; Ubr = 0; Display = ''; Edicion = ''; RamGB = 0; Hdd = $false; Recall = $false; BitLocker = $false; Winget = $false; AvOff = $false }
-    try { $i.Build = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'CurrentBuildNumber') } catch { }
-    try { $i.Ubr = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'UBR') } catch { }
-    $i.Display = [string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'DisplayVersion')
-    $i.Edicion = [string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'EditionID')
-    try { $i.RamGB = [int][math]::Round((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1GB) } catch { }
-    try {
-        $dk = Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1) -ErrorAction Stop | Get-Disk -ErrorAction Stop | Get-PhysicalDisk -ErrorAction Stop
-        $i.Hdd = ([string]$dk.MediaType -eq 'HDD')
-    } catch { }
-    if ($i.Build -ge 26100) { try { $i.Recall = [bool](Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction Stop) } catch { } }
-    $i.BitLocker = [bool](Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)
-    $i.Winget = [bool](Get-Command winget -ErrorAction SilentlyContinue)
-    # Notebook = tiene bateria
-    $i.Bateria = $false
-    try { $i.Bateria = (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) } catch { }
-    # Placas de red fisicas: 9 = WiFi, 14 = cable (para "WiFi y cable a la vez")
-    # Las placas apagadas en el Administrador de dispositivos no cuentan. WifiSinRed = la placa WiFi no ve ninguna red (sin antena, por ejemplo)
-    $i.Wifi = 0; $i.Lan = 0; $i.WifiSinRed = $false
-    try {
-        $fis = @(Get-NetAdapter -Physical -ErrorAction Stop | Where-Object { [string]$_.Status -ne 'Disabled' })
-        $wfs = @($fis | Where-Object { $_.NdisPhysicalMedium -eq 9 })
-        $i.Wifi = $wfs.Count
-        $i.Lan = @($fis | Where-Object { $_.NdisPhysicalMedium -eq 14 }).Count
-        if (($wfs.Count -gt 0) -and (@($wfs | Where-Object { [string]$_.Status -eq 'Up' }).Count -eq 0)) {
-            $o = (& netsh.exe wlan show networks 2>$null | Out-String)
-            $m = [regex]::Match($o, '(\d+)\s+(networks?|redes)')
-            if ($m.Success -and ([int]$m.Groups[1].Value -eq 0)) { $i.WifiSinRed = $true }
-        }
-    } catch { }
-    $i.NicPlacas = 0; $i.NicOpc = 0
-    try { $nn = Leer-Nic; $i.NicPlacas = [int]$nn.Placas; $i.NicOpc = @($nn.Vals).Count } catch { }
-    # Opciones que necesitan un driver que no tenes instalado (la app te manda a instalarlo antes de aplicarlas)
-    $i.DrvFalta = @{}
-    try {
-        $gpu = @(Get-CimInstance Win32_VideoController -ErrorAction Stop | Where-Object { ([string]$_.PNPDeviceID) -like 'PCI\*' })
-        if (@($gpu | Where-Object { (@('display.inf', 'basicdisplay.inf') -contains ([string]$_.InfFilename).ToLower()) -or ([int]$_.ConfigManagerErrorCode -ne 0) }).Count -gt 0) {
-            $i.DrvFalta['Gaming|gf'] = 'tu placa de video usa el driver basico de Windows'
-            $i.DrvFalta['Gaming|msi'] = 'tu placa de video usa el driver basico de Windows'
-        }
-    } catch { }
-    try {
-        $fis2 = @(Get-NetAdapter -Physical -ErrorAction Stop)
-        if (@($fis2 | Where-Object { ($_.NdisPhysicalMedium -eq 14) -and ([string]$_.Status -ne 'Disabled') -and ([string]$_.DriverProvider -eq 'Microsoft') }).Count -gt 0) {
-            $i.DrvFalta['Gaming|nic'] = 'tu placa de red usa el driver generico de Windows'
-            if (-not $i.DrvFalta.ContainsKey('Gaming|msi')) { $i.DrvFalta['Gaming|msi'] = 'tu placa de red usa el driver generico de Windows' }
-        }
-        if ((-not $i.WifiSinRed) -and (@($fis2 | Where-Object { ($_.NdisPhysicalMedium -eq 9) -and ([string]$_.Status -ne 'Disabled') -and ([string]$_.DriverProvider -eq 'Microsoft') }).Count -gt 0)) {
-            $i.DrvFalta['Gaming|wf'] = 'tu placa WiFi usa el driver generico de Windows'
-        }
-    } catch { }
-    try {
-        # Ryzen X3D de dos bloques: sin el driver de chipset de AMD falta el "3D V-Cache Performance Optimizer"
-        $cpuN = [string](@(Get-CimInstance Win32_Processor -ErrorAction Stop)[0].Name)
-        if ($cpuN -match '(7900|7950|9900|9950)X3D') {
-            if (@(Get-CimInstance Win32_PnPEntity -Filter "Name LIKE '%3D V-Cache%'" -ErrorAction Stop).Count -eq 0) {
-                $i.DrvFalta['Gaming|afi'] = 'falta el driver de chipset de AMD (3D V-Cache Performance Optimizer)'
-            }
-        }
-    } catch { }
-    try {
-        $sv = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
-        $i.AvOff = (-not $sv) -or ($sv.Status -ne 'Running') -or ((Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled -eq $false)
-    } catch { }
-    # Windows original o modificado (la misma revision que hacen los .bat al arrancar)
+    try { $null = $hJuegos.PS.EndInvoke($hJuegos.H) } catch { }
     $Sync.Paso = 'Si tu Windows es original'
-    $mot = New-Object System.Collections.Generic.List[string]
-    # Windows sin activar no cuenta como no original (es un Windows normal, solo falta la licencia)
-    foreach ($sv in 'TrustedInstaller', 'wuauserv', 'WinDefend') {
-        if (-not (Get-Service -Name $sv -ErrorAction SilentlyContinue)) { $mot.Add('falta el servicio ' + $sv + ', tipico de versiones recortadas') }
+    $i = $null
+    try { $i = @($hCompat.PS.EndInvoke($hCompat.H))[-1] } catch { }
+    if ($i -is [hashtable]) {
+        if (($global:XAppx.Count -gt 0) -and ($global:XAppx -notcontains 'Microsoft.WindowsStore')) { $i.Orig = @(@($i.Orig) + 'no esta la Microsoft Store, tipico de versiones recortadas' | Select-Object -Unique) }
+        $Sync.Info = $i
     }
-    if (($global:XAppx.Count -gt 0) -and ($global:XAppx -notcontains 'Microsoft.WindowsStore')) { $mot.Add('no esta la Microsoft Store, tipico de versiones recortadas') }
-    $editOk = 'Core', 'CoreSingleLanguage', 'Professional', 'ProfessionalN', 'ProfessionalWorkstation', 'ProfessionalEducation', 'Enterprise', 'EnterpriseN', 'Education', 'EducationN', 'ServerStandard', 'ServerDatacenter', 'CloudEdition'
-    if ($i.Edicion -and ($editOk -notcontains $i.Edicion)) { $mot.Add('edicion de Windows poco comun: ' + $i.Edicion) }
-    $txtCv = (([string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'RegisteredOwner')) + ' ' + ([string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'ProductName'))).ToLower()
-    foreach ($pal in 'tiny', 'atlas', 'revi', 'ghost', 'lite', 'mini', 'kernel', 'custom') {
-        if ($txtCv.Contains($pal)) { $mot.Add('el nombre de la edicion o el propietario registrado tiene palabras de versiones modificadas'); break }
-    }
-    $i.Orig = @($mot | Select-Object -Unique)
-    $Sync.Info = $i
-    $Sync.Hecho = $Sync.Hecho + 1
     $Sync.Paso = 'Ultimos detalles'
-    try { $Sync.Prio = @(Prio-Actuales) } catch { $Sync.Prio = @() }
-    try { $Sync.TareaAfi = [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue) } catch { $Sync.TareaAfi = $false }
 } finally {
+    foreach ($h in $hilos) { try { $h.PS.Dispose() } catch { } }
+    if ($pool) { try { $pool.Close(); $pool.Dispose() } catch { } }
     $Sync.Resultados = $res
     $Sync.Listo = $true
 }
@@ -1777,10 +1853,18 @@ function Nueva-Pill {
     return $pb
 }
 function Poner-Pill($pb, $estado) {
+    $pb.ToolTip = $null
     if ($null -eq $estado) { $pb.Visibility = 'Collapsed'; return }
     $pb.Visibility = 'Visible'
     if ($estado) { $pb.Background = (Pincel '#1E3A2B'); $pb.Child.Foreground = (Pincel '#81C995'); $pb.Child.Text = (Con-Enie 'Ya aplicado') }
     else { $pb.Background = (Pincel '#262B34'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'Sin aplicar') }
+}
+
+# "Desactualizada" en amarillo: la opcion la puso una version vieja del script
+function Poner-Vieja($pb) {
+    $pb.Visibility = 'Visible'
+    $pb.Background = (Pincel '#3A3320'); $pb.Child.Foreground = (Pincel '#E5B567'); $pb.Child.Text = (Con-Enie 'Desactualizada')
+    $pb.ToolTip = (Con-Enie 'La pusiste con una version vieja del script. Aplicala de nuevo para tener la nueva.')
 }
 
 # "5/13 borradas": verde si no queda nada, gris si todavia quedan
@@ -2015,6 +2099,7 @@ function Calcular-NoDisp($i, $cpu) {
     if ($b -lt 22000) { $r['Debloat|cal'] = ($nv + 'Windows 11 (en Windows 10 el calendario del reloj no se puede quitar). Tenes ' + $tuyo + '.') }
     if (-not $i.BitLocker) { $r['Debloat|bl'] = 'Tu edicion de Windows no tiene BitLocker: viene en Pro, Enterprise y Education.' }
     if (-not $i.Winget) { $r['Debloat|chr'] = 'Falta winget en tu PC: instala o actualiza el "Instalador de aplicaciones" desde la Microsoft Store.' }
+    if ($i.Chrome) { $r['Debloat|chr'] = 'Ya tenes Google Chrome instalado.' }
     if ($b -lt 22000) { $r['Gaming|tr'] = ($nv + 'Windows 11 (el temporizador global fijo no existe en Windows 10). Tenes ' + $tuyo + '.') }
     if (($b -lt 26100) -or (($b -lt 26300) -and ([int]$i.Ubr -lt 8655))) { $r['Gaming|ll'] = ('Tu Windows todavia no trae Baja latencia: necesita Windows 11 24H2 o 25H2 con la actualizacion de junio de 2026 (build .8655 o mas nueva). Tenes la build ' + $b + '.' + $i.Ubr + ': actualiza Windows.') }
     if (($b -lt 26100) -or (($b -in 26100, 26200) -and ([int]$i.Ubr -lt 8328)) -or (($b -eq 28000) -and ([int]$i.Ubr -lt 2179))) { $r['Gaming|xm'] = ('Tu Windows todavia no trae el Modo Xbox: llega con Windows 11 24H2 o 25H2 actualizado (build .8328 o mas nueva). Tenes la build ' + $b + '.' + $i.Ubr + '.') }
@@ -3351,6 +3436,9 @@ function Aplicar-Lectura($s) {
         # Contador: queda aplicada cuando no falta nada
         $cont = $null
         if ($est -is [hashtable]) { $cont = $est; $est = ([int]$cont.Quedan -eq 0) }
+        # Desactualizada = la puso una version vieja del script: cuenta como sin aplicar, asi al aplicarla se pone la nueva
+        $vieja = (($est -is [string]) -and ($est -eq 'vieja'))
+        if ($vieja) { $est = $false }
         $script:Estados[$k] = $est
         $pg = ($k -split '\|')[0]
         if (-not $porPag.ContainsKey($pg)) { $porPag[$pg] = @{ A = 0; T = 0; N = 0 } }
@@ -3363,6 +3451,7 @@ function Aplicar-Lectura($s) {
         }
         Poner-Pill $script:Pills[$k] $est
         if ($cont -and ([int]$cont.Total -gt 0)) { Poner-Conteo $script:Pills[$k] $cont }
+        if ($vieja) { Poner-Vieja $script:Pills[$k] }
         if ($script:DrvFalta.ContainsKey($k)) {
             $pb = $script:Pills[$k]
             $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#3A1F40'); $pb.Child.Foreground = (Pincel $ColorDrv); $pb.Child.Text = (Con-Enie 'Faltan drivers')
@@ -3382,6 +3471,7 @@ function Aplicar-Lectura($s) {
     Actualizar-Resumenes
     Actualizar-Version
     Actualizar-InfoPC $s.Info
+    if ($s.Info) { $script:DatosPC = $s.Info }
     Actualizar-Perfiles
     if ($res) {
         $script:EstadoLeido = ('Windows leido: ' + $apl + ' ' + (Con-Enie 'de') + ' ' + $tot + ' opciones ya estan aplicadas.')
@@ -3690,7 +3780,7 @@ function Mostrar-Dns($d) {
 
 function Limpiar-Variables {
     foreach ($v in @(Get-ChildItem Env: | Where-Object { $_.Name -like 'XR_*' })) { Remove-Item -LiteralPath ('Env:' + $v.Name) -ErrorAction SilentlyContinue }
-    foreach ($n in 'XUCA_AUTO', 'PRIOJ', 'PRIOSYNC', 'AFIAPP', 'AFIJ', 'AFIF', 'AFIJX', 'AFIFX', 'AFIJT', 'AFIFT', 'CLEAN_BIN', 'CLEAN_GPU', 'CLEAN_RP', 'XUCA_DRVAPP', 'XUCA_DRVPRUEBA') { Remove-Item -LiteralPath ('Env:' + $n) -ErrorAction SilentlyContinue }
+    foreach ($n in 'XUCA_AUTO', 'PRIOJ', 'PRIOSYNC', 'AFIAPP', 'AFIJ', 'AFIF', 'AFIJX', 'AFIFX', 'AFIJT', 'AFIFT', 'CLEAN_BIN', 'CLEAN_GPU', 'CLEAN_RP', 'XUCA_DRVAPP', 'XUCA_DRVPRUEBA', 'XUCA_INFO') { Remove-Item -LiteralPath ('Env:' + $n) -ErrorAction SilentlyContinue }
 }
 
 function Correr($tareas, [bool]$reinicio, [string]$tituloCarga) {
@@ -3713,6 +3803,9 @@ function Siguiente {
     $script:Tarea = $t
     Limpiar-Variables
     $env:XUCA_AUTO = '1'
+    # Lo que el .bat necesita de la PC ya lo leyo la app: se lo pasa para que no abra PowerShell solo para eso
+    $dp = $script:DatosPC
+    if ($dp -and ([int]$dp.Build -gt 0)) { $env:XUCA_INFO = ('{0} {1} {2} {3}' -f [int]$dp.Build, [int]$dp.RamGB, $(if ($dp.Hdd) { 1 } else { 0 }), (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')) }
     foreach ($k in $t.Vars.Keys) { Set-Item -LiteralPath ('Env:' + $k) -Value ([string]$t.Vars[$k]) }
     $t | Add-Member -NotePropertyName Inicio -NotePropertyValue (Get-Date) -Force
     $t | Add-Member -NotePropertyName UltN -NotePropertyValue 0 -Force

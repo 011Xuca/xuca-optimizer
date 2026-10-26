@@ -1,7 +1,6 @@
-# Traducciones al ingles de Xuca OPtimizer.
 # Cada linea: texto en espanol (tal cual esta en la app o en los .bat), un TAB, y el texto en ingles.
 # Ojo con los espacios al principio y al final: se respetan. Las lineas que empiezan con # se ignoran.
-# Si un texto no esta aca, se muestra en espanol.
+# Si un texto no esta aca, se muestra en español.
 Apagar los puntos de restauracion para siempre	Turn off restore points for good
 apaga para siempre los puntos de restauracion y borra los que ya tenes.	turns off restore points for good and deletes the ones you already have.
 libera espacio en el disco y Windows deja de escribir copias en segundo plano.	frees disk space and Windows stops writing copies in the background.
@@ -860,3 +859,6 @@ borradas	removed
 apagadas	turned off
 No queda ninguna.	None left.
 Todavia quedan:	Still left:
+Desactualizada	Outdated
+La pusiste con una version vieja del script. Aplicala de nuevo para tener la nueva.	You applied it with an old version of the script. Apply it again to get the new one.
+Ya tenes Google Chrome instalado.	You already have Google Chrome installed.

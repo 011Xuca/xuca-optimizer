@@ -59,11 +59,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "$global:XucaUpd=0; try {
 if errorlevel 10 exit
 :upd_fin
 
+rem Desde la app ya vienen la build, la RAM, el disco y la fecha (XUCA_INFO): asi no se abre PowerShell solo para eso
+set "INFO="
+if defined XUCA_AUTO if defined XUCA_INFO set "INFO=%XUCA_INFO%"
+if defined INFO goto info_ok
 del /q "%TEMP%\xuca_info.txt" >nul 2>&1
 set "ACT=INFO"
 call :aplicar_ps
-set "INFO="
 if exist "%TEMP%\xuca_info.txt" set /p INFO=<"%TEMP%\xuca_info.txt"
+:info_ok
 set "PSMAL=0"
 if not defined INFO set "PSMAL=1"
 if defined INFO for /f "tokens=1-4" %%A in ("%INFO%") do (set "BUILD=%%A" & set "RAMGB=%%B" & set "ESHDD=%%C" & set "STAMP=%%D")
@@ -99,11 +103,14 @@ call :log "INFO" "Inicio de windows_debloat.bat"
 if "%PSMAL%"=="1" call :log "ATENCION" "PowerShell no devolvio datos: puede estar bloqueado por el antivirus. Mira las lineas PS-ERROR"
 if /i "%~1"=="/cuenta" goto modo_cuenta
 
+rem Desde la app no hace falta: la app ya revisa si tu Windows es original y lo muestra arriba
+set "ORIGMSG="
+if defined XUCA_AUTO goto orig_ok
 del /q "%TEMP%\xuca_orig.txt" >nul 2>&1
 set "ACT=ORIG_CHECK"
 call :aplicar_ps
-set "ORIGMSG="
 if exist "%TEMP%\xuca_orig.txt" set /p ORIGMSG=<"%TEMP%\xuca_orig.txt"
+:orig_ok
 if defined ORIGMSG set "ORIGMSG=%ORIGMSG:&= %"
 if defined ORIGMSG set "ORIGMSG=%ORIGMSG:|= %"
 if defined ORIGMSG set "ORIGMSG=%ORIGMSG:<= %"
@@ -242,6 +249,8 @@ call :resps
 call :opt_fin "Puntos de restauracion encendidos de nuevo"
 :rpo_fin
 
+rem Desde la app, si no pediste el punto de restauracion no se revisa nada
+if defined XUCA_AUTO if /i not "%XR_rp%"=="S" goto rp_fin
 set "ACT=RP_CHECK"
 call :aplicar_ps
 if errorlevel 5 goto rp_fin
@@ -1214,6 +1223,10 @@ call :resps
 call :opt_fin "Edge reinstalado."
 :edge_fin
 
+rem Si Chrome ya esta instalado no se pregunta
+if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" goto chr_ya
+if exist "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" goto chr_ya
+if exist "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" goto chr_ya
 echo.
 echo   Que hace: instala Google Chrome con winget.
 echo   A favor: tenes navegador aunque hayas quitado Edge.
@@ -1228,6 +1241,9 @@ set "ACT=CHROME_INSTALL"
 call :aplicar_ps
 call :resps
 call :opt_fin "Google Chrome instalado"
+goto chr_fin
+:chr_ya
+call :log "SALTADO" "Instalar Chrome: ya esta instalado"
 :chr_fin
 
 
@@ -36175,7 +36191,11 @@ switch ($env:ACT) {
             $ven = $Matches[1].ToUpper()
             $basico = ([string]$g.Name -match '(?i)basic|basico') -or ([string]$g.InfFilename -match '(?i)^(basicdisplay|display)\.inf$')
             $dias = 0; try { $dias = [int]((Get-Date) - [datetime]$g.DriverDate).TotalDays } catch { }
-            if ((-not $basico) -and ($dias -lt 120) -and (-not $prueba)) { Log 'OK' ('driver de video al dia: ' + $g.Name + ' (' + $g.DriverVersion + ')'); continue }
+            # Placas viejas que la marca ya casi no actualiza (AMD Vega/Polaris y anteriores, NVIDIA GTX 900/1000, Intel HD/UHD 600):
+            # su ultimo driver puede tener meses y estar al dia igual, asi que se les dan 12 meses
+            $vieja = ([string]$g.Name -match '(?i)Vega|RX\s*(4\d0|5\d0)\b|Radeon\s*(5\d\d|R[579])\b|\bR[579]\s|\bHD\s*[5-8]\d{3}|GTX\s*(7\d\d|9\d\d|10\d\d)\b|\bGT\s*(7\d\d|10\d\d)\b|TITAN X|\bHD Graphics|UHD Graphics 6\d\d|Iris(\(R\))?( Plus| Pro)? Graphics \d{3}')
+            $limite = $(if ($vieja) { 365 } else { 120 })
+            if ((-not $basico) -and ($dias -lt $limite) -and (-not $prueba)) { Log 'OK' ('driver de video al dia: ' + $g.Name + ' (' + $g.DriverVersion + ')' + $(if ($vieja) { ', placa que la marca ya casi no actualiza' } else { '' })); continue }
             $por = $(if ($basico) { 'tu placa de video usa el driver basico de Windows: sin el de la marca andas sin aceleracion' } else { 'tu driver de video tiene ' + $dias + ' dias; los nuevos traen mejoras para los juegos' })
             switch ($ven) {
                 '10DE' { Reco ('Driver de NVIDIA (' + $g.Name + ')') ($por + '. La NVIDIA App instala el ultimo driver recomendado.') @('Nvidia.NVIDIAApp', 'Nvidia.GeForceExperience') 'https://www.nvidia.com/es-la/software/nvidia-app/' }
