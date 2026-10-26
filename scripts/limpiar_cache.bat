@@ -220,49 +220,121 @@ if (Test-Path -LiteralPath $old) {
     if (-not $oldOk) { Write-Host 'Windows.old no parece la carpeta que deja Windows al actualizarse: no se toco.' -ForegroundColor Yellow }
 }
 if ($oldOk) {
-    Write-Host "Eliminando $old..." -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host ('Borrando Windows.old (' + $old + ')...') -ForegroundColor Cyan
+    Write-Host '  OJO: Windows.old SIEMPRE tarda mucho en borrarse: tiene miles de archivos de tu Windows anterior.' -ForegroundColor Yellow
+    Write-Host '  Puede llevar de 5 a 20 minutos (mas en un disco HDD). No cierres la ventana: no esta trabado.' -ForegroundColor Yellow
 
-    # 1) Liberar lo que tenga abierto Windows.old: procesos y servicios que corren desde ahi
-    #    y servicios que suelen bloquear archivos (se vuelven a iniciar al terminar)
-    $liberar = {
-        Get-Process | Where-Object { $_.Path -and $_.Path -like ($old + '\*') } | Stop-Process -Force
-        Get-CimInstance Win32_Service | Where-Object { $_.PathName -like ('*' + $old + '*') -and $_.State -eq 'Running' } |
-            ForEach-Object { Stop-Service -Name $_.Name -Force }
+    # 0) Permisos: sin ser administrador no se puede borrar
+    $esAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $esAdmin) {
+        Write-Host '  No hay permisos de administrador: Windows.old no se toco. Abri la limpieza como administrador.' -ForegroundColor Yellow
+    }
+}
+if ($oldOk -and $esAdmin) {
+    # 1) Cerrar todo lo que tenga abierto algo de Windows.old: programas que corren desde ahi o que abrieron un archivo
+    #    de ahi (se ve en su linea de comandos) y servicios. Lo que lanza esta limpieza (cmd, robocopy...) no se toca.
+    $cerrarWo = {
+        param($old)
+        $n = 0
+        $yo = $PID
+        foreach ($pr in @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)) {
+            if (($pr.ProcessId -eq $yo) -or ($pr.ParentProcessId -eq $yo)) { continue }
+            $ruta = [string]$pr.ExecutablePath; $cl = [string]$pr.CommandLine
+            if (($ruta -like ($old + '\*')) -or ($cl -like ('*' + $old + '\*')) -or ($cl -like ('*' + $old + '"*'))) {
+                try { Stop-Process -Id $pr.ProcessId -Force -ErrorAction Stop; $n++ } catch { }
+            }
+        }
+        foreach ($sv in @(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object { ([string]$_.PathName -like ('*' + $old + '\*')) -and ($_.State -eq 'Running') })) {
+            try { Stop-Service -Name $sv.Name -Force -ErrorAction Stop; $n++ } catch { }
+        }
+        return $n
+    }
+    # Ventanas del Explorador abiertas en Windows.old (o en una carpeta de adentro)
+    function Cerrar-VentanasWo {
+        $n = 0
+        try {
+            $sh = New-Object -ComObject Shell.Application
+            foreach ($w in @($sh.Windows())) {
+                $ru = ''
+                try { $ru = [string]$w.Document.Folder.Self.Path } catch { }
+                if ($ru -and (($ru -eq $old) -or ($ru -like ($old + '\*')))) { try { $w.Quit(); $n++ } catch { } }
+            }
+        } catch { }
+        return $n
     }
     $svcWo = @('WSearch', 'SysMain', 'TrustedInstaller' | ForEach-Object { Get-Service -Name $_ } | Where-Object { $_.Status -eq 'Running' })
     foreach ($s in $svcWo) { Stop-Service -Name $s.Name -Force }
-    & $liberar
+    $cerrados = [int](& $cerrarWo $old) + [int](Cerrar-VentanasWo)
+    if ($cerrados -gt 0) { Write-Host ('  Se cerraron ' + $cerrados + ' programas o ventanas que tenian abierto algo de Windows.old.') -ForegroundColor Yellow }
 
-    # 2) Hasta 3 pasadas: tomar propiedad, dar permisos y borrar
-    for ($i = 1; $i -le 3 -and (Test-Path -LiteralPath $old); $i++) {
-        & takeown.exe /f $old /a /r /d s 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { & takeown.exe /f $old /a /r /d y 2>&1 | Out-Null }
-        & icacls.exe $old /grant '*S-1-5-32-544:F' /t /c /q 2>&1 | Out-Null
-        & cmd.exe /c ('rd /s /q "' + $old + '"') 2>&1 | Out-Null
-        if (Test-Path -LiteralPath $old) {
-            # Truco de robocopy: espeja una carpeta vacia encima (sirve con rutas muy largas)
-            $empty = Join-Path $env:TEMP ('vacia_' + [guid]::NewGuid().ToString('N'))
-            New-Item -ItemType Directory -Path $empty -Force | Out-Null
-            & robocopy.exe $empty $old /MIR /XJ /R:1 /W:1 /NFL /NDL /NJH /NJS /NP 2>&1 | Out-Null
-            Remove-Item -LiteralPath $empty -Force
-            & cmd.exe /c ('rd /s /q "' + $old + '"') 2>&1 | Out-Null
+    # Vigilante: mientras se borra, cada segundo vuelve a cerrar lo que se abra desde Windows.old
+    $vig = [hashtable]::Synchronized(@{ Seguir = $true; Cerrados = 0 })
+    $vps = [powershell]::Create()
+    [void]$vps.AddScript({
+        param($old, $vig, $codigo)
+        $f = [scriptblock]::Create($codigo)
+        while ($vig.Seguir) {
+            try { $vig.Cerrados += [int](& $f $old) } catch { }
+            Start-Sleep -Milliseconds 1000
         }
-        if (Test-Path -LiteralPath $old) { & $liberar; Start-Sleep -Seconds 3 }
+    }).AddArgument($old).AddArgument($vig).AddArgument($cerrarWo.ToString())
+    $vh = $vps.BeginInvoke()
+
+    # 2) Una pasada: tomar propiedad, dar permisos y borrar. Si queda algo, un solo reintento rapido (sin volver a
+    #    tomar permisos, que es lo lento) y se sigue con el resto de la limpieza.
+    try {
+        for ($i = 1; $i -le 2 -and (Test-Path -LiteralPath $old); $i++) {
+            if ($i -gt 1) {
+                Write-Host '  Quedaron archivos: un ultimo intento rapido...' -ForegroundColor Yellow
+                & cmd.exe /c ('rd /s /q "' + $old + '"') 2>&1 | Out-Null
+                break
+            }
+            Write-Host '  Revisando permisos de la carpeta...'
+            & takeown.exe /f $old /a /r /d s 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { & takeown.exe /f $old /a /r /d y 2>&1 | Out-Null }
+            $okT = ($LASTEXITCODE -eq 0)
+            & icacls.exe $old /grant '*S-1-5-32-544:F' /t /c /q 2>&1 | Out-Null
+            $okI = ($LASTEXITCODE -eq 0)
+            if ($okT -and $okI) { Write-Host '  Permisos: OK (los administradores tienen control total).' -ForegroundColor Green }
+            else { Write-Host '  Algunos archivos no dejaron cambiar sus permisos: se intenta borrar igual.' -ForegroundColor Yellow }
+            Write-Host '  Borrando los archivos (este es el paso lento)...'
+            & cmd.exe /c ('rd /s /q "' + $old + '"') 2>&1 | Out-Null
+            if (Test-Path -LiteralPath $old) {
+                # Truco de robocopy: espeja una carpeta vacia encima (sirve con rutas muy largas)
+                $empty = Join-Path $env:TEMP ('vacia_' + [guid]::NewGuid().ToString('N'))
+                New-Item -ItemType Directory -Path $empty -Force | Out-Null
+                & robocopy.exe $empty $old /MIR /XJ /R:1 /W:1 /NFL /NDL /NJH /NJS /NP 2>&1 | Out-Null
+                Remove-Item -LiteralPath $empty -Force
+                & cmd.exe /c ('rd /s /q "' + $old + '"') 2>&1 | Out-Null
+            }
+            if (Test-Path -LiteralPath $old) { [void](& $cerrarWo $old); [void](Cerrar-VentanasWo); Start-Sleep -Seconds 3 }
+        }
+    } finally {
+        $vig.Seguir = $false
+        try { [void]$vps.EndInvoke($vh) } catch { }
+        try { $vps.Dispose() } catch { }
     }
+    if ($vig.Cerrados -gt 0) { Write-Host ('  Mientras se borraba se volvieron a cerrar ' + $vig.Cerrados + ' programas que abrian algo de Windows.old.') -ForegroundColor Yellow }
 
     foreach ($s in $svcWo) { Start-Service -Name $s.Name }
 
     if (Test-Path -LiteralPath $old) {
-        # 3) Si todavia queda algo en uso: tarea unica que lo borra al reiniciar (antes de que nada lo use)
+        # 3) No se dejo borrar: aviso y se sigue de largo. Queda una tarea unica que lo borra al reiniciar (antes de que nada lo use).
+        Write-Host 'No se pudo borrar Windows.old ahora: Windows tiene algo en uso o no dio permiso. Se sigue con el resto de la limpieza.' -ForegroundColor Yellow
         $tn = 'BorrarWindowsOld'
-        $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/c rd /s /q "' + $old + '" & schtasks.exe /delete /tn ' + $tn + ' /f')
-        $trg = New-ScheduledTaskTrigger -AtStartup
-        $prn = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-        Register-ScheduledTask -TaskName $tn -Action $act -Trigger $trg -Principal $prn -Force | Out-Null
+        try {
+            $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/c rd /s /q "' + $old + '" & schtasks.exe /delete /tn ' + $tn + ' /f')
+            $trg = New-ScheduledTaskTrigger -AtStartup
+            $prn = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+            Register-ScheduledTask -TaskName $tn -Action $act -Trigger $trg -Principal $prn -Force | Out-Null
+        } catch { }
         if (Get-ScheduledTask -TaskName $tn) {
-            Write-Host 'Windows.old tiene archivos en uso: quedo programado el borrado para el proximo REINICIO (no apagar, reiniciar).' -ForegroundColor Yellow
+            Write-Host '  Quedo programado para borrarse solo en el proximo REINICIO (reiniciar, no apagar).' -ForegroundColor Yellow
+            if ($env:XUCA_AUTO) { Write-Host 'XWOLD|programado' }
         } else {
-            Write-Host 'Windows.old no se pudo borrar del todo.' -ForegroundColor Yellow
+            Write-Host '  Proba de nuevo despues de reiniciar la PC.' -ForegroundColor Yellow
+            if ($env:XUCA_AUTO) { Write-Host 'XWOLD|fallo' }
         }
     } else {
         Write-Host 'Windows.old borrado.' -ForegroundColor Cyan

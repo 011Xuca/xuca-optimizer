@@ -1542,7 +1542,7 @@ function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]
 function Avisar([string]$titulo, [string]$mensaje) { Confirmar $titulo $mensaje 'Entendido' '#3D6FD9' '' | Out-Null }
 
 # Cartel de "Limpieza terminada": tilde verde grande y los GB liberados bien a la vista
-function Resultado-Limpieza([string]$liberado) {
+function Resultado-Limpieza([string]$liberado, [string]$winOld) {
     $w = Nuevo-Dialogo 400
     $sp = New-Object Windows.Controls.StackPanel
     $ic = Icono-Dialogo 0xE73E '#81C995' 60
@@ -1570,6 +1570,13 @@ function Resultado-Limpieza([string]$liberado) {
         $m = Nuevo-Texto 'La cache quedo limpia.' 13 '#C3C8D0' $false
         $m.HorizontalAlignment = 'Center'; $m.Margin = '0,6,0,0'
         $sp.Children.Add($m) | Out-Null
+    }
+    if ($winOld) {
+        # Windows.old no se dejo borrar: se aviso y la limpieza siguio con lo demas
+        $wt = $(if ($winOld -eq 'programado') { 'Windows.old no se pudo borrar ahora (algo lo tenia en uso). Se borra solo la proxima vez que reinicies la PC.' } else { 'Windows.old no se pudo borrar (algo lo tenia en uso o Windows no dio permiso). Proba de nuevo despues de reiniciar la PC.' })
+        $wo = Nuevo-Texto $wt 12.5 '#E5B567' $false
+        $wo.HorizontalAlignment = 'Center'; $wo.TextAlignment = 'Center'; $wo.Margin = '0,12,0,0'; $wo.MaxWidth = 340
+        $sp.Children.Add($wo) | Out-Null
     }
     $n = Nuevo-Texto 'Los detalles quedaron en la carpeta de logs.' 12 '#7D8590' $false
     $n.HorizontalAlignment = 'Center'; $n.Margin = '0,12,0,0'
@@ -3574,6 +3581,7 @@ $PasosLimpieza = @(
     @('(?m)^Windows Update\s+encontrados', 'Archivos temporales'),
     @('(?m)^Temporales\s+encontrados', 'Volcados y logs de errores'),
     @('(?m)^Errores, volcados y logs', 'Windows.old y caches de apps'),
+    @('Borrando Windows\.old', 'Windows.old: siempre tarda mucho (de 5 a 20 minutos). No esta trabado'),
     @('(?m)^Apps \(Discord', 'Cache de shaders'),
     @('Vaciando Visor de Eventos', 'Visor de Eventos'),
     @('Restableciendo Microsoft Store', 'Microsoft Store'),
@@ -3724,6 +3732,9 @@ function Fin-Tarea {
         if ($txt -match 'Hace falta reiniciar la PC') { $C.PideReinicio = $true }
         $m = [regex]::Match($txt, 'Espacio liberado\s*:\s*(.+)')
         if ($m.Success) { $C.Liberado = $m.Groups[1].Value.Trim() }
+        # Windows.old que no se dejo borrar (la limpieza sigue igual)
+        $m = [regex]::Match($txt, '(?m)^XWOLD\|(\w+)')
+        if ($m.Success) { $C.WinOld = $m.Groups[1].Value }
         if ($t.Tipo -eq 'drivers') {
             # Cajitas del resultado: "XDRV|tipo|titulo|frase" y debajo sus items "XDRVSUB|texto"
             $items = New-Object System.Collections.Generic.List[object]
@@ -3831,7 +3842,7 @@ function Terminar-Corrida {
         if (-not $C) { return }
         $ui.Estado.Text = ($ui.Estado.Text + (Con-Enie ' Los detalles de cada cambio quedaron en la carpeta de logs.'))
         if ($C.Tipo -eq 'limpieza') {
-            Resultado-Limpieza ([string]$C.Liberado)
+            Resultado-Limpieza ([string]$C.Liberado) ([string]$C.WinOld)
             return
         }
         if ($C.Tipo -eq 'drivers') {
@@ -4067,7 +4078,10 @@ $ui.BtnAplicar.Add_Click({
     if ($p -eq 'Limpieza') {
         $v = @{}
         foreach ($k in $Casillas.Limpieza.Keys) { $v[$k] = $(if ($Casillas.Limpieza[$k].IsChecked) { '1' } else { '0' }) }
-        if (-not (Confirmar 'Limpiar cache' 'Cerra los juegos y programas abiertos antes de seguir.' 'Limpiar' '#3D6FD9' 'Cancelar')) { return }
+        $msj = (Con-Enie 'Cerra los juegos y programas abiertos antes de seguir.')
+        # Windows.old siempre tarda mucho: se avisa antes
+        if (Test-Path -LiteralPath (Join-Path $env:SystemDrive 'Windows.old')) { $msj += "`n`n" + (Con-Enie 'Tenes la carpeta Windows.old: borrarla siempre tarda mucho (de 5 a 20 minutos). Lo que la tenga abierto se cierra solo.') }
+        if (-not (Confirmar 'Limpiar cache' $msj 'Limpiar' '#3D6FD9' 'Cancelar')) { return }
         Correr @([pscustomobject]@{ Nombre = 'Limpieza'; Ruta = $Rutas.Limpieza; Vars = $v; Cambios = 1; Visible = $false; Tipo = 'limpieza' }) $false 'Limpiando la cache'
         return
     }

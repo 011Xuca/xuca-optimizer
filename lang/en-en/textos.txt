@@ -852,3 +852,7 @@ el antivirus ni la seguridad. Tampoco pone el plan Alto rendimiento, el temporiz
 para jugar, enchufa la notebook: a bateria rinde menos a proposito. Con undervolt u overclock, el Modo Nitro puede volverla inestable.	plug the laptop in to play: on battery it performs less on purpose. With undervolt or overclock, Nitro Mode can make it unstable.
 Solo para notebooks	Laptops only
 Tu PC es de escritorio (no tiene bateria): este perfil es para notebooks. Si lo aplicas igual, lo de la bateria se saltea solo.	Your PC is a desktop (it has no battery): this profile is for laptops. If you apply it anyway, the battery part is skipped on its own.
+Windows.old: siempre tarda mucho (de 5 a 20 minutos). No esta trabado	Windows.old: this always takes a long time (5 to 20 minutes). It is not stuck
+Tenes la carpeta Windows.old: borrarla siempre tarda mucho (de 5 a 20 minutos). Lo que la tenga abierto se cierra solo.	You have the Windows.old folder: deleting it always takes a long time (5 to 20 minutes). Anything that has it open is closed automatically.
+Windows.old no se pudo borrar ahora (algo lo tenia en uso). Se borra solo la proxima vez que reinicies la PC.	Windows.old couldn't be deleted now (something was using it). It will be deleted automatically the next time you restart the PC.
+Windows.old no se pudo borrar (algo lo tenia en uso o Windows no dio permiso). Proba de nuevo despues de reiniciar la PC.	Windows.old couldn't be deleted (something was using it or Windows denied permission). Try again after restarting the PC.
