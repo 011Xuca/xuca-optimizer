@@ -2667,10 +2667,8 @@ $cfgTimer.Add_Tick({
     if ($b) { $b.IsEnabled = $true; $b.Content = (Con-Enie 'Descargar en el escritorio') }
     if ($s.Error -or (-not $s.Carpeta)) { Avisar 'No se pudo descargar' 'No se pudo bajar la config. Revisa tu internet y proba de nuevo.'; return }
     Avisar 'Config descargada' ('Se guardo en tu escritorio, en esta carpeta:' + "`n`n" + (Split-Path $s.Carpeta -Leaf) + "`n`n" + 'Adentro estan los archivos y las instrucciones para usarla.')
+    # Al tocar OK se abre la carpeta de la config (las instrucciones estan adentro)
     try { Start-Process -FilePath 'explorer.exe' -ArgumentList ('"' + $s.Carpeta + '"') } catch { }
-    # Si las instrucciones vienen en un .txt o .pdf, se abren tambien
-    $ins = Get-ChildItem -LiteralPath $s.Carpeta -File -ErrorAction SilentlyContinue | Where-Object { ($_.Extension -in '.txt', '.pdf') -and ($_.BaseName -match '(?i)instruc|leeme|readme|guia') } | Select-Object -First 1
-    if ($ins) { Abrir-Normal $ins.FullName }
 })
 
 
