@@ -2705,12 +2705,21 @@ function Actualizar-Version {
 $Perfiles = @(
     [pscustomobject]@{
         Id = 'seguro'; Nombre = 'Seguro (Debloat basico)'; Color = '#81C995'
-        Hace = 'saca publicidad, sugerencias, Bing, telemetria, rastreo y Widgets, y apaga la IA de Windows; suma ajustes comodos para jugar que no tienen riesgo (sin carteles de Teclas especiales, sin bajar el volumen en llamadas, Modo Juego, menus sin retraso).'
+        Hace = 'saca publicidad, sugerencias, Bing, telemetria, rastreo y Widgets, apaga la IA de Windows, borra las apps basura y apaga servicios que casi nadie usa; suma ajustes comodos para jugar que no tienen riesgo (sin carteles de Teclas especiales, sin bajar el volumen en llamadas, Modo Juego, menus sin retraso).'
         Ideal = 'cualquier PC, incluso la de alguien que no sabe de esto.'
-        NoToca = 'la seguridad, las apps instaladas ni el procesador.'
-        Adv = ''
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia')
+        NoToca = 'la seguridad, el procesador ni tus programas: solo borra lo que viene de fabrica (WhatsApp, Xbox y la Store quedan).'
+        Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Sin los servicios que casi nadie usa, el escaner de Windows y el Media Player viejo dejan de estar.'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db')
         G = @('tk', 'du', 'gm', 'ext', 'md')
+    },
+    [pscustomobject]@{
+        Id = 'opt'; Nombre = 'Optimizado'; Color = '#4FD1C5'
+        Hace = 'todo lo de Seguro, y ademas deja Windows mas liviano: apaga la hibernacion, los efectos visuales, los sonidos, las apps basura de inicio, SysMain, el Asistente de compatibilidad y el Storage Sense, y Windows Update deja de instalar drivers.'
+        Ideal = 'cualquier PC que queres que ande mas rapida y liviana, sin tocar la seguridad ni los ajustes de juego.'
+        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo (mouse, procesador, plan de energia, temporizador y red).'
+        Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Los drivers los actualizas vos (Herramientas > Buscar drivers, o la app de tu placa de video).'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
+        G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg')
     },
     [pscustomobject]@{
         Id = 'comp'; Nombre = 'Competitivo'; Color = '#8AB4F8'
@@ -2723,20 +2732,20 @@ $Perfiles = @(
     },
     [pscustomobject]@{
         Id = 'compopt'; Nombre = 'Competitivo + Optimizado'; Color = '#C58AF9'
-        Hace = 'todo lo de Competitivo y lo de Seguro, y ademas borra las apps basura, apaga la hibernacion, los efectos visuales, los sonidos, servicios que casi nadie usa y el Storage Sense, y Windows Update deja de instalar drivers.'
+        Hace = 'todo lo de Competitivo y todo lo de Optimizado juntos: lo maximo para jugar y Windows liviano (sin apps basura, hibernacion, efectos visuales, sonidos, apps de inicio ni servicios que casi nadie usa), y Windows Update deja de instalar drivers.'
         Ideal = 'la PC de juego de todos los dias: el mayor rendimiento con la PC todavia protegida.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS. Igual que Competitivo, no apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle.'
         Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db', 'ini')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg', 'xm')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
     },
     [pscustomobject]@{
         Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#6EE7B7'
-        Hace = 'lo de Seguro (sin publicidad, Bing, telemetria, rastreo, Widgets ni IA de Windows), y ademas apaga las apps basura de inicio, los servicios que casi nadie usa y los efectos visuales, y prioriza la bateria cuando la notebook no esta enchufada.'
+        Hace = 'lo de Seguro (sin publicidad, Bing, telemetria, rastreo, Widgets, IA de Windows, apps basura ni servicios que casi nadie usa), y ademas apaga las apps basura de inicio y los efectos visuales, y prioriza la bateria cuando la notebook no esta enchufada.'
         Ideal = 'una notebook para estudiar, trabajar o usar todos los dias: la bateria dura mas y anda mas liviana.'
-        NoToca = 'la seguridad, la hibernacion (la notebook la usa cuando se queda sin bateria), los drivers de Windows Update, las apps instaladas ni el rendimiento enchufada.'
-        Adv = ''
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'fx', 'sv', 'ini')
+        NoToca = 'la seguridad, la hibernacion (la notebook la usa cuando se queda sin bateria), los drivers de Windows Update, tus programas ni el rendimiento enchufada.'
+        Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store.'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db', 'fx', 'ini')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'nb')
     },
     [pscustomobject]@{
