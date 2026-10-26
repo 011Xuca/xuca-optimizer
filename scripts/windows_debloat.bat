@@ -35863,7 +35863,8 @@ switch ($env:ACT) {
             }
         }
 
-        $lista = 'Microsoft.BingNews', 'Microsoft.BingWeather', 'Microsoft.BingSearch',
+        # >>> XUCA-APPS (la app XucaOP copia esta lista para contar cuantas apps basura se borraron y cuantas quedan)
+        $AppsBasura = @('Microsoft.BingNews', 'Microsoft.BingWeather', 'Microsoft.BingSearch',
                  'Microsoft.GetHelp', 'Microsoft.Getstarted', 'Microsoft.MicrosoftOfficeHub', 'Microsoft.MicrosoftSolitaireCollection',
                  'Microsoft.WindowsFeedbackHub', 'Clipchamp.Clipchamp', 'Microsoft.People', 'Microsoft.MixedReality.Portal',
                  'Microsoft.SkypeApp', 'Microsoft.Copilot', 'MSTeams', 'Microsoft.PowerAutomateDesktop',
@@ -35877,12 +35878,28 @@ switch ($env:ACT) {
                  'Microsoft.Office.Lens', 'Microsoft.Messaging', 'Microsoft.Wallet', 'Microsoft.Whiteboard',
                  'Microsoft.OneConnect', 'Microsoft.CommsPhone', 'Microsoft.WindowsPhone', 'MicrosoftCorporationII.QuickAssist',
                  'Microsoft.WindowsMaps', 'ShazamEntertainmentLtd.Shazam', 'Disney.37853FC22B2CE',
+                 'MicrosoftWindows.CrossDevice', 'Microsoft.XboxSpeechToTextOverlay',
                  '4DF9E0F8.Netflix',
                  'AmazonVideo.PrimeVideo', 'HULULLC.HULUPLUS', 'king.com.CandyCrushSaga',
                  'king.com.CandyCrushSodaSaga', 'king.com.CandyCrushFriends', 'king.com.BubbleWitch3Saga', 'Duolingo-LearnLanguagesforFree',
-                 'AdobeSystemsIncorporated.AdobePhotoshopExpress', 'PandoraMediaInc.29680B314EFC2'
-        Quitar-Apps $lista
+                 'AdobeSystemsIncorporated.AdobePhotoshopExpress', 'PandoraMediaInc.29680B314EFC2')
+        # <<< XUCA-APPS
+        $antes = @(Get-AppxPackage -AllUsers | Where-Object { -not $_.NonRemovable } | ForEach-Object { $_.Name })
+        Quitar-Apps $AppsBasura
         if ($odHabia) { $global:tocadas++ }
+        # Se anota lo que se borro, para que la app muestre el contador "5/13 borradas"
+        $despues = @(Get-AppxPackage -AllUsers | Where-Object { -not $_.NonRemovable } | ForEach-Object { $_.Name })
+        $borradas = @(foreach ($n in $AppsBasura) { $antes | Where-Object { ($_ -like $n) -and ($despues -notcontains $_) } })
+        if ($odHabia -and (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0)) { $borradas += 'OneDrive' }
+        if ($borradas.Count -gt 0) {
+            $archApps = Join-Path $env:ProgramData 'XucaScripts\apps_borradas.txt'
+            try {
+                $dA = Split-Path -Parent $archApps
+                if (-not (Test-Path -LiteralPath $dA)) { New-Item -ItemType Directory -Path $dA -Force | Out-Null }
+                $ya = @(); if (Test-Path -LiteralPath $archApps) { $ya = @(Get-Content -LiteralPath $archApps | Where-Object { $_ }) }
+                Set-Content -LiteralPath $archApps -Value @(@($ya) + @($borradas) | Sort-Object -Unique)
+            } catch { Log 'INFO' ('no se pudo anotar las apps borradas: ' + $_.Exception.Message) }
+        }
         if (($global:tocadas -eq 0) -and ($code -eq 0)) { $code = 5 }
     }
 

@@ -308,6 +308,24 @@ function Leer-Nic {
     $global:XNic = $r; $global:XNicLeido = $true
     return $r
 }
+
+# Contadores para las opciones que borran o apagan varias cosas: "50/62 borradas" en vez de "Ya aplicado".
+# Total = todo lo que la opcion borra o apaga; Hechas = lo que ya no esta (o esta apagado), sea por el script o porque nunca vino.
+function Apps-Conteo {
+    if (-not $AppsBasura) { return $null }
+    $quedan = 0
+    foreach ($n in $AppsBasura) { if (@($global:XAppx | Where-Object { ($_ -like $n) -and ($global:XAppxFijas -notcontains $_) }).Count -gt 0) { $quedan++ } }
+    $od = @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'))
+    if (@($od | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0) { $quedan++ }
+    $total = @($AppsBasura).Count + 1
+    return @{ Hechas = ($total - $quedan); Total = $total; Que = 'borradas'; Quedan = $quedan }
+}
+function Inicio-Conteo {
+    if (-not (Get-Command Inicio-Lista -ErrorAction SilentlyContinue)) { return $null }
+    $basura = @(Inicio-Lista | Where-Object { -not $_.Dejar })
+    $quedan = @($basura | Where-Object { $_.Activo }).Count
+    return @{ Hechas = ($basura.Count - $quedan); Total = $basura.Count; Que = 'apagadas'; Quedan = $quedan }
+}
 '@
 . ([scriptblock]::Create($FuncLectura))
 
@@ -329,6 +347,9 @@ try {
 try {
     $FuncInicio = [regex]::Match([IO.File]::ReadAllText($Rutas.Debloat), '(?s)# >>> XUCA-INICIO.*?# <<< XUCA-INICIO').Value
     if ($FuncInicio) { $FuncLectura += ("`n" + $FuncInicio) }
+    # Lista de apps basura (para el contador de "Borrar las apps basura")
+    $FuncApps = [regex]::Match([IO.File]::ReadAllText($Rutas.Debloat), '(?s)# >>> XUCA-APPS.*?# <<< XUCA-APPS').Value
+    if ($FuncApps) { $FuncLectura += ("`n" + ($FuncApps -replace '(?m)^\s+', '')) }
 } catch { }
 # Las funciones de juegos tambien se cargan aca, para poner el nombre a los que agregas a mano
 try { if ($FuncJuegos) { . ([scriptblock]::Create($FuncJuegos)) } } catch { }
@@ -470,7 +491,7 @@ $Chequeos = @{
     'Debloat|cal'   = { (Leer-Reg 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter') -eq 1 }
     'Debloat|et'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings' 'TaskbarEndTask') -eq 1 }
     'Debloat|apps'  = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground') -eq 2 }
-    'Debloat|ini'   = { if (Get-Command Inicio-Basura -ErrorAction SilentlyContinue) { @(Inicio-Basura).Count -eq 0 } else { $null } }
+    'Debloat|ini'   = { Inicio-Conteo }
     'Debloat|tel'   = { (Leer-Svc 'DiagTrack') -eq 4 }
     'Debloat|wg'    = { if ([Environment]::OSVersion.Version.Build -lt 22000) { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds' 'EnableFeeds') -eq 0 } else { -not (HasAppx 'MicrosoftWindows.Client.WebExperience') } }
     'Debloat|do'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' 'DODownloadMode') -eq 0 }
@@ -485,7 +506,7 @@ $Chequeos = @{
     'Debloat|eb'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled') -eq 0 }
     'Debloat|su'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload') -eq 2 }
     'Debloat|ia'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\WindowsNotepad' 'DisableAIFeatures') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableClickToDo') -eq 1) }
-    'Debloat|db'    = { (-not (HasAppx 'Microsoft.BingNews')) -and (-not (HasAppx 'Microsoft.Copilot')) -and (-not (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive\OneDrive.exe'))) }
+    'Debloat|db'    = { Apps-Conteo }
     'Debloat|edge'  = { -not (Test-Path -LiteralPath (${env:ProgramFiles(x86)} + '\Microsoft\Edge\Application\msedge.exe')) }
     'Debloat|chr'   = { @(@(($env:ProgramFiles + '\Google\Chrome\Application\chrome.exe'), (${env:ProgramFiles(x86)} + '\Google\Chrome\Application\chrome.exe'), ($env:LOCALAPPDATA + '\Google\Chrome\Application\chrome.exe')) | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0 }
     'Gaming|ms'     = { ((Leer-Reg 'HKCU:\Control Panel\Mouse' 'MouseSpeed') -eq '0') -and ((Leer-Reg 'HKCU:\Control Panel\Mouse' 'MouseThreshold1') -eq '0') }
@@ -551,7 +572,12 @@ $res = @{}
 try {
     $Sync.Paso = 'Apps instaladas'
     $global:XAppx = @()
-    try { $global:XAppx = @(Get-AppxPackage -AllUsers -ErrorAction Stop | ForEach-Object { $_.Name }) } catch { }
+    $global:XAppxFijas = @()
+    try {
+        $pkx = @(Get-AppxPackage -AllUsers -ErrorAction Stop)
+        $global:XAppx = @($pkx | ForEach-Object { $_.Name })
+        $global:XAppxFijas = @($pkx | Where-Object { $_.NonRemovable } | ForEach-Object { $_.Name })
+    } catch { }
     $Sync.Hecho = 1
     $Sync.Paso = 'Plan de energia'
     $global:XPlan = ''
@@ -571,7 +597,8 @@ try {
     foreach ($e in $Lista) {
         $Sync.Paso = $e.Titulo
         $est = $null
-        try { $r = & ([scriptblock]::Create($e.Codigo)); if ($null -ne $r) { $est = [bool](@($r)[-1]) } } catch { $est = $null }
+        # Un contador (@{ Hechas; Total }) pasa tal cual; lo demas es si o no
+        try { $r = & ([scriptblock]::Create($e.Codigo)); if ($null -ne $r) { $u = @($r)[-1]; if ($u -is [hashtable]) { $est = $u } else { $est = [bool]$u } } } catch { $est = $null }
         $res[$e.Clave] = $est
         $Sync.Hecho = $Sync.Hecho + 1
     }
@@ -1754,6 +1781,16 @@ function Poner-Pill($pb, $estado) {
     $pb.Visibility = 'Visible'
     if ($estado) { $pb.Background = (Pincel '#1E3A2B'); $pb.Child.Foreground = (Pincel '#81C995'); $pb.Child.Text = (Con-Enie 'Ya aplicado') }
     else { $pb.Background = (Pincel '#262B34'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'Sin aplicar') }
+}
+
+# "5/13 borradas": verde si no queda nada, gris si todavia quedan
+function Poner-Conteo($pb, $c) {
+    $todo = ([int]$c.Quedan -eq 0)
+    $pb.Visibility = 'Visible'
+    $pb.Background = (Pincel $(if ($todo) { '#1E3A2B' } else { '#262B34' }))
+    $pb.Child.Foreground = (Pincel $(if ($todo) { '#81C995' } else { '#9AA0A6' }))
+    $pb.Child.Text = ([string]$c.Hechas + '/' + [string]$c.Total + ' ' + (Con-Enie ([string]$c.Que)))
+    $pb.ToolTip = $(if ($todo) { (Con-Enie 'No queda ninguna.') } else { (Con-Enie 'Todavia quedan:') + ' ' + $c.Quedan })
 }
 
 function Nota([string]$t, [string]$color, [string]$margen) {
@@ -3311,6 +3348,9 @@ function Aplicar-Lectura($s) {
     foreach ($k in @($script:Pills.Keys)) {
         $est = $null
         if ($res -and $res.ContainsKey($k)) { $est = $res[$k] }
+        # Contador: queda aplicada cuando no falta nada
+        $cont = $null
+        if ($est -is [hashtable]) { $cont = $est; $est = ([int]$cont.Quedan -eq 0) }
         $script:Estados[$k] = $est
         $pg = ($k -split '\|')[0]
         if (-not $porPag.ContainsKey($pg)) { $porPag[$pg] = @{ A = 0; T = 0; N = 0 } }
@@ -3322,6 +3362,7 @@ function Aplicar-Lectura($s) {
             continue
         }
         Poner-Pill $script:Pills[$k] $est
+        if ($cont -and ([int]$cont.Total -gt 0)) { Poner-Conteo $script:Pills[$k] $cont }
         if ($script:DrvFalta.ContainsKey($k)) {
             $pb = $script:Pills[$k]
             $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#3A1F40'); $pb.Child.Foreground = (Pincel $ColorDrv); $pb.Child.Text = (Con-Enie 'Faltan drivers')

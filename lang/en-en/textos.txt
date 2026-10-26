@@ -856,3 +856,7 @@ Windows.old: siempre tarda mucho (de 5 a 20 minutos). No esta trabado	Windows.ol
 Tenes la carpeta Windows.old: borrarla siempre tarda mucho (de 5 a 20 minutos). Lo que la tenga abierto se cierra solo.	You have the Windows.old folder: deleting it always takes a long time (5 to 20 minutes). Anything that has it open is closed automatically.
 Windows.old no se pudo borrar ahora (algo lo tenia en uso). Se borra solo la proxima vez que reinicies la PC.	Windows.old couldn't be deleted now (something was using it). It will be deleted automatically the next time you restart the PC.
 Windows.old no se pudo borrar (algo lo tenia en uso o Windows no dio permiso). Proba de nuevo despues de reiniciar la PC.	Windows.old couldn't be deleted (something was using it or Windows denied permission). Try again after restarting the PC.
+borradas	removed
+apagadas	turned off
+No queda ninguna.	None left.
+Todavia quedan:	Still left:
