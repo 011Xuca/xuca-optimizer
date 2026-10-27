@@ -873,3 +873,11 @@ Todavia quedan:	Still left:
 Desactualizada	Outdated
 La pusiste con una version vieja del script. Aplicala de nuevo para tener la nueva.	You applied it with an old version of the script. Apply it again to get the new one.
 Ya tenes Google Chrome instalado.	You already have Google Chrome installed.
+Limitar el cable a 1 Gbps	Limit the cable to 1 Gbps
+pone la placa de cable en 1 Gbps fijo en vez de automatico (Speed & Duplex = 1.0 Gbps Full Duplex). Solo en placas de 2.5 Gbps o mas, como las Realtek 2.5GbE.	sets the wired card to a fixed 1 Gbps instead of automatic (Speed & Duplex = 1.0 Gbps Full Duplex). Only on 2.5 Gbps or faster cards, like Realtek 2.5GbE.
+arregla los cortes de unos segundos en los que el cable se desconecta y se vuelve a conectar solo. Con internet de 1 Gbps o menos no perdes nada.	fixes the few-second drops where the cable disconnects and reconnects by itself. With internet of 1 Gbps or less you lose nothing.
+la placa no pasa de 1 Gbps: si tu internet es de mas de 1 Gbps, o pasas archivos entre PCs de tu casa, va mas lento.	the card won't go over 1 Gbps: if your internet is faster than 1 Gbps, or you copy files between PCs at home, it's slower.
+Si tu internet es de mas de 1 Gbps vas a tener menos velocidad. Con 1 Gbps o menos (casi todos los planes) no cambia nada.	If your internet is faster than 1 Gbps you will get less speed. With 1 Gbps or less (almost every plan) nothing changes.
+Necesita el driver de red de la pagina de tu placa madre (Realtek, Intel o Killer). El driver nuevo ademas arregla muchos de estos cortes por si solo.	Needs the network driver from your motherboard's page (Realtek, Intel or Killer). The new driver also fixes many of these drops on its own.
+No hace falta: tu PC no tiene placa de cable.	Not needed: your PC doesn't have a wired network card.
+No hace falta: tu placa de cable es de 1 Gbps o menos.	Not needed: your wired card is 1 Gbps or slower.

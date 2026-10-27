@@ -310,6 +310,26 @@ function Leer-Nic {
     return $r
 }
 
+# Placas de cable de 2.5 Gbps o mas: su "Speed & Duplex" y cual de sus valores es 1 Gbps Full Duplex
+function Leer-Dup {
+    if ($global:XDupLeido) { return $global:XDup }
+    $r = @()
+    foreach ($ad in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { ($_.NdisPhysicalMedium -eq 14) -and ([string]$_.Status -ne 'Disabled') })) {
+        $p = @($ad | Get-NetAdapterAdvancedProperty -AllProperties -ErrorAction SilentlyContinue | Where-Object { ([string]$_.RegistryKeyword) -eq '*SpeedDuplex' }) | Select-Object -First 1
+        if (-not $p) { continue }
+        $nom = @($p.ValidDisplayValues); $val = @($p.ValidRegistryValues)
+        $mas = $false; $uno = $null
+        for ($k = 0; $k -lt [math]::Min($nom.Count, $val.Count); $k++) {
+            $t = [string]$nom[$k]
+            if ($t -match '(?<![\d.])(2\.5|5|10)\s*Gbps') { $mas = $true }
+            if (($t -match '(?<![\d.])(1(\.0)?\s*Gbps|1000\s*Mbps)') -and ($t -match '(?i)full|complet')) { $uno = [string]$val[$k] }
+        }
+        if ($mas -and $uno) { $r += @{ Actual = [string](@($p.RegistryValue)[0]); Uno = $uno } }
+    }
+    $global:XDup = $r; $global:XDupLeido = $true
+    return $r
+}
+
 # Contadores para las opciones que borran o apagan varias cosas: "50/62 borradas" en vez de "Ya aplicado".
 # Total = todo lo que la opcion borra o apaga; Hechas = lo que ya no esta (o esta apagado), sea por el script o porque nunca vino.
 function Apps-Conteo {
@@ -557,6 +577,11 @@ $Chequeos = @{
         if (@($n.Vals).Count -eq 0) { return $null }
         @($n.Vals | Where-Object { $_ -ne '0' }).Count -eq 0
     }
+    'Gaming|dup'    = {
+        $d = @(Leer-Dup)
+        if ($d.Count -eq 0) { return $null }
+        @($d | Where-Object { $_.Actual -ne $_.Uno }).Count -eq 0
+    }
     'Gaming|nag'    = {
         $vals = @()
         foreach ($k in @(Get-ChildItem -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces' -ErrorAction SilentlyContinue)) {
@@ -640,6 +665,8 @@ $Compat = {
                 if ($m.Success -and ([int]$m.Groups[1].Value -eq 0)) { $i.WifiSinRed = $true }
             }
         } catch { }
+        $i.DupPlacas = 0
+        try { $i.DupPlacas = @(Leer-Dup).Count } catch { }
         $i.NicPlacas = 0; $i.NicOpc = 0
         try { $nn = Leer-Nic; $i.NicPlacas = [int]$nn.Placas; $i.NicOpc = @($nn.Vals).Count } catch { }
         # Opciones que necesitan un driver que no tenes instalado (la app te manda a instalarlo antes de aplicarlas)
@@ -655,6 +682,7 @@ $Compat = {
             $fis2 = @(Get-NetAdapter -Physical -ErrorAction Stop)
             if (@($fis2 | Where-Object { ($_.NdisPhysicalMedium -eq 14) -and ([string]$_.Status -ne 'Disabled') -and ([string]$_.DriverProvider -eq 'Microsoft') }).Count -gt 0) {
                 $i.DrvFalta['Gaming|nic'] = 'tu placa de red usa el driver generico de Windows'
+                $i.DrvFalta['Gaming|dup'] = 'tu placa de red usa el driver generico de Windows'
                 if (-not $i.DrvFalta.ContainsKey('Gaming|msi')) { $i.DrvFalta['Gaming|msi'] = 'tu placa de red usa el driver generico de Windows' }
             }
             if ((-not $i.WifiSinRed) -and (@($fis2 | Where-Object { ($_.NdisPhysicalMedium -eq 9) -and ([string]$_.Status -ne 'Disabled') -and ([string]$_.DriverProvider -eq 'Microsoft') }).Count -gt 0)) {
@@ -1925,6 +1953,7 @@ $Advertencias = @{
     'Gaming|tr'    = 'Mas consumo y calor; con undervolt u overclock puede colgarse en juegos.'
     'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos. En notebooks la bateria baja mas rapido, incluso suspendida.'
     'Gaming|nic'   = 'En placas madre de baja calidad puede cortar el internet.'
+    'Gaming|dup'   = 'Si tu internet es de mas de 1 Gbps vas a tener menos velocidad. Con 1 Gbps o menos (casi todos los planes) no cambia nada.'
     'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
     'Gaming|vbs'   = 'Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.'
 }
@@ -1934,6 +1963,7 @@ $ColorDrv = '#E879F9'
 $Drivers = @{
     'Gaming|wf'  = 'Para apagar "Disable Upon Wired Connect" hace falta el driver de WiFi de la marca (Intel, Realtek o MediaTek), bajado de la pagina de tu placa madre. Con el driver generico de Windows esa opcion no aparece; lo demas se aplica igual.'
     'Gaming|nic' = 'Necesita el driver de red de la pagina de tu placa madre (Realtek, Intel o Killer). Con el driver generico de Windows casi no aparecen estas opciones.'
+    'Gaming|dup' = 'Necesita el driver de red de la pagina de tu placa madre (Realtek, Intel o Killer). El driver nuevo ademas arregla muchos de estos cortes por si solo.'
     'Gaming|gf'  = 'Necesita el driver de tu placa de video actualizado (NVIDIA, AMD o Intel), bajado de su pagina oficial.'
     'Gaming|msi' = 'Usa los drivers originales de tus placas (video, red y sonido), no los genericos de Windows: con los genericos es mas probable que no lo soporten.'
     'Gaming|afi' = 'Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), instala el driver de chipset de AMD desde amd.com.'
@@ -2127,6 +2157,8 @@ function Calcular-NoDisp($i, $cpu) {
     }
     if (-not $i.Bateria) { $r['Gaming|nb'] = 'No hace falta: es para notebooks y tu PC no tiene bateria.' }
     if ($i.AvOff) { $r['Gaming|avl'] = 'No hace falta: tu antivirus ya esta apagado.' }
+    if ([int]$i.Lan -eq 0) { $r['Gaming|dup'] = 'No hace falta: tu PC no tiene placa de cable.' }
+    elseif (([int]$i.DupPlacas -eq 0) -and -not ($i.DrvFalta -and $i.DrvFalta.ContainsKey('Gaming|dup'))) { $r['Gaming|dup'] = 'No hace falta: tu placa de cable es de 1 Gbps o menos.' }
     if (([int]$i.NicPlacas -gt 0) -and ([int]$i.NicOpc -eq 0) -and -not ($i.DrvFalta -and $i.DrvFalta.ContainsKey('Gaming|nic'))) { $r['Gaming|nic'] = 'Tu placa de red no tiene opciones de ahorro de energia para cambiar (depende del driver): no hace falta.' }
     if ($cpu -and (-not $cpu.Ok)) { $r['Gaming|afi'] = ('Tu procesador no sirve para esto: ' + $cpu.Motivo + '.') }
     return $r

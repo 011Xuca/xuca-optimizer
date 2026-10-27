@@ -42,7 +42,7 @@ set "VGT="
 set "QACT="
 set "REINICIO="
 rem Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
-set "REIN_IDS= tk mm notif gf mpo msi pca tr mi vbs md v4 ll nag nic "
+set "REIN_IDS= tk mm notif gf mpo msi pca tr mi vbs md v4 ll nag nic dup "
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
@@ -871,6 +871,28 @@ call :aplicar_ps
 call :resps
 call :opt_fin "Ahorro de energia de la placa de red restaurado (se aplica al reiniciar)"
 :nic_fin
+echo.
+echo   Que hace: pone la placa de cable en 1 Gbps fijo en vez de automatico ^(Speed ^& Duplex = 1.0 Gbps Full Duplex^). Solo en placas de 2.5 Gbps o mas, como las Realtek 2.5GbE.
+echo   A favor: arregla los cortes de unos segundos en los que el cable se desconecta y se vuelve a conectar solo. Con internet de 1 Gbps o menos no perdes nada.
+echo   En contra: la placa no pasa de 1 Gbps: si tu internet es de mas de 1 Gbps, o pasas archivos entre PCs de tu casa, va mas lento; R lo vuelve atras.
+set "QID=dup"
+set "Q=- Desea limitar el cable a 1 Gbps? (Para placas de cable de 2.5 Gbps o mas que se cortan solas; pide reiniciar)"
+call :askR
+if errorlevel 3 goto dup_r
+if errorlevel 2 goto dup_fin
+call :opt_ini "Cable a 1 Gbps"
+set "ACT=DUP_ON"
+call :aplicar_ps
+call :resps
+call :opt_fin "Cable limitado a 1 Gbps (se aplica al reiniciar)"
+goto dup_fin
+:dup_r
+call :opt_ini "Cable a 1 Gbps (restaurar)"
+set "ACT=DUP_R"
+call :aplicar_ps
+call :resps
+call :opt_fin "Velocidad del cable otra vez en automatico (se aplica al reiniciar)"
+:dup_fin
 echo.
 echo   Que hace: deja el WiFi y el cable conectados a la vez: Windows ya no corta el WiFi cuando enchufas el cable, el cable queda primero y el WiFi no se apaga por ahorro de energia.
 echo   A favor: el WiFi deja de desconectarse solo en las PCs que tienen WiFi y cable ^(como las placas madre con WiFi integrado^).
@@ -2517,6 +2539,56 @@ switch ($env:ACT) {
             }
             if ((-not $hizo) -and ($code -eq 0)) { $code = 5 }
         }
+    }
+
+    # Cable a 1 Gbps: "Speed & Duplex" (*SpeedDuplex) de las placas de cable de 2.5 Gbps o mas.
+    # Lo que tenia cada placa se anota en velocidad_cable.txt para que R lo deje como estaba.
+    { $_ -eq 'DUP_ON' -or $_ -eq 'DUP_R' } {
+        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $guarda = Join-Path $dir 'velocidad_cable.txt'
+        $notas = @()
+        if (Test-Path -LiteralPath $guarda) { $notas = @(Get-Content -LiteralPath $guarda) }
+        $hay = 0
+        $hizo = $false
+        foreach ($a in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { ($_.NdisPhysicalMedium -eq 14) -and ([string]$_.Status -ne 'Disabled') })) {
+            # Se busca por nombre exacto: con -RegistryKeyword Windows toma el * como comodin
+            $pr = @($a | Get-NetAdapterAdvancedProperty -AllProperties -ErrorAction SilentlyContinue | Where-Object { ([string]$_.RegistryKeyword) -eq '*SpeedDuplex' }) | Select-Object -First 1
+            if (-not $pr) { continue }
+            $nom = @($pr.ValidDisplayValues); $val = @($pr.ValidRegistryValues)
+            $mas = $false; $uno = $null; $auto = $null
+            for ($k = 0; $k -lt [math]::Min($nom.Count, $val.Count); $k++) {
+                $t = [string]$nom[$k]
+                if ($t -match '(?<![\d.])(2\.5|5|10)\s*Gbps') { $mas = $true }
+                if (($t -match '(?<![\d.])(1(\.0)?\s*Gbps|1000\s*Mbps)') -and ($t -match '(?i)full|complet')) { $uno = [string]$val[$k] }
+                if ($t -match '(?i)auto') { $auto = [string]$val[$k] }
+            }
+            if (-not ($mas -and $uno)) { continue }
+            $hay++
+            $antes = [string](@($pr.RegistryValue)[0])
+            if ($a.Status -eq 'Up') { Log 'INFO' ($a.Name + ' conectado a ' + $a.LinkSpeed) }
+            if ($env:ACT -eq 'DUP_ON') {
+                if ($antes -eq $uno) { Log 'OK' ('ya estaba: ' + $a.Name + ' a 1 Gbps'); continue }
+                if (-not ($notas | Where-Object { $_ -like ('dup|' + $a.InterfaceGuid + '|*') })) { $notas += ('dup|' + $a.InterfaceGuid + '|' + $antes) }
+                $nuevo = $uno
+            } else {
+                $nota = @($notas | Where-Object { $_ -like ('dup|' + $a.InterfaceGuid + '|*') }) | Select-Object -First 1
+                $nuevo = $(if ($nota) { ($nota -split '\|')[2] } elseif ($antes -eq $uno) { $auto } else { $null })
+                if ((-not $nuevo) -or ($nuevo -eq $antes)) { Log 'OK' ('ya estaba: ' + $a.Name + ' sin limite de velocidad'); continue }
+            }
+            try {
+                $pr | Set-NetAdapterAdvancedProperty -RegistryValue $nuevo -NoRestart -ErrorAction Stop
+                Log 'OK' ($a.Name + ': Speed & Duplex = ' + $nuevo + ' (se aplica al reiniciar)')
+                $hizo = $true
+            } catch { Log 'FALLO' ('no se pudo cambiar Speed & Duplex en ' + $a.Name + ': ' + $_.Exception.Message); $code = 1 }
+        }
+        if ($env:ACT -eq 'DUP_ON') { if ($notas.Count) { Set-Content -LiteralPath $guarda -Value @($notas | Select-Object -Unique) } }
+        elseif ($code -eq 0) { Remove-Item -LiteralPath $guarda -Force -ErrorAction SilentlyContinue }
+        if ($hay -eq 0) {
+            Log 'OMITIDO' 'no hay placa de cable de 2.5 Gbps o mas'
+            Say '  Tu placa de cable es de 1 Gbps o menos: no hace falta.' 'Yellow'
+            $code = 2
+        } elseif ((-not $hizo) -and ($code -eq 0)) { $code = 5 }
     }
 
     # WiFi y cable a la vez. Lo que se cambia de cada placa se anota en wifi_lan.txt para que R lo deje como estaba.
