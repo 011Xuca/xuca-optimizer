@@ -746,6 +746,7 @@ Limpieza y arranque	Cleanup and startup
 Hardware y temperaturas	Hardware and temperatures
 Juegos y video	Games and video
 Otros	Others
+Vigila tu internet y tus USB desde la bandeja. Cuando se corta internet, sube el ping o se desconecta algo, te dice que fue y que probar. Casi no gasta nada.	Watches your internet and your USB devices from the tray. When the internet drops, ping goes up or something disconnects, it tells you what it was and what to try. It barely uses anything.
 Gratis	Free
 Prioridad critica	Critical priority
 Descargar	Download

@@ -2338,6 +2338,8 @@ $AppsRec = @(
         Texto = 'pone al maximo el procesador, la placa de video o la fuente para probarlos. Ideal para saber por que la PC se apaga sola o da pantallazos azules.' },
     [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xEC4A; Nombre = 'Cinebench'; Critica = $false; Url = 'https://www.maxon.net/en/cinebench'
         Texto = 'mide la potencia de tu procesador con un benchmark y te deja comparar tu puntaje con el de otras PCs.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE839; Nombre = 'Xuca Monitor'; Critica = $false; Url = 'https://github.com/011Xuca/xuca-monitor/releases/latest/download/XucaMonitor.exe'
+        Texto = 'vigila tu internet y tus USB desde la bandeja. Cuando se corta internet, sube el ping o se desconecta algo, te dice que fue y que probar. Casi no gasta nada.' },
     [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#C58AF9'; Icono = 0xE7F4; Nombre = 'DDU (Display Driver Uninstaller)'; Critica = $false; Url = 'https://download.wagnardsoft.com/DDU/DDU%20v18.1.6.0_setup.exe'
         Texto = 'borra por completo el driver de tu placa de video. La solucion cuando los juegos dan tirones o hay problemas de video despues de cambiar de driver.' },
     [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#C58AF9'; Icono = 0xE7FC; Nombre = 'SCSKiller'; Critica = $false; Url = 'https://github.com/BlueHeisenberg/SCSKiller/releases/'
