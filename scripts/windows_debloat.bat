@@ -1251,7 +1251,7 @@ echo.
 echo.
 echo %C_TIT%=== DRIVERS ===%C_RST%
 echo.
-echo   Que hace: revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver, la placa de video, el chipset de AMD y el programa de tu mouse, teclado o auriculares de marca. Tambien te avisa si la BIOS esta vieja.
+echo   Que hace: revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver, la placa de video, el chipset de AMD el programa de tu mouse, teclado o auriculares de marca, de tu SSD y de otros aparatos (impresora, tableta grafica, volante, microfono, Stream Deck, capturadora, webcam, joystick, antena USB). Tambien te avisa si la BIOS esta vieja.
 echo   A favor: te abre la pagina oficial de cada cosa, con la ultima version, sin programas de mas.
 echo   En contra: la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.
 set "QID=drv"
@@ -36163,18 +36163,53 @@ switch ($env:ACT) {
             if ($mw.Success -and ([int]$mw.Groups[1].Value -eq 0)) { $wifiSinRed = $true; Log 'INFO' 'la placa WiFi no ve ninguna red (sin antena?): no se recomienda su driver' }
         }
         foreach ($a in @($fis3 | Where-Object { $_.NdisPhysicalMedium -eq 14 })) {
-            if ($prueba -or ([string]$a.DriverProvider -eq 'Microsoft')) { $piezas.Add('LAN: ' + $a.InterfaceDescription) }
+            if (-not ($prueba -or ([string]$a.DriverProvider -eq 'Microsoft'))) { continue }
+            if ([string]$a.InterfaceDescription -match 'Realtek') {
+                # Realtek: mejor su propia pagina que la de la placa madre (es el mismo driver, mas nuevo, y se sabe que opcion bajar)
+                $rtUsb = ([string]$a.PnPDeviceID -like 'USB\*')
+                Reco ('Driver de red Realtek (' + $a.InterfaceDescription + ')') 'tu placa de red usa el driver generico de Windows. En la pagina de Realtek, en la parte "Windows", baja "Win10/Win11 Auto Installation Program", descomprimilo y abri setup.exe' @() $(if ($rtUsb) { 'https://www.realtek.com/Download/List?cate_id=585' } else { 'https://www.realtek.com/Download/List?cate_id=584' })
+                Corto 'red' 'Red Realtek' 'Usa el driver generico de Windows: bajalo directo de Realtek'
+                $reco[$reco.Count - 1].Sub = @('En la parte Windows: Win10/Win11 Auto Installation Program', 'Descomprimilo y abri setup.exe')
+            }
+            else { $piezas.Add('LAN: ' + $a.InterfaceDescription) }
         }
+        # Antenas WiFi/Bluetooth USB: su driver lo da la marca de la antena, no la placa madre (por el VID del USB)
+        $dongles = @{ '2357' = 'tp-link.com'; '0B05' = 'asus.com'; '0846' = 'netgear.com'; '2001' = 'dlink.com'; '7392' = 'edimax.com' }
         foreach ($a in @($fis3 | Where-Object { ($_.NdisPhysicalMedium -eq 9) -and (-not $wifiSinRed) })) {
-            if ($prueba -or ([string]$a.DriverProvider -eq 'Microsoft')) { $piezas.Add('WiFi: ' + $a.InterfaceDescription) }
+            if (-not ($prueba -or ([string]$a.DriverProvider -eq 'Microsoft'))) { continue }
+            if ([string]$a.PnPDeviceID -match '^USB\\VID_([0-9A-Fa-f]{4})') {
+                $vidW = $Matches[1].ToUpper(); $descW = [string]$a.InterfaceDescription
+                Reco ('Driver de tu antena WiFi USB (' + $descW + ')') 'usa el driver generico de Windows: con el de la marca la antena suele andar mas estable y mas rapido' @() $(if ($dongles.ContainsKey($vidW)) { 'https://duckduckgo.com/?q=' + [uri]::EscapeDataString('!ducky site:' + $dongles[$vidW] + ' ' + $descW + ' driver') } else { 'https://www.google.com/search?q=' + [uri]::EscapeDataString($descW + ' driver') })
+                Corto 'wifi' 'Antena WiFi USB' 'Usa el driver generico: el de la marca anda mas estable'
+            }
+            else { $piezas.Add('WiFi: ' + $a.InterfaceDescription) }
         }
         $firmados = @(Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue | Where-Object { ([string]$_.DeviceClass) -in 'BLUETOOTH', 'MEDIA' })
         $btOk = @(Get-PnpDevice -PresentOnly -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { ([string]$_.Status -eq 'OK') -and ([string]$_.InstanceId -like 'USB\VID_*') }).Count -gt 0
         foreach ($d in @($firmados | Where-Object { $btOk -and ([string]$_.DeviceClass -eq 'BLUETOOTH') -and ([string]$_.HardWareID -like 'USB\VID_*') })) {
-            if ($prueba -or ([string]$d.DriverProviderName -eq 'Microsoft')) { $piezas.Add('Bluetooth: ' + $d.DeviceName); break }
+            if (-not ($prueba -or ([string]$d.DriverProviderName -eq 'Microsoft'))) { continue }
+            if (([string]$d.HardWareID -match 'VID_([0-9A-Fa-f]{4})') -and $dongles.ContainsKey($Matches[1].ToUpper())) {
+                Reco ('Driver de tu antena Bluetooth USB (' + $d.DeviceName + ')') 'usa el driver generico de Windows: el de la marca suele conectar mejor auriculares y joysticks' @() ('https://duckduckgo.com/?q=' + [uri]::EscapeDataString('!ducky site:' + $dongles[$Matches[1].ToUpper()] + ' ' + $d.DeviceName + ' bluetooth driver'))
+                Corto 'bt' 'Antena Bluetooth USB' 'Usa el driver generico: el de la marca conecta mejor'
+                break
+            }
+            $piezas.Add('Bluetooth: ' + $d.DeviceName); break
         }
         # Audio de la placa: el de Realtek solo si Windows le puso el generico (sin el, pueden fallar los conectores del frente o el microfono)
+        # y solo si hay algo enchufado en sus jacks (3,5 mm): con auriculares USB o el sonido del monitor no sirve de nada.
+        # Cada salida/entrada de audio esta en MMDevices: DeviceState 1 = enchufada y activa, 8 = desenchufada; la propiedad ,2 dice de que chip es.
+        $rtJacks = 0; $rtEnch = 0
+        foreach ($tipoA in 'Render', 'Capture') {
+            foreach ($k in @(Get-ChildItem ('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\' + $tipoA) -ErrorAction SilentlyContinue)) {
+                $chipA = ''; try { $chipA = [string](Get-ItemProperty -LiteralPath ($k.PSPath + '\Properties') -ErrorAction Stop).'{b3f8fa53-0004-438e-9003-51a46e139bfc},2' } catch { }
+                if ($chipA -notmatch 'VEN_10EC') { continue }
+                $rtJacks++
+                if ((Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction SilentlyContinue).DeviceState -eq 1) { $rtEnch++ }
+            }
+        }
+        $jackUsado = ($rtJacks -eq 0) -or ($rtEnch -gt 0)
         foreach ($d in @($firmados | Where-Object { ([string]$_.DeviceClass -eq 'MEDIA') -and ([string]$_.HardWareID -like 'HDAUDIO\FUNC_01&VEN_10EC*') })) {
+            if ((-not $prueba) -and ([string]$d.DriverProviderName -eq 'Microsoft') -and (-not $jackUsado)) { Log 'INFO' 'audio Realtek con el driver generico, pero no hay nada enchufado en sus jacks: no se recomienda'; break }
             if ($prueba -or ([string]$d.DriverProviderName -eq 'Microsoft')) { $piezas.Add('Audio: Realtek'); break }
             else { Log 'OK' ('audio Realtek con su driver (' + $d.DriverVersion + '): no hace falta bajarlo') }
         }
@@ -36250,7 +36285,7 @@ switch ($env:ACT) {
 
         # 4b) Otros mouse y teclados de marca (Attack Shark, Ajazz, VXE, Redragon...): se busca su programa por el nombre
         # Marcas que ya se revisan arriba, y joysticks (Sony, Microsoft, Nintendo, 8BitDo, Valve): esos no necesitan programa
-        $conocidos = '046D|1532|1038|1B1C|0951|03F0|31E3|1E7D|045E|054C|057E|2DC8|28DE'
+        $conocidos = '046D|1532|1038|1B1C|0951|03F0|31E3|1E7D|045E|054C|057E|2DC8|28DE|056A|256C|28BD|2FEB|044F|0EB7|346E|1235|19F7|14ED|1397|2708|0FD9|07CA|194F|0499|07FD|17CC|1C75|0763|0582'
         $genericos = '(?i)^(usb|hid|generic|wireless|wired|2\.4g|receiver|composite|input|device|keyboard|mouse|optical|gaming|dongle|nano|bt|bluetooth|rgb|kb|ms|and|audio|headset|headphones?|microphone|mic|speakers?|sound|card|adapter|dac|webcam|camera|hd|pnp|stereo|7\.1|virtual|[\s\-_\.\d\(\)])+$'
         $progs = (@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | ForEach-Object { [string]$_.DisplayName }) -join ' | ')
         # Cada mouse, teclado, auricular o micro USB por separado (VID y PID): dos marcas distintas pueden compartir el mismo fabricante de chip
@@ -36300,6 +36335,107 @@ switch ($env:ACT) {
             Corto $(switch ($clases[$vp]) { 'Mouse' { 'mouse' } 'Keyboard' { 'teclado' } default { 'audio' } }) $nom $(switch ($clases[$vp]) { 'Mouse' { 'Su programa: DPI, polling, botones y luces' } 'Keyboard' { 'Su programa: rapid trigger, macros y luces' } default { 'Su programa: ecualizador y microfono' } })
         }
 
+        # 4c) Tabletas graficas: sin el driver de la marca no anda la presion del lapiz ni los botones
+        $tabletas = @(
+            @{ Vid = '056A'; Marca = 'Wacom'; Prog = 'Wacom'; Link = 'https://www.wacom.com/es-es/support/product-support/drivers' },
+            @{ Vid = '256C'; Marca = 'Huion'; Prog = 'Huion'; Link = 'https://www.huion.com/download/' },
+            @{ Vid = '28BD'; Marca = 'XP-Pen'; Prog = 'XP-?PEN|PenTablet'; Link = 'https://www.xp-pen.com/download/' },
+            @{ Vid = '2FEB'; Marca = 'VEIKK'; Prog = 'VEIKK'; Link = 'https://www.veikk.com/download/' }
+        )
+        foreach ($tb in $tabletas) {
+            $nom = @(& $nombresDe $tb.Vid)
+            if ($nom.Count -eq 0) { continue }
+            $marcaT = $tb.Marca; $progT = $tb.Prog; $linkT = $tb.Link
+            # Gaomon usa el mismo chip que Huion, pero tiene su propio driver
+            if ($nom -match '(?i)gaomon') { $marcaT = 'Gaomon'; $progT = 'Gaomon'; $linkT = 'https://www.gaomon.net/download/' }
+            if ((-not $prueba) -and ($progs -match $progT)) { Log 'OK' ('tableta ' + $marcaT + ': su driver ya esta instalado'); continue }
+            Log 'INFO' ('tableta grafica: ' + ($nom -join ', '))
+            Reco ('Driver de tu tableta ' + $marcaT) 'sin el driver de la marca no anda la presion del lapiz ni los botones de la tableta' @() $linkT
+            Corto 'tableta' ('Tableta ' + $marcaT) 'Su driver: presion del lapiz y botones'
+        }
+
+        # 4d) Impresoras: si Windows les puso su driver generico, el de la marca agrega el escaner, los niveles de tinta y mas opciones
+        $sitiosImp = [ordered]@{ '(?i)\bHP\b|Hewlett|Samsung' = 'hp.com'; '(?i)Epson' = 'epson.com'; '(?i)Canon' = 'canon.com'; '(?i)Brother' = 'brother.com'; '(?i)Xerox' = 'xerox.com'; '(?i)Lexmark' = 'lexmark.com'; '(?i)Ricoh' = 'ricoh.com'; '(?i)Kyocera' = 'kyoceradocumentsolutions.com'; '(?i)Pantum' = 'pantum.com'; '(?i)\bOKI\b' = 'oki.com' }
+        $imps = @(); try { $imps = @(Get-Printer -ErrorAction Stop) } catch { }
+        $vistasImp = @()
+        foreach ($im in $imps) {
+            $nomI = (([string]$im.Name) -replace '\[.*?\]|\(.*?\)', '' -replace '\s+', ' ').Trim()
+            # Las virtuales (PDF, XPS, OneNote, Fax) no son impresoras de verdad
+            if ($nomI -match '(?i)PDF|XPS|OneNote|Fax|Send To|AnyDesk|Snagit') { continue }
+            $sitioI = ''
+            foreach ($rx in $sitiosImp.Keys) { if (($nomI + ' ' + [string]$im.DriverName) -match $rx) { $sitioI = $sitiosImp[$rx]; break } }
+            if (-not $sitioI) { continue }
+            if ($vistasImp -contains $nomI) { continue }
+            $vistasImp += $nomI
+            if ((-not $prueba) -and ([string]$im.DriverName -notmatch '(?i)^Microsoft|Generic|Mopria')) { Log 'OK' ('impresora ' + $nomI + ' con driver de la marca: ' + $im.DriverName); continue }
+            Log 'INFO' ('impresora con el driver generico de Windows: ' + $nomI + ' (' + $im.DriverName + ')')
+            Reco ('Driver de tu impresora ' + $nomI) 'usa el driver generico de Windows: el de la marca suma el escaner, los niveles de tinta y mas opciones de impresion' @() ('https://duckduckgo.com/?q=' + [uri]::EscapeDataString('!ducky site:' + $sitioI + ' ' + $nomI + ' driver'))
+            Corto 'impresora' $nomI 'Usa el driver generico: el de la marca suma escaner y tinta'
+        }
+
+        # 4e) Otros aparatos que necesitan el programa o el driver de la marca: volantes, microfonos e interfaces de audio,
+        # Stream Deck, capturadoras, webcams y joysticks 8BitDo. Solo si esta enchufado y su programa no esta instalado.
+        # Nombre (opcional) filtra por el nombre que da el aparato: Elgato usa el mismo VID para todo.
+        $aparatos = @(
+            @{ Vid = '044F'; Que = 'Drivers de Thrustmaster'; Prog = 'Thrustmaster'; Tipo = 'volante'; Por = 'sin su driver no anda el force feedback del volante ni todos los botones'; Corto = 'Su driver: force feedback y botones' },
+            @{ Vid = '0EB7'; Que = 'Fanatec Driver'; Prog = 'Fanatec'; Tipo = 'volante'; Por = 'sin su driver no anda el force feedback ni se actualiza el firmware de la base'; Corto = 'Su driver: force feedback y firmware' },
+            @{ Vid = '346E'; Que = 'MOZA Pit House'; Prog = 'Pit House|MOZA'; Tipo = 'volante'; Por = 'configura el force feedback y actualiza el firmware de la base'; Corto = 'Su programa: force feedback y firmware' },
+            @{ Vid = '1235'; Que = 'Focusrite Control'; Prog = 'Focusrite'; Tipo = 'audio'; Link = 'https://downloads.focusrite.com/'; Por = 'trae el driver ASIO (menos latencia) y el control de tu placa de sonido'; Corto = 'Driver ASIO y control de la placa' },
+            @{ Vid = '19F7'; Que = 'RODE Central'; Prog = 'R(O|\xd8)DE'; Tipo = 'audio'; Por = 'configura tu microfono RODE (ganancia, procesado) y actualiza su firmware'; Corto = 'Ganancia, procesado y firmware' },
+            @{ Vid = '14ED'; Que = 'ShurePlus MOTIV'; Prog = 'Shure|MOTIV'; Tipo = 'audio'; Por = 'configura tu microfono Shure (ganancia, ecualizador) y actualiza su firmware'; Corto = 'Ganancia, ecualizador y firmware' },
+            @{ Vid = '1397'; Que = 'Driver de Behringer'; Prog = 'Behringer|UMC'; Tipo = 'audio'; Por = 'trae el driver ASIO de tu placa de sonido: mucha menos latencia que el de Windows'; Corto = 'Driver ASIO: menos latencia' },
+            @{ Vid = '2708'; Que = 'Driver de Audient'; Prog = 'Audient'; Tipo = 'audio'; Por = 'trae el driver ASIO y el panel de tu placa de sonido'; Corto = 'Driver ASIO y panel de control' },
+            @{ Vid = '194F'; Que = 'PreSonus Universal Control'; Prog = 'Universal Control|PreSonus'; Tipo = 'audio'; Por = 'trae el driver ASIO y el panel de tu placa de sonido PreSonus'; Corto = 'Driver ASIO y panel de control' },
+            @{ Vid = '0499'; Que = 'Yamaha Steinberg USB Driver'; Prog = 'Yamaha Steinberg|Steinberg USB|Yamaha USB'; Tipo = 'audio'; Por = 'el driver ASIO de tu placa de sonido Steinberg o Yamaha: mucha menos latencia que el de Windows'; Corto = 'Driver ASIO: menos latencia' },
+            @{ Vid = '07FD'; Que = 'Driver de MOTU'; Prog = 'MOTU'; Tipo = 'audio'; Por = 'trae el driver ASIO y el panel de tu placa de sonido MOTU'; Corto = 'Driver ASIO y panel de control' },
+            @{ Vid = '17CC'; Que = 'Native Access (Native Instruments)'; Prog = 'Native Access|Native Instruments'; Tipo = 'audio'; Por = 'instala el driver de tu placa de sonido o controlador de Native Instruments'; Corto = 'Su driver y programa' },
+            @{ Vid = '1C75'; Que = 'Arturia Software Center'; Prog = 'Arturia'; Tipo = 'audio'; Por = 'instala el driver y el firmware de tu placa de sonido o teclado Arturia'; Corto = 'Su driver y firmware' },
+            @{ Vid = '0763'; Que = 'Driver de M-Audio'; Prog = 'M-Audio'; Tipo = 'audio'; Por = 'el driver ASIO de tu placa de sonido M-Audio: mucha menos latencia que el de Windows'; Corto = 'Driver ASIO: menos latencia' },
+            @{ Vid = '0582'; Que = 'Driver de Roland / BOSS'; Prog = 'Roland|BOSS'; Tipo = 'audio'; Por = 'muchos aparatos Roland y BOSS no andan bien sin su driver (cada modelo tiene el suyo)'; Corto = 'El driver de tu modelo' },
+            @{ Vid = '0FD9'; Nombre = 'Stream Deck'; Que = 'Elgato Stream Deck'; Prog = 'Stream Deck'; Tipo = 'stream'; Link = 'https://www.elgato.com/downloads'; Por = 'sin su programa los botones del Stream Deck no hacen nada'; Corto = 'Su programa: para configurar los botones' },
+            @{ Vid = '0FD9'; Nombre = 'Wave'; Que = 'Elgato Wave Link'; Prog = 'Wave Link'; Tipo = 'audio'; Link = 'https://www.elgato.com/downloads'; Por = 'configura tu microfono Wave y mezcla el sonido para stream'; Corto = 'Microfono y mezcla de sonido' },
+            @{ Vid = '0FD9'; Nombre = 'Facecam|Cam Link'; Que = 'Elgato Camera Hub'; Prog = 'Camera Hub'; Tipo = 'camara'; Link = 'https://www.elgato.com/downloads'; Por = 'configura la imagen de tu camara (exposicion, enfoque) y actualiza su firmware'; Corto = 'Imagen y firmware de la camara' },
+            @{ Vid = '0FD9'; Nombre = 'HD60|4K|Game Capture'; Que = 'Elgato 4K Capture Utility'; Prog = 'Capture Utility|Game Capture'; Tipo = 'camara'; Link = 'https://www.elgato.com/downloads'; Por = 'el programa para grabar y actualizar el firmware de tu capturadora'; Corto = 'Grabar y actualizar el firmware' },
+            @{ Vid = '07CA'; Que = 'AVerMedia Streaming Center'; Prog = 'AVerMedia|RECentral'; Tipo = 'camara'; Por = 'el programa y el driver de tu capturadora o camara AVerMedia'; Corto = 'Su programa y driver' },
+            @{ Vid = '046D'; Nombre = 'Webcam|Brio|StreamCam|\bC\d{3}\b'; Que = 'Logi Tune'; Prog = 'Logi Tune|LogiTune|Logi Capture|G HUB'; Tipo = 'camara'; Por = 'configura la imagen de tu webcam Logitech (zoom, enfoque, exposicion) y actualiza su firmware'; Corto = 'Imagen y firmware de la webcam' },
+            @{ Vid = '2DC8'; Que = '8BitDo Ultimate Software'; Prog = '8BitDo'; Tipo = 'joystick'; Por = 'actualiza el firmware de tu joystick y deja cambiar los botones y los perfiles'; Corto = 'Firmware y botones' }
+        )
+        $vistosAp = @()
+        foreach ($ap in $aparatos) {
+            $nom = @(& $nombresDe $ap.Vid)
+            if ($nom.Count -eq 0) { continue }
+            if ($ap.Nombre) { $nom = @($nom | Where-Object { $_ -match ('(?i)' + $ap.Nombre) }); if ($nom.Count -eq 0) { continue } }
+            if ($vistosAp -contains $ap.Que) { continue }
+            $vistosAp += $ap.Que
+            if ((-not $prueba) -and ($progs -match ('(?i)' + $ap.Prog))) { Log 'OK' ($ap.Que + ' ya esta instalado'); continue }
+            Log 'INFO' ('aparato: ' + ($nom -join ', ') + ' - falta ' + $ap.Que)
+            Reco $ap.Que $ap.Por @() $(if ($ap.Link) { $ap.Link } else { 'https://duckduckgo.com/?q=' + [uri]::EscapeDataString('!ducky ' + $ap.Que + ' download') })
+            Corto $ap.Tipo $ap.Que $ap.Corto
+        }
+
+        # 4f) Discos SSD: el programa de la marca actualiza el firmware (algunos SSD tuvieron fallas que solo se arreglaban asi) y muestra su salud
+        $ssdProgs = @(
+            @{ Rx = '(?i)Samsung'; Que = 'Samsung Magician'; Prog = 'Samsung Magician' },
+            @{ Rx = '(?i)^WD|WDC|Western Digital'; Que = 'Western Digital Dashboard'; Prog = 'WD Dashboard|Western Digital Dashboard' },
+            @{ Rx = '(?i)SanDisk'; Que = 'SanDisk Dashboard'; Prog = 'SanDisk Dashboard|WD Dashboard|Western Digital Dashboard' },
+            @{ Rx = '(?i)Crucial|^CT\d'; Que = 'Crucial Storage Executive'; Prog = 'Storage Executive' },
+            @{ Rx = '(?i)Kingston|^SNV|^SKC|^SA400|^SFYR'; Que = 'Kingston SSD Manager'; Prog = 'SSD Manager' }
+        )
+        $discosSsd = @(); try { $discosSsd = @(Get-PhysicalDisk -ErrorAction Stop | Where-Object { ([string]$_.MediaType -eq 'SSD') -or ([string]$_.BusType -eq 'NVMe') }) } catch { }
+        $vistosSsd = @()
+        foreach ($dsk in $discosSsd) {
+            $mod = ([string]$dsk.FriendlyName).Trim()
+            foreach ($sx in $ssdProgs) {
+                if ($mod -notmatch $sx.Rx) { continue }
+                if ($vistosSsd -contains $sx.Que) { break }
+                $vistosSsd += $sx.Que
+                if ((-not $prueba) -and ($progs -match ('(?i)' + $sx.Prog))) { Log 'OK' ($sx.Que + ' ya esta instalado (' + $mod + ')'); break }
+                Reco $sx.Que ('para tu ' + $mod + ': actualiza el firmware del disco (arregla fallas) y te muestra su salud') @() ('https://duckduckgo.com/?q=' + [uri]::EscapeDataString('!ducky ' + $sx.Que + ' download'))
+                Corto 'disco' $sx.Que ('Firmware y salud de tu ' + $mod)
+                break
+            }
+        }
+
         # 5) BIOS de la placa madre: si tiene mas de un ano, conviene buscar la version recomendada
         $bb = Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue
         $bios = Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue
@@ -36325,7 +36461,8 @@ switch ($env:ACT) {
         if ($bb) {
             $rgb = $(switch -Regex ([string]$bb.Manufacturer) { 'ASUS' { 'Armoury Crate (Aura Sync)' } 'Micro-Star|MSI' { 'MSI Center (Mystic Light)' } 'Gigabyte' { 'RGB Fusion' } 'ASRock' { 'Polychrome Sync' } default { '' } })
             $rgbHay = ($progs -match '(?i)Armoury|Aura|MSI Center|Mystic Light|Control Center|RGB Fusion|Polychrome|OpenRGB|SignalRGB')
-            if ($rgb -and ($prueba -or (-not $rgbHay))) { Reco ('Opcional: ' + $rgb) 'solo si tu placa tiene luces y queres cambiarles el color o apagarlas; esta en la pagina de tu placa, en Utilidades. Si no te importan las luces, no lo instales (corre en segundo plano)' @() ''; Corto 'rgb' ('Luces RGB (opcional)') ($rgb + ': solo si te importan las luces. Esta en Utilidades de la pagina de tu placa madre') }
+            $rgbLink = $(switch -Regex ([string]$bb.Manufacturer) { 'ASUS' { 'https://rog.asus.com/armoury-crate/' } 'Micro-Star|MSI' { 'https://www.msi.com/Landing/MSI-Center' } 'Gigabyte' { 'https://www.gigabyte.com/microsite/512/rgb2.html' } default { $biosLink } })
+            if ($rgb -and ($prueba -or (-not $rgbHay))) { Reco ('Opcional: ' + $rgb) ('solo si tu placa tiene luces y queres cambiarles el color o apagarlas: ' + $rgbLink + ' . Si no te importan las luces, no lo instales (corre en segundo plano)') @() $rgbLink; Corto 'rgb' ('Luces RGB (opcional)') ($rgb + ': solo si te importan las luces'); Sin-Abrir }
         }
 
         # El link de la placa madre se arma con la marca y el modelo
@@ -36352,9 +36489,10 @@ switch ($env:ACT) {
             if ($wuDrv.Count -gt 0) { Write-Host ('XDRV|wu|Windows Update|' + $wuDrv.Count + ' drivers para lo que no anda: instalalos en Actualizaciones opcionales') }
             foreach ($r in $reco) {
                 Write-Host ('XDRV|' + $r.Tipo + '|' + ($r.Titulo -replace '\|', '/') + '|' + ($r.Corto -replace '\|', '/'))
+                if ([string]$r.Link -match '^https://') { Write-Host ('XDRVLINK|' + $r.Link) }
                 foreach ($x in @($r.Sub)) { if ($x) { Write-Host ('XDRVSUB|' + ($x -replace '\|', '/')) } }
             }
-            if ($biosVieja) { Write-Host ('XDRV|bios|BIOS de tu placa|' + $(if ($meses -ge 0) { 'Tiene ' + $meses + ' meses: ' } else { '' }) + 'busca la version nueva en la pagina de tu placa') }
+            if ($biosVieja) { Write-Host ('XDRV|bios|BIOS de tu placa|' + $(if ($meses -ge 0) { 'Tiene ' + $meses + ' meses: ' } else { '' }) + 'busca la version nueva en la pagina de tu placa'); if ([string]$biosLink -match '^https://') { Write-Host ('XDRVLINK|' + $biosLink) } }
         }
 
         # Drivers de Windows Update para lo que no anda

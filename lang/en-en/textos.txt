@@ -416,6 +416,7 @@ La cache quedo limpia.	The cache is clean.
 Liberaste 	You freed 
 Estas opciones te piden datos o confirmaciones. Al tocar un boton se abre la ventana negra del script: responde ahi.	These options ask you for information or confirmations. When you press a button the black script window opens: answer there.
 Actualizar a 26H2	Update to 26H2
+Ya tenes la 26H2	You already have 26H2
 Actualizar a 25H2	Update to 25H2
 Actualizar Windows 11	Update Windows 11
 si tenes 24H2 o 25H2, pide la 26H2 por Windows Update; si tenes una version mas vieja, instala la 25H2 desde el ISO oficial aunque tu PC no cumpla los requisitos.	if you have 24H2 or 25H2, it requests 26H2 through Windows Update; if you have an older version, it installs 25H2 from the official ISO even if your PC doesn't meet the requirements.
@@ -677,7 +678,7 @@ Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), inst
 Drivers recomendados	Recommended drivers
 Buscar drivers	Find drivers
 Revision de drivers terminada	Driver check finished
-revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD y el programa de tu mouse, teclado o auriculares de marca, y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.	checks your PC and recommends only the drivers that add something: what has no driver (sound, network, Bluetooth...), the graphics card, the AMD chipset and the software for your brand mouse, keyboard or headset, and opens the official page for each one. It also tells you if your motherboard BIOS is old.
+revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD, el programa de tu mouse, teclado o auriculares de marca, de tu SSD y de otros aparatos (impresora, tableta grafica, volante, microfono, Stream Deck, capturadora, webcam, joystick, antena USB), y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.	checks your PC and recommends only the drivers that add something: what has no driver (sound, network, Bluetooth...), the graphics card, the AMD chipset, the software for your brand mouse, keyboard or headset, your SSD and other devices (printer, drawing tablet, racing wheel, microphone, Stream Deck, capture card, webcam, controller, USB adapter), and opens the official page for each one. It also tells you if your motherboard BIOS is old.
 tenes lo que hace falta, en su ultima version, y nada de programas de mas.	you get what you need, in its latest version, and no extra software.
 la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.	the BIOS doesn't update by itself: you do it by hand from your motherboard's page.
 Necesita drivers: 	Needs drivers: 
@@ -882,3 +883,35 @@ Si tu internet es de mas de 1 Gbps vas a tener menos velocidad. Con 1 Gbps o men
 Necesita el driver de red de la pagina de tu placa madre (Realtek, Intel o Killer). El driver nuevo ademas arregla muchos de estos cortes por si solo.	Needs the network driver from your motherboard's page (Realtek, Intel or Killer). The new driver also fixes many of these drops on its own.
 No hace falta: tu PC no tiene placa de cable.	Not needed: your PC doesn't have a wired network card.
 No hace falta: tu placa de cable es de 1 Gbps o menos.	Not needed: your wired card is 1 Gbps or slower.
+Red Realtek	Realtek network
+Usa el driver generico de Windows: bajalo directo de Realtek	It uses the generic Windows driver: get it straight from Realtek
+En la parte Windows: Win10/Win11 Auto Installation Program	In the Windows section: Win10/Win11 Auto Installation Program
+Descomprimilo y abri setup.exe	Unzip it and open setup.exe
+Su driver: presion del lapiz y botones	Its driver: pen pressure and buttons
+Usa el driver generico: el de la marca suma escaner y tinta	It uses the generic driver: the brand one adds scanning and ink levels
+Toca para abrir su pagina	Tap to open its page
+Antena WiFi USB	USB WiFi adapter
+Usa el driver generico: el de la marca anda mas estable	It uses the generic driver: the brand one is more stable
+Antena Bluetooth USB	USB Bluetooth adapter
+Usa el driver generico: el de la marca conecta mejor	It uses the generic driver: the brand one connects better
+Su driver: force feedback y botones	Its driver: force feedback and buttons
+Su driver: force feedback y firmware	Its driver: force feedback and firmware
+Su programa: force feedback y firmware	Its software: force feedback and firmware
+Driver ASIO y control de la placa	ASIO driver and interface control
+Ganancia, procesado y firmware	Gain, processing and firmware
+Ganancia, ecualizador y firmware	Gain, equalizer and firmware
+Driver ASIO: menos latencia	ASIO driver: lower latency
+Driver ASIO y panel de control	ASIO driver and control panel
+Su programa: para configurar los botones	Its software: to set up the buttons
+Microfono y mezcla de sonido	Microphone and audio mixing
+Imagen y firmware de la camara	Camera image and firmware
+Grabar y actualizar el firmware	Record and update the firmware
+Su programa y driver	Its software and driver
+Imagen y firmware de la webcam	Webcam image and firmware
+Firmware y botones	Firmware and buttons
+Luces RGB (opcional)	RGB lighting (optional)
+Tenes una sola cuenta	You only have one account
+Ya entras sin contrasena	You already sign in without a password
+Su driver y programa	Its driver and software
+Su driver y firmware	Its driver and firmware
+El driver de tu modelo	The driver for your model

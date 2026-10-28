@@ -2277,7 +2277,7 @@ $spH.Children.Add($cardVer) | Out-Null
 $bDrv = Nuevo-Boton 'Buscar drivers' '#3D6FD9'; $bDrv.Tag = 'drv=S'
 $bDrv.Add_Click({ $this.Effect = $null })
 $script:BtnDrv = $bDrv
-$spH.Children.Add(($script:CardDrv = Nueva-Herramienta 'Drivers recomendados' 'revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD y el programa de tu mouse, teclado o auriculares de marca, y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.' 'tenes lo que hace falta, en su ultima version, y nada de programas de mas.' 'la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.' @($bDrv))) | Out-Null
+$spH.Children.Add(($script:CardDrv = Nueva-Herramienta 'Drivers recomendados' 'revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD, el programa de tu mouse, teclado o auriculares de marca, de tu SSD y de otros aparatos (impresora, tableta grafica, volante, microfono, Stream Deck, capturadora, webcam, joystick, antena USB), y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.' 'tenes lo que hace falta, en su ultima version, y nada de programas de mas.' 'la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.' @($bDrv))) | Out-Null
 
 $bAcc = Nuevo-Boton 'Elegir cuenta para borrar' '#B3412F'; $bAcc.Tag = 'ms_acc=S'
 $spH.Children.Add((Nueva-Herramienta 'Borrar una cuenta de esta PC' 'te muestra las otras cuentas de la PC (usuarios de Windows y cuentas de Microsoft vinculadas) y borras la que elijas. Tu cuenta actual no aparece.' 'limpia cuentas viejas que ya no usas.' 'si tambien borras su carpeta, se pierden sus archivos.' @($bAcc))) | Out-Null
@@ -2722,8 +2722,12 @@ $cfgTimer.Add_Tick({
 function Actualizar-Version {
     $bld = 0
     try { $bld = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'CurrentBuildNumber') } catch { }
-    if ($bld -ge 26300) {
-        $script:BtnVer.Content = (Con-Enie 'Actualizar a 26H2'); $script:BtnVer.IsEnabled = $false
+    # DisplayVersion dice la version tal cual (ej. 26H2); se usa ademas de la build por si la 26H2 no cambia de build
+    $dv = 0
+    $mv = [regex]::Match([string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'DisplayVersion'), '^(\d\d)H([12])$')
+    if ($mv.Success) { $dv = [int]$mv.Groups[1].Value * 10 + [int]$mv.Groups[2].Value }
+    if (($bld -ge 26300) -or ($dv -ge 262)) {
+        $script:BtnVer.Content = (Con-Enie 'Ya tenes la 26H2'); $script:BtnVer.IsEnabled = $false
         $script:VerTexto.Text = (Con-Enie ('Ya tenes la 26H2 o una build mas nueva (build ' + $bld + ').'))
     } elseif ($bld -ge 26100) {
         $script:BtnVer.Content = (Con-Enie 'Actualizar a 26H2'); $script:BtnVer.IsEnabled = $true
@@ -2732,6 +2736,44 @@ function Actualizar-Version {
         $script:BtnVer.Content = (Con-Enie 'Actualizar a 25H2'); $script:BtnVer.IsEnabled = $true
         $script:VerTexto.Text = (Con-Enie ('Tu build es ' + $bld + ': primero pasas a la 25H2 desde el ISO oficial; despues la 26H2 te llega por Windows Update.'))
     }
+}
+
+
+Actualizar-Version
+
+
+# Herramientas: "Borrar una cuenta" sin otra cuenta para borrar, o "Quitar la contrasena" si ya entras sin contrasena, no tienen sentido
+function Clave-Vacia([string]$u) {
+    # Igual que Test-Blank del debloat: LogonUser con contrasena vacia (1327 = vacia pero la politica no deja usarla)
+    if (-not ('XucaWin.Lg' -as [type])) {
+        try { Add-Type -Namespace XucaWin -Name Lg -MemberDefinition '[DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)] public static extern bool LogonUser(string u, string d, string p, int t, int pr, out IntPtr tok); [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);' } catch { return $false }
+    }
+    $tok = [IntPtr]::Zero
+    if ([XucaWin.Lg]::LogonUser($u, '.', '', 2, 0, [ref]$tok)) { [void][XucaWin.Lg]::CloseHandle($tok); return $true }
+    return ([Runtime.InteropServices.Marshal]::GetLastWin32Error() -eq 1327)
+}
+function Actualizar-Cuentas([bool]$denuevo = $false) {
+    $cuentas = 2; $vinc = 0; $esMs = $false; $yo = $null
+    try {
+        # Las cuentas internas de Windows (Administrador, Invitado, DefaultAccount, WDAGUtilityAccount) no cuentan
+        $lus = @(Get-LocalUser -ErrorAction Stop)
+        $cuentas = @($lus | Where-Object { $_.Enabled -and ([string]$_.SID -notmatch '-(500|501|503|504)$') }).Count
+        $yo = @($lus | Where-Object { $_.Name -eq $env:USERNAME })[0]
+        $esMs = ($yo -and ([string]$yo.PrincipalSource -eq 'MicrosoftAccount'))
+    } catch { }
+    # Cuentas de Microsoft vinculadas (sin contar la tuya, si entras con una): esas tambien se pueden borrar
+    $vinc = @(Get-ChildItem 'HKCU:\Software\Microsoft\IdentityCRL\StoredIdentities' -ErrorAction SilentlyContinue).Count - $(if ($esMs) { 1 } else { 0 })
+    $sola = ($cuentas -le 1) -and ($vinc -le 0)
+    $bAcc.IsEnabled = (-not $sola)
+    $bAcc.Content = (Con-Enie $(if ($sola) { 'Tenes una sola cuenta' } else { 'Elegir cuenta para borrar' }))
+    # La contrasena se prueba una vez por sesion (y despues de usar una herramienta): cada intento fallido cuenta para el bloqueo de Windows
+    if ($denuevo -or ($null -eq $script:SinClave)) {
+        $script:SinClave = $false
+        if ($yo -and ([string]$yo.PrincipalSource -eq 'Local')) { $script:SinClave = Clave-Vacia $env:USERNAME }
+    }
+    # Un solo boton segun como estes: con contrasena, para quitarla; sin contrasena, para volver a ponerla
+    $bSin.Visibility = $(if ($script:SinClave) { 'Collapsed' } else { 'Visible' })
+    $bCon.Visibility = $(if ($script:SinClave) { 'Visible' } else { 'Collapsed' })
 }
 
 
@@ -3035,6 +3077,7 @@ $NavColores = @{ Apps = @('#182008', '#263512', '#BEF264', '#E3FBB0'); Adicional
 if ($script:Claro) { $NavColores = @{ Apps = @('#F1FAE0', '#DCF0BC', '#4D7C0F', '#365314'); Adicional = @('#FDF2E4', '#FAE2C4', '#C2410C', '#9A3412') } }
 function Ir-A([string]$p) {
     if ($script:Buscando -or $ui.Buscar.Text) { Terminar-Busqueda }
+    if ($p -eq 'Herr') { try { Actualizar-Cuentas } catch { } }
     $ui.BuscarCaja.Visibility = $(if ($p -in $PagBusca) { 'Visible' } else { 'Collapsed' })
     $script:Pagina = $p
     foreach ($k in $Nav.Keys) {
@@ -3946,6 +3989,7 @@ function Fin-Tarea {
             foreach ($l in ($txt -split "`r?`n")) {
                 if ($l -match '^XDRV\|([^|]*)\|([^|]*)\|(.*)$') { $items.Add(@{ Tipo = $Matches[1]; Titulo = $Matches[2].Trim(); Corto = $Matches[3].Trim(); Sub = (New-Object System.Collections.Generic.List[string]) }) }
                 elseif (($l -match '^XDRVSUB\|(.*)$') -and ($items.Count -gt 0)) { $items[$items.Count - 1].Sub.Add($Matches[1].Trim()) }
+                elseif (($l -match '^XDRVLINK\|(https://\S+)\s*$') -and ($items.Count -gt 0)) { $items[$items.Count - 1].Link = $Matches[1] }
             }
             $m = [regex]::Match($txt, 'Paginas abiertas:\s*(\d+)')
             $C.Drivers = @{ Items = $items; Paginas = $(if ($m.Success) { [int]$m.Groups[1].Value } else { 0 }) }
@@ -3972,7 +4016,7 @@ $timer.Add_Tick({
 # Cartel con el resultado de "Buscar drivers": una cajita de color con icono por cada cosa, separadas con espacio
 $CajaDrv = @{
     'placa'     = @('#3D6FD9', 0xE896); 'gpu-nv' = @('#76B900', 0xE7F4); 'gpu-amd' = @('#ED1C24', 0xE7F4); 'gpu-intel' = @('#0071C5', 0xE7F4)
-    'chipset'   = @('#F28B82', 0xE945); 'mouse' = @('#C58AF9', 0xE962); 'teclado' = @('#C58AF9', 0xE765); 'audio' = @('#8FD3F4', 0xE7F6)
+    'red' = @('#22D3EE', 0xE839); 'impresora' = @('#FDBA74', 0xE749); 'tableta' = @('#A5B4FC', 0xE70F); 'volante' = @('#F87171', 0xE7FC); 'joystick' = @('#F87171', 0xE7FC); 'camara' = @('#FBBF24', 0xE722); 'stream' = @('#FBBF24', 0xE8A1); 'disco' = @('#94A3B8', 0xEDA2); 'wifi' = @('#22D3EE', 0xE701); 'bt' = @('#8AB4F8', 0xE702); 'chipset'   = @('#F28B82', 0xE945); 'mouse' = @('#C58AF9', 0xE962); 'teclado' = @('#C58AF9', 0xE765); 'audio' = @('#8FD3F4', 0xE7F6)
     'perif'     = @('#C58AF9', 0xE7FC); 'rgb' = @('#F9A8D4', 0xE790); 'bios' = @('#E5B567', 0xE7BA); 'wu' = @('#8AB4F8', 0xE895); 'ok' = @('#81C995', 0xE73E)
 }
 function Resultado-Drivers($r) {
@@ -4014,6 +4058,16 @@ function Resultado-Drivers($r) {
             }
             $tx.Children.Add($wp) | Out-Null
         }
+        # Si tiene pagina, tocar la cajita la abre (asi tambien se abre lo opcional o lo viejo, que no se abre solo)
+        if ($it.Link) {
+            $ab = Nuevo-Texto 'Toca para abrir su pagina' 11.5 $def[0] $false
+            $ab.Margin = '0,6,0,0'
+            $tx.Children.Add($ab) | Out-Null
+            $caja.Cursor = [Windows.Input.Cursors]::Hand
+            $caja.Tag = $it.Link
+            # MouseLeftButtonDown: el borde del cartel tiene DragMove y se come el ButtonUp
+            $caja.Add_MouseLeftButtonDown({ param($sd, $e) $e.Handled = $true; Abrir-Normal ([string]$sd.Tag) })
+        }
         $dp.Children.Add($tx) | Out-Null
         $caja.Child = $dp
         $lista.Children.Add($caja) | Out-Null
@@ -4036,6 +4090,7 @@ function Resultado-Drivers($r) {
 
 function Terminar-Corrida {
     $timer.Stop()
+    if ($script:Pagina -eq 'Herr') { try { Actualizar-Cuentas $true } catch { } } else { $script:SinClave = $null }
     Limpiar-Variables
     # Si solo se actualizo la lista de juegos, no se tocan las casillas que tengas marcadas
     if ((-not $script:Corrida) -or ($script:Corrida.Tipo -ne 'lista')) {
@@ -4118,6 +4173,9 @@ function Preguntar-Punto($selD) {
     if ($script:PuntoHecho) { return $false }
     if (([string](Leer-Config)['punto']) -eq '0') { return $false }
     if ((@($selD) -contains 'rpo') -or ($script:Estados['Debloat|rpo'] -eq $true)) { return $false }
+    # Se mira el registro directo: si todavia no se leyo Windows (por ejemplo desde Herramientas), Estados esta vacio
+    if ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore' 'DisableSR') -eq 1) { return $false }
+    if ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore' 'RPSessionInterval') -eq 0) { return $false }
     $w = Nuevo-Dialogo 480
     $sp = New-Object Windows.Controls.StackPanel
     $sp.Children.Add((Nuevo-Texto 'Crear un punto de restauracion antes de continuar?' 17 '#FFFFFF' $true)) | Out-Null
