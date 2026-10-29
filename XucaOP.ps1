@@ -37,9 +37,11 @@ $Root = Split-Path -Parent $AppPath
 $Redes = 'https://linktr.ee/011xuca'
 $Scripts = Join-Path $Root 'scripts'
 $Rutas = [ordered]@{
-    Debloat  = Join-Path $Scripts 'windows_debloat.bat'
-    Gaming   = Join-Path $Scripts 'optimizacion_gaming.bat'
-    Limpieza = Join-Path $Scripts 'limpiar_cache.bat'
+    Debloat  = Join-Path $Scripts 'Debloat.ps1'
+    Gaming   = Join-Path $Scripts 'Gaming.ps1'
+    Limpieza = Join-Path $Scripts 'Limpieza.ps1'
+    # Lo que comparten las partes que ya estan en PowerShell (registro, servicios, logs, Vanguard...)
+    Comun    = Join-Path $Scripts 'Comun.ps1'
 }
 # Archivos que se bajan al actualizar (Remoto = donde esta cada uno dentro del repo). El version.txt se baja ultimo.
 # Si agregas un archivo nuevo al repo que la app necesita, sumalo a esta lista para que les llegue a todos.
@@ -50,11 +52,15 @@ $ArchivosUpd = @(
     [pscustomobject]@{ Nombre = 'XucaOP.ps1'; Local = $AppPath; Remoto = 'XucaOP.ps1' },
     [pscustomobject]@{ Nombre = 'XucaOP.bat'; Local = (Join-Path $Root 'XucaOP.bat'); Remoto = 'XucaOP.bat' },
     [pscustomobject]@{ Nombre = 'XucaOP.ico'; Local = (Join-Path $Root 'XucaOP.ico'); Remoto = 'XucaOP.ico'; Opc = $true },
+    [pscustomobject]@{ Nombre = 'CHANGELOG.md'; Local = (Join-Path $Root 'CHANGELOG.md'); Remoto = 'CHANGELOG.md'; Opc = $true },
     [pscustomobject]@{ Nombre = 'LEEME.txt'; Local = (Join-Path $Root 'LEEME.txt'); Remoto = 'LEEME.txt'; Opc = $true },
-    [pscustomobject]@{ Nombre = 'windows_debloat.bat'; Local = $Rutas.Debloat; Remoto = 'scripts/windows_debloat.bat' },
-    [pscustomobject]@{ Nombre = 'optimizacion_gaming.bat'; Local = $Rutas.Gaming; Remoto = 'scripts/optimizacion_gaming.bat' },
-    [pscustomobject]@{ Nombre = 'limpiar_cache.bat'; Local = $Rutas.Limpieza; Remoto = 'scripts/limpiar_cache.bat' },
+    [pscustomobject]@{ Nombre = 'Debloat.ps1'; Local = $Rutas.Debloat; Remoto = 'scripts/Debloat.ps1' },
+    [pscustomobject]@{ Nombre = 'Edge.txt'; Local = (Join-Path $Scripts 'Edge.txt'); Remoto = 'scripts/Edge.txt' },
+    [pscustomobject]@{ Nombre = 'Gaming.ps1'; Local = $Rutas.Gaming; Remoto = 'scripts/Gaming.ps1' },
+    [pscustomobject]@{ Nombre = 'Comun.ps1'; Local = $Rutas.Comun; Remoto = 'scripts/Comun.ps1' },
+    [pscustomobject]@{ Nombre = 'Limpieza.ps1'; Local = $Rutas.Limpieza; Remoto = 'scripts/Limpieza.ps1' },
     [pscustomobject]@{ Nombre = 'lang/en-en/textos.txt'; Local = (Join-Path $Root 'lang\en-en\textos.txt'); Remoto = 'lang/en-en/textos.txt'; Opc = $true },
+    [pscustomobject]@{ Nombre = 'lang/en-en/opciones.txt'; Local = (Join-Path $Root 'lang\en-en\opciones.txt'); Remoto = 'lang/en-en/opciones.txt'; Opc = $true },
     [pscustomobject]@{ Nombre = 'lang/es-mx/textos.txt'; Local = (Join-Path $Root 'lang\es-mx\textos.txt'); Remoto = 'lang/es-mx/textos.txt'; Opc = $true }
 )
 
@@ -142,8 +148,10 @@ function Tema-Texto([string]$x) {
 }
 
 # ------------------------------------------------------------
-# Idioma (por defecto ingles). Cada idioma tiene su carpeta en lang\<idioma>\textos.txt
-# (cada linea: texto en espanol tal cual esta en la app o en los .bat, TAB, texto a mostrar).
+# Idioma (por defecto ingles). Cada idioma tiene su carpeta en lang\<idioma>:
+#   opciones.txt: las opciones de Debloat, Gaming y Limpieza por su Id (bloques "[Gaming ms]" con Titulo/Hace/Favor/Contra).
+#                 Si cambias el texto en espanol de una opcion, la traduccion sigue andando.
+#   textos.txt:   el resto de los textos de la app, en pares "es: texto en espanol tal cual esta en la app" / "en: texto a mostrar".
 # El espanol viene adentro de la app: lang\es-mx\textos.txt sirve para corregir textos sin tocar el codigo.
 # Si falta el archivo de ingles, la app se muestra en espanol.
 # ------------------------------------------------------------
@@ -153,16 +161,36 @@ if ($script:Idioma -notmatch '^[a-z]{2}-[a-z]{2}$') { $script:Idioma = 'en-en' }
 $script:Trad = $null
 $script:TradRx = $null
 $script:TradCache = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([StringComparer]::Ordinal)
+$script:TradOpc = @{}       # 'Gaming|ms' -> @{ Titulo; Hace; Favor; Contra } (de opciones.txt)
+$script:TradPorTexto = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([StringComparer]::Ordinal)   # texto en espanol de una opcion -> su traduccion
 function Cargar-Idioma([string]$id) {
-    $script:Trad = $null; $script:TradRx = $null; $script:TradCache.Clear()
+    $script:Trad = $null; $script:TradRx = $null; $script:TradCache.Clear(); $script:TradOpc = @{}; $script:TradPorTexto.Clear()
+    $fo = Join-Path (Join-Path $LangDir $id) 'opciones.txt'
+    if (Test-Path -LiteralPath $fo) {
+        $cur = $null
+        foreach ($l in [IO.File]::ReadAllLines($fo, [Text.Encoding]::UTF8)) {
+            if ((-not $l.Trim()) -or $l.StartsWith('#')) { continue }
+            if ($l -match '^\[(\w+)\s+(\w+)\]\s*$') { $cur = @{}; $script:TradOpc[$Matches[1] + '|' + $Matches[2]] = $cur }
+            elseif ($cur -and ($l -match '^(Titulo|Hace|Favor|Contra):\s*(.*?)\s*$')) { $cur[$Matches[1]] = $Matches[2] }
+        }
+    }
     $f = Join-Path (Join-Path $LangDir $id) 'textos.txt'
     if (-not (Test-Path -LiteralPath $f)) { return ($id -eq 'es-mx') }
     $d = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([StringComparer]::Ordinal)
+    # Pares "es: texto" / "en: traduccion" (entre comillas si empieza o termina con espacios)
+    $es = $null
     foreach ($l in [IO.File]::ReadAllLines($f, [Text.Encoding]::UTF8)) {
         if ((-not $l) -or $l.StartsWith('#')) { continue }
+        if ($l -match '^(es|en):\s?(.*)$') {
+            $v = $Matches[2].TrimEnd()
+            if (($v.Length -ge 2) -and $v.StartsWith('"') -and $v.EndsWith('"')) { $v = $v.Substring(1, $v.Length - 2) }
+            if ($Matches[1] -eq 'es') { $es = $v }
+            elseif ($es) { $d[$es] = $v; $es = $null }
+            continue
+        }
+        # Formato viejo: espanol TAB traduccion
         $i = $l.IndexOf([char]9)
-        if ($i -lt 1) { continue }
-        $d[$l.Substring(0, $i)] = $l.Substring($i + 1)
+        if ($i -gt 0) { $d[$l.Substring(0, $i)] = $l.Substring($i + 1) }
     }
     if ($d.Count -eq 0) { return ($id -eq 'es-mx') }
     $script:Trad = $d
@@ -179,6 +207,7 @@ function Cargar-Idioma([string]$id) {
 function Traducir([string]$t) {
     if ((-not $t) -or (-not $script:Trad)) { return $t }
     $v = $null
+    if ($script:TradPorTexto.TryGetValue($t, [ref]$v)) { return $v }
     if ($script:Trad.TryGetValue($t, [ref]$v)) { return $v }
     if ($script:TradCache.TryGetValue($t, [ref]$v)) { return $v }
     $r = $t
@@ -187,6 +216,12 @@ function Traducir([string]$t) {
     return $r
 }
 if (-not (Cargar-Idioma $script:Idioma)) { $script:Idioma = 'es-mx'; Cargar-Idioma 'es-mx' | Out-Null }
+# Una opcion ($it con Id, Titulo, Hace, Favor y Contra en espanol) toma su traduccion de opciones.txt por el Id
+function Traducir-Opcion([string]$pag, $it) {
+    $o = $script:TradOpc[$pag + '|' + $it.Id]
+    if (-not $o) { return }
+    foreach ($c in 'Titulo', 'Hace', 'Favor', 'Contra') { if ($o[$c] -and $it.$c) { $script:TradPorTexto[[string]$it.$c] = $o[$c] } }
+}
 
 # Los .bat y este archivo van sin acentos (para que cmd y PowerShell no los rompan segun la PC);
 # al mostrar el texto en la app se ponen las palabras con enie. La enie se arma con [char] para que el archivo siga en ASCII.
@@ -213,11 +248,45 @@ function Con-Enie([string]$t) {
     return $t
 }
 
+# Si falta algun archivo de la lista (por ejemplo, venis de una version que todavia usaba los .bat), se baja ahora de GitHub.
+# Los .ps1 se revisan antes de guardarlos.
+function Bajar-Faltantes {
+    $falta = @($ArchivosUpd | Where-Object { (-not $_.Opc) -and (-not (Test-Path -LiteralPath $_.Local)) })
+    if ($falta.Count -eq 0) { return }
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
+    $latinB = [Text.Encoding]::GetEncoding(28591)
+    foreach ($a in $falta) {
+        try {
+            $rq = [Net.HttpWebRequest]::Create('https://raw.githubusercontent.com/' + $XucaRepo + '/' + $XucaRama + '/' + $a.Remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
+            $rq.Timeout = 15000; $rq.ReadWriteTimeout = 15000; $rq.UserAgent = 'XucaOP'
+            $rs = $rq.GetResponse()
+            try {
+                $ms = New-Object IO.MemoryStream
+                $rs.GetResponseStream().CopyTo($ms)
+                if (($rs.ContentLength -gt 0) -and ($ms.Length -ne $rs.ContentLength)) { continue }
+                $txt = $latinB.GetString($ms.ToArray())
+            } finally { $rs.Close() }
+            if ($txt.Length -lt 100) { continue }
+            if ($a.Remoto -match '(?i)\.ps1$') {
+                $errPs = $null
+                [void][Management.Automation.Language.Parser]::ParseInput($txt, [ref]$null, [ref]$errPs)
+                if (@($errPs).Count -gt 0) { continue }
+            }
+            $dd = Split-Path -Parent $a.Local
+            if (-not (Test-Path -LiteralPath $dd)) { New-Item -ItemType Directory -Path $dd -Force | Out-Null }
+            [IO.File]::WriteAllText($a.Local, ($txt -replace '\r?\n', "`r`n"), $latinB)
+        } catch { }
+    }
+}
+Bajar-Faltantes
+
 $faltan = @($Rutas.Values | Where-Object { -not (Test-Path -LiteralPath $_) })
 if ($faltan.Count -gt 0) {
-    Mostrar-Error ("Faltan estos archivos:`n`n" + ($faltan -join "`n") + "`n`nLos tres .bat van en la carpeta 'scripts', al lado de XucaOP.ps1.")
+    Mostrar-Error ("Faltan estos archivos:`n`n" + ($faltan -join "`n") + "`n`nVan en la carpeta 'scripts', al lado de XucaOP.ps1. Si no tenes internet, bajalos de GitHub o reinstala la app.")
     exit
 }
+# Los .bat viejos ya no se usan (ahora son Gaming.ps1, Debloat.ps1 y Limpieza.ps1): si quedaron de una version anterior, se borran.
+foreach ($viejo in 'optimizacion_gaming.bat', 'windows_debloat.bat', 'limpiar_cache.bat') { Remove-Item -LiteralPath (Join-Path $Scripts $viejo) -Force -ErrorAction SilentlyContinue }
 
 # Los .bat necesitan saltos de linea de Windows (CRLF). Si vienen con los de Linux (LF),
 # cmd salta a etiquetas equivocadas: preguntas repetidas, "Fin" varias veces y PowerShell sin datos.
@@ -246,36 +315,28 @@ function Sin-R([string]$t) {
 }
 
 # ------------------------------------------------------------
-# Leer las opciones de un .bat
+# Leer las opciones de Debloat.ps1 y Gaming.ps1 (vienen en $ListaOpciones). El archivo se carga en un bloque aparte
+# (sus funciones no quedan en la app) y solo define cosas: no cambia nada en la PC.
 # ------------------------------------------------------------
-function Leer-Opciones([string]$ruta) {
+function Leer-Opciones([string]$ruta, [string]$pag) {
     $items = New-Object System.Collections.Generic.List[object]
-    $sec = 'General'
-    $h = ''; $a = ''; $c = ''; $qid = $null
-    $lineas = [IO.File]::ReadAllLines($ruta)
-    for ($i = 0; $i -lt $lineas.Count; $i++) {
-        $l = $lineas[$i]
-        if ($l.StartsWith('::')) { continue }
-        if ($l -match '^echo %C_TIT%=== (.+) ===%C_RST%$') { $sec = $Matches[1]; continue }
-        if ($l -match '^echo   Que hace: (.*)$') { $h = ($Matches[1] -replace '\^', ''); continue }
-        if ($l -match '^echo   A favor: (.*)$') { $a = ($Matches[1] -replace '\^', ''); continue }
-        if ($l -match '^echo   En contra: (.*)$') { $c = ($Matches[1] -replace '\^', ''); continue }
-        if ($l -match '^set "QID=(\w+)"$') { $qid = $Matches[1]; continue }
-        if ($l -match '^set "Q=(- Desea .+)"$') {
-            $q = $Matches[1]
-            $conR = ($i + 1 -lt $lineas.Count) -and ($lineas[$i + 1] -match 'call :askR')
-            if ($qid -and ($SoloScript -notcontains $qid)) {
-                $items.Add([pscustomobject]@{ Id = $qid; Titulo = (Titulo-Corto $q); Hace = (Sin-R $h); Favor = (Sin-R $a); Contra = (Sin-R $c); ConR = $conR; Seccion = $sec })
-            }
-            $h = ''; $a = ''; $c = ''; $qid = $null
-        }
+    $txt = [IO.File]::ReadAllText($ruta)
+    $errPs = $null
+    [void][Management.Automation.Language.Parser]::ParseInput($txt, [ref]$null, [ref]$errPs)
+    if (@($errPs).Count -gt 0) { throw ((Split-Path -Leaf $ruta) + ' tiene un error en la linea ' + $errPs[0].Extent.StartLineNumber + ': ' + $errPs[0].Message) }
+    $lista = & { . ([scriptblock]::Create($args[0])); $ListaOpciones } $txt
+    foreach ($o in @($lista)) {
+        if ((-not $o) -or ($SoloScript -contains $o.Id)) { continue }
+        $it = [pscustomobject]@{ Id = $o.Id; Titulo = (Titulo-Corto $o.Q); Hace = (Sin-R $o.Hace); Favor = (Sin-R $o.Favor); Contra = (Sin-R $o.Contra); ConR = [bool]$o.R; Seccion = $o.Seccion }
+        Traducir-Opcion $pag $it
+        $items.Add($it)
     }
     return , $items
 }
 
 $Opciones = @{
-    Debloat = Leer-Opciones $Rutas.Debloat
-    Gaming  = Leer-Opciones $Rutas.Gaming
+    Debloat = Leer-Opciones $Rutas.Debloat 'Debloat'
+    Gaming  = Leer-Opciones $Rutas.Gaming 'Gaming'
 }
 
 # ------------------------------------------------------------
@@ -334,17 +395,23 @@ function Leer-Dup {
 # Total = todo lo que la opcion borra o apaga; Hechas = lo que ya no esta (o esta apagado), sea por el script o porque nunca vino.
 function Apps-Conteo {
     if (-not $AppsBasura) { return $null }
-    $quedan = 0
-    foreach ($n in $AppsBasura) { if (@($global:XAppx | Where-Object { ($_ -like $n) -and ($global:XAppxFijas -notcontains $_) }).Count -gt 0) { $quedan++ } }
+    $quedan = 0; $nom = @()
+    foreach ($n in $AppsBasura) { if (@($global:XAppx | Where-Object { ($_ -like $n) -and ($global:XAppxFijas -notcontains $_) }).Count -gt 0) { $quedan++; $nom += ($n -replace '^\*|\*$', '' -replace '^Microsoft\.', '') } }
     $od = @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'))
-    if (@($od | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0) { $quedan++ }
+    if (@($od | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0) { $quedan++; $nom += 'OneDrive' }
     $total = @($AppsBasura).Count + 1
-    return @{ Hechas = ($total - $quedan); Total = $total; Que = 'borradas'; Quedan = $quedan }
+    return @{ Hechas = ($total - $quedan); Total = $total; Que = 'borradas'; Quedan = $quedan; Nombres = $nom }
 }
 # Programitas de Gaming (tarea + .exe en ProgramData\XucaScripts): $false si no esta, $true si es el de esta version,
 # 'vieja' si lo instalo una version anterior del script (la app lo muestra como "Desactualizada").
+# Si existe una tarea en la raiz del Programador de tareas. Por COM: Get-ScheduledTask tarda mas de 1 s la primera vez (carga su modulo).
+function Hay-Tarea([string]$tn) {
+    $s = $null
+    try { $s = New-Object -ComObject Schedule.Service; $s.Connect() } catch { return [bool](Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) }
+    try { [void]$s.GetFolder('\').GetTask($tn); return $true } catch { return $false }
+}
 function Prog-Estado([string]$tarea, [string]$exe, [string]$cod) {
-    if (-not (Get-ScheduledTask -TaskName $tarea -ErrorAction SilentlyContinue)) { return $false }
+    if (-not (Hay-Tarea $tarea)) { return $false }
     if ((-not $cod) -or (-not (Get-Command Ver-Igual -ErrorAction SilentlyContinue))) { return $true }
     if (Ver-Igual (Join-Path $env:ProgramData ('XucaScripts\' + $exe)) $cod) { return $true }
     return 'vieja'
@@ -352,8 +419,8 @@ function Prog-Estado([string]$tarea, [string]$exe, [string]$cod) {
 function Inicio-Conteo {
     if (-not (Get-Command Inicio-Lista -ErrorAction SilentlyContinue)) { return $null }
     $basura = @(Inicio-Lista | Where-Object { -not $_.Dejar })
-    $quedan = @($basura | Where-Object { $_.Activo }).Count
-    return @{ Hechas = ($basura.Count - $quedan); Total = $basura.Count; Que = 'apagadas'; Quedan = $quedan }
+    $act = @($basura | Where-Object { $_.Activo })
+    return @{ Hechas = ($basura.Count - $act.Count); Total = $basura.Count; Que = 'apagadas'; Quedan = $act.Count; Nombres = @($act | ForEach-Object { [string]$_.Nombre } | Sort-Object -Unique) }
 }
 '@
 . ([scriptblock]::Create($FuncLectura))
@@ -618,6 +685,9 @@ $Previo = {
     $ErrorActionPreference = 'Stop'
     . ([scriptblock]::Create($Funcs))
     $global:XPlan = $Plan; $global:XAppx = @(); $global:XAppxFijas = @(); $global:XCpuClase = ''
+    # Cuanto tarda cada parte (queda en ProgramData\XucaScripts\tiempos_lectura.txt para ver que conviene acelerar)
+    $global:LapSw = [Diagnostics.Stopwatch]::StartNew()
+    function Lap([string]$n) { $Sync.Tiempos[$n] = $global:LapSw.ElapsedMilliseconds; $global:LapSw.Restart() }
     function Sumar { [Threading.Monitor]::Enter($Sync.Lock); try { $Sync.Hecho = $Sync.Hecho + 1 } finally { [Threading.Monitor]::Exit($Sync.Lock) } }
 }
 $Chequear = {
@@ -626,9 +696,11 @@ $Chequear = {
     foreach ($e in $Items) {
         $Sync.Paso = $e.Titulo
         $est = $null
+        $swC = [Diagnostics.Stopwatch]::StartNew()
         # Un contador (@{ Hechas; Total }) pasa tal cual; 'vieja' = la puso una version anterior del script; lo demas es si o no
         try { $r = & ([scriptblock]::Create($e.Codigo)); if ($null -ne $r) { $u = @($r)[-1]; if ($u -is [hashtable]) { $est = $u } elseif (($u -is [string]) -and ($u -eq 'vieja')) { $est = 'vieja' } else { $est = [bool]$u } } } catch { $est = $null }
         $out[$e.Clave] = $est
+        $Sync.Tiempos[$e.Clave] = $swC.ElapsedMilliseconds
         Sumar
     }
     $out
@@ -639,18 +711,21 @@ $Compat = {
         try { $i.Ubr = [int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'UBR') } catch { }
         $i.Display = [string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'DisplayVersion')
         $i.Edicion = [string](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'EditionID')
+        Lap 'Compat: version'
         try { $i.RamGB = [int][math]::Round((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1GB) } catch { }
-        try {
-            $dk = Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1) -ErrorAction Stop | Get-Disk -ErrorAction Stop | Get-PhysicalDisk -ErrorAction Stop
-            $i.Hdd = ([string]$dk.MediaType -eq 'HDD')
-        } catch { }
-        if ($i.Build -ge 26100) { try { $i.Recall = [bool](Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction Stop) } catch { } }
-        $i.BitLocker = [bool](Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)
-        $i.Winget = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+        Lap 'Compat: RAM'
+        # Disco HDD o SSD y Recall van en sus propios hilos (son lo mas lento de esta parte)
+        # BitLocker y winget: se mira si estan los archivos (Get-Command tardaba porque busca en todos los modulos)
+        $i.BitLocker = [IO.File]::Exists((Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\Modules\BitLocker\BitLocker.psd1'))
+        if (-not $i.BitLocker) { $i.BitLocker = [bool](Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue) }
+        $i.Winget = [IO.File]::Exists((Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'))
+        if (-not $i.Winget) { $i.Winget = [bool](Get-Command winget -ErrorAction SilentlyContinue) }
+        Lap 'Compat: BitLocker y winget'
         $i.Chrome = (@(@(($env:ProgramFiles + '\Google\Chrome\Application\chrome.exe'), (${env:ProgramFiles(x86)} + '\Google\Chrome\Application\chrome.exe'), ($env:LOCALAPPDATA + '\Google\Chrome\Application\chrome.exe')) | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0)
         # Notebook = tiene bateria
         $i.Bateria = $false
         try { $i.Bateria = (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) } catch { }
+        Lap 'Compat: bateria'
         # Placas de red fisicas: 9 = WiFi, 14 = cable (para "WiFi y cable a la vez")
         # Las placas apagadas en el Administrador de dispositivos no cuentan. WifiSinRed = la placa WiFi no ve ninguna red (sin antena, por ejemplo)
         $i.Wifi = 0; $i.Lan = 0; $i.WifiSinRed = $false
@@ -665,10 +740,16 @@ $Compat = {
                 if ($m.Success -and ([int]$m.Groups[1].Value -eq 0)) { $i.WifiSinRed = $true }
             }
         } catch { }
+        Lap 'Compat: placas de red'
         $i.DupPlacas = 0
         try { $i.DupPlacas = @(Leer-Dup).Count } catch { }
+        Lap 'Compat: Leer-Dup'
         $i.NicPlacas = 0; $i.NicOpc = 0
         try { $nn = Leer-Nic; $i.NicPlacas = [int]$nn.Placas; $i.NicOpc = @($nn.Vals).Count } catch { }
+        Lap 'Compat: Leer-Nic'
+        # Los chequeos de la placa de red usan esto mismo (asi no vuelven a cargar el modulo de red en otro hilo)
+        if ($global:XNicLeido) { $i.NicRaw = $global:XNic }
+        if ($global:XDupLeido) { $i.DupRaw = @($global:XDup) }
         # Opciones que necesitan un driver que no tenes instalado (la app te manda a instalarlo antes de aplicarlas)
         $i.DrvFalta = @{}
         try {
@@ -678,6 +759,7 @@ $Compat = {
                 $i.DrvFalta['Gaming|msi'] = 'tu placa de video usa el driver basico de Windows'
             }
         } catch { }
+        Lap 'Compat: driver de video'
         try {
             $fis2 = @(Get-NetAdapter -Physical -ErrorAction Stop)
             if (@($fis2 | Where-Object { ($_.NdisPhysicalMedium -eq 14) -and ([string]$_.Status -ne 'Disabled') -and ([string]$_.DriverProvider -eq 'Microsoft') }).Count -gt 0) {
@@ -689,6 +771,7 @@ $Compat = {
                 $i.DrvFalta['Gaming|wf'] = 'tu placa WiFi usa el driver generico de Windows'
             }
         } catch { }
+        Lap 'Compat: drivers de red'
         try {
             # Ryzen X3D de dos bloques: sin el driver de chipset de AMD falta el "3D V-Cache Performance Optimizer"
             $cpuN = [string](@(Get-CimInstance Win32_Processor -ErrorAction Stop)[0].Name)
@@ -698,10 +781,12 @@ $Compat = {
                 }
             }
         } catch { }
+        Lap 'Compat: procesador X3D'
         try {
             $sv = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
             $i.AvOff = (-not $sv) -or ($sv.Status -ne 'Running') -or ((Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled -eq $false)
         } catch { }
+        Lap 'Compat: Defender'
         # Windows original o modificado (la misma revision que hacen los .bat al arrancar)
         $mot = New-Object System.Collections.Generic.List[string]
         # Windows sin activar no cuenta como no original (es un Windows normal, solo falta la licencia)
@@ -715,13 +800,40 @@ $Compat = {
             if ($txtCv.Contains($pal)) { $mot.Add('el nombre de la edicion o el propietario registrado tiene palabras de versiones modificadas'); break }
         }
         $i.Orig = @($mot | Select-Object -Unique)
+        Lap 'Compat: Windows original'
     Sumar
     $i
+}
+# Disco del sistema: HDD o SSD. Por CIM directo (Get-Partition | Get-Disk | Get-PhysicalDisk cargaba el modulo de discos, ~1 s)
+$Disco = {
+    $r = @{ Hdd = $false }
+    try {
+        $ns = 'root\Microsoft\Windows\Storage'
+        $le = $env:SystemDrive.Substring(0, 1)
+        $pa = @(Get-CimInstance -Namespace $ns -ClassName MSFT_Partition -ErrorAction Stop | Where-Object { ([string]$_.DriveLetter) -eq $le })[0]
+        $pd = @(Get-CimInstance -Namespace $ns -ClassName MSFT_PhysicalDisk -ErrorAction Stop | Where-Object { ([string]$_.DeviceId) -eq ([string]$pa.DiskNumber) })[0]
+        if ($pd) { $r.Hdd = ([int]$pd.MediaType -eq 3) }
+        else {
+            $dk = Get-Partition -DriveLetter $le -ErrorAction Stop | Get-Disk -ErrorAction Stop | Get-PhysicalDisk -ErrorAction Stop
+            $r.Hdd = ([string]$dk.MediaType -eq 'HDD')
+        }
+    } catch { }
+    Lap 'Compat: disco HDD o SSD'
+    $r
+}
+$Recall = {
+    $r = @{ Recall = $false }
+    if ([int](Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' 'CurrentBuildNumber') -ge 26100) {
+        try { $r.Recall = [bool](Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction Stop) } catch { }
+    }
+    Lap 'Compat: Recall'
+    $r
 }
 $Juegos = {
     if ($Sync.FuncJuegos) {
         try { . ([scriptblock]::Create($Sync.FuncJuegos)); $Sync.Juegos = @(Juegos-Detectados) } catch { }
     }
+    Lap 'Juegos instalados'
     Sumar
 }
 $Procesador = {
@@ -735,21 +847,31 @@ $Procesador = {
             $Sync.Cpu = @{ Nombre = $pl.Cpu; Ok = [bool]$pl.Ok; Motivo = [string]$pl.Motivo; Afi = (Afi-Consejo $pl); Gb = (Gb-Consejo $pl) }
         } catch { }
     }
+    Lap 'Procesador'
     try { $Sync.Prio = @(Prio-Actuales) } catch { $Sync.Prio = @() }
-    try { $Sync.TareaAfi = [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue) } catch { $Sync.TareaAfi = $false }
+    Lap 'Prioridad actual'
+    try { $Sync.TareaAfi = (Hay-Tarea 'XucaAfinidad') } catch { $Sync.TareaAfi = $false }
+    Lap 'Tarea de afinidad'
     Sumar
     $clase
 }
 $pool = $null; $hilos = @()
+$Sync.Tiempos = [hashtable]::Synchronized(@{})
+$swTotal = [Diagnostics.Stopwatch]::StartNew()
+$swM = [Diagnostics.Stopwatch]::StartNew()
 try {
     $Sync.Paso = 'Plan de energia'
     $global:XPlan = ''
     try { $global:XPlan = ([regex]::Match((& powercfg.exe /getactivescheme | Out-String), '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}').Value).ToLower() } catch { }
     $Sync.Hecho = $Sync.Hecho + 1
+    $Sync.Tiempos['Principal: plan de energia'] = $swM.ElapsedMilliseconds; $swM.Restart()
     # Los chequeos que usan las apps instaladas o el procesador esperan a que esten; el resto arranca ya, repartido en 3 hilos
-    $tarde = @($Lista | Where-Object { $_.Codigo -match 'HasAppx|XAppx|Apps-Conteo|XCpuClase' })
-    $ya = @($Lista | Where-Object { $_.Codigo -notmatch 'HasAppx|XAppx|Apps-Conteo|XCpuClase' })
-    $pool = [runspacefactory]::CreateRunspacePool(1, 6)
+    # Los de la placa de red esperan a lo que ya leyo "datos de la PC"
+    $red = @($Lista | Where-Object { $_.Codigo -match 'Leer-Nic|Leer-Dup' })
+    $resto = @($Lista | Where-Object { $_.Codigo -notmatch 'Leer-Nic|Leer-Dup' })
+    $tarde = @($resto | Where-Object { $_.Codigo -match 'HasAppx|XAppx|Apps-Conteo|XCpuClase' })
+    $ya = @($resto | Where-Object { $_.Codigo -notmatch 'HasAppx|XAppx|Apps-Conteo|XCpuClase' })
+    $pool = [runspacefactory]::CreateRunspacePool(1, 8)
     $pool.Open()
     $lanzar = {
         param([scriptblock]$cuerpo, $arg)
@@ -761,6 +883,8 @@ try {
     # El scriptblock de cada hilo recibe sus cosas despues de $Funcs, $Sync y $Plan
     $cuerpoChk = [scriptblock]::Create("param(`$Funcs, `$Sync, `$Plan, `$Items)`n" + ($Previo.ToString() -replace '(?s)^\s*param\([^)]*\)', '') + "`n" + ($Chequear.ToString() -replace '(?s)^\s*param\([^)]*\)', ''))
     $hCompat = & $lanzar $Compat $null
+    $hDisco = & $lanzar $Disco $null
+    $hRecall = & $lanzar $Recall $null
     $hJuegos = & $lanzar $Juegos $null
     $hCpu = & $lanzar $Procesador $null
     $hChk = @()
@@ -772,7 +896,7 @@ try {
         [void]$p.AddScript($cuerpoChk.ToString()).AddArgument($Funcs).AddArgument($Sync).AddArgument($global:XPlan).AddArgument($parte)
         $hChk += @{ PS = $p; H = $p.BeginInvoke() }
     }
-    $hilos = @($hCompat, $hJuegos, $hCpu) + $hChk
+    $hilos = @($hCompat, $hDisco, $hRecall, $hJuegos, $hCpu) + $hChk
     # Mientras tanto, en este hilo: las apps instaladas (lo mas lento en muchas PCs)
     $global:XAppx = @()
     $global:XAppxFijas = @()
@@ -781,19 +905,35 @@ try {
         $global:XAppx = @($pkx | ForEach-Object { $_.Name })
         $global:XAppxFijas = @($pkx | Where-Object { $_.NonRemovable } | ForEach-Object { $_.Name })
     } catch { }
+    $Sync.Tiempos['Principal: apps instaladas (Get-AppxPackage)'] = $swM.ElapsedMilliseconds; $swM.Restart()
     [Threading.Monitor]::Enter($Sync.Lock); try { $Sync.Hecho = $Sync.Hecho + 1 } finally { [Threading.Monitor]::Exit($Sync.Lock) }
     $global:XCpuClase = ''
     try { $global:XCpuClase = [string](@($hCpu.PS.EndInvoke($hCpu.H))[-1]) } catch { }
+    $Sync.Tiempos['Principal: esperar al procesador'] = $swM.ElapsedMilliseconds; $swM.Restart()
     function Sumar { [Threading.Monitor]::Enter($Sync.Lock); try { $Sync.Hecho = $Sync.Hecho + 1 } finally { [Threading.Monitor]::Exit($Sync.Lock) } }
     $r1 = & $Chequear $tarde
     foreach ($c in $r1.Keys) { $res[$c] = $r1[$c] }
+    $Sync.Tiempos['Principal: chequeos que usan las apps'] = $swM.ElapsedMilliseconds; $swM.Restart()
     foreach ($h in $hChk) {
         try { $r2 = @($h.PS.EndInvoke($h.H))[-1]; if ($r2 -is [hashtable]) { foreach ($c in $r2.Keys) { $res[$c] = $r2[$c] } } } catch { }
     }
+    $Sync.Tiempos['Principal: esperar los otros chequeos'] = $swM.ElapsedMilliseconds; $swM.Restart()
     try { $null = $hJuegos.PS.EndInvoke($hJuegos.H) } catch { }
+    $Sync.Tiempos['Principal: esperar los juegos'] = $swM.ElapsedMilliseconds; $swM.Restart()
     $Sync.Paso = 'Si tu Windows es original'
     $i = $null
     try { $i = @($hCompat.PS.EndInvoke($hCompat.H))[-1] } catch { }
+    foreach ($h in $hDisco, $hRecall) {
+        try { $x = @($h.PS.EndInvoke($h.H))[-1]; if (($i -is [hashtable]) -and ($x -is [hashtable])) { foreach ($c in $x.Keys) { $i[$c] = $x[$c] } } } catch { }
+    }
+    $Sync.Tiempos['Principal: esperar datos de la PC'] = $swM.ElapsedMilliseconds; $swM.Restart()
+    if ($red.Count -gt 0) {
+        if (($i -is [hashtable]) -and $i.ContainsKey('NicRaw')) { $global:XNic = $i.NicRaw; $global:XNicLeido = $true }
+        if (($i -is [hashtable]) -and $i.ContainsKey('DupRaw')) { $global:XDup = @($i.DupRaw); $global:XDupLeido = $true }
+        $r3 = & $Chequear $red
+        foreach ($c in $r3.Keys) { $res[$c] = $r3[$c] }
+        $Sync.Tiempos['Principal: chequeos de la placa de red'] = $swM.ElapsedMilliseconds; $swM.Restart()
+    }
     if ($i -is [hashtable]) {
         if (($global:XAppx.Count -gt 0) -and ($global:XAppx -notcontains 'Microsoft.WindowsStore')) { $i.Orig = @(@($i.Orig) + 'no esta la Microsoft Store, tipico de versiones recortadas' | Select-Object -Unique) }
         $Sync.Info = $i
@@ -802,6 +942,11 @@ try {
 } finally {
     foreach ($h in $hilos) { try { $h.PS.Dispose() } catch { } }
     if ($pool) { try { $pool.Close(); $pool.Dispose() } catch { } }
+    try {
+        $lin = @('Lectura de Windows: ' + $swTotal.ElapsedMilliseconds + ' ms en total (' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + ')', '')
+        $lin += @($Sync.Tiempos.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object { ('{0,7} ms  {1}' -f $_.Value, $_.Key) })
+        [IO.File]::WriteAllLines((Join-Path $env:ProgramData 'XucaScripts\tiempos_lectura.txt'), [string[]]$lin)
+    } catch { }
     $Sync.Resultados = $res
     $Sync.Listo = $true
 }
@@ -1068,7 +1213,6 @@ $XamlTexto = @'
           <Button x:Name="BtnRedes" Style="{StaticResource Nav}" Foreground="#8FD3F4" FontWeight="SemiBold" Background="#14222B" BorderBrush="#8FD3F4" BorderThickness="1" Margin="0,4,0,0">
             <StackPanel Orientation="Horizontal"><TextBlock Text="&#xEB51;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Visita mis redes sociales!" VerticalAlignment="Center"/></StackPanel>
           </Button>
-          <TextBlock Text="Los scripts tambien se pueden usar solos, sin la app." Foreground="#5C6370" FontSize="11" TextWrapping="Wrap" Margin="6,10,0,0"/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -1535,6 +1679,56 @@ function Nuevo-Boton([string]$texto, [string]$color) {
 # ------------------------------------------------------------
 # Ventanitas propias (oscuras, sin el marco de Windows)
 # ------------------------------------------------------------
+# ------------------------------------------------------------
+# Scroll suave con la rueda del mouse: en vez de saltar de golpe, la pagina se desliza hasta donde tiene que llegar.
+# Se mueve un poquito en cada cuadro que dibuja la pantalla (60, 144, 240 Hz...), asi se ve fluido.
+# ------------------------------------------------------------
+$script:Suaves = New-Object 'System.Collections.Generic.Dictionary[object,object]'   # ScrollViewer -> @{ Pos; Dest }
+$script:SuaveRender = $false
+$script:SuaveUlt = [DateTime]::UtcNow
+$script:SuavePaso = [EventHandler] {
+    $ahora = [DateTime]::UtcNow
+    $dt = [math]::Min(0.05, ($ahora - $script:SuaveUlt).TotalSeconds)
+    $script:SuaveUlt = $ahora
+    # Cuanto se acerca en este cuadro (igual a cualquier Hz): mas chico = mas suave y mas lento
+    $k = 1 - [math]::Exp(-$dt / 0.07)
+    foreach ($sv in @($script:Suaves.Keys)) {
+        $m = $script:Suaves[$sv]
+        $dest = [math]::Max(0, [math]::Min($sv.ScrollableHeight, $m.Dest))
+        if ((-not $sv.IsVisible) -or ([math]::Abs($dest - $m.Pos) -lt 0.5)) { $sv.ScrollToVerticalOffset($dest); [void]$script:Suaves.Remove($sv); continue }
+        $m.Pos = $m.Pos + ($dest - $m.Pos) * $k
+        $sv.ScrollToVerticalOffset($m.Pos)
+    }
+    if ($script:Suaves.Count -eq 0) { [Windows.Media.CompositionTarget]::remove_Rendering($script:SuavePaso); $script:SuaveRender = $false }
+}
+# Corta el deslizamiento (por ejemplo, al cambiar de pagina, que vuelve arriba de golpe)
+function Frenar-Scroll($sv) { if ($sv -and $script:Suaves.ContainsKey($sv)) { [void]$script:Suaves.Remove($sv) } }
+function Scroll-Suave([Windows.Controls.ScrollViewer]$sv) {
+    $sv.Add_PreviewMouseWheel({
+        param($o, $e)
+        if ($e.Handled) { return }
+        if (([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control) -ne 0) { return }
+        # Si la rueda esta sobre otra lista con su propia barra (dentro de esta), se mueve esa
+        $d = $e.OriginalSource -as [Windows.DependencyObject]
+        while ($d -and (-not [object]::ReferenceEquals($d, $o))) {
+            if (($d -is [Windows.Controls.ScrollViewer]) -and ($d.ScrollableHeight -gt 0)) { return }
+            $d = $(if ($d -is [Windows.Media.Visual]) { [Windows.Media.VisualTreeHelper]::GetParent($d) } else { [Windows.LogicalTreeHelper]::GetParent($d) })
+        }
+        if ($o.ScrollableHeight -le 0) { return }
+        $e.Handled = $true
+        # Lo mismo que se movia antes por cada "clic" de la rueda, un poco mas largo
+        $paso = [math]::Max(1, [Windows.SystemParameters]::WheelScrollLines) * 20 * ($e.Delta / 120.0)
+        if ($script:Suaves.ContainsKey($o)) { $m = $script:Suaves[$o] }
+        else { $m = @{ Pos = $o.VerticalOffset; Dest = $o.VerticalOffset }; $script:Suaves[$o] = $m }
+        $m.Dest = [math]::Max(0, [math]::Min($o.ScrollableHeight, $m.Dest - $paso))
+        if (-not $script:SuaveRender) {
+            $script:SuaveRender = $true
+            $script:SuaveUlt = [DateTime]::UtcNow
+            [Windows.Media.CompositionTarget]::add_Rendering($script:SuavePaso)
+        }
+    })
+}
+
 function Nuevo-Dialogo([double]$ancho) {
     $w = New-Object Windows.Window
     $w.Width = $ancho; $w.SizeToContent = 'Height'; $w.ResizeMode = 'NoResize'
@@ -1775,6 +1969,7 @@ function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaE
     $caja.CornerRadius = 10; $caja.Background = (Pincel '#14161B'); $caja.Padding = '12,8'
     $sv = New-Object Windows.Controls.ScrollViewer
     $sv.VerticalScrollBarVisibility = 'Auto'
+    Scroll-Suave $sv
     $sv.Content = $grilla
     $caja.Child = $sv
     $dock.Children.Add($caja) | Out-Null
@@ -1821,6 +2016,7 @@ function Lista-Defecto {
     $script:Lst.Grilla.Children.Clear()
     $script:Lst.Casillas.Clear()
     foreach ($it in $script:Lst.Defecto) { Lista-Agregar $it.Nombre $it.Procs $true }
+    Frenar-Scroll $script:Lst.Scroll
     $script:Lst.Scroll.ScrollToTop()
 }
 
@@ -1834,7 +2030,7 @@ function Lista-AgregarTexto {
         if ($ya.Count -gt 0) { foreach ($c in $ya) { $c.IsChecked = $true } }
         else { $nm = Juego-Nombre $n; if (-not $nm) { $nm = $n }; Lista-Agregar $nm @($n) $true }
     }
-    if ($nuevos.Count -gt 0) { $script:Lst.Scroll.ScrollToEnd() }
+    if ($nuevos.Count -gt 0) { Frenar-Scroll $script:Lst.Scroll; $script:Lst.Scroll.ScrollToEnd() }
 }
 
 # Abren la lista compartida y la guardan al instante. Devuelven $false si cancelaste.
@@ -1862,7 +2058,7 @@ function Editar-Fondo([bool]$aplicar) {
 # Si dejaste la lista de juegos vacia, se quitan (la lista manda).
 function Aplicar-ListaActiva([bool]$pri, [bool]$afi) {
     $pri = $pri -and (@(Prio-Actuales).Count -gt 0)
-    $afi = $afi -and [bool](Get-ScheduledTask -TaskName 'XucaAfinidad' -ErrorAction SilentlyContinue)
+    $afi = $afi -and (Hay-Tarea 'XucaAfinidad')
     if (-not ($pri -or $afi)) { $ui.Estado.Text = (Con-Enie 'Lista guardada. Se usa cuando apliques "Prioridad alta" o "Afinidad".'); return }
     $L = Leer-Listas
     $jug = @(Procesos-De (Cat-Juegos) $L.juegos)
@@ -1915,7 +2111,7 @@ function Poner-Conteo($pb, $c) {
     $pb.Background = (Pincel $(if ($todo) { '#1E3A2B' } else { '#262B34' }))
     $pb.Child.Foreground = (Pincel $(if ($todo) { '#81C995' } else { '#9AA0A6' }))
     $pb.Child.Text = ([string]$c.Hechas + '/' + [string]$c.Total + ' ' + (Con-Enie ([string]$c.Que)))
-    $pb.ToolTip = $(if ($todo) { (Con-Enie 'No queda ninguna.') } else { (Con-Enie 'Todavia quedan:') + ' ' + $c.Quedan })
+    $pb.ToolTip = $(if ($todo) { (Con-Enie 'No queda ninguna.') } elseif (@($c.Nombres).Count -gt 0) { (Con-Enie 'Todavia quedan:') + ' ' + (@($c.Nombres) -join ', ') } else { (Con-Enie 'Todavia quedan:') + ' ' + $c.Quedan })
 }
 
 function Nota([string]$t, [string]$color, [string]$margen) {
@@ -2233,6 +2429,7 @@ $Limp = @(
     [pscustomobject]@{ Id = 'CLEAN_GPU'; Titulo = 'Borrar la cache de shaders'; Hace = 'borra los shaders que los juegos ya compilaron para tu placa de video.'; Favor = 'arregla tirones o graficos raros despues de actualizar el driver de video.'; Contra = 'la primera partida de cada juego va a tener tirones mientras los vuelve a armar.'; ConR = $true },
     [pscustomobject]@{ Id = 'CLEAN_RP'; Titulo = 'Borrar los puntos de restauracion'; Hace = 'borra los puntos de restauracion guardados; la proteccion del sistema sigue encendida.'; Favor = 'libera varios GB del disco.'; Contra = 'si algo sale mal, ya no podes volver a como estaba Windows antes.'; ConR = $true }
 )
+foreach ($it in $Limp) { Traducir-Opcion 'Limpieza' $it }
 $Casillas.Limpieza = @{}
 $spL = New-Object Windows.Controls.StackPanel
 $spL.Children.Add((Nueva-Seccion 'Siempre se limpia')) | Out-Null
@@ -2279,6 +2476,537 @@ $bDrv.Add_Click({ $this.Effect = $null })
 $script:BtnDrv = $bDrv
 $spH.Children.Add(($script:CardDrv = Nueva-Herramienta 'Drivers recomendados' 'revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD, el programa de tu mouse, teclado o auriculares de marca, de tu SSD y de otros aparatos (impresora, tableta grafica, volante, microfono, Stream Deck, capturadora, webcam, joystick, antena USB), y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.' 'tenes lo que hace falta, en su ultima version, y nada de programas de mas.' 'la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.' @($bDrv))) | Out-Null
 
+# --- Herramienta: undervolt y overclock de la placa de video ---
+# Lee la placa (NVIDIA con nvidia-smi, que viene con su driver; AMD e Intel por el nombre) y recomienda valores segun lo que elijas.
+# En NVIDIA de escritorio aplica sola lo seguro: limite de consumo y tope de reloj (con el tope baja el voltaje solo),
+# y una tarea lo vuelve a poner en cada arranque. La curva no se toca desde aca: no hay forma oficial y cada placa aguanta distinto.
+$GpuArchivo = Join-Path $XucaDir 'gpu_ajuste.txt'
+$GpuTarea = 'XucaGPU'
+$Grado = [string][char]0xB0
+$UrlAfterburner = 'https://www.msi.com/Landing/afterburner/graphics-cards'
+$RutaAfterburner = Join-Path ${env:ProgramFiles(x86)} 'MSI Afterburner\MSIAfterburner.exe'
+$script:GpuMedida = $null
+$script:GpuMidiendo = $null
+
+# Valores de partida (NVIDIA): punto de la curva [mV, MHz] para Fresca y Equilibrado, memoria en Equilibrado
+# y cuanto subir en Mas FPS. Gana la primera que coincide (3080/3090 antes que el resto de las 30).
+$GpuNvidia = @(
+    @{ Rx = 'RTX\s*50\d\d'; Fresca = @(850, 2400); Equil = @(900, 2650); Mem = 1000; OcCore = 150; OcMem = 1500 },
+    @{ Rx = 'RTX\s*40\d\d'; Fresca = @(875, 2400); Equil = @(925, 2650); Mem = 500; OcCore = 150; OcMem = 1000 },
+    @{ Rx = 'RTX\s*30(80|90)'; Fresca = @(800, 1700); Equil = @(850, 1800); Mem = 500; OcCore = 100; OcMem = 700 },
+    @{ Rx = 'RTX\s*30\d\d'; Fresca = @(825, 1750); Equil = @(875, 1875); Mem = 500; OcCore = 100; OcMem = 800 },
+    @{ Rx = 'RTX\s*20\d\d|GTX\s*16\d\d'; Fresca = @(825, 1750); Equil = @(875, 1850); Mem = 400; OcCore = 100; OcMem = 600 },
+    @{ Rx = 'GTX\s*10\d\d'; Fresca = @(850, 1750); Equil = @(900, 1850); Mem = 300; OcCore = 100; OcMem = 400 }
+)
+# AMD Radeon RX (AMD Software > Rendimiento > Ajuste): [voltaje, limite de energia %] por objetivo.
+# Las 9000 usan desfase de voltaje (negativo); las 5000 a 7000, voltaje maximo. 'max' = limite al maximo.
+$GpuAmd = @(
+    @{ Rx = 'RX\s*9\d{3}'; Desfase = $true; Fresca = @(-70, -15); Equil = @(-50, 0); Fps = @(-40, 'max') },
+    @{ Rx = 'RX\s*7\d{3}'; Desfase = $false; Fresca = @(1050, -15); Equil = @(1080, 0); Fps = @(1100, 'max') },
+    @{ Rx = 'RX\s*6\d{3}'; Desfase = $false; Fresca = @(1075, -10); Equil = @(1100, 0); Fps = @(1150, 'max') },
+    @{ Rx = 'RX\s*5\d{3}'; Desfase = $false; Fresca = @(1000, -10); Equil = @(1050, 0); Fps = @(1100, 'max') }
+)
+
+function Ruta-Smi {
+    foreach ($r in @((Join-Path $env:SystemRoot 'System32\nvidia-smi.exe'), (Join-Path $env:ProgramFiles 'NVIDIA Corporation\NVSMI\nvidia-smi.exe'))) {
+        if (Test-Path -LiteralPath $r) { return $r }
+    }
+    return $null
+}
+
+# Corre nvidia-smi sin ventana y espera hasta 10 s
+function Correr-Smi([string]$argSmi) {
+    $rs = Ruta-Smi
+    if (-not $rs) { return @{ Ok = $false; Texto = 'No se encontro nvidia-smi.' } }
+    try {
+        $psi = New-Object Diagnostics.ProcessStartInfo $rs, $argSmi
+        $psi.UseShellExecute = $false; $psi.CreateNoWindow = $true; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true
+        $pr = [Diagnostics.Process]::Start($psi)
+        $so = $pr.StandardOutput.ReadToEndAsync(); $se = $pr.StandardError.ReadToEndAsync()
+        if (-not $pr.WaitForExit(10000)) { try { $pr.Kill() } catch { }; return @{ Ok = $false; Texto = 'nvidia-smi no respondio.' } }
+        return @{ Ok = ($pr.ExitCode -eq 0); Texto = ($so.Result + "`n" + $se.Result).Trim() }
+    } catch { return @{ Ok = $false; Texto = $_.Exception.Message } }
+}
+
+function Num-Gpu([string]$s) {
+    $v = 0.0
+    if ($s -and [double]::TryParse($s.Trim(), [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$v)) { return $v }
+    return $null
+}
+
+# Que placa hay y como esta ahora. Prioridad: NVIDIA, despues AMD RX y despues Intel Arc de las que van aparte (no la integrada).
+function Leer-Gpu {
+    $gi = @{ Marca = $null; Nombre = ''; Notebook = $false; Smi = $false; Tabla = $null }
+    $vids = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.Name } | ForEach-Object { [string]$_.Name })
+    $nv = @($vids | Where-Object { $_ -match '(?i)nvidia' })
+    $rx = @($vids | Where-Object { ($_ -match '(?i)radeon') -and ($_ -match '(?i)\bRX\s*\d{3,4}') })
+    $arc = @($vids | Where-Object { $_ -match '(?i)\bArc\b.*\b[AB]\d{3}' })
+    if ($nv.Count -gt 0) {
+        $gi.Marca = 'nvidia'; $gi.Nombre = $nv[0]
+        $q = Correr-Smi '-i 0 --query-gpu=name,power.limit,power.default_limit,power.min_limit,power.max_limit,clocks.max.graphics,temperature.gpu,power.draw,driver_version --format=csv,noheader,nounits'
+        if ($q.Ok) {
+            $cv = @($q.Texto.Split("`n")[0].Split(',') | ForEach-Object { $_.Trim() })
+            if ($cv.Count -ge 9) {
+                $gi.Smi = $true; $gi.Nombre = $cv[0]
+                $gi.Pl = Num-Gpu $cv[1]; $gi.PlDef = Num-Gpu $cv[2]; $gi.PlMin = Num-Gpu $cv[3]; $gi.PlMax = Num-Gpu $cv[4]
+                $gi.RelojMax = Num-Gpu $cv[5]; $gi.Temp = Num-Gpu $cv[6]; $gi.Consumo = Num-Gpu $cv[7]; $gi.Driver = $cv[8]
+            }
+        }
+        foreach ($tb in $GpuNvidia) { if ($gi.Nombre -match ('(?i)' + $tb.Rx)) { $gi.Tabla = $tb; break } }
+    } elseif ($rx.Count -gt 0) {
+        $gi.Marca = 'amd'; $gi.Nombre = $rx[0]
+        foreach ($tb in $GpuAmd) { if ($gi.Nombre -match ('(?i)' + $tb.Rx)) { $gi.Tabla = $tb; break } }
+    } elseif ($arc.Count -gt 0) {
+        $gi.Marca = 'intel'; $gi.Nombre = $arc[0]
+    }
+    $gi.Nombre = ($gi.Nombre -replace '\((R|TM)\)', '').Trim()
+    # En notebooks el consumo lo maneja el fabricante: se recomienda, pero la app no lo cambia
+    $gi.Notebook = ($gi.Nombre -match '(?i)laptop|max-q|mobile|\bRX\s*\d{4}[MS]\b') -or (@(Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue).Count -gt 0)
+    return $gi
+}
+
+# Lo que la app puede poner sola en NVIDIA de escritorio: limite de consumo (W) y tope de reloj (MHz)
+function Aplicable-Gpu($gi, [string]$obj) {
+    if (($gi.Marca -ne 'nvidia') -or (-not $gi.Smi) -or $gi.Notebook -or (-not $gi.PlDef)) { return $null }
+    $min = $(if ($gi.PlMin) { $gi.PlMin } else { 0 })
+    $max = $(if ($gi.PlMax) { $gi.PlMax } else { $gi.PlDef })
+    $tb = $gi.Tabla
+    switch ($obj) {
+        'fresca' { $w = [math]::Max($min, [math]::Round($gi.PlDef * 0.75)); $mhz = $(if ($tb) { $tb.Fresca[1] } else { $null }) }
+        'equil' { $w = [math]::Max($min, [math]::Round($gi.PlDef * 0.9)); $mhz = $(if ($tb) { $tb.Equil[1] } else { $null }) }
+        default { $w = [math]::Round([math]::Max($max, $gi.PlDef)); $mhz = $null }
+    }
+    return @{ Pl = [int]$w; Lgc = $mhz; PlDef = [int][math]::Round($gi.PlDef) }
+}
+
+# Pasos para el programa de la marca, segun lo que elegiste
+function Recomendar-Gpu($gi, [string]$obj) {
+    $r = @{ Programa = ''; Pasos = New-Object Collections.ArrayList; Probar = '' }
+    $tb = $gi.Tabla
+    $probarBase = 'Corre 20 minutos la prueba 3D de OCCT (esta en Apps recomendadas) o Unigine Superposition, y despues juga un rato. '
+    if ($gi.Marca -eq 'nvidia') {
+        $r.Programa = 'MSI Afterburner'
+        $plMaxPct = $(if ($gi.PlMax -and $gi.PlDef) { [string][int][math]::Round($gi.PlMax / $gi.PlDef * 100) + ' %' } else { 'al maximo' })
+        if ($tb -and ($obj -ne 'fps')) {
+            $pt = $(if ($obj -eq 'fresca') { $tb.Fresca } else { $tb.Equil })
+            $memTxt = $(if ($obj -eq 'fresca') { 'sin tocar (0)' } else { '+' + $tb.Mem + ' MHz' })
+            $plTxt = $(if ($obj -eq 'fresca') { '75 %' } else { '100 %' })
+            [void]$r.Pasos.Add('Abri MSI Afterburner y toca Ctrl+F: se abre la curva.')
+            [void]$r.Pasos.Add('Baja el Core Clock a -200 y toca Aplicar (el tilde). La curva baja entera.')
+            [void]$r.Pasos.Add('En la curva, busca el punto de ' + $pt[0] + ' mV y subilo hasta ' + $pt[1] + ' MHz.')
+            [void]$r.Pasos.Add('Selecciona todos los puntos de la derecha (Shift y arrastrar), bajalos por debajo de ese punto y toca Aplicar: tiene que quedar plana desde ahi.')
+            [void]$r.Pasos.Add('Memory Clock: ' + $memTxt + '. Power limit: ' + $plTxt + '.')
+            [void]$r.Pasos.Add('Guardalo en un perfil (el disquete y un numero) y prende el boton de aplicar al iniciar Windows.')
+            $r.Probar = $probarBase + 'Si un juego se cierra, la pantalla parpadea o la PC se cuelga, baja 30 MHz el punto de la curva y proba de nuevo. Si anda perfecto una semana, podes probar 30 MHz mas.'
+        } elseif ($tb) {
+            [void]$r.Pasos.Add('Abri MSI Afterburner.')
+            [void]$r.Pasos.Add('Power limit: ' + $plMaxPct + ' (al maximo) y Temp. limit al maximo.')
+            [void]$r.Pasos.Add('Core Clock: +' + $tb.OcCore + ' MHz. Memory Clock: +' + $tb.OcMem + ' MHz. Toca Aplicar (el tilde).')
+            [void]$r.Pasos.Add('Guardalo en un perfil (el disquete y un numero) y prende el boton de aplicar al iniciar Windows.')
+            $r.Probar = $probarBase + 'Si un juego se cierra o la PC se cuelga, baja 25 MHz el Core Clock. Si los FPS bajan en vez de subir, baja la memoria: la placa esta corrigiendo errores.'
+        } else {
+            [void]$r.Pasos.Add('Abri MSI Afterburner.')
+            switch ($obj) {
+                'fresca' { [void]$r.Pasos.Add('Power limit: 75 %. Toca Aplicar (el tilde).') }
+                'equil' { [void]$r.Pasos.Add('Power limit: 90 %. Toca Aplicar (el tilde).') }
+                default { [void]$r.Pasos.Add('Power limit al maximo. Subi el Core Clock de a 25 MHz y la memoria de a 100 MHz, probando cada vez.') }
+            }
+            [void]$r.Pasos.Add('Guardalo en un perfil (el disquete y un numero) y prende el boton de aplicar al iniciar Windows.')
+            $r.Probar = $probarBase + 'Si un juego se cierra o la PC se cuelga, volve al ultimo valor que andaba bien.'
+        }
+    } elseif ($gi.Marca -eq 'amd') {
+        $r.Programa = 'AMD Software'
+        [void]$r.Pasos.Add('Abri AMD Software (clic derecho en el escritorio) y entra a Rendimiento > Ajuste.')
+        [void]$r.Pasos.Add('En Control de ajuste elegi Personalizado y prende Ajuste de GPU y Ajuste de energia.')
+        if ($tb) {
+            $val = $(switch ($obj) { 'fresca' { $tb.Fresca } 'equil' { $tb.Equil } default { $tb.Fps } })
+            if ($tb.Desfase) { [void]$r.Pasos.Add('Desfase de voltaje: ' + $val[0] + ' mV.') }
+            else { [void]$r.Pasos.Add('Voltaje maximo: ' + $val[0] + ' mV.') }
+            if ($val[1] -eq 'max') { [void]$r.Pasos.Add('Limite de energia: al maximo.') }
+            elseif ([int]$val[1] -eq 0) { [void]$r.Pasos.Add('Limite de energia: dejalo en 0 %.') }
+            else { [void]$r.Pasos.Add('Limite de energia: ' + $val[1] + ' %.') }
+        } else {
+            switch ($obj) {
+                'fresca' { [void]$r.Pasos.Add('Limite de energia: -15 %.') }
+                'equil' { [void]$r.Pasos.Add('Limite de energia: -10 %.') }
+                default { [void]$r.Pasos.Add('Limite de energia: al maximo.') }
+            }
+        }
+        if ($obj -eq 'fps') { [void]$r.Pasos.Add('En Ajuste de VRAM elegi Temporizacion rapida (Fast Timing).') }
+        [void]$r.Pasos.Add('Toca Aplicar cambios, arriba a la derecha.')
+        $r.Probar = $probarBase + 'Si un juego se cierra o la PC se cuelga, subi 10 mV el voltaje y proba de nuevo. Si el driver se reinicia solo, AMD vuelve todo a como venia: es la senal de que te pasaste.'
+    } else {
+        $r.Programa = 'Intel Graphics Software'
+        [void]$r.Pasos.Add('Abri Intel Graphics Software y entra a Rendimiento.')
+        switch ($obj) {
+            'fresca' { [void]$r.Pasos.Add('Limite de energia (Power Limit): bajalo un 20 %.') }
+            'equil' { [void]$r.Pasos.Add('Limite de energia (Power Limit): bajalo un 10 %.') }
+            default { [void]$r.Pasos.Add('Limite de energia (Power Limit) al maximo y GPU Performance Boost en +10.') }
+        }
+        [void]$r.Pasos.Add('Toca Aplicar.')
+        $r.Probar = $probarBase + 'Si un juego se cierra o la PC se cuelga, volve al ultimo valor que andaba bien.'
+    }
+    return $r
+}
+
+# --- Medir jugando (solo NVIDIA): una muestra cada 2 s durante 1 minuto ---
+function Empezar-MedicionGpu {
+    if ($script:GpuMidiendo) { return }
+    if (-not (Ruta-Smi)) { Avisar 'Medir jugando' 'La medicion en juego solo anda con placas NVIDIA: usa nvidia-smi, que viene con su driver.'; return }
+    if (-not (Confirmar 'Medir jugando' 'Toca Empezar, abri un juego y juga normal 1 minuto. La app mide temperatura, consumo, reloj y uso de la placa, y despues te dice que te conviene. Cuando termina suena un aviso.' 'Empezar' '#3D6FD9' 'Cancelar')) { return }
+    $script:GpuMidiendo = @{ Fin = (Get-Date).AddSeconds(60); Muestras = New-Object Collections.ArrayList; Timer = (New-Object Windows.Threading.DispatcherTimer) }
+    $script:GpuMidiendo.Timer.Interval = [TimeSpan]::FromSeconds(2)
+    $script:GpuMidiendo.Timer.Add_Tick({ Paso-MedicionGpu })
+    $script:GpuMidiendo.Timer.Start()
+    $script:BtnGpuMed.IsEnabled = $false
+    Paso-MedicionGpu
+}
+
+function Paso-MedicionGpu {
+    $md = $script:GpuMidiendo
+    if (-not $md) { return }
+    $q = Correr-Smi '-i 0 --query-gpu=temperature.gpu,power.draw,power.limit,clocks.gr,utilization.gpu --format=csv,noheader,nounits'
+    if ($q.Ok) {
+        $cv = $q.Texto.Split("`n")[0].Split(',')
+        if ($cv.Count -ge 5) { [void]$md.Muestras.Add(@{ Temp = (Num-Gpu $cv[0]); Consumo = (Num-Gpu $cv[1]); Limite = (Num-Gpu $cv[2]); Reloj = (Num-Gpu $cv[3]); Uso = (Num-Gpu $cv[4]) }) }
+    }
+    $falta = [int][math]::Ceiling(($md.Fin - (Get-Date)).TotalSeconds)
+    if ($falta -gt 0) {
+        $script:GpuEstado.Foreground = (Pincel (Tema-Letra '#8AB4F8'))
+        $script:GpuEstado.Text = (Con-Enie ('Midiendo... juga normal. Faltan ' + $falta + ' s.'))
+        return
+    }
+    $md.Timer.Stop()
+    $script:GpuMidiendo = $null
+    $script:BtnGpuMed.IsEnabled = $true
+    $script:GpuMedida = Analizar-MedicionGpu $md.Muestras
+    try { [Media.SystemSounds]::Asterisk.Play() } catch { }
+    if ($script:GpuMedida.Ok) { $ui.Estado.Text = (Con-Enie 'Medicion lista: toca "Ver recomendacion".') }
+    Actualizar-GpuCard
+}
+
+# Que conviene segun como anduvo la placa jugando
+function Analizar-MedicionGpu($muestras) {
+    $jug = @($muestras | Where-Object { ($null -ne $_.Uso) -and ($_.Uso -ge 40) })
+    if ($jug.Count -lt 5) { return @{ Ok = $false; Motivo = 'No se detecto ningun juego: la placa casi no se uso. Proba de nuevo con un juego abierto.' } }
+    $tMax = [int](($jug | ForEach-Object { $_.Temp } | Where-Object { $null -ne $_ } | Measure-Object -Maximum).Maximum)
+    $wProm = [int](($jug | ForEach-Object { $_.Consumo } | Where-Object { $null -ne $_ } | Measure-Object -Average).Average)
+    $rProm = [int](($jug | ForEach-Object { $_.Reloj } | Where-Object { $null -ne $_ } | Measure-Object -Average).Average)
+    $uProm = [int](($jug | ForEach-Object { $_.Uso } | Where-Object { $null -ne $_ } | Measure-Object -Average).Average)
+    $res = @{ Ok = $true; TempMax = $tMax; Consumo = $wProm; Reloj = $rProm; Uso = $uProm }
+    if ($tMax -ge 80) { $res.Obj = 'fresca'; $res.Motivo = 'Llego a ' + $tMax + $Grado + 'C: te conviene bajarle la temperatura.' }
+    elseif ($uProm -lt 85) { $res.Obj = 'equil'; $res.Motivo = 'La placa no llega al 100 % de uso: la frena el procesador o un limite de FPS, asi que un overclock casi no te daria FPS.' }
+    elseif ($tMax -lt 72) { $res.Obj = 'fps'; $res.Motivo = 'Va al maximo y esta fresca: tiene margen para un overclock.' }
+    else { $res.Obj = 'equil'; $res.Motivo = 'Va al maximo con temperatura normal: un undervolt le baja el calor sin perder FPS.' }
+    return $res
+}
+
+# --- Aplicar y volver atras (NVIDIA) ---
+function Leer-GpuArchivo {
+    $d = @{}
+    if (-not (Test-Path -LiteralPath $GpuArchivo)) { return $null }
+    foreach ($l in [IO.File]::ReadAllLines($GpuArchivo)) { $k = $l.IndexOf('='); if ($k -gt 0) { $d[$l.Substring(0, $k)] = $l.Substring($k + 1) } }
+    return $d
+}
+
+function Aplicar-Gpu($ap, [string]$obj) {
+    $mal = New-Object Collections.ArrayList
+    $q = Correr-Smi ('-i 0 -pl ' + $ap.Pl)
+    if (-not $q.Ok) { return @{ Ok = $false; Texto = 'Tu placa no deja cambiar el limite de consumo desde aca (' + $q.Texto + ').' } }
+    $lgcOk = $true
+    if ($ap.Lgc) {
+        $q = Correr-Smi ('-i 0 -lgc 0,' + $ap.Lgc)
+        if (-not $q.Ok) { $q = Correr-Smi ('-i 0 -lgc 210,' + $ap.Lgc) }
+        if (-not $q.Ok) { $lgcOk = $false; [void]$mal.Add('el tope de reloj no se pudo poner (tu placa o tu driver no lo dejan)') }
+    } else { Correr-Smi '-i 0 -rgc' | Out-Null }
+    # Tarea que lo vuelve a poner en cada arranque (nvidia-smi lo pierde al reiniciar)
+    $rs = Ruta-Smi
+    $cmd = '"' + $rs + '" -i 0 -pl ' + $ap.Pl
+    if ($ap.Lgc -and $lgcOk) { $cmd += ' & "' + $rs + '" -i 0 -lgc 0,' + $ap.Lgc }
+    try {
+        $acc = New-ScheduledTaskAction -Execute (Join-Path $env:SystemRoot 'System32\cmd.exe') -Argument ('/c "' + $cmd + '"')
+        $trg = New-ScheduledTaskTrigger -AtStartup; $trg.Delay = 'PT30S'
+        $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+        $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
+        Register-ScheduledTask -TaskName $GpuTarea -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force -ErrorAction Stop | Out-Null
+    } catch { [void]$mal.Add('no se pudo crear la tarea de inicio: al reiniciar vuelve a como venia') }
+    if (-not (Test-Path -LiteralPath $XucaDir)) { New-Item -Path $XucaDir -ItemType Directory -Force | Out-Null }
+    $lineas = @('objetivo=' + $obj, 'pl=' + $ap.Pl, 'pldef=' + $ap.PlDef, 'lgc=' + $(if ($ap.Lgc -and $lgcOk) { $ap.Lgc } else { '' }))
+    [IO.File]::WriteAllLines($GpuArchivo, $lineas)
+    # Se verifica leyendo el limite que quedo puesto
+    $v = Correr-Smi '-i 0 --query-gpu=power.limit --format=csv,noheader,nounits'
+    $puesto = Num-Gpu ($v.Texto.Split("`n")[0])
+    if ($puesto -and ([math]::Abs($puesto - $ap.Pl) -gt 2)) { [void]$mal.Add('el limite quedo en ' + [int]$puesto + ' W en vez de ' + $ap.Pl + ' W') }
+    return @{ Ok = $true; Problemas = $mal }
+}
+
+function Gpu-Normal {
+    $d = Leer-GpuArchivo
+    $pl = $null
+    if ($d -and $d['pldef']) { $pl = $d['pldef'] }
+    else { $q = Correr-Smi '-i 0 --query-gpu=power.default_limit --format=csv,noheader,nounits'; $n = Num-Gpu ($q.Texto.Split("`n")[0]); if ($n) { $pl = [int][math]::Round($n) } }
+    if ($pl) { Correr-Smi ('-i 0 -pl ' + $pl) | Out-Null }
+    Correr-Smi '-i 0 -rgc' | Out-Null
+    try { Unregister-ScheduledTask -TaskName $GpuTarea -Confirm:$false -ErrorAction Stop } catch { }
+    Remove-Item -LiteralPath $GpuArchivo -Force -ErrorAction SilentlyContinue
+    Actualizar-GpuCard
+    Avisar 'Placa de video: listo' 'Volvio a como venia: limite de consumo de fabrica y sin tope de reloj. Si usas una curva en MSI Afterburner, esa sigue igual.'
+}
+
+$GpuObjNombre = @{ fresca = 'Mas fresca y silenciosa'; equil = 'Equilibrada'; fps = 'Mas FPS' }
+
+# Linea de estado de la tarjeta: midiendo, medicion lista o lo que quedo aplicado
+function Actualizar-GpuCard {
+    $d = Leer-GpuArchivo
+    $script:BtnGpuNormal.Visibility = $(if ($d) { 'Visible' } else { 'Collapsed' })
+    $lin = @()
+    $col = '#81C995'
+    if ($script:GpuMedida) {
+        if ($script:GpuMedida.Ok) { $lin += ('Medicion lista: te conviene ' + $GpuObjNombre[$script:GpuMedida.Obj] + '. Toca "Ver recomendacion".') }
+        else { $lin += $script:GpuMedida.Motivo; $col = '#E5B567' }
+    }
+    if ($d) {
+        $t = 'Aplicado: ' + $GpuObjNombre[$d['objetivo']] + ' (limite de ' + $d['pl'] + ' W'
+        if ($d['lgc']) { $t += ', tope de ' + $d['lgc'] + ' MHz' }
+        $lin += ($t + '). Se vuelve a poner en cada arranque.')
+    }
+    $script:GpuEstado.Foreground = (Pincel (Tema-Letra $col))
+    $script:GpuEstado.Text = (Con-Enie ($lin -join "`n"))
+    $script:GpuEstado.Visibility = $(if ($lin.Count -gt 0) { 'Visible' } else { 'Collapsed' })
+}
+
+# Cartel 1: tu placa, lo que se midio y que buscas (3 tarjetas, como el del tema)
+function Elegir-ObjetivoGpu($gi) {
+    $w = Nuevo-Dialogo 500
+    $w.Tag.Elegido = $null
+    $sp = New-Object Windows.Controls.StackPanel
+    $cab = New-Object Windows.Controls.Grid
+    $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'
+    $cab.ColumnDefinitions.Add($c0); $cab.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
+    $ic = Icono-Dialogo 0xE7F4 '#8AB4F8' 42
+    $ic.Margin = '0,0,14,0'
+    $cab.Children.Add($ic) | Out-Null
+    $tx = New-Object Windows.Controls.StackPanel
+    $tx.VerticalAlignment = 'Center'
+    [Windows.Controls.Grid]::SetColumn($tx, 1)
+    $nom = Nuevo-Texto '' 17 '#FFFFFF' $true; $nom.Text = $gi.Nombre
+    $tx.Children.Add($nom) | Out-Null
+    $datos = @()
+    if ($gi.Smi) {
+        if ($null -ne $gi.Temp) { $datos += ('Ahora: ' + [int]$gi.Temp + $Grado + 'C') }
+        if ($gi.PlDef) { $datos += ('limite de consumo ' + [int]$gi.Pl + ' W (de fabrica ' + [int]$gi.PlDef + ' W)') }
+        if ($gi.RelojMax) { $datos += ('reloj maximo ' + [int]$gi.RelojMax + ' MHz') }
+    }
+    if ($datos.Count -gt 0) {
+        $sub = Nuevo-Texto ($datos -join ', ') 12.5 '#9AA0A6' $false
+        $sub.Margin = '0,4,0,0'
+        $tx.Children.Add($sub) | Out-Null
+    }
+    $cab.Children.Add($tx) | Out-Null
+    $sp.Children.Add($cab) | Out-Null
+    $med = $script:GpuMedida
+    if ($med -and $med.Ok) {
+        $mc = New-Object Windows.Controls.Border
+        $mc.CornerRadius = 12; $mc.Padding = '12,10'; $mc.Margin = '0,14,0,0'; $mc.Background = (Pincel '#1E2A3A')
+        $mt = New-Object Windows.Controls.StackPanel
+        $mt.Children.Add((Nuevo-Texto ('Jugando: hasta ' + $med.TempMax + $Grado + 'C, ' + $med.Consumo + ' W, ' + $med.Reloj + ' MHz y ' + $med.Uso + ' % de uso.') 12.5 '#E6E8EB' $true)) | Out-Null
+        $mm = Nuevo-Texto $med.Motivo 12.5 '#C3C8D0' $false
+        $mm.Margin = '0,2,0,0'
+        $mt.Children.Add($mm) | Out-Null
+        $mc.Child = $mt
+        $sp.Children.Add($mc) | Out-Null
+    }
+    $pre = Nuevo-Texto 'Que buscas?' 13 '#9AA0A6' $true
+    $pre.Margin = '2,14,0,0'
+    $sp.Children.Add($pre) | Out-Null
+    $ops = @(
+        @('fresca', 0xE74F, 'Mas fresca y silenciosa', 'Undervolt fuerte: bastante menos calor, ruido y consumo. Pierde un poco de FPS.'),
+        @('equil', 0xEC4A, 'Equilibrada', 'Undervolt: menos calor y consumo con casi los mismos FPS. La que conviene casi siempre.'),
+        @('fps', 0xE945, 'Mas FPS', 'Overclock: unos FPS mas a cambio de mas calor, ruido y consumo.')
+    )
+    foreach ($o in $ops) {
+        $rec = ($med -and $med.Ok -and ($med.Obj -eq $o[0]))
+        $card = New-Object Windows.Controls.Border
+        $card.CornerRadius = 12; $card.Padding = '14,10'; $card.Margin = '0,8,0,0'
+        $card.Background = (Pincel $(if ($rec) { '#1F2D4A' } else { '#232833' }))
+        $card.BorderBrush = (Pincel $(if ($rec) { '#3D6FD9' } else { '#2E3440' })); $card.BorderThickness = $(if ($rec) { 2 } else { 1 })
+        $card.Cursor = [Windows.Input.Cursors]::Hand
+        $card.Tag = $o[0]
+        $g = New-Object Windows.Controls.Grid
+        $ca = New-Object Windows.Controls.ColumnDefinition; $ca.Width = 'Auto'
+        $g.ColumnDefinitions.Add($ca); $g.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
+        $i1 = Nuevo-Texto ([string][char]$o[1]) 18 '#8AB4F8' $false
+        $i1.FontFamily = 'Segoe MDL2 Assets'; $i1.VerticalAlignment = 'Center'; $i1.Margin = '2,0,14,0'
+        $g.Children.Add($i1) | Out-Null
+        $t2 = New-Object Windows.Controls.StackPanel
+        [Windows.Controls.Grid]::SetColumn($t2, 1)
+        $fila = New-Object Windows.Controls.WrapPanel
+        $fila.Children.Add((Nuevo-Texto $o[2] 14 '#FFFFFF' $true)) | Out-Null
+        if ($rec) {
+            $pl = New-Object Windows.Controls.Border
+            $pl.CornerRadius = 8; $pl.Padding = '8,1,8,2'; $pl.Margin = '8,0,0,0'; $pl.VerticalAlignment = 'Center'; $pl.Background = (Pincel '#1E3A2C')
+            $pl.Child = (Nuevo-Texto 'Recomendada' 11 '#81C995' $true)
+            $fila.Children.Add($pl) | Out-Null
+        }
+        $t2.Children.Add($fila) | Out-Null
+        $d2 = Nuevo-Texto $o[3] 12 '#9AA0A6' $false
+        $d2.Margin = '0,2,0,0'
+        $t2.Children.Add($d2) | Out-Null
+        $g.Children.Add($t2) | Out-Null
+        $card.Child = $g
+        $card.Add_MouseEnter({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#8AB4F8') } })
+        $card.Add_MouseLeave({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#2E3440') } })
+        # MouseLeftButtonDown con Handled: el borde del cartel tiene DragMove y se come el ButtonUp
+        $card.Add_MouseLeftButtonDown({
+            param($s, $e)
+            $e.Handled = $true
+            $ww = [Windows.Window]::GetWindow($s)
+            $ww.Tag.Elegido = [string]$s.Tag
+            $ww.DialogResult = $true
+        })
+        $sp.Children.Add($card) | Out-Null
+    }
+    if ((-not $med) -and $gi.Smi) {
+        $nota = Nuevo-Texto 'Si no sabes cual elegir, toca "Medir jugando" en la tarjeta y la app te dice.' 11.5 '#7D8590' $false
+        $nota.Margin = '2,12,0,0'
+        $sp.Children.Add($nota) | Out-Null
+    }
+    $bCerrar = Nuevo-Boton 'Cerrar'; $bCerrar.IsCancel = $true
+    $sp.Children.Add((Fila-Botones @() @($bCerrar))) | Out-Null
+    $w.Content.Child = $sp
+    if ($w.ShowDialog() -ne $true) { return $null }
+    return [string]$w.Tag.Elegido
+}
+
+# Cajita de color con titulo y renglones (numerados si $num)
+function Caja-Gpu([string]$titulo, [string]$color, [int]$icono, $lineas, [bool]$num) {
+    $col = Color-Tema($color)
+    $caja = New-Object Windows.Controls.Border
+    $caja.CornerRadius = 12; $caja.Padding = '12,10'; $caja.Margin = '0,12,0,0'; $caja.BorderThickness = 1
+    $caja.Background = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(0x24, $col.R, $col.G, $col.B))
+    $caja.BorderBrush = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(0x70, $col.R, $col.G, $col.B))
+    $dp = New-Object Windows.Controls.DockPanel
+    $ic = New-Object Windows.Controls.Border
+    $ic.Width = 34; $ic.Height = 34; $ic.CornerRadius = 9; $ic.Margin = '0,0,12,0'; $ic.VerticalAlignment = 'Top'
+    $ic.Background = New-Object Windows.Media.SolidColorBrush $col
+    $gl = Nuevo-Texto ([string][char]$icono) 16 'White' $false
+    $gl.FontFamily = 'Segoe MDL2 Assets'; $gl.HorizontalAlignment = 'Center'; $gl.VerticalAlignment = 'Center'
+    $ic.Child = $gl
+    [Windows.Controls.DockPanel]::SetDock($ic, 'Left')
+    $dp.Children.Add($ic) | Out-Null
+    $tx = New-Object Windows.Controls.StackPanel
+    $tx.Children.Add((Nuevo-Texto $titulo 13.5 '#FFFFFF' $true)) | Out-Null
+    $n = 1
+    foreach ($l in $lineas) {
+        $tl = New-Object Windows.Controls.TextBlock
+        $tl.TextWrapping = 'Wrap'; $tl.FontSize = 12.5; $tl.Foreground = (Pincel '#C3C8D0'); $tl.Margin = '0,4,0,0'; $tl.LineHeight = 19
+        if ($num) {
+            $r1 = New-Object Windows.Documents.Run(([string]$n + '. ')); $r1.Foreground = (Pincel $color); $r1.FontWeight = 'SemiBold'
+            $tl.Inlines.Add($r1)
+        }
+        $tl.Inlines.Add((New-Object Windows.Documents.Run((Con-Enie $l))))
+        $tx.Children.Add($tl) | Out-Null
+        $n++
+    }
+    $dp.Children.Add($tx) | Out-Null
+    $caja.Child = $dp
+    return $caja
+}
+
+# Cartel 2: que poner en el programa de la marca, lo que aplica la app y como probarlo. Devuelve $true si tocas Aplicar.
+function Resultado-Gpu($gi, [string]$obj, $rec, $ap) {
+    $w = Nuevo-Dialogo 560
+    $w.Tag.Aplicar = $false
+    $sp = New-Object Windows.Controls.StackPanel
+    $sp.Children.Add((Nuevo-Texto ($GpuObjNombre[$obj] + ': ' + $gi.Nombre) 17 '#FFFFFF' $true)) | Out-Null
+    $lista = New-Object Windows.Controls.StackPanel
+    $lista.Margin = '0,0,6,0'
+    $titPro = 'En ' + $rec.Programa
+    if ($ap) { $titPro = 'Opcion completa: en ' + $rec.Programa + ' (la que mas rinde)' }
+    $lista.Children.Add((Caja-Gpu $titPro '#8AB4F8' 0xE70F $rec.Pasos $true)) | Out-Null
+    if ($ap) {
+        $la = @('Mas simple y sin riesgo, pero rinde menos: el undervolt es menos fino que la curva y no sube los MHz ni la memoria. Para eso esta la opcion completa.')
+        $la += ('Limite de consumo: ' + $ap.Pl + ' W (de fabrica ' + $ap.PlDef + ' W).')
+        if ($ap.Lgc) { $la += ('Tope de reloj: ' + $ap.Lgc + ' MHz (con el tope, la placa baja el voltaje sola).') }
+        $la += 'Se vuelve a poner en cada arranque, y "Volver a la normalidad" lo saca.'
+        if (Get-Process -Name 'MSIAfterburner' -ErrorAction SilentlyContinue) { $la += 'Tenes MSI Afterburner abierto: usa una sola de las dos cosas. Si ya pusiste la curva ahi, esto no hace falta.' }
+        $lista.Children.Add((Caja-Gpu 'Version lite: la app lo pone sola, sin Afterburner' '#81C995' 0xE73E $la $false)) | Out-Null
+    } elseif (($gi.Marca -eq 'nvidia') -and $gi.Notebook) {
+        $lista.Children.Add((Caja-Gpu 'Notebook' '#E5B567' 0xE7BA @('En notebooks el consumo de la placa lo maneja el fabricante: la app no lo cambia. La curva de Afterburner si anda.') $false)) | Out-Null
+    }
+    $lista.Children.Add((Caja-Gpu 'Como probarlo' '#E5B567' 0xE9D9 @($rec.Probar) $false)) | Out-Null
+    $ojo = @('Son valores de partida: cada placa aguanta distinto. Nunca subas el voltaje por encima de lo que viene.')
+    # La fuente no se puede leer desde Windows: en Mas FPS se avisa cuanto puede llegar a consumir la placa
+    if (($obj -eq 'fps') -and $gi.PlMax) {
+        $fuente = [int]([math]::Ceiling(($gi.PlMax + 350) / 50) * 50)
+        $ojo += ('Mas FPS sube el consumo de la placa hasta ' + [int]$gi.PlMax + ' W. La app no puede saber de cuanto es tu fuente: fijate que sea de al menos ' + $fuente + ' W y de buena marca.')
+    }
+    $lista.Children.Add((Caja-Gpu 'Ojo' '#F28B82' 0xE7BA $ojo $false)) | Out-Null
+    $sv = New-Object Windows.Controls.ScrollViewer
+    $sv.VerticalScrollBarVisibility = 'Auto'; $sv.MaxHeight = 470
+    Scroll-Suave $sv
+    $sv.Content = $lista
+    $sp.Children.Add($sv) | Out-Null
+    $izq = @()
+    if ($gi.Marca -eq 'nvidia') {
+        if (Test-Path -LiteralPath $RutaAfterburner) {
+            $bAb = Nuevo-Boton 'Abrir Afterburner'
+            $bAb.Add_Click({ Abrir-Normal $RutaAfterburner })
+        } else {
+            $bAb = Nuevo-Boton 'Descargar Afterburner'
+            $bAb.Add_Click({ Abrir-Normal $UrlAfterburner })
+        }
+        $izq += $bAb
+    }
+    $der = @()
+    $bCer = Nuevo-Boton 'Cerrar'; $bCer.IsCancel = $true
+    $der += $bCer
+    if ($ap) {
+        $bAp = Nuevo-Boton 'Aplicar version lite' '#3D6FD9'
+        $bAp.Add_Click({ $ww = [Windows.Window]::GetWindow($this); $ww.Tag.Aplicar = $true; $ww.DialogResult = $true })
+        $der += $bAp
+    }
+    $sp.Children.Add((Fila-Botones $izq $der)) | Out-Null
+    $w.Content.Child = $sp
+    [void]$w.ShowDialog()
+    return [bool]$w.Tag.Aplicar
+}
+
+function Abrir-AjusteGpu {
+    if ($script:GpuMidiendo) { Avisar 'Placa de video' 'Espera a que termine la medicion (1 minuto).'; return }
+    $win.Cursor = [Windows.Input.Cursors]::Wait
+    try { $gi = Leer-Gpu } finally { $win.Cursor = $null }
+    if (-not $gi.Marca) { Avisar 'Placa de video' 'No se encontro una placa de video NVIDIA, AMD Radeon RX o Intel Arc. Los graficos integrados del procesador no tienen estos ajustes.'; return }
+    if (($gi.Marca -eq 'nvidia') -and (-not $gi.Smi)) { Avisar 'Placa de video' 'No se pudo leer tu placa con nvidia-smi (viene con el driver de NVIDIA). Instala o actualiza el driver y proba de nuevo.'; return }
+    $obj = Elegir-ObjetivoGpu $gi
+    if (-not $obj) { return }
+    $rec = Recomendar-Gpu $gi $obj
+    $ap = Aplicable-Gpu $gi $obj
+    if (-not (Resultado-Gpu $gi $obj $rec $ap)) { return }
+    $res = Aplicar-Gpu $ap $obj
+    Actualizar-GpuCard
+    if (-not $res.Ok) { Avisar 'No se pudo aplicar' $res.Texto; return }
+    $m = 'Listo: limite de consumo en ' + $ap.Pl + ' W'
+    if ($ap.Lgc -and ($res.Problemas.Count -eq 0)) { $m += ' y tope de reloj en ' + $ap.Lgc + ' MHz' }
+    $m += '. Se vuelve a poner en cada arranque.'
+    if ($res.Problemas.Count -gt 0) { $m += "`n`n" + 'Ojo: ' + ($res.Problemas -join '; ') + '.' }
+    $m += "`n`n" + 'Proba un rato jugando. Si algo anda mal, toca "Volver a la normalidad".'
+    Avisar 'Placa de video: aplicado' $m
+}
+
+$bGpu = Nuevo-Boton 'Ver recomendacion' '#3D6FD9'
+$bGpu.Add_Click({ Abrir-AjusteGpu })
+$script:BtnGpuMed = Nuevo-Boton 'Medir jugando (1 min)'
+$script:BtnGpuMed.Add_Click({ Empezar-MedicionGpu })
+$script:BtnGpuNormal = Nuevo-Boton 'Volver a la normalidad'
+$script:BtnGpuNormal.Add_Click({ Gpu-Normal })
+$script:GpuEstado = Nuevo-Texto '' 12 '#81C995' $false
+$script:GpuEstado.Margin = '0,8,0,0'
+$cardGpu = Nueva-Herramienta 'Undervolt y overclock de la placa de video' 'lee tu placa de video (y si queres, la mide mientras jugas) y te recomienda valores segun lo que busques: mas fresca y silenciosa, equilibrada o mas FPS. Hay dos formas: la completa, con MSI Afterburner (o el programa de AMD o Intel), que es la que mas rinde y te explica paso a paso; y en NVIDIA una version lite que la app aplica sola (limite de consumo y tope de reloj), mas simple y sin riesgo pero que rinde menos.' 'menos temperatura, ruido y consumo con casi los mismos FPS, o unos FPS mas.' 'cada placa aguanta distinto: si un juego se cierra o la PC se cuelga, baja un poco los valores. El overclock calienta mas.' @($bGpu, $script:BtnGpuMed, $script:BtnGpuNormal)
+$cardGpu.Child.Children.Add($script:GpuEstado) | Out-Null
+$spH.Children.Add($cardGpu) | Out-Null
+Actualizar-GpuCard
+
 $bAcc = Nuevo-Boton 'Elegir cuenta para borrar' '#B3412F'; $bAcc.Tag = 'ms_acc=S'
 $spH.Children.Add((Nueva-Herramienta 'Borrar una cuenta de esta PC' 'te muestra las otras cuentas de la PC (usuarios de Windows y cuentas de Microsoft vinculadas) y borras la que elijas. Tu cuenta actual no aparece.' 'limpia cuentas viejas que ya no usas.' 'si tambien borras su carpeta, se pierden sus archivos.' @($bAcc))) | Out-Null
 
@@ -2320,7 +3048,23 @@ $Paginas.Adicional = $spA
 # --- Pagina Apps recomendadas: programas gratis que recomiendo, con su descarga oficial ---
 $ColorApps = '#BEF264'
 $AppsRec = @(
-    [pscustomobject]@{ Sec = 'Discos y espacio'; Color = '#8FD3F4'; Icono = 0xEDA2; Nombre = 'CrystalDiskInfo'; Critica = $true; Url = 'https://sourceforge.net/projects/crystaldiskinfo/files/9.9.2/CrystalDiskInfo9_9_2Ads.exe/download'
+    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#C58AF9'; Icono = 0xE7F4; Nombre = 'DDU (Display Driver Uninstaller)'; Critica = $false; Url = 'https://download.wagnardsoft.com/DDU/DDU%20v18.1.6.0_setup.exe'
+        Texto = 'borra por completo el driver de tu placa de video. La solucion cuando los juegos dan tirones o hay problemas de video despues de cambiar de driver.' },
+    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#C58AF9'; Icono = 0xE9D2; Nombre = 'MSI Afterburner'; Critica = $false; Url = 'https://www.msi.com/Landing/afterburner/graphics-cards'
+        Texto = 'controla tu placa de video: undervolt, overclock, ventiladores y el contador de FPS en pantalla. Anda con NVIDIA y AMD. En Herramientas > Undervolt y overclock te digo que valores ponerle.' },
+    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#C58AF9'; Icono = 0xE7FC; Nombre = 'SCSKiller'; Critica = $false; Url = 'https://github.com/BlueHeisenberg/SCSKiller/releases/'
+        Texto = 'compila antes de jugar los shaders del juego que elijas, asi no da tirones ni bajones de FPS en las primeras partidas. Anda con NVIDIA y AMD.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE839; Nombre = 'Xuca Monitor'; Critica = $false; Url = 'https://github.com/011Xuca/xuca-monitor/releases/latest/download/XucaMonitor.exe'
+        Texto = 'vigila tu PC desde la bandeja: cortes de internet y lag, USB que se desconectan, que te baja los FPS mientras jugas y errores como pantalla negra o pantallazo azul. Te dice que fue y que probar. Se actualiza sola y casi no gasta nada.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE9D9; Nombre = 'HWiNFO'; Critica = $false; Url = 'https://www.hwinfo.com/download/'
+        Texto = 'muestra en detalle temperaturas, voltajes y ventiladores. Esencial para saber si tu PC se esta calentando de mas.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE946; Nombre = 'CPU-Z'; Critica = $false; Url = 'https://download.cpuid.com/cpu-z/cpu-z_3.01-en.exe'
+        Texto = 'te dice el modelo exacto de tu procesador, tu placa madre y tu memoria RAM. Muy util para saber que tenes adentro de la PC.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE945; Nombre = 'OCCT'; Critica = $false; Url = 'https://www.ocbase.com/download/edition:Personal/os:Windows'
+        Texto = 'pone al maximo el procesador, la placa de video o la fuente para probarlos. Ideal para saber por que la PC se apaga sola o da pantallazos azules.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xEC4A; Nombre = 'Cinebench'; Critica = $false; Url = 'https://www.maxon.net/en/cinebench'
+        Texto = 'mide la potencia de tu procesador con un benchmark y te deja comparar tu puntaje con el de otras PCs.' },
+    [pscustomobject]@{ Sec = 'Discos y espacio'; Color = '#8FD3F4'; Icono = 0xEDA2; Nombre = 'CrystalDiskInfo'; Critica = $false; Url = 'https://sourceforge.net/projects/crystaldiskinfo/files/9.9.2/CrystalDiskInfo9_9_2Ads.exe/download'
         Texto = 'revisa la salud y la temperatura de tus discos y SSD, y te avisa si alguno esta por fallar, antes de que pierdas tus archivos.' },
     [pscustomobject]@{ Sec = 'Discos y espacio'; Color = '#8FD3F4'; Icono = 0xE8B7; Nombre = 'WizTree'; Critica = $false; Url = 'https://diskanalyzer.com/files/wiztree_4_33_setup.exe'
         Texto = 'analiza tu disco en segundos y te muestra con colores que archivos y carpetas te estan comiendo el espacio.' },
@@ -2330,20 +3074,6 @@ $AppsRec = @(
         Texto = 'te muestra todo lo que arranca con Windows y te deja apagarlo. Lo mejor para que la PC prenda mas rapido y para encontrar malware escondido.' },
     [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#F9A8D4'; Icono = 0xE785; Nombre = 'LockHunter'; Critica = $false; Url = 'https://lockhunter.com/startdownload.htm'
         Texto = 'desbloquea y borra los archivos que Windows no te deja borrar porque "estan siendo usados por otro programa".' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE9D9; Nombre = 'HWiNFO'; Critica = $false; Url = 'https://www.hwinfo.com/download/'
-        Texto = 'muestra en detalle temperaturas, voltajes y ventiladores. Esencial para saber si tu PC se esta calentando de mas.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE946; Nombre = 'CPU-Z'; Critica = $false; Url = 'https://download.cpuid.com/cpu-z/cpu-z_3.01-en.exe'
-        Texto = 'te dice el modelo exacto de tu procesador, tu placa madre y tu memoria RAM. Muy util para saber que tenes adentro de la PC.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE945; Nombre = 'OCCT'; Critica = $false; Url = 'https://www.ocbase.com/download/edition:Personal/os:Windows'
-        Texto = 'pone al maximo el procesador, la placa de video o la fuente para probarlos. Ideal para saber por que la PC se apaga sola o da pantallazos azules.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xEC4A; Nombre = 'Cinebench'; Critica = $false; Url = 'https://www.maxon.net/en/cinebench'
-        Texto = 'mide la potencia de tu procesador con un benchmark y te deja comparar tu puntaje con el de otras PCs.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE839; Nombre = 'Xuca Monitor'; Critica = $false; Url = 'https://github.com/011Xuca/xuca-monitor/releases/latest/download/XucaMonitor.exe'
-        Texto = 'vigila tu PC desde la bandeja: cortes de internet y lag, USB que se desconectan, que te baja los FPS mientras jugas y errores como pantalla negra o pantallazo azul. Te dice que fue y que probar. Se actualiza sola y casi no gasta nada.' },
-    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#C58AF9'; Icono = 0xE7F4; Nombre = 'DDU (Display Driver Uninstaller)'; Critica = $false; Url = 'https://download.wagnardsoft.com/DDU/DDU%20v18.1.6.0_setup.exe'
-        Texto = 'borra por completo el driver de tu placa de video. La solucion cuando los juegos dan tirones o hay problemas de video despues de cambiar de driver.' },
-    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#C58AF9'; Icono = 0xE7FC; Nombre = 'SCSKiller'; Critica = $false; Url = 'https://github.com/BlueHeisenberg/SCSKiller/releases/'
-        Texto = 'compila antes de jugar los shaders del juego que elijas, asi no da tirones ni bajones de FPS en las primeras partidas. Anda con NVIDIA y AMD.' },
     [pscustomobject]@{ Sec = 'Otros'; Color = '#8AB4F8'; Icono = 0xE896; Nombre = 'LIII BitTorrent Client'; Critica = $false; Url = 'https://github.com/aliakseis/LIII/releases/download/0.1.1.20/LIII_setup.exe'
         Texto = 'cliente de torrent liviano, minimalista y de codigo abierto, sin publicidad ni programas de mas como uTorrent.' }
 )
@@ -2472,6 +3202,73 @@ $hola.Children.Add($h2) | Out-Null
 $cHola = Inicio-Caja '' $hola
 Caja-Borde $cHola '#8AB4F8'
 $spI.Children.Add($cHola) | Out-Null
+
+# Novedades: los cambios de esta version, sacados de CHANGELOG.md (la seccion "## v<version del version.txt>").
+# El changelog esta en espanol y se muestra tal cual (no pasa por la traduccion).
+$UrlChangelog = 'https://github.com/011Xuca/xuca-optimizer/blob/main/CHANGELOG.md'
+function Leer-Novedades {
+    $fc = Join-Path $Root 'CHANGELOG.md'
+    $ver = ''
+    try { $ver = ((([IO.File]::ReadAllText($VersionLocal) -replace '^\uFEFF', '') -split "`r?`n")[0].Trim()) -replace '^[vV]', '' } catch { }
+    if ((-not $ver) -or (-not (Test-Path -LiteralPath $fc))) { return $null }
+    $dentro = $false
+    $lineas = New-Object Collections.ArrayList
+    foreach ($ln in [IO.File]::ReadAllLines($fc, [Text.Encoding]::UTF8)) {
+        if ($ln -match '^##\s+[vV]?(\S+)\s*$') { if ($dentro) { break }; $dentro = ($Matches[1] -eq $ver); continue }
+        if ($dentro -and $ln.Trim()) { [void]$lineas.Add($ln.TrimEnd()) }
+    }
+    if ($lineas.Count -eq 0) { return $null }
+    return @{ Version = $ver; Lineas = $lineas }
+}
+
+# Texto con las **negritas** del Markdown (sin traducir)
+function Texto-Md([string]$t, [double]$tam, [string]$color) {
+    $tb = New-Object Windows.Controls.TextBlock
+    $tb.TextWrapping = 'Wrap'; $tb.FontSize = $tam; $tb.Foreground = (Pincel $color); $tb.LineHeight = 19
+    $partes = [regex]::Split(($t -replace '`', ''), '\*\*')
+    for ($k = 0; $k -lt $partes.Count; $k++) {
+        if (-not $partes[$k]) { continue }
+        $ru = New-Object Windows.Documents.Run($partes[$k])
+        if ($k % 2 -eq 1) { $ru.FontWeight = 'SemiBold'; $ru.Foreground = (Pincel '#FFFFFF') }
+        $tb.Inlines.Add($ru)
+    }
+    return $tb
+}
+
+$novedades = Leer-Novedades
+if ($novedades) {
+    $spNov = New-Object Windows.Controls.StackPanel
+    foreach ($ln in $novedades.Lineas) {
+        if ($ln -match '^###\s+(.+)$') {
+            # "Nuevo" en verde y "Cambios" en celeste
+            $subNov = $Matches[1].Trim()
+            $tSub = Nuevo-Texto $subNov 13 $(if ($subNov -match '(?i)nuevo') { '#81C995' } else { '#8AB4F8' }) $true
+            $tSub.Margin = $(if ($spNov.Children.Count -gt 0) { '0,10,0,2' } else { '0,0,0,2' })
+            $spNov.Children.Add($tSub) | Out-Null
+        } elseif ($ln -match '^(\s*)[-*]\s+(.+)$') {
+            $gNov = New-Object Windows.Controls.Grid
+            $gNov.Margin = $(if ($Matches[1].Length -gt 0) { '20,3,0,0' } else { '0,3,0,0' })
+            $cNov0 = New-Object Windows.Controls.ColumnDefinition; $cNov0.Width = 'Auto'
+            $gNov.ColumnDefinitions.Add($cNov0); $gNov.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
+            $punto = New-Object Windows.Controls.TextBlock
+            $punto.Text = [string][char]0x2022; $punto.FontSize = 13; $punto.Foreground = (Pincel '#7D8590'); $punto.Margin = '2,0,10,0'
+            $gNov.Children.Add($punto) | Out-Null
+            $tNov = Texto-Md $Matches[2] 12.5 '#C3C8D0'
+            [Windows.Controls.Grid]::SetColumn($tNov, 1)
+            $gNov.Children.Add($tNov) | Out-Null
+            $spNov.Children.Add($gNov) | Out-Null
+        } else {
+            $tNov = Texto-Md $ln.Trim() 12.5 '#C3C8D0'
+            $tNov.Margin = '0,0,0,4'
+            $spNov.Children.Add($tNov) | Out-Null
+        }
+    }
+    $verTodo = Nuevo-Texto 'Ver todos los cambios en GitHub' 12.5 '#8AB4F8' $true
+    $verTodo.Margin = '0,12,0,0'; $verTodo.Cursor = [Windows.Input.Cursors]::Hand; $verTodo.TextDecorations = [Windows.TextDecorations]::Underline
+    $verTodo.Add_MouseLeftButtonDown({ param($sd, $e) $e.Handled = $true; Abrir-Normal $UrlChangelog })
+    $spNov.Children.Add($verTodo) | Out-Null
+    $spI.Children.Add((Inicio-Caja ('Novedades de la version ' + $novedades.Version) $spNov)) | Out-Null
+}
 
 # Como se usa
 $pasos = New-Object Windows.Controls.StackPanel
@@ -2989,7 +3786,10 @@ function Faltan-Perfil($pf) {
 # Antes de marcar o aplicar un perfil: si le faltan drivers, avisa y te manda a Herramientas. Devuelve $true si se puede seguir.
 function Perfil-ConDrivers($pf) {
     # Hasta que no se termina de leer Windows no se sabe que drivers faltan: se espera
-    if (-not $script:Leido) { Avisar $pf.Nombre 'Espera a que termine de leer tu Windows (abajo dice cuando termina) y volve a tocar.'; if ((-not $script:Lectura) -and (-not $script:Ocupado)) { Refrescar-Estado }; return $false }
+    if (-not $script:Leido) {
+        if ($script:Lectura -and $script:LecturaFondo) { Mostrar-LecturaFondo; return $false }
+        Avisar $pf.Nombre 'Espera a que termine de leer tu Windows (abajo dice cuando termina) y volve a tocar.'; if ((-not $script:Lectura) -and (-not $script:Ocupado)) { Refrescar-Estado }; return $false
+    }
     $f = @(Faltan-Perfil $pf)
     if ($f.Count -eq 0) { return $true }
     Pedir-Drivers $f ('El perfil "' + $pf.Nombre + '" tiene ajustes que necesitan drivers que te faltan. Antes de seguir, instalalos:')
@@ -3108,6 +3908,7 @@ function Ir-A([string]$p) {
     # La primera vez que entras a Adicional se buscan las configs en GitHub
     if (($p -eq 'Adicional') -and (-not $script:CfgCargadas)) { Cargar-Configs $false }
     $ui.Scroll.Content = $Paginas[$p]
+    Frenar-Scroll $ui.Scroll
     $ui.Scroll.ScrollToTop()
     Desplegar $Paginas[$p]
     $vis = $(if ($p -in 'Inicio', 'Herr', 'Perfiles', 'Apps', 'Adicional') { 'Collapsed' } else { 'Visible' })
@@ -3118,7 +3919,15 @@ function Ir-A([string]$p) {
     # El mensaje de abajo cambia con la pagina (solo se ve donde hay ajustes)
     if ($script:Leido -and (-not $script:Ocupado)) { Actualizar-Contador }
     # Windows se lee una sola vez por cada vez que abris la app: la primera vez que entras a una pagina de ajustes
-    if (($p -in $PagAjustes) -and (-not $script:Leido) -and (-not $script:Lectura) -and (-not $script:Ocupado)) { Refrescar-Estado }
+    if (($p -in $PagAjustes) -and (-not $script:Leido) -and (-not $script:Ocupado)) {
+        if ($script:Lectura) { Mostrar-LecturaFondo } else { Refrescar-Estado }
+    }
+    # Juegos nuevos que encontro la lectura de fondo
+    if (($p -in $PagAjustes) -and $script:Leido -and (-not $script:Ocupado) -and ($script:JuegosNuevos -gt 0)) {
+        $nn = $script:JuegosNuevos; $script:JuegosNuevos = 0
+        Aplicar-ListaActiva $true $true
+        if (-not $script:Ocupado) { $ui.Estado.Text = (Con-Enie ('Se sumaron ' + $nn + ' juegos nuevos instalados a tu lista.')) }
+    }
 }
 
 function Bloquear([bool]$si) {
@@ -3234,6 +4043,7 @@ $script:BuscaTimer.Add_Tick({
     }
     $ui.BuscarInfo.Text = $t
     $ui.BuscarInfo.Visibility = 'Visible'
+    Frenar-Scroll $ui.Scroll
     $ui.Scroll.ScrollToTop()
 })
 
@@ -3448,7 +4258,16 @@ function Entrar-Menus {
     $y2.BeginTime = [TimeSpan]::FromMilliseconds(80)
     $ui.Contenido.RenderTransform.BeginAnimation([Windows.Media.TranslateTransform]::YProperty, $y2)
     if ($Paginas[$script:Pagina]) { Desplegar $Paginas[$script:Pagina] }
+    if (-not $script:PreLeida) { $script:PreLeida = $true; $preTimer.Start() }
 }
+# Al abrir la app, apenas entran los menus, Windows se lee de fondo: cuando entras a Debloat o Gaming ya esta listo
+$script:PreLeida = $false
+$preTimer = New-Object Windows.Threading.DispatcherTimer
+$preTimer.Interval = [TimeSpan]::FromMilliseconds(700)
+$preTimer.Add_Tick({
+    $preTimer.Stop()
+    if ((-not $script:Leido) -and (-not $script:Lectura) -and (-not $script:Ocupado)) { Refrescar-Estado $null $true }
+})
 
 # ------------------------------------------------------------
 # Leer el estado de Windows (en segundo plano) y actualizar las etiquetas
@@ -3459,11 +4278,19 @@ $script:EstadoLeido = ''
 $lecturaTimer = New-Object Windows.Threading.DispatcherTimer
 $lecturaTimer.Interval = [TimeSpan]::FromMilliseconds(40)
 
-function Refrescar-Estado([scriptblock]$despues) {
-    if ($script:Lectura) { return }
+# $fondo: se lee sin mostrar nada (al abrir la app, mientras estas en Inicio), asi Debloat y Gaming abren al toque
+function Refrescar-Estado([scriptblock]$despues, [bool]$fondo = $false) {
+    if ($script:Lectura) {
+        # Ya se esta leyendo de fondo y algo pide leer de nuevo (por ejemplo, terminaste de aplicar): al terminar se vuelve a leer
+        if ($script:LecturaFondo -and (-not $fondo)) { $script:LecturaOtraVez = $true; $script:DespuesLectura = $despues; Mostrar-LecturaFondo }
+        return
+    }
     $script:DespuesLectura = $despues
-    Bloquear $true
-    Mostrar-Carga 'Leyendo como esta tu Windows' $true
+    $script:LecturaFondo = $fondo
+    if (-not $fondo) {
+        Bloquear $true
+        Mostrar-Carga 'Leyendo como esta tu Windows' $true
+    }
     $lista = @()
     foreach ($k in @($script:Pills.Keys)) {
         if (-not $Chequeos.ContainsKey($k)) { continue }
@@ -3476,18 +4303,39 @@ function Refrescar-Estado([scriptblock]$despues) {
     $lecturaTimer.Start()
 }
 
+# Si entras a una pagina de ajustes mientras se lee de fondo, se muestra la pantalla de carga hasta que termine
+function Mostrar-LecturaFondo {
+    if (-not ($script:Lectura -and $script:LecturaFondo)) { return }
+    $script:LecturaFondo = $false
+    Bloquear $true
+    Mostrar-Carga 'Leyendo como esta tu Windows' $true
+}
+$script:LecturaFondo = $false
+$script:LecturaOtraVez = $false
+
 $lecturaTimer.Add_Tick({
     $l = $script:Lectura
     if (-not $l) { $lecturaTimer.Stop(); return }
     $s = $l.Sync
-    $paso = $(if ($s.Paso) { 'Revisando: ' + $s.Paso } else { '' })
-    Poner-Progreso (0.95 * $s.Hecho / [math]::Max($s.Total, 1)) $paso
+    if (-not $script:LecturaFondo) {
+        $paso = $(if ($s.Paso) { 'Revisando: ' + $s.Paso } else { '' })
+        Poner-Progreso (0.95 * $s.Hecho / [math]::Max($s.Total, 1)) $paso
+    }
     if (-not $l.Handle.IsCompleted) { return }
     $lecturaTimer.Stop()
     try { $l.PS.EndInvoke($l.Handle) | Out-Null } catch { }
     try { $l.PS.Dispose() } catch { }
     $script:Lectura = $null
+    # Mientras se leia de fondo aplicaste algo: lo leido puede estar viejo, se lee otra vez
+    if ($script:LecturaOtraVez) { $script:LecturaOtraVez = $false; Refrescar-Estado $script:DespuesLectura; return }
     Aplicar-Lectura $s
+    if ($script:LecturaFondo) {
+        # De fondo: queda todo listo sin mostrar nada (los juegos nuevos se suman cuando entres a una pagina de ajustes)
+        $script:LecturaFondo = $false
+        Actualizar-Bloqueos
+        if ($script:Pagina -in $PagAjustes) { $ui.Estado.Text = (Texto-Leido $script:Pagina) }
+        return
+    }
     $ui.CargaDetalle.Text = (Con-Enie 'Listo')
     Cerrar-Carga {
         Bloquear $false
@@ -3911,6 +4759,64 @@ function Correr($tareas, [bool]$reinicio, [string]$tituloCarga) {
     $timer.Start()
 }
 
+# Las partes en PowerShell (Gaming.ps1, Debloat.ps1 y Limpieza.ps1, con Comun.ps1) corren en un hilo aparte de este mismo proceso:
+# sin abrir cmd ni otro powershell.exe. Escriben su progreso en $salida, igual que hacian los .bat.
+# Devuelve algo con HasExited, como un proceso, para que el resto de la app no cambie.
+function Iniciar-Parte([string]$ruta, [string]$salida) {
+    $rs = [runspacefactory]::CreateRunspace()
+    $rs.ApartmentState = 'STA'
+    $rs.Open()
+    $ps = [powershell]::Create()
+    $ps.Runspace = $rs
+    $codigo = {
+        param($comun, $parte, $salida, $carpeta)
+        $ErrorActionPreference = 'SilentlyContinue'
+        # Si algo falla (tambien al cargar los archivos), se escribe el error y la linea, asi queda en el log
+        try {
+            . ([scriptblock]::Create([IO.File]::ReadAllText($comun)))
+            . ([scriptblock]::Create([IO.File]::ReadAllText($parte)))
+            $f = 'Correr-' + [IO.Path]::GetFileNameWithoutExtension($parte)
+            & $f $salida $carpeta
+        } catch {
+            $err = "`r`nError: " + $_.Exception.Message
+            if ($_.InvocationInfo -and $_.InvocationInfo.PositionMessage) { $err += "`r`n" + $_.InvocationInfo.PositionMessage }
+            try { [IO.File]::AppendAllText($salida, ($err + "`r`nCambios que fallaron: 1`r`n"), [Text.Encoding]::GetEncoding(850)) } catch { }
+        } finally {
+            # No escribio nada: se anotan los ultimos errores que quedaron guardados, para saber que paso
+            $vacio = $true
+            try { $vacio = (-not (Test-Path -LiteralPath $salida)) -or ((Get-Item -LiteralPath $salida).Length -eq 0) } catch { }
+            if ($vacio) {
+                $err = "Error: no se escribio nada."
+                foreach ($e in @($Error | Select-Object -First 8)) {
+                    $err += "`r`n- " + [string]$e
+                    if ($e.InvocationInfo -and $e.InvocationInfo.PositionMessage) { $err += "`r`n" + $e.InvocationInfo.PositionMessage }
+                }
+                try { [IO.File]::AppendAllText($salida, ($err + "`r`nCambios que fallaron: 1`r`n"), [Text.Encoding]::GetEncoding(850)) } catch { }
+            }
+        }
+    }
+    [void]$ps.AddScript($codigo.ToString()).AddArgument($Rutas.Comun).AddArgument($ruta).AddArgument($salida).AddArgument($Scripts)
+    $h = $ps.BeginInvoke()
+    $o = [pscustomobject]@{ Ps = $ps; Rs = $rs; H = $h }
+    $o | Add-Member -MemberType ScriptProperty -Name HasExited -Value { $this.H.IsCompleted }
+    return $o
+}
+# Libera el hilo de una parte en PowerShell que ya termino (los .bat no necesitan nada)
+function Cerrar-Parte($p) {
+    if ($p -and ($p.PSObject.Properties['Ps'])) {
+        try { [void]$p.Ps.EndInvoke($p.H) } catch { }
+        try { $p.Ps.Dispose() } catch { }
+        try { $p.Rs.Dispose() } catch { }
+    }
+}
+
+# Archivo donde una parte escribe su progreso. No va en Temp: la limpieza borra Temp y se lo llevaba puesto.
+function Nueva-Salida {
+    $d = Join-Path $XucaDir 'salida'
+    if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+    return (Join-Path $d ('xucaop_' + [guid]::NewGuid().ToString('N') + '.txt'))
+}
+
 function Siguiente {
     if ($script:Cola.Count -eq 0) { Terminar-Corrida; return }
     $t = $script:Cola.Dequeue()
@@ -3924,11 +4830,19 @@ function Siguiente {
     $t | Add-Member -NotePropertyName Inicio -NotePropertyValue (Get-Date) -Force
     $t | Add-Member -NotePropertyName UltN -NotePropertyValue 0 -Force
     $t | Add-Member -NotePropertyName UltCambio -NotePropertyValue (Get-Date) -Force
-    if ($t.Visible) {
+    if (($t.Ruta -like '*.ps1') -and $t.Visible) {
+        # Herramientas que te piden datos: ventana de PowerShell a la vista (las respuestas van en las variables XR_)
+        $ui.Estado.Text = (Con-Enie ($t.Nombre + ': responde en la ventana negra del script. Cuando termine, la app sigue sola.'))
+        $script:Proc = Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "' + $t.Ruta + '" -Consola herr') -WorkingDirectory $Root -PassThru
+    } elseif ($t.Ruta -like '*.ps1') {
+        $salida = Nueva-Salida
+        $t | Add-Member -NotePropertyName Salida -NotePropertyValue $salida -Force
+        $script:Proc = Iniciar-Parte $t.Ruta $salida
+    } elseif ($t.Visible) {
         $ui.Estado.Text = (Con-Enie ($t.Nombre + ': responde en la ventana negra del script. Cuando termine, la app sigue sola.'))
         $script:Proc = Start-Process -FilePath $env:ComSpec -ArgumentList ('/c ""' + $t.Ruta + '""') -WorkingDirectory $Root -PassThru
     } else {
-        $salida = Join-Path $env:TEMP ('xucaop_' + [guid]::NewGuid().ToString('N') + '.txt')
+        $salida = Nueva-Salida
         $t | Add-Member -NotePropertyName Salida -NotePropertyValue $salida -Force
         # Oculto, sin teclado (<nul) y con todo lo que escribe guardado en un archivo para leer el progreso
         $script:Proc = Start-Process -FilePath $env:ComSpec -ArgumentList ('/d /c ""' + $t.Ruta + '" <nul >"' + $salida + '" 2>&1"') -WorkingDirectory $Root -WindowStyle Hidden -PassThru
@@ -3999,7 +4913,7 @@ function Fin-Tarea {
             try {
                 $d = Join-Path $Scripts 'logs'
                 if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
-                Set-Content -LiteralPath (Join-Path $d ('limpiar_cache_' + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + '.txt')) -Value $txt -Encoding UTF8
+                Set-Content -LiteralPath (Join-Path $d ('limpieza_' + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + '.txt')) -Value $txt -Encoding UTF8
             } catch { }
         }
         Remove-Item -LiteralPath $t.Salida -Force -ErrorAction SilentlyContinue
@@ -4010,7 +4924,12 @@ function Fin-Tarea {
 $timer.Add_Tick({
     if (-not $script:Proc) { return }
     Actualizar-Progreso
-    if ($script:Proc.HasExited) { $script:Proc = $null; Fin-Tarea; Siguiente }
+    if ($script:Proc.HasExited) {
+        Cerrar-Parte $script:Proc; $script:Proc = $null; Fin-Tarea
+        # Cerraste la app mientras corria: termino lo que se estaba aplicando y ahora si se cierra
+        if ($script:SalirAlTerminar) { $timer.Stop(); $script:SalirYa = $true; $win.Close(); return }
+        Siguiente
+    }
 })
 
 # Cartel con el resultado de "Buscar drivers": una cajita de color con icono por cada cosa, separadas con espacio
@@ -4074,6 +4993,7 @@ function Resultado-Drivers($r) {
     }
     $sv = New-Object Windows.Controls.ScrollViewer
     $sv.VerticalScrollBarVisibility = 'Auto'; $sv.MaxHeight = 470
+    Scroll-Suave $sv
     $sv.Content = $lista
     $sp.Children.Add($sv) | Out-Null
     if ($r.Paginas -gt 0) {
@@ -4096,13 +5016,15 @@ function Terminar-Corrida {
     if ((-not $script:Corrida) -or ($script:Corrida.Tipo -ne 'lista')) {
         foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } }
     }
-    Refrescar-Estado {
+    $alTerminar = {
         $C = $script:Corrida
         $script:Corrida = $null
         if (-not $C) { return }
         $ui.Estado.Text = ($ui.Estado.Text + (Con-Enie ' Los detalles de cada cambio quedaron en la carpeta de logs.'))
         if ($C.Tipo -eq 'limpieza') {
-            Resultado-Limpieza ([string]$C.Liberado) ([string]$C.WinOld)
+            # Sin "Espacio liberado" la limpieza no llego al final: se avisa como error
+            if (-not $C.Liberado) { Avisar 'No se pudo terminar la limpieza' 'La limpieza se corto antes de terminar. El detalle quedo en la carpeta de logs.' }
+            else { Resultado-Limpieza ([string]$C.Liberado) ([string]$C.WinOld) }
             return
         }
         if ($C.Tipo -eq 'drivers') {
@@ -4125,6 +5047,17 @@ function Terminar-Corrida {
             $ui.Estado.Text = ((Con-Enie 'Listo: se aplico todo bien y no hace falta reiniciar. ') + $ui.Estado.Text)
         }
     }
+    # Limpiar y buscar drivers no cambian ningun ajuste: no hace falta leer Windows de nuevo
+    $tipo = $(if ($script:Corrida) { [string]$script:Corrida.Tipo } else { '' })
+    if ($tipo -in 'limpieza', 'drivers') {
+        $script:AlTerminar = $alTerminar
+        Cerrar-Carga {
+            Bloquear $false
+            $ui.Estado.Text = $(if ($script:Pagina -in $PagAjustes) { Texto-Leido $script:Pagina } else { '' })
+            $f = $script:AlTerminar; $script:AlTerminar = $null
+            if ($f) { & $f }
+        }
+    } else { Refrescar-Estado $alTerminar }
 }
 
 function Titulo-De([string]$p, [string]$id) {
@@ -4197,7 +5130,7 @@ function Preguntar-Punto($selD) {
     return $ok
 }
 
-# Botones de Herramientas: cada uno corre el debloat con una sola opcion respondida (con la ventana negra a la vista)
+# Botones de Herramientas: cada uno corre el debloat con una sola opcion respondida (en una ventana de PowerShell a la vista)
 $accionHerr = {
     $par = ([string]$this.Tag) -split '='
     $nombres = @{ ver = 'Actualizar Windows 11'; ms_acc = 'Borrar una cuenta'; al = 'Entrar sin contrasena'; drv = 'Drivers recomendados' }
@@ -4434,7 +5367,13 @@ $win.Add_Closing({
     if ($script:Cerrando) { $e.Cancel = $true; return }
     if ($script:Proc -and -not $script:Proc.HasExited) {
         $m = $(if ($script:Tarea -and -not $script:Tarea.Visible) { 'Todavia se estan aplicando cambios. Si cerras la app, el script sigue en segundo plano hasta terminar.' } else { 'Todavia se esta aplicando un script. Si cerras la app, el script sigue solo en su ventana.' })
-        if (-not (Confirmar 'Cerrar la app' ($m + "`n`n" + 'Cerrar igual?') 'Cerrar' '#B3412F' 'Seguir en la app')) { $e.Cancel = $true }
+        if (-not (Confirmar 'Cerrar la app' ($m + "`n`n" + 'Cerrar igual?') 'Cerrar' '#B3412F' 'Seguir en la app')) { $e.Cancel = $true; return }
+        # Lo de PowerShell corre dentro de la app: si se cerrara ya, se cortaria a la mitad.
+        # La ventana se saca de la vista (sin boton en la barra de tareas) y la app se cierra sola cuando termina.
+        if ($script:Proc.PSObject.Properties['Ps']) {
+            $e.Cancel = $true; $script:SalirAlTerminar = $true
+            $win.ShowInTaskbar = $false; $win.WindowState = 'Normal'; $win.Left = -32000; $win.Top = -32000
+        }
         return
     }
     if (-not (Confirmar-Salida)) { $e.Cancel = $true; return }
@@ -4600,6 +5539,7 @@ function Cambiar-Zoom([double]$nuevo) {
 }
 
 $ui.Marco.Add_SizeChanged({ Ajustar-Zoom })
+Scroll-Suave $ui.Scroll
 $win.Add_PreviewMouseWheel({
     param($o, $e)
     if (([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control) -eq 0) { return }
@@ -4641,6 +5581,8 @@ $win.Dispatcher.Add_UnhandledException({
 Ir-A 'Inicio'
 $ui.Estado.Text = ''
 $win.ShowDialog() | Out-Null
+# Si se estaba leyendo Windows de fondo, se corta (que no quede andando con la app cerrada)
+if ($script:Lectura) { try { [void]$script:Lectura.PS.BeginStop($null, $null) } catch { } }
 
 } catch {
     Mostrar-Error ('La app tuvo un error y se cerro:' + "`n`n" + $_.Exception.Message + "`n`n" + 'Linea: ' + $_.InvocationInfo.ScriptLineNumber)

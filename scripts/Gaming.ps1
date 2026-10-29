@@ -1,1641 +1,15 @@
-@echo off
-setlocal EnableExtensions
-set "XUCA_SELF=%~f0"
-rem ============================================================
-rem  ACTUALIZACIONES DESDE GITHUB
-rem  La version se controla con el archivo version.txt del repo.
-rem  Si el version.txt de GitHub es distinto al que tenes en tu PC,
-rem  al abrir sale el cartel amarillo de actualizacion.
-rem ============================================================
-set "XUCA_REPO=011Xuca/xuca-optimizer"
-set "XUCA_RAMA=main"
-set "XUCA_GH=scripts/optimizacion_gaming.bat"
-rem Si el archivo quedo con saltos de linea de Linux (LF), cmd salta a etiquetas equivocadas: se corrige solo y se vuelve a abrir.
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $f=$env:XUCA_SELF; $e=[Text.Encoding]::GetEncoding(28591); $t=$e.GetString([IO.File]::ReadAllBytes($f)); if ($t -match '(^|[^\r])\n') { [IO.File]::WriteAllText($f, ($t -replace '\r?\n', ([string][char]13 + [char]10)), $e); exit 9 }; exit 0 } catch { exit 0 }" >nul 2>&1
-if errorlevel 9 "%~f0" %*
-title Optimizacion para Gaming (Xuca)
-
-:: ============================================================
-::  OPTIMIZACION PARA GAMING
-::  Compatible con Windows 11 v. 25H2
-::  S = Si, N = No, R = Restaurar al valor por defecto de Windows.
-::  Cada cambio se verifica y queda anotado en la carpeta "logs".
-:: ============================================================
-
-set "ARCHIVO=%~f0"
-set "ACT="
-set "SPI="
-set "DX="
-set "LOG="
-set "BUILD=0"
-set "STAMP=sin-fecha"
-set "OPT_T=0"
-set "OPT_F=0"
-set "OPT_S=0"
-set "OPT_P=0"
-set "CHK="
-set "RAMGB=0"
-set "ESHDD=0"
-set "VGAVISO="
-set "VG_HECHO="
-set "VGT="
-set "QACT="
-set "REINICIO="
-rem Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
-set "REIN_IDS= tk mm notif gf mpo msi pca tr mi vbs md v4 ll nag nic dup "
-
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Pidiendo permisos de administrador...
-    powershell -NoProfile -Command "Start-Process -FilePath $env:XUCA_SELF -Verb RunAs"
-    exit /b
-)
-
-rem Buscar actualizacion en GitHub (no corre cuando lo usa la app ni cuando se abre con parametros).
-rem Si hay una version nueva muestra el cartel amarillo y pregunta. Si la bajas, se cierra esta ventana y se abre la nueva.
-if defined XUCA_AUTO goto upd_fin
-if not "%~1"=="" goto upd_fin
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$global:XucaUpd=0; try { $s=[IO.File]::ReadAllText($env:XUCA_SELF); $a='<#'+'XUCA-UPD'; $b='XUCA-UPD'+'#>'; $i=$s.IndexOf($a)+$a.Length; Invoke-Expression $s.Substring($i, $s.IndexOf($b)-$i) } catch { }; exit [int]$global:XucaUpd"
-if errorlevel 10 exit
-:upd_fin
-
-rem Desde la app ya vienen la build, la RAM, el disco y la fecha (XUCA_INFO): asi no se abre PowerShell solo para eso
-set "INFO="
-if defined XUCA_AUTO if defined XUCA_INFO set "INFO=%XUCA_INFO%"
-if defined INFO goto info_ok
-del /q "%TEMP%\xuca_info.txt" >nul 2>&1
-set "ACT=INFO"
-call :aplicar_ps
-if exist "%TEMP%\xuca_info.txt" set /p INFO=<"%TEMP%\xuca_info.txt"
-:info_ok
-set "PSMAL=0"
-if not defined INFO set "PSMAL=1"
-if defined INFO for /f "tokens=1-4" %%A in ("%INFO%") do (set "BUILD=%%A" & set "RAMGB=%%B" & set "ESHDD=%%C" & set "STAMP=%%D")
-if %BUILD% EQU 0 for /f "tokens=3" %%V in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v CurrentBuildNumber 2^>nul ^| findstr /i "CurrentBuildNumber"') do set "BUILD=%%V"
-if "%STAMP%"=="sin-fecha" set "STAMP=%date:/=-%_%time:~0,8%"
-set "STAMP=%STAMP::=-%"
-set "STAMP=%STAMP: =0%"
-
-set "ESC="
-set "C_OK="
-set "C_ERR="
-set "C_WARN="
-set "C_TIT="
-set "C_RST="
-if %BUILD% GEQ 17763 for /f %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
-if defined ESC set "C_OK=%ESC%[92m"
-if defined ESC set "C_ERR=%ESC%[91m"
-if defined ESC set "C_WARN=%ESC%[93m"
-if defined ESC set "C_TIT=%ESC%[96m"
-if defined ESC set "C_RST=%ESC%[0m"
-
-set "LOGDIR=%~dp0logs"
-if not exist "%LOGDIR%\" mkdir "%LOGDIR%" >nul 2>&1
-if not exist "%LOGDIR%\" set "LOGDIR=%TEMP%"
-set "LOG=%LOGDIR%\optimizacion_gaming_%STAMP%.txt"
-set "ACT=HEADER"
-call :aplicar_ps
-call :log "INFO" "Inicio de optimizacion_gaming.bat"
-if "%PSMAL%"=="1" call :log "ATENCION" "PowerShell no devolvio datos: puede estar bloqueado por el antivirus. Mira las lineas PS-ERROR"
-
-rem Desde la app no hace falta: la app ya revisa si tu Windows es original y lo muestra arriba
-set "ORIGMSG="
-if defined XUCA_AUTO goto orig_ok
-del /q "%TEMP%\xuca_orig.txt" >nul 2>&1
-set "ACT=ORIG_CHECK"
-call :aplicar_ps
-if exist "%TEMP%\xuca_orig.txt" set /p ORIGMSG=<"%TEMP%\xuca_orig.txt"
-:orig_ok
-if defined ORIGMSG set "ORIGMSG=%ORIGMSG:&= %"
-if defined ORIGMSG set "ORIGMSG=%ORIGMSG:|= %"
-if defined ORIGMSG set "ORIGMSG=%ORIGMSG:<= %"
-if defined ORIGMSG set "ORIGMSG=%ORIGMSG:>= %"
-
-cls
-echo OPTIMIZACION PARA GAMING - build detectado: %BUILD%
-if %BUILD% LSS 22000 echo Nota: esto esta pensado para Windows 11, en Windows 10 algunas opciones pueden no existir o fallar.
-if defined ORIGMSG (
-    echo.
-    echo %C_WARN%AVISO: esta PC no parece tener una version original o estandar de Windows.%C_RST%
-    echo %C_WARN%Motivo: %ORIGMSG%%C_RST%
-    echo %C_WARN%En versiones recortadas, pirateadas o modificadas ^(Tiny11, AtlasOS, ReviOS y similares^) varias opciones de este script pueden fallar o no aplicar.%C_RST%
-    call :log "ATENCION" "Posible Windows no original o version rara - %ORIGMSG%"
-)
-if "%PSMAL%"=="1" (
-    echo.
-    echo %C_ERR%AVISO: PowerShell no pudo ejecutar la parte avanzada del script en esta PC.%C_RST%
-    echo %C_ERR%Puede ser el antivirus bloqueandolo. Muchas opciones van a fallar: mira el log.%C_RST%
-)
-echo.
-echo Responde con S [Si], N [No] y, donde aparezca, R [Restaurar al valor por defecto].
-echo Cada cambio se verifica y queda anotado en: %LOG%
-echo.
-if not defined XUCA_AUTO pause
-
-echo.
-echo.
-echo %C_TIT%=== MOUSE ===%C_RST%
-
-echo.
-echo   Que hace: saca la aceleracion del mouse y el rastro, y deja la velocidad en el punto medio.
-echo   A favor: el mismo movimiento de mano siempre mueve lo mismo: mejor punteria.
-echo   En contra: en el escritorio el mouse puede sentirse distinto hasta que te acostumbras.
-set "QID=ms"
-set "Q=- Desea mouse competitivo? (Sin aceleracion ni rastro, velocidad media)"
-call :askR
-if errorlevel 3 goto ms_r
-if errorlevel 2 goto ms_fin
-call :opt_ini "Mouse competitivo"
-set "DIF=0"
-call :dif "HKCU\Control Panel\Mouse" "MouseSensitivity" "10" REG_SZ
-call :dif "HKCU\Control Panel\Mouse" "MouseSpeed" "0" REG_SZ
-call :dif "HKCU\Control Panel\Mouse" "MouseThreshold1" "0" REG_SZ
-call :dif "HKCU\Control Panel\Mouse" "MouseThreshold2" "0" REG_SZ
-if "%DIF%"=="0" goto ms_ya
-set "SPI=P:0x0071:10;M:0:0:0;U:0x0060:0;U:0x005D:0;P:0x1021:0;"
-set "ACT=SPI"
-call :aplicar_ps
-call :resps
-call :chk "HKCU\Control Panel\Mouse" "MouseSensitivity" "10"
-call :chk "HKCU\Control Panel\Mouse" "MouseSpeed" "0"
-call :chk "HKCU\Control Panel\Mouse" "MouseThreshold1" "0"
-call :chk "HKCU\Control Panel\Mouse" "MouseThreshold2" "0"
-call :opt_fin "Mouse en modo competitivo"
-goto ms_fin
-:ms_ya
-set /a OPT_S+=1
-call :opt_fin "Mouse en modo competitivo"
-goto ms_fin
-:ms_r
-call :opt_ini "Mouse competitivo (restaurar)"
-set "DIF=0"
-call :dif "HKCU\Control Panel\Mouse" "MouseSensitivity" "10" REG_SZ
-call :dif "HKCU\Control Panel\Mouse" "MouseSpeed" "1" REG_SZ
-call :dif "HKCU\Control Panel\Mouse" "MouseThreshold1" "6" REG_SZ
-call :dif "HKCU\Control Panel\Mouse" "MouseThreshold2" "10" REG_SZ
-if "%DIF%"=="0" goto ms_r_ya
-set "SPI=P:0x0071:10;M:6:10:1;U:0x0060:0;U:0x005D:0;P:0x1021:1;"
-set "ACT=SPI"
-call :aplicar_ps
-call :resps
-call :chk "HKCU\Control Panel\Mouse" "MouseSensitivity" "10"
-call :chk "HKCU\Control Panel\Mouse" "MouseSpeed" "1"
-call :chk "HKCU\Control Panel\Mouse" "MouseThreshold1" "6"
-call :chk "HKCU\Control Panel\Mouse" "MouseThreshold2" "10"
-call :opt_fin "Mouse restaurado a los valores de Windows"
-goto ms_fin
-:ms_r_ya
-set /a OPT_S+=1
-call :opt_fin "Mouse restaurado a los valores de Windows"
-:ms_fin
-
-echo.
-echo.
-echo %C_TIT%=== TECLADO ===%C_RST%
-
-echo.
-echo   Que hace: apaga los atajos de accesibilidad que se activan sin querer jugando: Shift 5 veces, Shift derecho 8 segundos, Bloq Num 5 segundos, Alt+Shift+Bloq Num ^(teclas del mouse^), Alt+Shift+Impr Pant ^(alto contraste^) y Win+Ctrl+Enter ^(Narrador^).
-echo   A favor: no te saca del juego en medio de una partida ni te cambia los colores de toda la pantalla.
-echo   En contra: si usas alguna de estas funciones por accesibilidad, la activas a mano desde Configuracion.
-set "QID=tk"
-set "Q=- Desea desactivar los atajos de accesibilidad? (Shift x5, Alt+Shift y otros ya no abren carteles en partida)"
-call :askR
-if errorlevel 3 goto tk_r
-if errorlevel 2 goto tk_fin
-call :opt_ini "Atajos de accesibilidad"
-call :reg "HKCU\Control Panel\Accessibility\StickyKeys" "Flags" REG_SZ 506
-call :reg "HKCU\Control Panel\Accessibility\Keyboard Response" "Flags" REG_SZ 122
-call :reg "HKCU\Control Panel\Accessibility\ToggleKeys" "Flags" REG_SZ 58
-call :reg "HKCU\Control Panel\Accessibility\MouseKeys" "Flags" REG_SZ 58
-call :reg "HKCU\Control Panel\Accessibility\HighContrast" "Flags" REG_SZ 122
-call :reg "HKCU\Software\Microsoft\Narrator\NoRoam" "WinEnterLaunchEnabled" REG_DWORD 0
-call :opt_fin "Atajos de accesibilidad desactivados"
-goto tk_fin
-:tk_r
-call :opt_ini "Atajos de accesibilidad (restaurar)"
-call :reg "HKCU\Control Panel\Accessibility\StickyKeys" "Flags" REG_SZ 510
-call :reg "HKCU\Control Panel\Accessibility\Keyboard Response" "Flags" REG_SZ 126
-call :reg "HKCU\Control Panel\Accessibility\ToggleKeys" "Flags" REG_SZ 62
-call :reg "HKCU\Control Panel\Accessibility\MouseKeys" "Flags" REG_SZ 62
-call :reg "HKCU\Control Panel\Accessibility\HighContrast" "Flags" REG_SZ 126
-call :reg "HKCU\Software\Microsoft\Narrator\NoRoam" "WinEnterLaunchEnabled" REG_DWORD 1
-call :opt_fin "Atajos de accesibilidad restaurados"
-:tk_fin
-
-echo.
-echo.
-echo %C_TIT%=== SONIDO ===%C_RST%
-
-echo.
-echo   Que hace: Windows deja de bajar el volumen del juego cuando hay una llamada, por ejemplo en Discord.
-echo   A favor: el juego suena siempre igual.
-echo   En contra: ninguno.
-set "QID=du"
-set "Q=- Desea que Windows no baje el volumen en llamadas? (Sonido, Comunicaciones: No hacer nada)"
-call :askR
-if errorlevel 3 goto du_r
-if errorlevel 2 goto du_fin
-call :opt_ini "Comunicaciones de Windows"
-call :reg "HKCU\Software\Microsoft\Multimedia\Audio" "UserDuckingPreference" REG_DWORD 3
-call :opt_fin "Windows ya no reduce el volumen de los demas sonidos (si no lo notas, reinicia)"
-goto du_fin
-:du_r
-call :opt_ini "Comunicaciones de Windows (restaurar)"
-call :reg "HKCU\Software\Microsoft\Multimedia\Audio" "UserDuckingPreference" REG_DWORD 1
-call :opt_fin "Windows vuelve a reducir un 80 por ciento el resto de los sonidos"
-:du_fin
-
-echo.
-echo.
-echo %C_TIT%=== CPU Y PRIORIDAD ===%C_RST%
-
-echo.
-echo   Que hace: el programador multimedia de Windows le da mas prioridad a los juegos. El limite de red queda en 10, el valor de Windows, porque sacarlo puede empeorar la latencia.
-echo   A favor: un poco mas de CPU para el juego y menos tirones.
-echo   En contra: el efecto es chico.
-set "QID=mm"
-set "Q=- Desea dar prioridad multimedia a los juegos? (Mas CPU para el juego; efecto chico)"
-call :askR
-if errorlevel 3 goto mm_r
-if errorlevel 2 goto mm_fin
-call :opt_ini "Prioridad multimedia (MMCSS)"
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "GPU Priority" REG_DWORD 8
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "Priority" REG_DWORD 6
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "Scheduling Category" REG_SZ High
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "SFIO Priority" REG_SZ High
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" "NetworkThrottlingIndex" REG_DWORD 10
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" "SystemResponsiveness" REG_DWORD 10
-call :opt_fin "Prioridad multimedia para juegos aplicada"
-goto mm_fin
-:mm_r
-call :opt_ini "Prioridad multimedia (restaurar)"
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "GPU Priority" REG_DWORD 8
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "Priority" REG_DWORD 2
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "Scheduling Category" REG_SZ Medium
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "SFIO Priority" REG_SZ Normal
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" "NetworkThrottlingIndex" REG_DWORD 10
-call :reg "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" "SystemResponsiveness" REG_DWORD 20
-call :opt_fin "Prioridad multimedia restaurada a los valores de Windows"
-:mm_fin
-
-echo.
-echo   Prioridad alta para tus juegos:
-echo   Que hace: cada vez que abris esos juegos, Windows les da mas tiempo de CPU que a lo que corre de fondo.
-echo   A favor: menos tirones cuando tenes cosas abiertas atras, como Discord, el navegador u OBS.
-echo   En contra: si el CPU llega al 100 por ciento, lo de fondo puede trabarse un poco (por ejemplo, el stream de OBS).
-echo   Se escribe el nombre del proceso de cada juego, sin el .exe, separados por comas.
-echo   El nombre lo ves con el juego abierto: Administrador de tareas, pestana Detalles.
-set "QID=pri"
-set "Q=- Desea dar prioridad alta a tus juegos? (Escribis sus procesos separados por comas; R se la quita a todos)"
-call :askR
-if errorlevel 3 goto pri_r
-if errorlevel 2 goto pri_fin
-call :opt_ini "Prioridad alta para juegos"
-if not defined XUCA_AUTO set "PRIOJ="
-if not defined XUCA_AUTO set /p "PRIOJ=  Procesos sin .exe, separados por comas: "
-set "ACT=PRIO_ON"
-call :aplicar_ps
-call :resps
-set "PRIOJ="
-call :opt_fin "Prioridad alta aplicada (cerra y abri el juego para que la tome)"
-goto pri_fin
-:pri_r
-call :opt_ini "Prioridad alta para juegos (restaurar)"
-set "ACT=PRIO_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Los juegos vuelven a la prioridad normal"
-:pri_fin
-
-echo.
-echo   Afinidad de CPU para tus juegos:
-echo   Se detecta solo tu procesador y se elige lo mejor para cada tipo:
-echo     - Intel con P-cores y E-cores: los juegos van a los P-cores, lo de fondo a los E-cores.
-echo     - AMD con dos bloques grandes, por ejemplo X3D: los juegos van al bloque con mas cache, lo de fondo al otro.
-echo     - Ryzen 1000, 2000 y 3000, con bloques chicos: Minecraft, Valorant y otros juegos livianos van a un solo bloque;
-echo       los pesados usan todos los nucleos para no perder FPS.
-echo     - Nucleos iguales: lo de fondo va al ultimo nucleo. Con 8 o mas nucleos el juego lo deja libre.
-echo   La lista de juegos se arma sola con los que tenes instalados, en cualquier disco: Steam, Epic Games, EA app, Battle.net,
-echo   Ubisoft Connect, Riot, Xbox / Microsoft Store, GOG, Rockstar y Minecraft Java. Tambien podes agregar otros a mano.
-echo   Lo de fondo solo se mueve mientras un juego esta abierto. Al cerrarlo, todo vuelve a usar todos los nucleos.
-echo   OBS, Visual Studio, Unreal, Godot, servidores Java, el audio de Windows y los antitrampas nunca se tocan.
-echo   Que hace: un programa chico en segundo plano pone tus juegos en los mejores nucleos y lleva Discord, Spotify y el navegador a otros.
-echo   A favor: lo de fondo no le roba nucleos al juego: frametimes mas parejos y menos tirones, sobre todo en Minecraft.
-echo   En contra: mientras jugas, lo de fondo anda un poco mas lento.
-echo     Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.
-if defined XUCA_AUTO goto afi_preg
-echo.
-set "ACT=AFI_CONSEJO"
-call :aplicar_ps
-:afi_preg
-set "QID=afi"
-set "Q=- Desea usar afinidad de CPU para tus juegos? (Juegos en los mejores nucleos y programas de fondo aparte; se detecta tu procesador)"
-call :askR
-if errorlevel 3 goto afi_r
-if errorlevel 2 goto afi_fin
-call :opt_ini "Afinidad de CPU para juegos"
-if not defined XUCA_AUTO set "AFIJ="
-if not defined XUCA_AUTO set "AFIF="
-if not defined XUCA_AUTO set "AFIAPP="
-set "AFIJT="
-set "AFIJX="
-set "AFIFT="
-set "AFIFX="
-echo.
-set "ACT=AFI_INFO"
-call :aplicar_ps
-if errorlevel 2 goto afi_aplicar
-if defined XUCA_AUTO goto afi_aplicar
-echo.
-echo   Para sacar o volver a poner uno, escribi su numero. Para agregar otro, escribi su proceso sin .exe
-echo   ^(lo ves con el juego abierto: Administrador de tareas, pestana Detalles^).
-set /p "AFIJT=  Numeros de juegos para marcar o desmarcar, separados por comas (Enter = dejar asi): "
-set /p "AFIJX=  Juegos nuevos para agregar, separados por comas (Enter = ninguno): "
-echo.
-set "ACT=AFI_INFO_F"
-call :aplicar_ps
-echo.
-set /p "AFIFT=  Numeros de programas para marcar o desmarcar, separados por comas (Enter = dejar asi): "
-set /p "AFIFX=  Programas nuevos para agregar, separados por comas (Enter = ninguno): "
-:afi_aplicar
-set "ACT=AFI_ON"
-call :aplicar_ps
-call :resps
-set "AFIJ="
-set "AFIF="
-set "AFIJT="
-set "AFIJX="
-set "AFIFT="
-set "AFIFX="
-call :opt_fin "Afinidad activa (si el juego ya estaba abierto, se aplica en unos segundos)"
-goto afi_fin
-:afi_r
-call :opt_ini "Afinidad de CPU (restaurar)"
-set "ACT=AFI_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Afinidad quitada: todo vuelve a usar todos los nucleos"
-:afi_fin
-echo.
-echo.
-echo %C_TIT%=== PLAN DE ENERGIA ===%C_RST%
-echo.
-echo %C_WARN%AVISO: el CPU deja de bajar frecuencia y voltaje: mas consumo y calor. Con undervolt, overclock, fuente o refrigeracion justas,%C_RST%
-echo %C_WARN%la PC puede colgarse o reiniciarse sola al abrir juegos. Si te pasa, elegi R.%C_RST%
-echo.
-echo   Que hace: activa el plan de energia Alto rendimiento.
-echo   A favor: el CPU responde mas rapido y no baja tanto la frecuencia.
-echo   En contra: mas consumo y calor, sobre todo en notebook.
-set "QID=pw"
-set "Q=- Desea usar el plan Alto rendimiento? (Mas consumo y calor en notebook)"
-call :askR
-if errorlevel 3 goto pw_r
-if errorlevel 2 goto pw_fin
-call :opt_ini "Plan de energia"
-powercfg /getactivescheme | find /i "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" >nul 2>&1
-if not errorlevel 1 goto pw_ya
-powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
-if errorlevel 1 (
-    powercfg -duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
-    powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
-)
-call :planactivo "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
-call :opt_fin "Plan Alto rendimiento activo"
-goto pw_fin
-:pw_ya
-set /a OPT_S+=1
-call :opt_fin "Plan Alto rendimiento activo"
-goto pw_fin
-:pw_r
-call :opt_ini "Plan de energia (restaurar)"
-powercfg /getactivescheme | find /i "381b4222-f694-41f0-9685-ff5bb260df2e" >nul 2>&1
-if not errorlevel 1 goto pw_r_ya
-powercfg -setactive 381b4222-f694-41f0-9685-ff5bb260df2e >nul 2>&1
-call :planactivo "381b4222-f694-41f0-9685-ff5bb260df2e"
-call :opt_fin "Plan Equilibrado activo"
-goto pw_fin
-:pw_r_ya
-set /a OPT_S+=1
-call :opt_fin "Plan Equilibrado activo"
-:pw_fin
-
-echo.
-echo   Que hace: solo con la notebook a bateria: el turbo se usa cuando hace falta, el procesador prioriza el ahorro de energia, baja la velocidad antes de prender los ventiladores y el ahorro de bateria de Windows se prende solo al 30 por ciento. Enchufada no cambia nada.
-echo   A favor: la bateria dura bastante mas y la notebook calienta y hace menos ruido fuera del cargador.
-echo   En contra: a bateria rinde un poco menos; para jugar, enchufala.
-set "QID=nb"
-set "Q=- Desea priorizar la bateria de la notebook? (Solo a bateria: turbo eficiente, ahorro de energia y ahorro de bateria al 30 por ciento)"
-call :askR
-if errorlevel 3 goto nb_r
-if errorlevel 2 goto nb_fin
-call :opt_ini "Bateria de la notebook"
-set "ACT=NB_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Bateria priorizada: turbo eficiente, ahorro de energia y ahorro de bateria al 30 por ciento (solo a bateria)"
-goto nb_fin
-:nb_r
-call :opt_ini "Bateria de la notebook (restaurar)"
-set "ACT=NB_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Bateria de la notebook: vuelven tus valores anteriores"
-:nb_fin
-
-echo.
-echo.
-echo %C_TIT%=== PROCESADOR ===%C_RST%
-echo.
-echo Que hace cada ajuste, solo cuando la PC esta enchufada:
-echo   - Nucleos siempre activos: Windows suele "dormir" nucleos que no usa y tarda un instante en despertarlos.
-echo     Con todos despiertos hay menos tirones cuando el juego pide mas CPU de golpe.
-echo   - Turbo al maximo: el procesador sube mas seguido y por mas tiempo por encima de su frecuencia base,
-echo     lo que da mas FPS cuando el juego lo necesita.
-echo   - Rendimiento al maximo: Windows prioriza la velocidad por sobre el ahorro de energia.
-echo   - Frecuencia minima en 0: en reposo el procesador puede bajar su velocidad para no calentarse de mas.
-echo     No limita el rendimiento cuando juegas.
-echo   - Frecuencia maxima en 100 y turbo agresivo: el procesador sube por encima de su base todo lo que puede.
-echo   - Subida rapida: cuando el juego pide mas CPU, la velocidad sube de golpe y no de a poco ^(en procesadores viejos^).
-echo   - Ventiladores primero: si se calienta, Windows acelera los ventiladores antes de bajarle la velocidad al procesador.
-echo   - Sin limitar programas de fondo: Windows deja de frenar los procesos en segundo plano para ahorrar energia.
-echo.
-echo %C_WARN%AVISO: a cambio hay un poco mas de consumo, calor y ruido de ventiladores, sobre todo en reposo.%C_RST%
-echo.
-echo   Que hace: deja todos los nucleos activos, el turbo al maximo y en modo agresivo, la subida de velocidad rapida y los ventiladores antes que bajar la velocidad, con la PC enchufada; ademas Windows deja de frenar los programas de fondo.
-echo   A favor: menos tirones cuando el juego pide mas CPU de golpe.
-echo   En contra: mas consumo, calor y ruido de ventiladores.
-set "QID=cpu"
-set "Q=- Desea activar el Modo Nitro del procesador? (Nucleos siempre despiertos, turbo y rendimiento al maximo, solo con corriente)"
-call :askR
-if errorlevel 3 goto cpu_r
-if errorlevel 2 goto cpu_fin
-call :opt_ini "Modo Nitro del procesador"
-set "ACT=CPU_ON"
-call :aplicar_ps
-call :resps
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" "PowerThrottlingOff" REG_DWORD 1
-call :opt_fin "Modo Nitro activo: nucleos 100, frecuencia 0 a 100, turbo 100 agresivo, subida rapida, ventiladores primero (con corriente) y sin limitar programas de fondo"
-goto cpu_fin
-:cpu_r
-call :opt_ini "Modo Nitro del procesador (restaurar)"
-set "ACT=CPU_OFF"
-call :aplicar_ps
-call :resps
-call :regdel "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" "PowerThrottlingOff"
-call :opt_fin "Procesador restaurado a tus valores anteriores"
-:cpu_fin
-
-echo.
-echo   Que hace: activa Baja latencia ^(Low Latency Profile^), una funcion oculta de Windows 11 que tambien se activa con ViVeTool y el ID 58989092: al abrir el Inicio, menus, la busqueda o apps, el procesador sube al maximo por 1 a 3 segundos.
-echo   A favor: el Inicio, los menus y las apps abren mas rapido, sobre todo en PCs de gama baja.
-echo   En contra: picos cortos de consumo y calor; Microsoft todavia la esta probando y en PCs potentes casi no se nota.
-set "QID=ll"
-set "Q=- Desea activar Baja latencia? (El CPU sube al maximo 1 a 3 segundos al abrir menus y apps; pide reiniciar)"
-call :askR
-if errorlevel 3 goto ll_r
-if errorlevel 2 goto ll_fin
-call :opt_ini "Baja latencia"
-set "ACT=LL_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Baja latencia activada (se aplica al reiniciar)"
-goto ll_fin
-:ll_r
-call :opt_ini "Baja latencia (restaurar)"
-set "ACT=LL_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Baja latencia vuelve a como la maneja Windows (se aplica al reiniciar)"
-:ll_fin
-
-echo.
-echo.
-echo %C_TIT%=== MODO JUEGO Y GAME BAR ===%C_RST%
-
-echo.
-echo   Que hace: activa el Modo Juego y evita que el boton Xbox del joystick abra la Game Bar.
-echo   A favor: Windows prioriza el juego y frena actualizaciones mientras jugas.
-echo   En contra: ninguno importante.
-set "QID=gm"
-set "Q=- Desea activar el Modo Juego? (Y evitar que el joystick abra la Game Bar)"
-call :askR
-if errorlevel 3 goto gm_r
-if errorlevel 2 goto gm_fin
-call :opt_ini "Modo Juego"
-call :reg "HKCU\Software\Microsoft\GameBar" "AutoGameModeEnabled" REG_DWORD 1
-call :reg "HKCU\Software\Microsoft\GameBar" "AllowAutoGameMode" REG_DWORD 1
-call :reg "HKCU\Software\Microsoft\GameBar" "UseNexusForGameBarEnabled" REG_DWORD 0
-call :reg "HKCU\Software\Microsoft\GameBar" "GamepadNexusChordEnabled" REG_DWORD 0
-call :opt_fin "Modo Juego activo y Game Bar sin atajo del joystick"
-goto gm_fin
-:gm_r
-call :opt_ini "Modo Juego (restaurar)"
-call :reg "HKCU\Software\Microsoft\GameBar" "AutoGameModeEnabled" REG_DWORD 1
-call :reg "HKCU\Software\Microsoft\GameBar" "AllowAutoGameMode" REG_DWORD 1
-call :reg "HKCU\Software\Microsoft\GameBar" "UseNexusForGameBarEnabled" REG_DWORD 1
-call :reg "HKCU\Software\Microsoft\GameBar" "GamepadNexusChordEnabled" REG_DWORD 1
-call :opt_fin "Modo Juego y Game Bar restaurados"
-:gm_fin
-
-echo.
-echo   Que hace: borra la app Xbox Game Bar y apaga sus grabaciones. En los Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D, 9950X3D) solo apaga las grabaciones: ahi la app hace falta.
-echo   A favor: menos procesos y nada grabando de fondo.
-echo   En contra: perdes las capturas y clips de Windows; podes usar NVIDIA, AMD u OBS.
-if defined XUCA_AUTO goto xb_preg
-echo.
-set "ACT=GB_INFO"
-call :aplicar_ps
-:xb_preg
-set "QID=xb"
-set "Q=- Desea borrar la app Xbox Game Bar? (No toca los servicios de Xbox que usan los juegos)"
-call :askR
-if errorlevel 3 goto xb_r
-if errorlevel 2 goto xb_fin
-call :opt_ini "Xbox Game Bar"
-set "ACT=GB_CHECK"
-call :aplicar_ps
-if errorlevel 10 goto xb_x3d
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" REG_DWORD 0
-call :reg "HKCU\System\GameConfigStore" "GameDVR_Enabled" REG_DWORD 0
-call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" "AllowGameDVR" REG_DWORD 0
-for %%P in (ms-gamingoverlay ms-gamebar ms-gamebarservices) do call :protocolo "%%P"
-set "ACT=GAMEBAR_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Xbox Game Bar borrada"
-goto xb_fin
-:xb_x3d
-rem Ryzen X3D de dos bloques: solo se apagan las grabaciones. Si una version anterior la habia bloqueado, se desbloquea.
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" REG_DWORD 0
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR" "HistoricalCaptureEnabled" REG_DWORD 0
-call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" "AllowGameDVR"
-for %%P in (ms-gamingoverlay ms-gamebar ms-gamebarservices) do call :protodel "%%P"
-call :opt_fin "Grabaciones de la Game Bar apagadas. La app no se borro: tu Ryzen X3D la usa para mandar los juegos al bloque con V-Cache"
-goto xb_fin
-:xb_r
-call :opt_ini "Xbox Game Bar (restaurar)"
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" REG_DWORD 1
-call :reg "HKCU\System\GameConfigStore" "GameDVR_Enabled" REG_DWORD 1
-call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" "AllowGameDVR"
-for %%P in (ms-gamingoverlay ms-gamebar ms-gamebarservices) do call :protodel "%%P"
-set "ACT=GAMEBAR_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Xbox Game Bar restaurada. Si no vuelve, instalala desde la Microsoft Store"
-:xb_fin
-
-echo.
-echo   Que hace: apaga los avisos emergentes y el Centro de notificaciones.
-echo   A favor: nada te tapa la pantalla en partida.
-echo   En contra: no ves avisos de apps como Discord o el correo.
-set "QID=notif"
-set "Q=- Desea desactivar las notificaciones de Windows? (Apaga los avisos emergentes y el Centro de notificaciones)"
-call :askR
-if errorlevel 3 goto notif_r
-if errorlevel 2 goto notif_fin
-call :opt_ini "Notificaciones de Windows"
-call :reg "HKCU\Software\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" REG_DWORD 1
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" REG_DWORD 0
-call :opt_fin "Notificaciones desactivadas (se aplica al reiniciar el Explorador o la PC)"
-goto notif_fin
-:notif_r
-call :opt_ini "Notificaciones de Windows (restaurar)"
-call :regdel "HKCU\Software\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter"
-call :regdel "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled"
-call :opt_fin "Notificaciones restauradas (se aplica al reiniciar el Explorador o la PC)"
-:notif_fin
-
-echo.
-echo   Que hace: apaga el Modo Xbox de Windows 11 (la pantalla completa tipo consola con la app de Xbox).
-echo   A favor: no se abre ni te lo ofrece Windows si no lo usas. No cambia los FPS: es solo por comodidad.
-echo   En contra: para usar la PC como consola con el control, lo tenes que volver a prender.
-set "QID=xm"
-set "Q=- Desea desactivar el Modo Xbox? (La pantalla completa tipo consola de Windows 11)"
-call :askR
-if errorlevel 3 goto xm_r
-if errorlevel 2 goto xm_fin
-call :opt_ini "Modo Xbox"
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration" "GamingHomeApp" REG_SZ ""
-call :opt_fin "Modo Xbox desactivado"
-goto xm_fin
-:xm_r
-call :opt_ini "Modo Xbox (restaurar)"
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration" "GamingHomeApp" REG_SZ "Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App"
-call :opt_fin "Modo Xbox restaurado"
-:xm_fin
-
-echo.
-echo.
-echo %C_TIT%=== GRAFICOS ===%C_RST%
-
-echo.
-echo   Que hace: usa el modo moderno para juegos en ventana y activa la GPU acelerada por hardware.
-echo   A favor: menos latencia en ventana y sin bordes, y hace falta para Frame Generation.
-echo   En contra: en algunas PCs viejas puede dar problemas; R lo vuelve atras.
-set "QID=gf"
-set "Q=- Desea optimizar juegos en ventana y GPU por hardware? (Menos latencia; pide reiniciar)"
-call :askR
-if errorlevel 3 goto gf_r
-if errorlevel 2 goto gf_fin
-call :opt_ini "Graficos"
-rem "Optimizaciones para juegos en ventana" existe solo en Windows 11 (22000 o mas). En Windows 10 se aplica solo la GPU por hardware.
-if %BUILD% GTR 0 if %BUILD% LSS 22000 goto gf_hags
-set "DX=SwapEffectUpgradeEnable=1;"
-set "ACT=DX"
-call :aplicar_ps
-call :resps
-:gf_hags
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" REG_DWORD 2
-call :opt_fin "Juegos en ventana optimizados y GPU acelerada por hardware (se aplica al reiniciar)"
-goto gf_fin
-:gf_r
-call :opt_ini "Graficos (restaurar)"
-set "DX=SwapEffectUpgradeEnable=DEL;"
-set "ACT=DX"
-call :aplicar_ps
-call :resps
-call :regdel "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode"
-call :opt_fin "Graficos restaurados (se aplica al reiniciar)"
-:gf_fin
-
-echo.
-echo   Que hace: desactiva MPO, una funcion de la pantalla que superpone imagenes.
-echo   A favor: arregla parpadeos, pantallas negras y cursor invisible en algunas PCs.
-echo   En contra: si no tenias esos problemas, puede subir un poco el uso de la GPU en ventana.
-set "QID=mpo"
-set "Q=- Desea desactivar MPO? (Evita parpadeos y cursor invisible; pide reiniciar)"
-call :askR
-if errorlevel 3 goto mpo_r
-if errorlevel 2 goto mpo_fin
-call :opt_ini "MPO"
-call :reg "HKLM\SOFTWARE\Microsoft\Windows\Dwm" "OverlayTestMode" REG_DWORD 5
-call :opt_fin "MPO desactivado (se aplica al reiniciar)"
-goto mpo_fin
-:mpo_r
-call :opt_ini "MPO (restaurar)"
-call :regdel "HKLM\SOFTWARE\Microsoft\Windows\Dwm" "OverlayTestMode"
-call :opt_fin "MPO restaurado (se aplica al reiniciar)"
-:mpo_fin
-
-echo.
-echo   Modo MSI en la placa de video y la de red:
-echo   Que hace: las placas le avisan al procesador con mensajes ^(MSI^) en vez de usar la linea compartida vieja.
-echo   A favor: un poco menos de latencia y de microtirones. Muchas placas nuevas ya vienen asi, en ese caso no cambia nada.
-echo   En contra: si el driver no lo soporta bien, al reiniciar podes ver pantalla negra o quedarte sin internet.
-echo   Si te pasa: entra en Modo seguro y corre el script con R, o usa un punto de restauracion.
-set "QID=msi"
-set "Q=- Desea activar el modo MSI en la placa de video y la de red? (Menos latencia; pide reiniciar)"
-call :askR
-if errorlevel 3 goto msi_r
-if errorlevel 2 goto msi_fin
-call :opt_ini "Modo MSI"
-set "ACT=MSI_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Modo MSI activado (se aplica al reiniciar)"
-goto msi_fin
-:msi_r
-call :opt_ini "Modo MSI (restaurar)"
-set "ACT=MSI_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Modo MSI vuelto a como estaba (se aplica al reiniciar)"
-:msi_fin
-
-echo.
-echo   Que hace: apaga el Asistente de compatibilidad de programas.
-echo   A favor: evita ventanas que te roban el foco en partida.
-echo   En contra: no te avisa de problemas con programas viejos.
-set "QID=pca"
-set "Q=- Desea desactivar el Asistente de compatibilidad (PcaSvc)? (Evita ventanas que roban el foco en partida; pide reiniciar)"
-call :askR
-if errorlevel 3 goto pca_r
-if errorlevel 2 goto pca_fin
-call :opt_ini "Asistente de compatibilidad (PcaSvc)"
-call :svc "PcaSvc" disabled 4
-call :svcparar "PcaSvc"
-call :opt_fin "Asistente de compatibilidad desactivado (se aplica al reiniciar)"
-goto pca_fin
-:pca_r
-call :opt_ini "Asistente de compatibilidad (restaurar)"
-call :svc "PcaSvc" delayed-auto 2
-call :svcarrancar "PcaSvc"
-call :opt_fin "Asistente de compatibilidad restaurado (inicio automatico retrasado)"
-:pca_fin
-
-echo.
-echo.
-echo %C_TIT%=== TEMPORIZADOR Y LATENCIA ===%C_RST%
-rem En Windows 10 (2004 o mas nuevo) cada programa tiene su propio temporizador: uno fijo para todo el sistema no llega a los juegos.
-if %BUILD% GTR 0 if %BUILD% LSS 22000 (
-    call :log "SALTADO" "Temporizador: el temporizador global fijo necesita Windows 11 - build %BUILD%"
-    goto tr_fin
-)
-echo.
-echo %C_WARN%AVISO: el temporizador al minimo mantiene el CPU mas activo: mas consumo y calor (en notebook, mas bateria).%C_RST%
-echo %C_WARN%Si la PC se cuelga o se reinicia sola en juegos, elegi R.%C_RST%
-echo.
-echo   Que hace: deja el temporizador de Windows fijo en 0.5 ms para todo el sistema.
-echo   A favor: menos latencia y tiempos de frame mas parejos.
-echo   En contra: mas consumo y calor, sobre todo en notebook.
-set "QID=tr"
-set "Q=- Desea fijar el temporizador del sistema en el minimo? (Siempre 0.5 ms; menos latencia y tirones)"
-call :askR
-if errorlevel 3 goto tr_r
-if errorlevel 2 goto tr_fin
-call :opt_ini "Temporizador al minimo"
-set "ACT=TIMER_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Temporizador fijo en el minimo para todo el sistema (se aplica del todo al reiniciar)"
-goto tr_fin
-:tr_r
-call :opt_ini "Temporizador (restaurar)"
-set "ACT=TIMER_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Temporizador restaurado al valor por defecto de Windows"
-:tr_fin
-
-echo.
-echo.
-echo %C_TIT%=== LIMPIEZA DE RAM (STANDBY LIST) ===%C_RST%
-
-echo.
-echo   Que hace: vacia la memoria en espera cuando quedan menos de 1024 MB libres.
-echo   A favor: evita tirones cuando la RAM se llena.
-echo   En contra: lo que estaba guardado en cache se vuelve a leer del disco.
-set "QID=ram"
-set "Q=- Desea activar la limpieza automatica de RAM en espera? (Vacia el cache al bajar de 1024 MB libres)"
-call :askR
-if errorlevel 3 goto ram_r
-if errorlevel 2 goto ram_fin
-call :opt_ini "Limpieza de RAM automatica"
-set "ACT=RAM_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Limpiador de RAM activado"
-goto ram_fin
-:ram_r
-call :opt_ini "Limpieza de RAM (restaurar)"
-set "ACT=RAM_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Limpiador de RAM desactivado"
-:ram_fin
-
-set "SMOK=1"
-if %RAMGB% LSS 16 set "SMOK=0"
-if "%ESHDD%"=="1" set "SMOK=0"
-if "%SMOK%"=="1" goto sm_ask
-echo.
-echo %C_WARN%  SysMain/Prefetch se omite: hace falta 16 GB de RAM o mas y Windows en SSD o NVMe.%C_RST%
-call :log "SALTADO" "SysMain/Prefetch: RAM %RAMGB% GB, disco HDD=%ESHDD%"
-goto sm_fin
-:sm_ask
-echo.
-echo   Que hace: apaga SysMain y Prefetch, que precargan programas en la RAM.
-echo   A favor: deja mas RAM libre para el juego.
-echo   En contra: algunos programas abren un poco mas lento la primera vez.
-set "QID=sm"
-set "Q=- Desea desactivar SysMain y Prefetch? (Deja la RAM libre; hace falta 16 GB y SSD)"
-call :askR
-if errorlevel 3 goto sm_r
-if errorlevel 2 goto sm_fin
-call :opt_ini "SysMain y Prefetch"
-call :svc "SysMain" disabled 4
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnablePrefetcher" REG_DWORD 0
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnableSuperfetch" REG_DWORD 0
-call :svcparar "SysMain"
-call :opt_fin "SysMain y Prefetch desactivados"
-goto sm_fin
-:sm_r
-call :opt_ini "SysMain y Prefetch (restaurar)"
-call :svc "SysMain" auto 2
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnablePrefetcher" REG_DWORD 3
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnableSuperfetch" REG_DWORD 3
-call :svcarrancar "SysMain"
-call :opt_fin "SysMain y Prefetch restaurados"
-:sm_fin
-
-echo.
-echo.
-echo %C_TIT%=== ENERGIA Y RED ===%C_RST%
-echo.
-echo %C_WARN%AVISO: Si tienes dispositivos inalambricos (Bluetooth o 2.4 GHz), desactivar esto puede bajar la bateria mas rapido si no tienen un driver dedicado que los apague.%C_RST%
-echo.
-echo   Que hace: apaga el ahorro de energia de USB, USB 3 y PCI Express, y con la PC enchufada los discos ya no se apagan solos.
-echo   A favor: evita microcortes del mouse y el teclado, y los tirones de unos segundos cuando un disco HDD se vuelve a encender.
-echo   En contra: en reposo la PC gasta unos vatios mas y la placa de video y los SSD NVMe pueden calentar un poco mas; en notebook la bateria dura menos (tambien con la tapa cerrada) y los discos HDD quedan girando mientras la PC esta prendida.
-set "QID=pe"
-set "Q=- Desea desactivar el ahorro de energia de USB, PCIe y discos? (Evita microcortes de mouse y teclado, y tirones de discos HDD)"
-call :askR
-if errorlevel 3 goto pe_r
-if errorlevel 2 goto pe_fin
-call :opt_ini "Ahorro de energia USB, PCIe y discos"
-set "ACT=PWR_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Ahorro de energia de USB, PCIe y discos desactivado"
-goto pe_fin
-:pe_r
-call :opt_ini "Ahorro de energia USB, PCIe y discos (restaurar)"
-set "ACT=PWR_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Ahorro de energia de USB, PCIe y discos restaurado"
-:pe_fin
-
-echo.
-echo %C_WARN%AVISO: En placas madre de baja calidad, desactivarlo puede provocar que se vaya el internet por exceso de carga de paquetes o problemas de saturacion.%C_RST%
-echo %C_WARN%AVISO: el cambio se aplica al reiniciar la PC.%C_RST%
-echo.
-echo   Que hace: apaga el ahorro de energia de la placa de red.
-echo   A favor: menos picos de ping.
-echo   En contra: un poco mas de consumo; en placas malas puede causar cortes, y R lo vuelve atras.
-set "QID=nic"
-set "Q=- Desea desactivar el ahorro de energia de la red? (Menos picos de ping; no toca Wake-on-LAN; pide reiniciar)"
-call :askR
-if errorlevel 3 goto nic_r
-if errorlevel 2 goto nic_fin
-call :opt_ini "Ahorro de energia de la placa de red"
-set "ACT=NIC_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Ahorro de energia de la placa de red desactivado (se aplica al reiniciar)"
-goto nic_fin
-:nic_r
-call :opt_ini "Ahorro de energia de la placa de red (restaurar)"
-set "ACT=NIC_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Ahorro de energia de la placa de red restaurado (se aplica al reiniciar)"
-:nic_fin
-echo.
-echo   Que hace: pone la placa de cable en 1 Gbps fijo en vez de automatico ^(Speed ^& Duplex = 1.0 Gbps Full Duplex^). Solo en placas de 2.5 Gbps o mas, como las Realtek 2.5GbE.
-echo   A favor: arregla los cortes de unos segundos en los que el cable se desconecta y se vuelve a conectar solo. Con internet de 1 Gbps o menos no perdes nada.
-echo   En contra: la placa no pasa de 1 Gbps: si tu internet es de mas de 1 Gbps, o pasas archivos entre PCs de tu casa, va mas lento; R lo vuelve atras.
-set "QID=dup"
-set "Q=- Desea limitar el cable a 1 Gbps? (Para placas de cable de 2.5 Gbps o mas que se cortan solas; pide reiniciar)"
-call :askR
-if errorlevel 3 goto dup_r
-if errorlevel 2 goto dup_fin
-call :opt_ini "Cable a 1 Gbps"
-set "ACT=DUP_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Cable limitado a 1 Gbps (se aplica al reiniciar)"
-goto dup_fin
-:dup_r
-call :opt_ini "Cable a 1 Gbps (restaurar)"
-set "ACT=DUP_R"
-call :aplicar_ps
-call :resps
-call :opt_fin "Velocidad del cable otra vez en automatico (se aplica al reiniciar)"
-:dup_fin
-echo.
-echo   Que hace: deja el WiFi y el cable conectados a la vez: Windows ya no corta el WiFi cuando enchufas el cable, el cable queda primero y el WiFi no se apaga por ahorro de energia.
-echo   A favor: el WiFi deja de desconectarse solo en las PCs que tienen WiFi y cable ^(como las placas madre con WiFi integrado^).
-echo   En contra: un poco mas de consumo, porque las dos conexiones quedan prendidas.
-set "QID=wf"
-set "Q=- Desea usar WiFi y cable a la vez sin cortes? (Para PCs con WiFi y cable; el cable queda primero)"
-call :askR
-if errorlevel 3 goto wf_r
-if errorlevel 2 goto wf_fin
-call :opt_ini "WiFi y cable a la vez"
-call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy" "fMinimizeConnections" REG_DWORD 0
-call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy" "fSoftDisconnectConnections" REG_DWORD 0
-set "ACT=WIFILAN_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "WiFi y cable a la vez activado"
-goto wf_fin
-:wf_r
-call :opt_ini "WiFi y cable a la vez (restaurar)"
-call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy" "fMinimizeConnections"
-call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy" "fSoftDisconnectConnections"
-set "ACT=WIFILAN_R"
-call :aplicar_ps
-call :resps
-call :opt_fin "WiFi y cable restaurados"
-:wf_fin
-echo.
-echo   Que hace: apaga el algoritmo de Nagle en tus conexiones de red: Windows manda cada paquete chico al instante en vez de juntarlos y esperar.
-echo   A favor: puede bajar unos milisegundos el ping en juegos que usan TCP, como Minecraft o juegos de MMO y estrategia.
-echo   En contra: la mayoria de los shooters modernos usan UDP y no notan cambio; con conexiones lentas puede subir un poco el uso de red.
-set "QID=nag"
-set "Q=- Desea desactivar el algoritmo de Nagle? (Paquetes de red sin espera; menos ping en juegos que usan TCP; pide reiniciar)"
-call :askR
-if errorlevel 3 goto nag_r
-if errorlevel 2 goto nag_fin
-call :opt_ini "Algoritmo de Nagle"
-set "ACT=NAGLE_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Algoritmo de Nagle desactivado (se aplica al reiniciar)"
-goto nag_fin
-:nag_r
-call :opt_ini "Algoritmo de Nagle (restaurar)"
-set "ACT=NAGLE_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "Algoritmo de Nagle restaurado a como viene en Windows (se aplica al reiniciar)"
-:nag_fin
-
-echo.
-echo.
-echo %C_TIT%=== DNS ===%C_RST%
-echo.
-echo   Prueba los DNS de Cloudflare, Google, Quad9 y OpenDNS desde tu conexion y deja el mas rapido.
-echo   Tarda unos segundos. Sirve para resolver nombres mas rapido ^(login, matchmaking, web^); no baja el ping dentro de la partida.
-echo %C_WARN%AVISO: la conexion puede cortarse unos segundos al aplicar.%C_RST%
-echo.
-echo   Que hace: mide Cloudflare, Google, Quad9 y OpenDNS desde tu conexion y pone el mas rapido.
-echo   A favor: logins, matchmaking y paginas web cargan mas rapido.
-echo   En contra: no baja el ping dentro de la partida.
-set "QID=dns"
-set "Q=- Desea cambiar el DNS por el mas rapido para tu conexion? (R vuelve al DNS que tenias)"
-call :askR
-if errorlevel 3 goto dns_r
-if errorlevel 2 goto dns_fin
-call :opt_ini "DNS mas rapido"
-set "ACT=DNS_ON"
-call :aplicar_ps
-call :resps
-call :opt_fin "DNS cambiado por el mas rapido (los tiempos de cada uno estan en el log)"
-goto dns_fin
-:dns_r
-call :opt_ini "DNS (restaurar)"
-set "ACT=DNS_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "DNS restaurado al que tenias antes"
-:dns_fin
-
-echo.
-echo.
-echo %C_TIT%=== SEGURIDAD (MAS RENDIMIENTO) ===%C_RST%
-echo %C_WARN%AVISO: si tenes Riot Vanguard, se borra solo si una opcion de seguridad cambia algo de verdad (si ya la tenias asi, no se toca); se desinstala del todo, se cierra Riot y lo volves a instalar abriendo el cliente de Riot.%C_RST%
-echo.
-echo   Que hace: apaga la Integridad de memoria de Windows.
-echo   A favor: mas FPS en algunos juegos.
-echo   En contra: menos proteccion contra drivers maliciosos.
-set "QID=mi"
-set "Q=- Desea desactivar la Integridad de memoria? (Mas rendimiento, menos proteccion contra drivers maliciosos)"
-call :askR
-if errorlevel 3 goto mi_r
-if errorlevel 2 goto mi_fin
-call :opt_ini "Integridad de memoria"
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" "Enabled" REG_DWORD 0
-call :opt_fin "Integridad de memoria desactivada (se aplica al reiniciar)"
-call :vanguard_check
-goto mi_fin
-:mi_r
-call :opt_ini "Integridad de memoria (restaurar)"
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" "Enabled" REG_DWORD 1
-call :opt_fin "Integridad de memoria restaurada (se aplica al reiniciar)"
-:mi_fin
-
-rem Desde la app, si no marcaste "Antivirus liviano" no se revisa el antivirus
-if defined XUCA_AUTO if /i not "%XR_avl%"=="S" if /i not "%XR_avl%"=="R" goto av_skip_avl
-set "ACT=AV_STATUS"
-call :aplicar_ps
-if errorlevel 10 (
-    call :log "OMITIDO" "Antivirus liviano: el antivirus esta desactivado"
-    echo %C_WARN%  Antivirus liviano se omite: el antivirus ya esta apagado.%C_RST%
-    goto av_skip_avl
-)
-
-echo.
-echo   Que hace: limita los analisis de Defender al 5 por ciento de CPU, con prioridad baja.
-echo   A favor: los analisis no te bajan FPS.
-echo   En contra: los analisis tardan mas en terminar.
-set "QID=avl"
-set "Q=- Desea que el antivirus use menos CPU? (Limita los analisis y sigue encendido)"
-call :askR
-if errorlevel 3 goto avl_r
-if errorlevel 2 goto avl_fin
-call :opt_ini "Antivirus liviano"
-set "ACT=AV_LIGHT"
-call :aplicar_ps
-call :resps
-call :opt_fin "Antivirus con menor impacto en la CPU"
-goto avl_fin
-
-:avl_r
-call :opt_ini "Antivirus liviano (restaurar)"
-set "ACT=AV_LIGHT_R"
-call :aplicar_ps
-call :resps
-call :opt_fin "Antivirus con su limite de CPU original"
-:avl_fin
-
-:av_skip_avl
-
-
-echo.
-echo   Que hace: apaga la seguridad basada en virtualizacion.
-echo   A favor: entre 5 y 10 por ciento mas de FPS.
-echo   En contra: deja de andar WSL, Docker, Hyper-V y las maquinas virtuales.
-set "QID=vbs"
-set "Q=- Desea desactivar VBS? (5 a 10 por ciento mas en juegos; rompe Docker, WSL y Hyper-V)"
-call :askR
-if errorlevel 3 goto vbs_r
-if errorlevel 2 goto vbs_fin
-call :opt_ini "VBS"
-echo   Revisando el estado de la virtualizacion, un momento...
-set "ACT=VBS_FEATS_OFF"
-call :aplicar_ps
-call :resps
-call :bcd hypervisorlaunchtype off
-call :bcd vsmlaunchtype off
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity" REG_DWORD 0
-call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" "EnableVirtualizationBasedSecurity" REG_DWORD 0
-call :reg "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" "LsaCfgFlags" REG_DWORD 0
-call :opt_fin "VBS desactivado (se aplica al reiniciar)"
-call :vanguard_check
-goto vbs_fin
-:vbs_r
-call :opt_ini "VBS (restaurar)"
-call :bcddel hypervisorlaunchtype
-call :bcddel vsmlaunchtype
-call :regdel "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity"
-call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" "EnableVirtualizationBasedSecurity"
-call :regdel "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" "LsaCfgFlags"
-call :opt_fin "VBS restaurado. Hyper-V y WSL, si los usabas, hay que volver a activarlos a mano"
-:vbs_fin
-
-echo.
-echo.
-echo %C_TIT%=== BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR ===%C_RST%
-echo.
-echo.
-echo   Que hace: apaga el indexado de archivos.
-echo   A favor: libera disco y CPU.
-echo   En contra: la busqueda del Inicio es mas lenta.
-set "QID=wsr"
-set "Q=- Desea desactivar Windows Search? (Sin indexado: libera disco y CPU, pero la busqueda del Inicio es mas lenta)"
-call :askR
-if errorlevel 3 goto wsr_r
-if errorlevel 2 goto wsr_fin
-call :opt_ini "Windows Search"
-call :svc "WSearch" disabled 4
-call :svcparar "WSearch"
-call :opt_fin "Windows Search desactivado"
-goto wsr_fin
-:wsr_r
-call :opt_ini "Windows Search (restaurar)"
-call :svc "WSearch" delayed-auto 2
-call :svcarrancar "WSearch"
-call :opt_fin "Windows Search restaurado"
-:wsr_fin
-
-echo.
-echo   Que hace: Windows deja de borrar archivos temporales por su cuenta.
-echo   A favor: no borra nada solo mientras jugas.
-echo   En contra: la limpieza la haces vos, por ejemplo con limpiar_cache.bat.
-set "QID=stg"
-set "Q=- Desea desactivar Storage Sense? (Windows deja de borrar archivos temporales por su cuenta)"
-call :askR
-if errorlevel 3 goto stg_r
-if errorlevel 2 goto stg_fin
-call :opt_ini "Storage Sense"
-call :reg "HKLM\SOFTWARE\Policies\Microsoft\Windows\StorageSense" "AllowStorageSenseGlobal" REG_DWORD 0
-call :opt_fin "Storage Sense desactivado"
-goto stg_fin
-:stg_r
-call :opt_ini "Storage Sense (restaurar)"
-call :regdel "HKLM\SOFTWARE\Policies\Microsoft\Windows\StorageSense" "AllowStorageSenseGlobal"
-call :opt_fin "Storage Sense restaurado"
-:stg_fin
-
-echo.
-echo   Que hace: muestra el final del nombre de los archivos, como .exe o .txt.
-echo   A favor: ves que tipo de archivo es y detectas virus disfrazados.
-echo   En contra: ninguno.
-set "QID=ext"
-set "Q=- Desea mostrar las extensiones de los archivos? (Ves .exe, .bat, .txt al final del nombre)"
-call :askR
-if errorlevel 3 goto ext_r
-if errorlevel 2 goto ext_fin
-call :opt_ini "Extensiones de archivo"
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "HideFileExt" REG_DWORD 0
-call :opt_fin "Extensiones de archivo visibles"
-goto ext_fin
-:ext_r
-call :opt_ini "Extensiones de archivo (restaurar)"
-call :reg "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "HideFileExt" REG_DWORD 1
-call :opt_fin "Extensiones de archivo ocultas de nuevo"
-:ext_fin
-
-echo.
-echo.
-echo %C_TIT%=== AJUSTES EXTRA ===%C_RST%
-echo.
-echo.
-echo   Que hace: baja de 400 a 0 ms la espera al abrir menus.
-echo   A favor: Windows se siente mas rapido.
-echo   En contra: ninguno.
-set "QID=md"
-set "Q=- Desea quitar el retraso de los menus? (Baja de 400 a 0 ms la espera al abrir menus; todo se siente mas rapido)"
-call :askR
-if errorlevel 3 goto md_r
-if errorlevel 2 goto md_fin
-call :opt_ini "Retraso de menus"
-call :reg "HKCU\Control Panel\Desktop" "MenuShowDelay" REG_SZ 0
-call :opt_fin "Retraso de menus quitado (se aplica al volver a iniciar sesion)"
-goto md_fin
-:md_r
-call :opt_ini "Retraso de menus (restaurar)"
-call :reg "HKCU\Control Panel\Desktop" "MenuShowDelay" REG_SZ 400
-call :opt_fin "Retraso de menus restaurado"
-:md_fin
-
-echo.
-echo   Que hace: Windows usa IPv4 antes que IPv6 cuando hay las dos.
-echo   A favor: puede bajar la latencia con algunos servidores.
-echo   En contra: casi ninguno; IPv6 sigue funcionando.
-set "QID=v4"
-set "Q=- Desea preferir IPv4 sobre IPv6? (Puede bajar la latencia en juegos; IPv6 sigue funcionando; pide reiniciar)"
-call :askR
-if errorlevel 3 goto v4_r
-if errorlevel 2 goto v4_fin
-call :opt_ini "IPv4 preferido"
-call :reg "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" "DisabledComponents" REG_DWORD 32
-call :opt_fin "IPv4 preferido (se aplica al reiniciar)"
-goto v4_fin
-:v4_r
-call :opt_ini "IPv4 preferido (restaurar)"
-call :regdel "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" "DisabledComponents"
-call :opt_fin "IPv4 restaurado (se aplica al reiniciar)"
-:v4_fin
-
-
-echo.
-echo.
-echo %C_TIT%=== RESUMEN ===%C_RST%
-set "NFALLO=0"
-set "NATEN=0"
-for /f %%N in ('find /c "[FALLO]" ^< "%LOG%"') do set "NFALLO=%%N"
-for /f %%N in ('find /c "[ATENCION]" ^< "%LOG%"') do set "NATEN=%%N"
-if %NFALLO% GTR 0 goto rsm_rojo
-echo %C_OK%  Cambios que fallaron: %NFALLO%  -  Opciones con problemas: %NATEN%%C_RST%
-goto rsm_fin
-:rsm_rojo
-echo %C_ERR%  Cambios que fallaron: %NFALLO%  -  Opciones con problemas: %NATEN%%C_RST%
-:rsm_fin
-echo   Log completo en: %LOG%
-if not defined XUCA_AUTO echo.
-if not defined XUCA_AUTO echo %C_TIT%Este proyecto es gratis. Si te sirvio y queres apoyarme: https://ko-fi.com/011xuca%C_RST%
-call :log "INFO" "Fin. Cambios fallidos: %NFALLO%, opciones con problemas: %NATEN%"
-
-if not defined VGAVISO goto sin_aviso_vg
-echo.
-echo %C_WARN%OBLIGATORIO REINICIAR ANTES DE PODER JUGAR VALORANT YA QUE DESACTIVASTE LOS AJUSTES DE SEGURIDAD.%C_RST%
-call :log "ATENCION" "Se desactivaron ajustes de seguridad: hay que reiniciar antes de jugar Valorant"
-:sin_aviso_vg
-
-set "Q=Desea abrir el log ahora?"
-call :askS
-if not errorlevel 2 start "" notepad "%LOG%"
-
-if defined VGAVISO set "REINICIO=1"
-if defined REINICIO goto fin_pide_reinicio
-echo.
-echo %C_OK%No hace falta reiniciar: los cambios ya quedaron aplicados.%C_RST%
-if not defined XUCA_AUTO pause
-exit /b
-:fin_pide_reinicio
-echo.
-echo %C_WARN%Hace falta reiniciar la PC para terminar de aplicar algunos cambios.%C_RST%
-set "Q=Desea reiniciar ahora?"
-call :askS
-if not errorlevel 2 (echo Reiniciando en 10 segundos... & shutdown /r /t 10) else (echo Reinicia cuando puedas. & if not defined XUCA_AUTO pause)
-exit /b
-
-:askR
-set "QACT=%QID%"
-if defined XUCA_AUTO goto ask_auto
-echo.
-choice /c SNR /n /m "%Q% [S] Si  [N] No  [R] Restaurar: "
-set "RESP=%errorlevel%"
-set "LET=N"
-if "%RESP%"=="1" set "LET=S"
-if "%RESP%"=="3" set "LET=R"
-call :log "PREG" "%LET% - %Q:~0,80%"
-exit /b %RESP%
-
-:askS
-set "QACT=%QID%"
-if defined XUCA_AUTO goto ask_auto_s
-echo.
-choice /c SN /n /m "%Q% [S] Si  [N] No: "
-set "RESP=%errorlevel%"
-set "LET=N"
-if "%RESP%"=="1" set "LET=S"
-call :log "PREG" "%LET% - %Q:~0,80%"
-exit /b %RESP%
-
-rem Modo app: la respuesta viene en la variable XR_<id de la opcion> (S, N o R). Sin respuesta = N.
-:ask_auto
-set "LET="
-if defined QID call set "LET=%%XR_%QID%%%"
-set "QID="
-if /i not "%LET%"=="S" if /i not "%LET%"=="R" set "LET=N"
-set "RESP=2"
-if /i "%LET%"=="S" set "RESP=1"
-if /i "%LET%"=="R" set "RESP=3"
-echo.
-echo %Q% [%LET%]
-call :log "PREG" "%LET% (app) - %Q:~0,80%"
-exit /b %RESP%
-
-:ask_auto_s
-set "LET="
-if defined QID call set "LET=%%XR_%QID%%%"
-set "QID="
-if /i not "%LET%"=="S" set "LET=N"
-set "RESP=2"
-if /i "%LET%"=="S" set "RESP=1"
-echo.
-echo %Q% [%LET%]
-call :log "PREG" "%LET% (app) - %Q:~0,80%"
-exit /b %RESP%
-
-:aplicar_ps
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $t=[IO.File]::ReadAllText($env:ARCHIVO); $m='#'+'#PS'+'-INICIO'; $i=$t.LastIndexOf($m); Invoke-Expression $t.Substring($i+$m.Length) } catch { if ($env:LOG) { Add-Content -LiteralPath $env:LOG -Value ('[{0}] [PS-ERROR] {1} - {2}' -f (Get-Date -Format 'HH:mm:ss'), $env:ACT, ($_.Exception.Message -replace '\s+',' ')) }; exit 1 }"
-set "PSRC=%errorlevel%"
-set "ACT="
-set "SPI="
-set "DX="
-set "CHK="
-exit /b %PSRC%
-
-:log
-if not defined LOG goto :eof
->>"%LOG%" echo [%time:~0,8%] [%~1] %~2
-goto :eof
-
-:vanguard_check
-rem VGT = cambios en la parte de seguridad de la opcion (si no se marco, cuentan todos los de la opcion).
-set "VGN=%OPT_T%"
-if defined VGT set "VGN=%VGT%"
-set "VGT="
-rem Si ya se borro (o no estaba instalado) en una opcion anterior, no se vuelve a revisar ni a mostrar nada.
-if defined VG_HECHO goto :eof
-rem Si la seguridad ya estaba apagada (no cambio nada, no aplica o se omitio), Vanguard no se toca.
-if %VGN% EQU 0 goto :eof
-set "VGAVISO=1"
-set "ACT=VANGUARD_CHECK"
-call :aplicar_ps
-if not errorlevel 10 (
-    set "VG_HECHO=1"
-    goto :eof
-)
-echo.
-echo   Borrando Riot Vanguard y sus restos, un momento...
-call :opt_ini "Riot Vanguard"
-set "ACT=VANGUARD_OFF"
-call :aplicar_ps
-call :resps
-call :opt_fin "Riot Vanguard borrado"
-set "VG_HECHO=1"
-goto :eof
-
-:rein_marca
-if not defined QACT goto :eof
-call set "RTMP=%%REIN_IDS: %QACT% =%%"
-if not "%RTMP%"=="%REIN_IDS%" set "REINICIO=1"
-goto :eof
-
-:opt_ini
-set "OPT_T=0"
-set "OPT_F=0"
-set "OPT_S=0"
-set "OPT_P=0"
-call :log "INFO" "== %~1"
-goto :eof
-
-:opt_fin
-if %OPT_T% GTR 0 call :rein_marca
-if %OPT_F% GTR 0 goto opt_mal
-if %OPT_P% GTR 0 goto opt_pend
-if %OPT_T% GTR 0 goto opt_ok
-if %OPT_S% GTR 0 goto opt_ya
-echo %C_WARN%  Omitido: no aplica en esta PC, no se cambio nada.%C_RST%
-call :log "OMITIDO" "%~1 - no aplica en esta PC"
-goto :eof
-:opt_ok
-echo %C_OK%  OK: %~1%C_RST%
-call :log "LISTO" "%~1 - %OPT_T% cambios hechos y verificados, %OPT_S% ya estaban"
-goto :eof
-:opt_ya
-echo %C_WARN%  Omitido: ya estaba asi, no se cambio nada.%C_RST%
-call :log "LISTO" "%~1 - ya estaba todo aplicado"
-goto :eof
-:opt_pend
-echo %C_WARN%  Pendiente: %~1%C_RST%
-call :log "PENDIENTE" "%~1"
-goto :eof
-:opt_mal
-echo %C_ERR%  ERROR: %~1 - fallaron %OPT_F% de %OPT_T% cambios, mira el log.%C_RST%
-call :log "ATENCION" "%~1 - fallaron %OPT_F% de %OPT_T% cambios"
-goto :eof
-
-:res
-if errorlevel 1 goto res_mal
-set /a OPT_T+=1
-call :log "OK" "%~1"
-goto :eof
-:res_mal
-set /a OPT_T+=1
-set /a OPT_F+=1
-call :log "FALLO" "%~1"
-goto :eof
-
-:planactivo
-powercfg /getactivescheme | find /i "%~1" >nul 2>&1
-call :res "plan de energia activo %~1"
-goto :eof
-
-:resps
-if errorlevel 6 goto resps_pend
-if errorlevel 5 goto resps_ya
-if errorlevel 2 goto resps_na
-if errorlevel 1 goto resps_mal
-set /a OPT_T+=1
-goto :eof
-:resps_pend
-set /a OPT_P+=1
-call :log "PENDIENTE" "queda un paso para despues"
-goto :eof
-:resps_ya
-set /a OPT_S+=1
-call :log "OK" "ya estaba asi, no se toco nada"
-goto :eof
-:resps_na
-call :log "OMITIDO" "esta parte no aplica en esta PC"
-goto :eof
-:resps_mal
-set /a OPT_T+=1
-set /a OPT_F+=1
-goto :eof
-
-:leer
-set "LINE="
-set "REST="
-set "VVAL="
-set "VTIPO="
-for /f "delims=" %%L in ('reg query "%~1" /v "%~2" 2^>nul ^| findstr /c:"REG_"') do set "LINE=%%L"
-if not defined LINE goto :eof
-if "%LINE:REG_DWORD=%"=="%LINE%" goto leer_sz
-set "VTIPO=REG_DWORD"
-set "REST=%LINE:*REG_DWORD=%"
-goto leer_fin
-:leer_sz
-set "VTIPO=REG_SZ"
-set "REST=%LINE:*REG_SZ=%"
-:leer_fin
-for /f "tokens=* delims= " %%V in ("%REST%") do set "VVAL=%%V"
-goto :eof
-
-:comparar
-set "IGUAL=0"
-if not defined VTIPO goto :eof
-if not "%~2"=="" if /i not "%VTIPO%"=="%~2" goto :eof
-if /i not "%VTIPO%"=="REG_DWORD" goto cmp_sz
-set "VA=x"
-set "VB=y"
-set /a "VA=%VVAL%" 2>nul
-set /a "VB=%~1" 2>nul
-if "%VA%"=="%VB%" set "IGUAL=1"
-goto :eof
-:cmp_sz
-if /i "%VVAL%"=="%~1" set "IGUAL=1"
-goto :eof
-
-:dif
-call :leer "%~1" "%~2"
-call :comparar "%~3" %~4
-if "%IGUAL%"=="0" set "DIF=1"
-goto :eof
-
-:reg
-call :leer "%~1" "%~2"
-call :comparar "%~4" %~3
-if "%IGUAL%"=="1" goto reg_ya
-set /a OPT_T+=1
-reg add "%~1" /v "%~2" /t %~3 /d "%~4" /f >nul 2>"%TEMP%\xuca_err.txt"
-if not errorlevel 1 goto reg_ok
-set /a OPT_F+=1
-call :motivo
-call :log "FALLO" "no se pudo escribir %~1 %~2 - %ERRMSG%"
-goto :eof
-:reg_ok
-call :verif "%~1" "%~2" "%~4"
-goto :eof
-:reg_ya
-set /a OPT_S+=1
-call :log "OK" "ya estaba %~1 %~2 = %~4"
-goto :eof
-
-:motivo
-set "ERRMSG=sin detalle"
-if exist "%TEMP%\xuca_err.txt" set /p ERRMSG=<"%TEMP%\xuca_err.txt"
-set "ERRMSG=%ERRMSG:&= %"
-set "ERRMSG=%ERRMSG:|= %"
-set "ERRMSG=%ERRMSG:<= %"
-set "ERRMSG=%ERRMSG:>= %"
-goto :eof
-
-:regdel
-reg query "%~1" /v "%~2" >nul 2>&1
-if errorlevel 1 goto regdel_ya
-set /a OPT_T+=1
-reg delete "%~1" /v "%~2" /f >nul 2>&1
-reg query "%~1" /v "%~2" >nul 2>&1
-if errorlevel 1 (
-    call :log "OK" "borrado %~1 %~2"
-) else (
-    set /a OPT_F+=1
-    call :log "FALLO" "no se pudo borrar %~1 %~2"
-)
-goto :eof
-:regdel_ya
-set /a OPT_S+=1
-call :log "OK" "ya no existia %~1 %~2"
-goto :eof
-
-:chk
-set /a OPT_T+=1
-call :verif "%~1" "%~2" "%~3"
-goto :eof
-
-:verif
-call :leer "%~1" "%~2"
-if not defined VTIPO goto verif_nolee
-call :comparar "%~3"
-if "%IGUAL%"=="1" goto verif_ok
-set /a OPT_F+=1
-call :log "FALLO" "valor distinto en %~1 %~2 - esperado %~3 y quedo %VVAL%"
-goto :eof
-:verif_nolee
-set /a OPT_F+=1
-call :log "FALLO" "no se pudo leer %~1 %~2"
-goto :eof
-:verif_ok
-call :log "OK" "%~1 %~2 = %~3"
-goto :eof
-
-:svc
-reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" >nul 2>&1
-if errorlevel 1 (
-    call :log "OMITIDO" "el servicio %~1 no existe en esta PC"
-    goto :eof
-)
-call :leer "HKLM\SYSTEM\CurrentControlSet\Services\%~1" "Start"
-call :comparar "%~3" REG_DWORD
-if "%IGUAL%"=="1" goto svc_ya
-sc config "%~1" start= %~2 >nul 2>&1
-set /a OPT_T+=1
-call :verif "HKLM\SYSTEM\CurrentControlSet\Services\%~1" "Start" "%~3"
-goto :eof
-:svc_ya
-set /a OPT_S+=1
-call :log "OK" "el servicio %~1 ya estaba con inicio %~2"
-goto :eof
-
-:svcparar
-sc query "%~1" 2>nul | find "RUNNING" >nul 2>&1
-if errorlevel 1 goto :eof
-sc stop "%~1" >nul 2>&1
-call :log "INFO" "servicio %~1 detenido"
-goto :eof
-
-:svcarrancar
-sc query "%~1" 2>nul | find "STOPPED" >nul 2>&1
-if errorlevel 1 goto :eof
-sc start "%~1" >nul 2>&1
-call :log "INFO" "servicio %~1 iniciado"
-goto :eof
-
-:tarea
-schtasks /query /tn "%~1" >nul 2>&1
-if errorlevel 1 (
-    call :log "OMITIDO" "la tarea no existe %~1"
-    goto :eof
-)
-set "TDIS=0"
-schtasks /query /tn "%~1" /xml 2>nul | find /i "<Enabled>false</Enabled>" >nul 2>&1 && set "TDIS=1"
-if /i "%~2"=="disable" if "%TDIS%"=="1" goto tarea_ya
-if /i "%~2"=="enable" if "%TDIS%"=="0" goto tarea_ya
-schtasks /change /tn "%~1" /%~2 >nul 2>&1
-call :res "tarea %~1 - %~2"
-goto :eof
-:tarea_ya
-set /a OPT_S+=1
-call :log "OK" "la tarea ya estaba en %~2: %~1"
-goto :eof
-
-:bcd
-bcdedit /enum {current} 2>nul | findstr /i /r /c:"^%~1 *%~2 *$" >nul 2>&1
-if not errorlevel 1 goto bcd_ya
-bcdedit /set %~1 %~2 >nul 2>&1
-bcdedit /enum {current} 2>nul | findstr /i /r /c:"^%~1 *%~2 *$" >nul 2>&1
-call :res "bcdedit %~1 %~2"
-goto :eof
-:bcd_ya
-set /a OPT_S+=1
-call :log "OK" "bcdedit %~1 ya estaba en %~2"
-goto :eof
-
-:bcddel
-bcdedit /enum {current} 2>nul | findstr /i /r /c:"^%~1 " >nul 2>&1
-if errorlevel 1 goto bcddel_ya
-bcdedit /deletevalue %~1 >nul 2>&1
-bcdedit /enum {current} 2>nul | findstr /i /r /c:"^%~1 " >nul 2>&1
-if errorlevel 1 (
-    set /a OPT_T+=1
-    call :log "OK" "bcdedit %~1 quitado"
-) else (
-    set /a OPT_T+=1
-    set /a OPT_F+=1
-    call :log "FALLO" "bcdedit %~1 sigue puesto"
-)
-goto :eof
-:bcddel_ya
-set /a OPT_S+=1
-call :log "OK" "bcdedit %~1 ya no estaba puesto"
-goto :eof
-
-:protocolo
-reg query "HKCR\%~1\shell\open\command" /ve 2>nul | find /i "systray.exe" >nul 2>&1
-if not errorlevel 1 goto proto_ya
-reg add "HKCR\%~1" /ve /d "URL:%~1" /f >nul 2>&1
-call :res "protocolo %~1 - valor"
-reg add "HKCR\%~1" /v "URL Protocol" /d "" /f >nul 2>&1
-call :res "protocolo %~1 - URL Protocol"
-reg add "HKCR\%~1\shell\open\command" /ve /d "%SystemRoot%\System32\systray.exe" /f >nul 2>&1
-call :res "protocolo %~1 - comando"
-goto :eof
-:proto_ya
-set /a OPT_S+=1
-call :log "OK" "el protocolo %~1 ya estaba redirigido"
-goto :eof
-
-:protodel
-reg query "HKCR\%~1" >nul 2>&1
-if errorlevel 1 goto protodel_ya
-set /a OPT_T+=1
-reg delete "HKCR\%~1" /f >nul 2>&1
-reg query "HKCR\%~1" >nul 2>&1
-if errorlevel 1 (
-    call :log "OK" "protocolo %~1 borrado"
-) else (
-    set /a OPT_F+=1
-    call :log "FALLO" "no se pudo borrar el protocolo %~1"
-)
-goto :eof
-:protodel_ya
-set /a OPT_S+=1
-call :log "OK" "el protocolo %~1 ya no existia"
-goto :eof
-
-exit /b
-
-##PS-INICIO
-$ErrorActionPreference = 'SilentlyContinue'
-$code = 0
-$chk = ($env:CHK -eq '1')
-
-function Log($tag, $msg) {
-    if ($env:LOG) { Add-Content -LiteralPath $env:LOG -Value ('[{0}] [{1}] {2}' -f (Get-Date -Format 'HH:mm:ss'), $tag, $msg) }
-}
-function Say($msg, $color) {
-    if ($color) { Write-Host $msg -ForegroundColor $color } else { Write-Host $msg }
-}
-# La carpeta de los programas que corren como SYSTEM: duenio Administradores, solo admins y SYSTEM pueden escribir.
-# Si la carpeta la habia creado un usuario comun, asi ya no puede cambiar los .exe ni los permisos.
-function Proteger-Carpeta([string]$d) {
-    if (-not (Test-Path -LiteralPath $d)) { New-Item -Path $d -ItemType Directory -Force | Out-Null }
-    & icacls.exe $d /setowner '*S-1-5-32-544' /T /C /Q 2>&1 | Out-Null
-    & icacls.exe $d /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' /C /Q 2>&1 | Out-Null
-    if (@(Get-ChildItem -LiteralPath $d -Force -ErrorAction SilentlyContinue).Count -gt 0) { & icacls.exe (Join-Path $d '*') /reset /T /C /Q 2>&1 | Out-Null }
-}
-
-function Get-FeatMap {
-    $m = @{}
-    foreach ($f in @(Get-WindowsOptionalFeature -Online)) { $m[[string]$f.FeatureName] = [string]$f.State }
-    return $m
-}
-
-function Test-AvOff {
-    $svc = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
-    if ((-not $svc) -or ($svc.Status -ne 'Running')) { return $true }
-    $s = Get-MpComputerStatus
-    $m = Get-MpPreference
-    return (($s.RealTimeProtectionEnabled -eq $false) -and ($s.BehaviorMonitorEnabled -eq $false) -and ($s.IoavProtectionEnabled -eq $false) -and ($s.OnAccessProtectionEnabled -eq $false) -and ($m.MAPSReporting -eq 0) -and ($m.EnableNetworkProtection -eq 0) -and ($m.EnableControlledFolderAccess -eq 0) -and ($m.PUAProtection -eq 0))
-}
+# ============================================================
+#  OPTIMIZACION PARA GAMING
+#  Compatible con Windows 11 v. 25H2 (y Windows 10, salvo lo que avisa cada opcion).
+#  La app XucaOP.ps1 lee de aca la lista de opciones ($ListaOpciones) y las corre en un hilo aparte,
+#  junto con Comun.ps1: S = Si, R = Restaurar al valor por defecto de Windows (o al que tenias), N = no se toca.
+#  Cada cambio se verifica y queda anotado en la carpeta "logs".
+#  Este archivo solo define cosas: cargarlo no cambia nada en la PC.
+# ============================================================
+
+# Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
+$ReinGaming = @('tk', 'mm', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'mi', 'vbs', 'md', 'v4', 'll', 'nag', 'nic', 'dup')
+$GameBarProtocolos = @('ms-gamingoverlay', 'ms-gamebar', 'ms-gamebarservices')
 
 $dnsCand = [ordered]@{
     'Cloudflare' = @('1.1.1.1', '1.0.0.1')
@@ -1666,57 +40,7 @@ function Afi-Nombres([string]$txt) {
     }
     return @($l | Sort-Object -Unique)
 }
-function Afi-Config {
-    $c = @{}
-    $f = Join-Path $env:ProgramData 'XucaScripts\afinidad.txt'
-    if (Test-Path -LiteralPath $f) { foreach ($l in @(Get-Content -LiteralPath $f)) { $i = $l.IndexOf('='); if ($i -gt 0) { $c[$l.Substring(0, $i)] = $l.Substring($i + 1) } } }
-    return $c
-}
-# Lo que elegiste la vez anterior ('juegos' o 'apps'); $null si nunca se aplico (se usan todos los predeterminados).
-function Afi-Actual([string]$clave) {
-    $c = Afi-Config
-    if (-not $c.ContainsKey('apps')) { return $null }
-    if ($clave -eq 'juegos') { $t = ([string]$c['juegos']) + ',' + ([string]$c['livianos']) } else { $t = [string]$c['apps'] }
-    return , @($t -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-}
-# Arma la lista para elegir: el catalogo y, al final, los que agregaste vos. Marcado = elegido.
-function Afi-Items([string]$cat, $actual, $forzar) {
-    $items = @()
-    foreach ($e in ($cat -split ';')) {
-        $i = $e.IndexOf('='); if ($i -lt 1) { continue }
-        $pr = @($e.Substring(0, $i) -split '\|' | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ })
-        $items += [pscustomobject]@{ Procs = $pr; Nombre = $e.Substring($i + 1).Trim(); Marcado = $true }
-    }
-    if ($null -ne $actual) {
-        # Marcado = estaba en tu eleccion anterior, o es un juego de Steam nuevo ($forzar)
-        foreach ($it in $items) { $it.Marcado = (@($it.Procs | Where-Object { ($actual -contains $_) -or (@($forzar) -contains $_) }).Count -gt 0) }
-        $conocidos = @($items | ForEach-Object { $_.Procs })
-        foreach ($pr in $actual) {
-            if ($conocidos -notcontains $pr) {
-                $nm = Juego-Nombre $pr; if (-not $nm) { $nm = $pr }
-                $items += [pscustomobject]@{ Procs = @($pr); Nombre = $nm; Marcado = $true }
-            }
-        }
-    }
-    return , $items
-}
-function Afi-MostrarItems($items, [string]$titulo) {
-    Say ('  ' + $titulo + '  [X] = elegido') 'White'
-    for ($i = 0; $i -lt $items.Count; $i++) {
-        $m = ' '; if ($items[$i].Marcado) { $m = 'X' }
-        Say ('   {0,2}. [{1}] {2,-32} {3}' -f ($i + 1), $m, $items[$i].Nombre, ('(' + ($items[$i].Procs -join ', ') + ')')) $null
-    }
-}
-# Aplica los numeros que escribiste (marca o desmarca cada uno) y suma los procesos nuevos.
-function Afi-Elegir([string]$cat, [string]$clave, [string]$cambios, [string]$extra) {
-    $items = Afi-Items $cat (Afi-Actual $clave) $(if ($clave -eq 'juegos') { Afi-JuegosNuevos } else { $null })
-    foreach ($t in ([string]$cambios -split '[,;\s]+')) {
-        $k = 0
-        if ([int]::TryParse($t, [ref]$k) -and ($k -ge 1) -and ($k -le $items.Count)) { $items[$k - 1].Marcado = -not $items[$k - 1].Marcado }
-    }
-    $sel = @($items | Where-Object { $_.Marcado } | ForEach-Object { $_.Procs })
-    return (($sel -join ',') + ',' + $extra)
-}
+
 # >>> XUCA-PROGRAMAS (la app XucaOP copia todo lo que esta entre estas dos marcas para saber si el programa instalado es el de esta version)
 # Codigo de los programitas que se instalan en ProgramData\XucaScripts (temporizador, limpiador de RAM y afinidad).
 # Al instalarlos se guarda al lado un .ver con la huella del codigo. Si una version nueva del script cambia el codigo,
@@ -1995,13 +319,38 @@ function Juego-Nombre([string]$proc) {
     return $n
 }
 
-# La raiz de cada disco de la PC (internos y externos)
+# La raiz de cada disco de la PC (internos y externos). Se mira una vez por busqueda (con discos HDD, IsReady puede tardar).
 function Juegos-Discos {
+    if ($null -ne $global:XJDiscos) { return $global:XJDiscos }
+    $l = New-Object System.Collections.Generic.List[string]
     try {
         foreach ($dv in [IO.DriveInfo]::GetDrives()) {
-            try { if ($dv.IsReady -and (([string]$dv.DriveType -eq 'Fixed') -or ([string]$dv.DriveType -eq 'Removable'))) { $dv.RootDirectory.FullName } } catch { }
+            try { if ($dv.IsReady -and (([string]$dv.DriveType -eq 'Fixed') -or ([string]$dv.DriveType -eq 'Removable'))) { $l.Add($dv.RootDirectory.FullName) } } catch { }
         }
     } catch { }
+    $global:XJDiscos = $l.ToArray()
+    return $global:XJDiscos
+}
+
+# Las subclaves de una clave del registro, cada una con sus valores y PSChildName (su nombre).
+# Lee el registro directo: Get-ChildItem + Get-ItemProperty tardaban mucho con cientos de programas instalados.
+function Juegos-RegSub([string]$ruta) {
+    $hive = $(if ($ruta -like 'HKCU:*') { [Microsoft.Win32.Registry]::CurrentUser } else { [Microsoft.Win32.Registry]::LocalMachine })
+    $k = $null
+    try { $k = $hive.OpenSubKey(($ruta -replace '^HK(LM|CU):\\', '')) } catch { }
+    if (-not $k) { return }
+    try {
+        foreach ($n in $k.GetSubKeyNames()) {
+            $sk = $null
+            try { $sk = $k.OpenSubKey($n) } catch { }
+            if (-not $sk) { continue }
+            try {
+                $v = @{ PSChildName = $n }
+                foreach ($vn in $sk.GetValueNames()) { if ($vn -and ($vn -ne 'PSChildName')) { $v[$vn] = $sk.GetValue($vn) } }
+                [pscustomobject]$v
+            } catch { } finally { $sk.Close() }
+        }
+    } finally { $k.Close() }
 }
 
 # Las subcarpetas de unas rutas fijas, probadas en cada disco (por ejemplo "EA Games" -> D:\EA Games\<juego>)
@@ -2077,11 +426,8 @@ function Juego-Exe([string]$dir, $pistas, [string]$preferido) {
 # Programas instalados (lo que sale en "Agregar o quitar programas"), para EA, Battle.net, Ubisoft, Riot y Rockstar
 function Juegos-Desinstalar {
     foreach ($b in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall') {
-        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
-            try {
-                $p = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop
-                [pscustomobject]@{ Id = [string]$k.PSChildName; Nombre = [string]$p.DisplayName; Editor = [string]$p.Publisher; Dir = ([string]$p.InstallLocation).Trim().Trim('"') }
-            } catch { }
+        foreach ($p in @(Juegos-RegSub $b)) {
+            try { [pscustomobject]@{ Id = [string]$p.PSChildName; Nombre = [string]$p.DisplayName; Editor = [string]$p.Publisher; Dir = ([string]$p.InstallLocation).Trim().Trim('"') } } catch { }
         }
     }
 }
@@ -2093,6 +439,7 @@ function Juegos-Detectados {
     $noJuego = '(?i)soundtrack|redistributable|dedicated server|\bsdk\b|steamworks|proton|steam linux runtime|steamvr|wallpaper engine|lossless scaling|blender|aseprite|krita|soundpad|\bobs\b|vtube studio|voicemod|rpg maker|gamemaker|3dmark|benchmark|launcher|battle\.net|^ea app|^ea$|^origin$|ea desktop|ea core|ubisoft connect|^uplay|riot client|vanguard|social club|anti-?cheat|unreal engine|epic online services|directx|visual c\+\+|\.net |microsoft edge|webview|gog galaxy|^xbox$|gaming services|game bar'
     $procNo = '^(blender|resolve|obs(32|64)?|code|devenv|java|godot.*|unrealeditor.*|losslessscaling|aseprite|krita|soundpad|wallpaper(32|64)|steam.*|vtube studio|voicemod|explorer|cmd|powershell|epicgameslauncher|eadesktop|ealauncher|origin|battle\.net|agent|upc|ubisoftconnect|uplay|riotclient.*|rockstarservice|playgtav|socialclub.*|galaxyclient|gamebar|xboxpcapp)$'
     $fuera = @('228980', '1070560', '1391110', '1628350', '1493710', '250820', '431960', '1007', '2180100')
+    $global:XJDiscos = $null
     $dirC = Join-Path $env:ProgramData 'XucaScripts'
     $fc = Join-Path $dirC 'juegos_detectados.txt'
     $cache = @{}
@@ -2161,11 +508,10 @@ function Juegos-Detectados {
 
     # GOG: el registro dice el .exe de cada juego (sin DLC)
     foreach ($b in 'HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games', 'HKLM:\SOFTWARE\GOG.com\Games') {
-        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+        foreach ($p in @(Juegos-RegSub $b)) {
             try {
-                $p = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop
                 if ([string]$p.dependsOn) { continue }
-                Agregar 'GOG' ([string]$k.PSChildName) ([string]$p.gameName) '' @() '' ([string]$p.exe) ''
+                Agregar 'GOG' ([string]$p.PSChildName) ([string]$p.gameName) '' @() '' ([string]$p.exe) ''
             } catch { }
         }
     }
@@ -2175,11 +521,19 @@ function Juegos-Detectados {
     foreach ($g in @(Juegos-Carpetas @('XboxGames'))) {
         try { $cf = [IO.Path]::Combine($g, 'Content\MicrosoftGame.config'); if ([IO.File]::Exists($cf)) { $configs.Add(@($cf, [IO.Path]::GetFileName($g))) } } catch { }
     }
-    try {
-        foreach ($pk in @(Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object { (-not $_.IsFramework) -and $_.InstallLocation })) {
-            try { $cf = [IO.Path]::Combine([string]$pk.InstallLocation, 'MicrosoftGame.config'); if ([IO.File]::Exists($cf)) { $configs.Add(@($cf, [string]$pk.Name)) } } catch { }
+    # Las carpetas de las apps instaladas se leen del registro (Get-AppxPackage tarda en cargar); si no se puede, como antes
+    $pkgs = @(Juegos-RegSub 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages' | Where-Object { [string]$_.PackageRootFolder })
+    if ($pkgs.Count -gt 0) {
+        foreach ($pk in $pkgs) {
+            try { $cf = [IO.Path]::Combine([string]$pk.PackageRootFolder, 'MicrosoftGame.config'); if ([IO.File]::Exists($cf)) { $configs.Add(@($cf, ([string]$pk.PSChildName -split '_')[0])) } } catch { }
         }
-    } catch { }
+    } else {
+        try {
+            foreach ($pk in @(Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object { (-not $_.IsFramework) -and $_.InstallLocation })) {
+                try { $cf = [IO.Path]::Combine([string]$pk.InstallLocation, 'MicrosoftGame.config'); if ([IO.File]::Exists($cf)) { $configs.Add(@($cf, [string]$pk.Name)) } } catch { }
+            }
+        } catch { }
+    }
     foreach ($c in $configs) {
         try {
             [xml]$x = [IO.File]::ReadAllText($c[0])
@@ -2201,32 +555,31 @@ function Juegos-Detectados {
     }
     # Registros propios de EA, Ubisoft y Rockstar
     foreach ($b in 'HKLM:\SOFTWARE\WOW6432Node\EA Games', 'HKLM:\SOFTWARE\EA Games', 'HKLM:\SOFTWARE\WOW6432Node\Electronic Arts', 'HKLM:\SOFTWARE\Electronic Arts') {
-        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+        foreach ($p in @(Juegos-RegSub $b)) {
             try {
-                $p = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop
                 $d = [string]$p.'Install Dir'; if (-not $d) { $d = [string]$p.InstallDir }
-                $n = [string]$p.DisplayName; if (-not $n) { $n = [string]$k.PSChildName }
-                if ($d) { Agregar 'EA' ([string]$k.PSChildName) $n $d @([string]$k.PSChildName) '' '' '' }
+                $n = [string]$p.DisplayName; if (-not $n) { $n = [string]$p.PSChildName }
+                if ($d) { Agregar 'EA' ([string]$p.PSChildName) $n $d @([string]$p.PSChildName) '' '' '' }
             } catch { }
         }
     }
     foreach ($b in 'HKLM:\SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs', 'HKLM:\SOFTWARE\Ubisoft\Launcher\Installs') {
-        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+        foreach ($p in @(Juegos-RegSub $b)) {
             try {
-                $d = [string](Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop).InstallDir
+                $d = [string]$p.InstallDir
                 if (-not $d) { continue }
                 $d = $d -replace '/', '\'
-                $n = [string](@($instalados | Where-Object { $_.Id -eq ('Uplay Install ' + $k.PSChildName) })[0].Nombre)
+                $n = [string](@($instalados | Where-Object { $_.Id -eq ('Uplay Install ' + $p.PSChildName) })[0].Nombre)
                 if (-not $n) { $n = [IO.Path]::GetFileName($d.TrimEnd('\')) }
-                Agregar 'Ubisoft' ([string]$k.PSChildName) $n $d @() '' '' ''
+                Agregar 'Ubisoft' ([string]$p.PSChildName) $n $d @() '' '' ''
             } catch { }
         }
     }
     foreach ($b in 'HKLM:\SOFTWARE\WOW6432Node\Rockstar Games', 'HKLM:\SOFTWARE\Rockstar Games') {
-        foreach ($k in @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue)) {
+        foreach ($p in @(Juegos-RegSub $b)) {
             try {
-                $d = [string](Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction Stop).InstallFolder
-                if ($d) { Agregar 'Rockstar' ([string]$k.PSChildName) ([string]$k.PSChildName) $d @() '' '' '' }
+                $d = [string]$p.InstallFolder
+                if ($d) { Agregar 'Rockstar' ([string]$p.PSChildName) ([string]$p.PSChildName) $d @() '' '' '' }
             } catch { }
         }
     }
@@ -2263,18 +616,6 @@ function Afi-Detectados {
     return $global:XAfiDet
 }
 function Afi-DetectadosProcs { return @(Afi-Detectados | ForEach-Object { $_.Proc }) }
-function Afi-CatJuegos {
-    $s = @(Afi-Detectados | ForEach-Object { $_.Proc + '=' + $_.Nombre + ' (' + $_.Plat + ')' })
-    if ($afiJuegosCat) { $s = @($afiJuegosCat) + $s }
-    return ($s -join '; ')
-}
-# Juegos instalados que aparecieron desde la ultima vez que aplicaste la afinidad: se marcan solos
-function Afi-JuegosNuevos {
-    $c = Afi-Config
-    if (-not $c.ContainsKey('apps')) { return @() }
-    $vis = @(([string]$c['detectados']) -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-    return @(Afi-DetectadosProcs | Where-Object { $vis -notcontains $_ })
-}
 function Afi-Mostrar($pl) {
     Say ('  Procesador: ' + $pl.Cpu + ' - ' + $pl.Tipo) 'Cyan'
     Say ('    Juegos:           ' + (Afi-Lista $pl.Juego) + ' (' + (Afi-Hilos $pl.Juego) + ' hilos)') 'Cyan'
@@ -2282,84 +623,15 @@ function Afi-Mostrar($pl) {
     Say ('    Fondo:            ' + (Afi-Lista $pl.Fondo) + ' (' + (Afi-Hilos $pl.Fondo) + ' hilos), solo mientras jugas') 'Cyan'
 }
 
-switch ($env:ACT) {
-
-    'INFO' {
-        $os = Get-CimInstance Win32_OperatingSystem
-        $bn = $os.BuildNumber
-        if (-not $bn) { $bn = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuildNumber }
-        $ram = 0
-        try { $ram = [math]::Round((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1GB) } catch { }
-        if (-not $ram) {
-            try { Add-Type -AssemblyName Microsoft.VisualBasic -ErrorAction Stop; $ram = [math]::Round((New-Object Microsoft.VisualBasic.Devices.ComputerInfo).TotalPhysicalMemory / 1GB) } catch { }
-        }
-        if (-not $ram) { $ram = 0 }
-        $hdd = 0
-        try {
-            $d = Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1) -ErrorAction Stop | Get-Disk -ErrorAction Stop | Get-PhysicalDisk -ErrorAction Stop
-            if ($d.MediaType -eq 'HDD') { $hdd = 1 }
-        } catch { }
-        $stamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-        Set-Content -Path (Join-Path $env:TEMP 'xuca_info.txt') -Value ('{0} {1} {2} {3}' -f $bn, $ram, $hdd, $stamp)
-    }
-
-    'HEADER' {
-        $os = Get-CimInstance Win32_OperatingSystem
-        $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
-        $gpu = (Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }) -join ' / '
-        $ubr = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR
-        Log 'INFO' ('{0} (build {1}.{2})' -f $os.Caption, $os.BuildNumber, $ubr)
-        Log 'INFO' ('CPU: ' + ([string]$cpu).Trim())
-        Log 'INFO' ('GPU: ' + $gpu)
-        Log 'INFO' ('RAM: {0} GB' -f $env:RAMGB)
-        Log 'INFO' ('Usuario: {0} - Equipo: {1}' -f $env:USERNAME, $env:COMPUTERNAME)
-    }
-
-    'ORIG_CHECK' {
-        $motivos = New-Object System.Collections.Generic.List[string]
-        # Windows sin activar no cuenta como no original (es un Windows normal, solo falta la licencia)
-        foreach ($sv in 'TrustedInstaller', 'wuauserv', 'WinDefend') {
-            if (-not (Get-Service -Name $sv -ErrorAction SilentlyContinue)) { $motivos.Add('falta el servicio ' + $sv + ', tipico de versiones recortadas') }
-        }
-        if (-not (Get-AppxPackage -AllUsers -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue)) { $motivos.Add('no esta la Microsoft Store, tipico de versiones recortadas') }
-        $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue
-        $editOk = 'Core', 'CoreSingleLanguage', 'Professional', 'ProfessionalN', 'ProfessionalWorkstation', 'ProfessionalEducation', 'Enterprise', 'EnterpriseN', 'Education', 'EducationN', 'ServerStandard', 'ServerDatacenter', 'CloudEdition'
-        if ($cv -and $cv.EditionID -and ($editOk -notcontains $cv.EditionID)) { $motivos.Add('edicion de Windows poco comun: ' + $cv.EditionID) }
-        $sospechoso = 'tiny', 'atlas', 'revi', 'ghost', 'lite', 'mini', 'kernel', 'custom'
-        $textoCv = (([string]$cv.RegisteredOwner) + ' ' + ([string]$cv.ProductName)).ToLower()
-        foreach ($p in $sospechoso) {
-            if ($textoCv.Contains($p)) { $motivos.Add('el nombre de edicion o el propietario registrado tiene palabras de versiones modificadas'); break }
-        }
-        $archivo = Join-Path $env:TEMP 'xuca_orig.txt'
-        if ($motivos.Count -gt 0) {
-            Set-Content -Path $archivo -Value (($motivos | Select-Object -Unique) -join ' - ')
-            $code = 1
-        } elseif (Test-Path $archivo) {
-            Remove-Item $archivo -ErrorAction SilentlyContinue
-        }
-    }
-
-    'FREE' {
-        $mb = [math]::Round(([IO.DriveInfo]$env:SystemDrive).AvailableFreeSpace / 1MB)
-        Set-Content -Path (Join-Path $env:TEMP 'xuca_free.txt') -Value $mb
-    }
-
-    'AFI_CONSEJO' {
-        $pl = Afi-Plan
-        $c = Afi-Consejo $pl
-        Say ('  Con tu procesador (' + $pl.Cpu + '): cambio ' + $c.Nivel) 'Cyan'
-        if ($c.Favor) { Say ('    Puede mejorar:  ' + $c.Favor) 'Green' }
-        if ($c.Contra) { Say ('    Puede empeorar: ' + $c.Contra) 'Red' }
-        Say ('    Conviene:       ' + $c.Recom) 'Yellow'
-        Log 'INFO' ('Afinidad con ' + $pl.Cpu + ': cambio ' + $c.Nivel + ' - ' + $c.Recom)
-    }
-
-    'GB_INFO' {
-        $pl = Afi-Plan
-        $g = Gb-Consejo $pl
-        if ($g.Aviso) { Say ('  ATENCION: ' + $g.Aviso) 'Yellow' }
-        Say ('  Con tu procesador (' + $pl.Cpu + '): ' + $g.Texto) 'Cyan'
-    }
+# ------------------------------------------------------------
+# Acciones: lo que antes hacia la parte de PowerShell del .bat (una por cada ACT).
+# Devuelven 0 = hecho, 1 = fallo, 2 = no aplica en esta PC, 5 = ya estaba, 6 = queda un paso para despues, 10 = caso especial.
+# $XDato: los valores para SPI (mouse) y DX (graficos).
+# ------------------------------------------------------------
+function Gaming-Act([string]$XAct, [string]$XDato) {
+    $code = 0
+    . {
+    switch ($XAct) {
 
     'GB_CHECK' {
         # 10 = Ryzen X3D de dos bloques: la app Game Bar se deja instalada.
@@ -2412,7 +684,7 @@ switch ($env:ACT) {
         if (-not (Test-Path $k)) { New-Item -Path $k -Force | Out-Null }
         $actual = (Get-ItemProperty -Path $k -Name DirectXUserGlobalSettings).DirectXUserGlobalSettings
         $falta = $false
-        foreach ($e in ($env:DX -split ';')) {
+        foreach ($e in ($XDato -split ';')) {
             if ($e -match '^(.+?)=(.*)$') {
                 $nombre = $Matches[1]
                 $valor = $Matches[2]
@@ -2427,7 +699,7 @@ switch ($env:ACT) {
             $code = 5
         } else {
             $mapa = [ordered]@{}
-            foreach ($e in (([string]$actual + ';' + $env:DX) -split ';')) {
+            foreach ($e in (([string]$actual + ';' + $XDato) -split ';')) {
                 if ($e -match '^(.+?)=(.*)$') {
                     if ($Matches[2] -eq 'DEL') { $mapa.Remove($Matches[1]) } else { $mapa[$Matches[1]] = $Matches[2] }
                 }
@@ -2435,7 +707,7 @@ switch ($env:ACT) {
             $nuevo = ($mapa.GetEnumerator() | ForEach-Object { '{0}={1};' -f $_.Key, $_.Value }) -join ''
             New-ItemProperty -Path $k -Name DirectXUserGlobalSettings -Value $nuevo -PropertyType String -Force | Out-Null
             $leido = (Get-ItemProperty -Path $k -Name DirectXUserGlobalSettings).DirectXUserGlobalSettings
-            foreach ($e in ($env:DX -split ';')) {
+            foreach ($e in ($XDato -split ';')) {
                 if ($e -match '^(.+?)=(.*)$') {
                     $nombre = $Matches[1]
                     $valor = $Matches[2]
@@ -2459,7 +731,7 @@ switch ($env:ACT) {
             Log 'FALLO' 'no se pudo leer el plan de energia activo'
             $code = 1
         } else {
-            $on = ($env:ACT -eq 'PWR_ON')
+            $on = ($XAct -eq 'PWR_ON')
             $usb = 0
             $pcie = 0
             if ($on) {
@@ -2521,7 +793,7 @@ switch ($env:ACT) {
                 $id = Split-Path -Leaf $k.Name
                 foreach ($n in @($vals.Keys)) {
                     $act = (Get-ItemProperty -Path $k.PSPath -ErrorAction SilentlyContinue).$n
-                    if ($env:ACT -eq 'NAGLE_OFF') {
+                    if ($XAct -eq 'NAGLE_OFF') {
                         if (($null -ne $act) -and ([int]$act -eq $vals[$n])) { Log 'OK' ('ya estaba: ' + $id + ' ' + $n + ' = ' + $vals[$n]); continue }
                         $hizo = $true
                         try { New-ItemProperty -Path $k.PSPath -Name $n -Value $vals[$n] -PropertyType DWord -Force -ErrorAction Stop | Out-Null } catch { }
@@ -2567,7 +839,7 @@ switch ($env:ACT) {
             $hay++
             $antes = [string](@($pr.RegistryValue)[0])
             if ($a.Status -eq 'Up') { Log 'INFO' ($a.Name + ' conectado a ' + $a.LinkSpeed) }
-            if ($env:ACT -eq 'DUP_ON') {
+            if ($XAct -eq 'DUP_ON') {
                 if ($antes -eq $uno) { Log 'OK' ('ya estaba: ' + $a.Name + ' a 1 Gbps'); continue }
                 if (-not ($notas | Where-Object { $_ -like ('dup|' + $a.InterfaceGuid + '|*') })) { $notas += ('dup|' + $a.InterfaceGuid + '|' + $antes) }
                 $nuevo = $uno
@@ -2582,7 +854,7 @@ switch ($env:ACT) {
                 $hizo = $true
             } catch { Log 'FALLO' ('no se pudo cambiar Speed & Duplex en ' + $a.Name + ': ' + $_.Exception.Message); $code = 1 }
         }
-        if ($env:ACT -eq 'DUP_ON') { if ($notas.Count) { Set-Content -LiteralPath $guarda -Value @($notas | Select-Object -Unique) } }
+        if ($XAct -eq 'DUP_ON') { if ($notas.Count) { Set-Content -LiteralPath $guarda -Value @($notas | Select-Object -Unique) } }
         elseif ($code -eq 0) { Remove-Item -LiteralPath $guarda -Force -ErrorAction SilentlyContinue }
         if ($hay -eq 0) {
             Log 'OMITIDO' 'no hay placa de cable de 2.5 Gbps o mas'
@@ -2602,7 +874,7 @@ switch ($env:ACT) {
         # Plan de energia: "Configuracion de adaptador inalambrico" (0 = Rendimiento maximo)
         $subW = '19cad22e-06db-433b-a9f3-6a1d0b7c4b19'; $setW = '12bbebe6-58d6-4636-95bb-3217ef867c1a'
 
-        if ($env:ACT -eq 'WIFILAN_ON') {
+        if ($XAct -eq 'WIFILAN_ON') {
             if (($wifi.Count -eq 0) -or ($lan.Count -eq 0)) { Log 'OMITIDO' 'esta PC no tiene placa WiFi y de cable a la vez'; $code = 2; break }
             $notas = @()
             if (Test-Path -LiteralPath $guarda) { $notas = @(Get-Content -LiteralPath $guarda) }
@@ -2673,7 +945,7 @@ switch ($env:ACT) {
 
     { $_ -eq 'NIC_OFF' -or $_ -eq 'NIC_ON' } {
         $val = 0
-        if ($env:ACT -eq 'NIC_ON') { $val = 1 }
+        if ($XAct -eq 'NIC_ON') { $val = 1 }
         $claves = '*EEE', 'EEE', 'AdvancedEEE', 'GreenEthernet', 'EnableGreenEthernet', 'PowerSavingMode'
         $existen = 0
         $cambio = $false
@@ -2729,7 +1001,7 @@ switch ($env:ACT) {
         }
     }
 
- 'DNS_ON' {
+    'DNS_ON' {
         $dir = Join-Path $env:ProgramData 'XucaScripts'
         $rk0 = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\'
         $adaps = @(Get-NetAdapter -Physical | Where-Object { $_.Status -eq 'Up' })
@@ -2777,14 +1049,14 @@ switch ($env:ACT) {
                 Log 'OMITIDO' 'ningun DNS respondio a la prueba (sin internet o bloqueados)'
                 Say '  Ningun DNS respondio a la prueba, no se cambio nada.' 'Yellow'
                 # Pausa para que se vean los resultados (en la app se muestran en la pantalla de carga)
-                Start-Sleep -Seconds 3
+                Start-Sleep -Milliseconds 1500
                 $code = 2
             } else {
                 $mejor = $validos[0]
                 $deseado = @($mejor.Ips)
                 Say ('  El mas rapido para tu conexion: ' + $mejor.Nombre + ' (' + ($deseado -join ', ') + ')') 'Green'
                 # Pausa para que se vean los ms de cada DNS (en la app se muestran en la pantalla de carga)
-                Start-Sleep -Seconds 3
+                Start-Sleep -Milliseconds 1500
                 Log 'INFO' ('DNS elegido: ' + $mejor.Nombre + ' ' + ($deseado -join ', '))
                 if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
                 Proteger-Carpeta $dir
@@ -2924,16 +1196,18 @@ switch ($env:ACT) {
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
             Proteger-Carpeta $dir
             $cs = $CodTimer
-            # Se borra el programa viejo (de cualquier version) antes de compilar: si quedara trabado, no se instala encima con la huella nueva.
-            Start-Sleep -Milliseconds 500
-            Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
-            try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar TIMER: ' + $_.Exception.Message); $code = 1 }
+            Esperar-Cierre 'XucaTimer'
+            # Si el programa ya es el de esta version, se usa ese (no hace falta compilarlo de nuevo).
+            # Si no, se borra el viejo antes de compilar: si quedara trabado, no se instala encima con la huella nueva.
+            if ((-not (Test-Path $exe)) -or (-not (Ver-Igual $exe $cs))) {
+                Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
+                try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar TIMER: ' + $_.Exception.Message); $code = 1 }
+            }
             if (Test-Path $exe) {
                 $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                 Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
-                Start-ScheduledTask -TaskName $tn; Start-Sleep -Seconds 2
-                $t2 = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-                if ($t2 -and ($t2.State -eq 'Running')) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: temporizador a 0.5ms' } else { Log 'FALLO' 'la tarea XucaTimer no quedo corriendo'; $code = 1 }
+                Start-ScheduledTask -TaskName $tn
+                if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: temporizador a 0.5ms' } else { Log 'FALLO' 'la tarea XucaTimer no quedo corriendo'; $code = 1 }
             }
         }
     }
@@ -2948,7 +1222,7 @@ switch ($env:ACT) {
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
             Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue | Stop-Process -Force
-            Start-Sleep -Milliseconds 500
+            Esperar-Cierre 'XucaTimer'
             Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             Remove-ItemProperty -Path $kk -Name 'GlobalTimerResolutionRequests' -ErrorAction SilentlyContinue
             $queda = (Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue) -or ($null -ne (Get-ItemProperty -Path $kk -ErrorAction SilentlyContinue).GlobalTimerResolutionRequests)
@@ -2967,16 +1241,18 @@ switch ($env:ACT) {
             Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
             $cs = $CodRam
-            # Se borra el programa viejo (de cualquier version) antes de compilar: si quedara trabado, no se instala encima con la huella nueva.
-            Start-Sleep -Milliseconds 500
-            Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
-            try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar RAM: ' + $_.Exception.Message); $code = 1 }
+            Esperar-Cierre 'XucaRAM'
+            # Si el programa ya es el de esta version, se usa ese (no hace falta compilarlo de nuevo).
+            # Si no, se borra el viejo antes de compilar: si quedara trabado, no se instala encima con la huella nueva.
+            if ((-not (Test-Path $exe)) -or (-not (Ver-Igual $exe $cs))) {
+                Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
+                try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar RAM: ' + $_.Exception.Message); $code = 1 }
+            }
             if (Test-Path $exe) {
                 $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                 Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
-                Start-ScheduledTask -TaskName $tn; Start-Sleep -Seconds 2
-                $t2 = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-                if ($t2 -and ($t2.State -eq 'Running')) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: limpiador RAM (< 1024MB)' } else { Log 'FALLO' 'la tarea XucaRAM no quedo corriendo'; $code = 1 }
+                Start-ScheduledTask -TaskName $tn
+                if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: limpiador RAM (< 1024MB)' } else { Log 'FALLO' 'la tarea XucaRAM no quedo corriendo'; $code = 1 }
             }
         }
     }
@@ -2989,7 +1265,7 @@ switch ($env:ACT) {
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
             Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
-            Start-Sleep -Milliseconds 500
+            Esperar-Cierre 'XucaRAM'
             Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue)) { Log 'FALLO' 'el limpiador de RAM no se pudo borrar del todo'; $code = 1 }
             else { Log 'OK' 'verificado: limpiador RAM borrado' }
@@ -3047,7 +1323,7 @@ switch ($env:ACT) {
             }
             # Los extras que no existen en esta PC se sacan de la lista
             $cfg = @($cfg | Where-Object { (-not $_.Opc) -or ($null -ne (Actual $_.Cfg)) })
-            if ($env:ACT -eq 'CPU_ON') {
+            if ($XAct -eq 'CPU_ON') {
                 $faltan = @($cfg | Where-Object { (Actual $_.Cfg) -ne $_.Val })
                 if ($faltan.Count -eq 0) {
                     Log 'OK' ('ya estaba: Modo Nitro del procesador en el plan ' + $g)
@@ -3117,7 +1393,7 @@ switch ($env:ACT) {
         if (-not $g) {
             Log 'FALLO' 'no se pudo leer el plan de energia activo'
             $code = 1
-        } elseif (($env:ACT -eq 'NB_ON') -and (-not $bat)) {
+        } elseif (($XAct -eq 'NB_ON') -and (-not $bat)) {
             Log 'OMITIDO' 'esta PC no tiene bateria: es para notebooks'
             Say '  Tu PC no tiene bateria: esto es para notebooks.' 'Yellow'
             $code = 2
@@ -3150,7 +1426,7 @@ switch ($env:ACT) {
                 return (((LeerDc $c) -eq $val) -or ((LeerRegDc $c) -eq $val))
             }
             $cfg = @($cfg | Where-Object { $null -ne (ActualDc $_) })
-            if ($env:ACT -eq 'NB_ON') {
+            if ($XAct -eq 'NB_ON') {
                 $faltan = @($cfg | Where-Object { (ActualDc $_) -ne $_.Val })
                 if ($cfg.Count -eq 0) {
                     Log 'OMITIDO' 'este plan de energia no tiene ninguno de estos ajustes'
@@ -3219,7 +1495,7 @@ public static class SpiNative {
 '@
         $flags = 3
         $M = [System.Runtime.InteropServices.Marshal]
-        foreach ($t in ($env:SPI -split ';')) {
+        foreach ($t in ($XDato -split ';')) {
             if (-not $t) { continue }
             $p = $t -split ':'
             $r = $false
@@ -3354,33 +1630,14 @@ public static class SpiNative {
         }
     }
 
-    'AFI_INFO' {
-        $pl = Afi-Plan
-        if (-not $pl.Ok) { Say ('  No se puede usar en esta PC: ' + $pl.Motivo + '.') 'Yellow'; $code = 2 }
-        else {
-            Afi-Mostrar $pl
-            Say '' $null
-            Afi-MostrarItems (Afi-Items (Afi-CatJuegos) (Afi-Actual 'juegos') (Afi-JuegosNuevos)) 'Juegos:'
-        }
-    }
-
-    'AFI_INFO_F' {
-        Afi-MostrarItems (Afi-Items $afiFondoCat (Afi-Actual 'apps')) 'Programas de fondo (se mueven solo mientras jugas):'
-    }
-
     'AFI_ON' {
         $tn = 'XucaAfinidad'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaAfinidad.exe'; $cfg = Join-Path $dir 'afinidad.txt'
         $pl = Afi-Plan
         Proteger-Carpeta $dir
         if (-not $pl.Ok) { Log 'OMITIDO' $pl.Motivo; Say ('  No se cambio nada: ' + $pl.Motivo + '.') 'Yellow'; $code = 2 }
         else {
-            # La app manda la eleccion completa (AFIAPP=1, AFIJ y AFIF). En la consola: lo de la vez anterior (o los
-            # predeterminados), con los numeros que marcaste o desmarcaste (AFIJT/AFIFT) y lo que agregaste (AFIJX/AFIFX).
-            if ($env:AFIAPP -eq '1') { $txtJ = [string]$env:AFIJ; $txtF = [string]$env:AFIF }
-            else {
-                $txtJ = Afi-Elegir (Afi-CatJuegos) 'juegos' ([string]$env:AFIJT) ([string]$env:AFIJX)
-                $txtF = Afi-Elegir $afiFondoCat 'apps' ([string]$env:AFIFT) ([string]$env:AFIFX)
-            }
+            # La app manda la eleccion completa: AFIJ (juegos) y AFIF (programas de fondo)
+            $txtJ = [string]$env:AFIJ; $txtF = [string]$env:AFIF
             $juegos = @(Afi-Nombres $txtJ)
             $apps = @(Afi-Nombres $txtF | Where-Object { $juegos -notcontains $_ })
             $livianos = @($juegos | Where-Object { $afiLivianos -contains $_ })
@@ -3398,7 +1655,7 @@ public static class SpiNative {
                 } else {
                     if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
                     Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
-                    Start-Sleep -Milliseconds 500
+                    Esperar-Cierre 'XucaAfinidad'
                     if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
                     Proteger-Carpeta $dir
                     Set-Content -LiteralPath $cfg -Value $txt -Encoding ASCII
@@ -3409,14 +1666,16 @@ public static class SpiNative {
                     # (CS2 y otros los vuelven a poner en todos al arrancar). Si el antitrampas no deja (Valorant, Fortnite), lo saltea.
                     # Mientras haya un juego abierto, aunque sea uno protegido, lleva lo de fondo a sus nucleos; al cerrarlo, lo devuelve a todos.
                     $cs = $CodAfi
-                    Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
-                    try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar AFINIDAD: ' + $_.Exception.Message); $code = 1 }
+                    # Si el programa ya es el de esta version, se usa ese (solo cambio la lista de juegos, que lee de afinidad.txt)
+                    if ((-not (Test-Path $exe)) -or (-not (Ver-Igual $exe $cs))) {
+                        Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
+                        try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar AFINIDAD: ' + $_.Exception.Message); $code = 1 }
+                    }
                     if (Test-Path $exe) {
                         $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                         Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
-                        Start-ScheduledTask -TaskName $tn; Start-Sleep -Seconds 2
-                        $t2 = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-                        if ($t2 -and ($t2.State -eq 'Running')) { Ver-Guardar $exe $cs; Log 'OK' ('verificado: afinidad corriendo - ' + $desc) } else { Log 'FALLO' 'la tarea XucaAfinidad no quedo corriendo'; $code = 1 }
+                        Start-ScheduledTask -TaskName $tn
+                        if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' ('verificado: afinidad corriendo - ' + $desc) } else { Log 'FALLO' 'la tarea XucaAfinidad no quedo corriendo'; $code = 1 }
                     }
                 }
             }
@@ -3431,7 +1690,7 @@ public static class SpiNative {
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
             Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
-            Start-Sleep -Milliseconds 500
+            Esperar-Cierre 'XucaAfinidad'
             # Lo que este abierto ahora vuelve a usar todos los nucleos.
             if (Test-Path -LiteralPath $cfg) {
                 $c = @{}
@@ -3538,267 +1797,752 @@ public static class SpiNative {
         }
     }
 
-    'VANGUARD_CHECK' {
-        $pf = [Environment]::GetFolderPath('ProgramFiles')
-        $vgDir = Join-Path $pf 'Riot Vanguard'
-        $inst = (Get-Service -Name 'vgc','vgk' -ErrorAction SilentlyContinue) -or (Test-Path $vgDir)
-        if ($inst) { $code = 10 } else { $code = 0 }
     }
+    } | Out-Null
+    return $code
+}
 
-    'VANGUARD_OFF' {
-        $pf = [Environment]::GetFolderPath('ProgramFiles')
-        $vgDir = Join-Path $pf 'Riot Vanguard'
-        $vgc = Join-Path $vgDir 'vgc.exe'
-        # 1) Cerrar Riot: el cliente, Valorant, League y la bandeja de Vanguard. Asi tenes que volver a abrir
-        #    el cliente de Riot, que te pide instalar Vanguard de nuevo y no queda a medias.
-        $riot = @('VALORANT-Win64-Shipping', 'VALORANT', 'RiotClientServices', 'RiotClientUx', 'RiotClientUxRender', 'RiotClientCrashHandler', 'Riot Client', 'LeagueClient', 'LeagueClientUx', 'LeagueClientUxRender', 'League of Legends', 'vgtray', 'vgc')
-        $abiertos = @(Get-Process -Name $riot -ErrorAction SilentlyContinue)
-        if ($abiertos.Count -gt 0) {
-            $abiertos | Stop-Process -Force -ErrorAction SilentlyContinue
-            Log 'OK' ('Riot cerrado: ' + ((@($abiertos | ForEach-Object { $_.ProcessName } | Select-Object -Unique)) -join ', '))
-            Start-Sleep -Seconds 2
+# Corre una accion y devuelve su codigo (si se rompe, queda como PS-ERROR en el log)
+function Act([string]$a, [string]$dato = '') { return (Hacer { Gaming-Act $a $dato } $a) }
+
+# ------------------------------------------------------------
+# Las opciones, en el orden en que se aplican. La app arma las casillas con Id, Seccion, Q, Hace, Favor y Contra.
+# ------------------------------------------------------------
+$ListaOpciones = @(
+    @{
+        Id = 'ms'; Seccion = 'MOUSE'
+        Q = '- Desea mouse competitivo? (Sin aceleracion ni rastro, velocidad media)'
+        Hace = 'saca la aceleracion del mouse y el rastro, y deja la velocidad en el punto medio.'
+        Favor = 'el mismo movimiento de mano siempre mueve lo mismo: mejor punteria.'
+        Contra = 'en el escritorio el mouse puede sentirse distinto hasta que te acostumbras.'
+        S = {
+            Opt-Ini 'Mouse competitivo'
+            $m = 'HKCU\Control Panel\Mouse'
+            $dif = (Reg-Dif $m 'MouseSensitivity' '10' 'REG_SZ') -or (Reg-Dif $m 'MouseSpeed' '0' 'REG_SZ') -or (Reg-Dif $m 'MouseThreshold1' '0' 'REG_SZ') -or (Reg-Dif $m 'MouseThreshold2' '0' 'REG_SZ')
+            if (-not $dif) { Ya-Estaba }
+            else {
+                Resps (Act 'SPI' 'P:0x0071:10;M:0:0:0;U:0x0060:0;U:0x005D:0;P:0x1021:0;')
+                Reg-Chk $m 'MouseSensitivity' '10'
+                Reg-Chk $m 'MouseSpeed' '0'
+                Reg-Chk $m 'MouseThreshold1' '0'
+                Reg-Chk $m 'MouseThreshold2' '0'
+            }
+            Opt-Fin 'Mouse en modo competitivo'
         }
-        # 2) Desinstalarlo como desde el Panel de control (su propio desinstalador, sin preguntas si se puede)
-        $claves = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')
-        $entradas = @(foreach ($c in $claves) { Get-ChildItem -LiteralPath $c -ErrorAction SilentlyContinue | Where-Object { [string](Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue).DisplayName -like 'Riot Vanguard*' } })
-        foreach ($e in $entradas) {
-            $pr = Get-ItemProperty -LiteralPath $e.PSPath -ErrorAction SilentlyContinue
-            $cmd = [string]$pr.QuietUninstallString
-            if (-not $cmd) { $cmd = [string]$pr.UninstallString }
-            if (-not $cmd) { continue }
-            $exeU = ''; $argU = ''
-            if ($cmd -match '^\s*"([^"]+)"\s*(.*)$') { $exeU = $Matches[1]; $argU = $Matches[2] }
-            elseif ($cmd -match '^\s*(.+?\.exe)\s*(.*)$') { $exeU = $Matches[1]; $argU = $Matches[2] }
-            if (-not (Test-Path -LiteralPath $exeU)) { continue }
-            try {
-                $pu = $(if ($argU) { Start-Process -FilePath $exeU -ArgumentList $argU -PassThru -ErrorAction Stop } else { Start-Process -FilePath $exeU -PassThru -ErrorAction Stop })
-                # Como mucho 2 minutos: si el desinstalador pide confirmar, aparece su ventana
-                if (-not $pu.WaitForExit(120000)) { Log 'INFO' 'el desinstalador de Vanguard sigue abierto: se continua con la limpieza' }
-                else { Log 'OK' ('desinstalador de Riot Vanguard ejecutado (' + $exeU + ')') }
-            } catch { Log 'INFO' ('desinstalador de Vanguard: ' + $_.Exception.Message) }
+        R = {
+            Opt-Ini 'Mouse competitivo (restaurar)'
+            $m = 'HKCU\Control Panel\Mouse'
+            $dif = (Reg-Dif $m 'MouseSensitivity' '10' 'REG_SZ') -or (Reg-Dif $m 'MouseSpeed' '1' 'REG_SZ') -or (Reg-Dif $m 'MouseThreshold1' '6' 'REG_SZ') -or (Reg-Dif $m 'MouseThreshold2' '10' 'REG_SZ')
+            if (-not $dif) { Ya-Estaba }
+            else {
+                Resps (Act 'SPI' 'P:0x0071:10;M:6:10:1;U:0x0060:0;U:0x005D:0;P:0x1021:1;')
+                Reg-Chk $m 'MouseSensitivity' '10'
+                Reg-Chk $m 'MouseSpeed' '1'
+                Reg-Chk $m 'MouseThreshold1' '6'
+                Reg-Chk $m 'MouseThreshold2' '10'
+            }
+            Opt-Fin 'Mouse restaurado a los valores de Windows'
         }
-        # 3) Si quedo algo, su desinstalacion directa y despues borrar servicios, carpeta y la entrada del Panel de control
-        if (Test-Path $vgc) {
-            try { $pv = Start-Process -FilePath $vgc -ArgumentList '/uninstall' -WindowStyle Hidden -PassThru -ErrorAction Stop; $pv.WaitForExit(60000) | Out-Null } catch { }
-            Start-Sleep -Seconds 2
+    },
+    @{
+        Id = 'tk'; Seccion = 'TECLADO'
+        Q = '- Desea desactivar los atajos de accesibilidad? (Shift x5, Alt+Shift y otros ya no abren carteles en partida)'
+        Hace = 'apaga los atajos de accesibilidad que se activan sin querer jugando: Shift 5 veces, Shift derecho 8 segundos, Bloq Num 5 segundos, Alt+Shift+Bloq Num (teclas del mouse), Alt+Shift+Impr Pant (alto contraste) y Win+Ctrl+Enter (Narrador).'
+        Favor = 'no te saca del juego en medio de una partida ni te cambia los colores de toda la pantalla.'
+        Contra = 'si usas alguna de estas funciones por accesibilidad, la activas a mano desde Configuracion.'
+        S = {
+            Opt-Ini 'Atajos de accesibilidad'
+            Reg-Set 'HKCU\Control Panel\Accessibility\StickyKeys' 'Flags' 'REG_SZ' '506'
+            Reg-Set 'HKCU\Control Panel\Accessibility\Keyboard Response' 'Flags' 'REG_SZ' '122'
+            Reg-Set 'HKCU\Control Panel\Accessibility\ToggleKeys' 'Flags' 'REG_SZ' '58'
+            Reg-Set 'HKCU\Control Panel\Accessibility\MouseKeys' 'Flags' 'REG_SZ' '58'
+            Reg-Set 'HKCU\Control Panel\Accessibility\HighContrast' 'Flags' 'REG_SZ' '122'
+            Reg-Set 'HKCU\Software\Microsoft\Narrator\NoRoam' 'WinEnterLaunchEnabled' 'REG_DWORD' '0'
+            Opt-Fin 'Atajos de accesibilidad desactivados'
         }
-        foreach ($sv in 'vgc', 'vgk') {
-            $s = Get-Service -Name $sv -ErrorAction SilentlyContinue
-            if ($s) { & sc.exe stop $sv 2>&1 | Out-Null; & sc.exe delete $sv 2>&1 | Out-Null }
+        R = {
+            Opt-Ini 'Atajos de accesibilidad (restaurar)'
+            Reg-Set 'HKCU\Control Panel\Accessibility\StickyKeys' 'Flags' 'REG_SZ' '510'
+            Reg-Set 'HKCU\Control Panel\Accessibility\Keyboard Response' 'Flags' 'REG_SZ' '126'
+            Reg-Set 'HKCU\Control Panel\Accessibility\ToggleKeys' 'Flags' 'REG_SZ' '62'
+            Reg-Set 'HKCU\Control Panel\Accessibility\MouseKeys' 'Flags' 'REG_SZ' '62'
+            Reg-Set 'HKCU\Control Panel\Accessibility\HighContrast' 'Flags' 'REG_SZ' '126'
+            Reg-Set 'HKCU\Software\Microsoft\Narrator\NoRoam' 'WinEnterLaunchEnabled' 'REG_DWORD' '1'
+            Opt-Fin 'Atajos de accesibilidad restaurados'
         }
-        foreach ($e in $entradas) { if (Test-Path -LiteralPath $e.PSPath) { Remove-Item -LiteralPath $e.PSPath -Recurse -Force -ErrorAction SilentlyContinue } }
-        # 4) Restos en el disco principal: carpetas "Riot Vanguard" (o "Vanguard" dentro de una carpeta de Riot) en
-        #    Archivos de programa, ProgramData, AppData de cada usuario y Temp; el driver vgk.sys y el inicio automatico
-        #    de la bandeja (vgtray). No toca el cliente de Riot ni los juegos.
-        $sd = $env:SystemDrive
-        # Cada raiz con cuantos niveles se revisan (pocos, para que sea rapido)
-        $raices = @(@($pf, 1), @(${env:ProgramFiles(x86)}, 1), @($env:ProgramData, 2), @((Join-Path $env:SystemRoot 'Temp'), 1))
-        foreach ($u in @(Get-ChildItem -LiteralPath ($sd + '\Users') -Directory -Force -ErrorAction SilentlyContinue | Where-Object { -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) })) {
-            foreach ($sub in 'AppData\Local', 'AppData\Roaming', 'AppData\LocalLow') { $raices += , @((Join-Path $u.FullName $sub), 2) }
-            $raices += , @((Join-Path $u.FullName 'AppData\Local\Temp'), 1)
+    },
+    @{
+        Id = 'du'; Seccion = 'SONIDO'
+        Q = '- Desea que Windows no baje el volumen en llamadas? (Sonido, Comunicaciones: No hacer nada)'
+        Hace = 'Windows deja de bajar el volumen del juego cuando hay una llamada, por ejemplo en Discord.'
+        Favor = 'el juego suena siempre igual.'
+        Contra = 'ninguno.'
+        S = {
+            Opt-Ini 'Comunicaciones de Windows'
+            Reg-Set 'HKCU\Software\Microsoft\Multimedia\Audio' 'UserDuckingPreference' 'REG_DWORD' '3'
+            Opt-Fin 'Windows ya no reduce el volumen de los demas sonidos (si no lo notas, reinicia)'
         }
-        $rp = [IO.FileAttributes]::ReparsePoint
-        $restos = New-Object System.Collections.Generic.List[string]
-        # Sin entrar en accesos directos de carpeta (junctions)
-        foreach ($par in $raices) {
-            $r0 = [string]$par[0]
-            if ((-not $r0) -or (-not (Test-Path -LiteralPath $r0))) { continue }
-            $nivel = @(Get-Item -LiteralPath $r0 -Force -ErrorAction SilentlyContinue)
-            for ($d = 0; $d -lt [int]$par[1] -and $nivel.Count -gt 0; $d++) {
-                $sig = @()
-                foreach ($c in $nivel) {
-                    foreach ($h in @(Get-ChildItem -LiteralPath $c.FullName -Directory -Force -ErrorAction SilentlyContinue)) {
-                        if ($h.Attributes -band $rp) { continue }
-                        $esVg = ($h.Name -like '*Riot Vanguard*') -or (($h.Name -eq 'Vanguard') -and ($c.Name -like '*Riot*'))
-                        if ($esVg) { $restos.Add($h.FullName) } else { $sig += $h }
-                    }
+        R = {
+            Opt-Ini 'Comunicaciones de Windows (restaurar)'
+            Reg-Set 'HKCU\Software\Microsoft\Multimedia\Audio' 'UserDuckingPreference' 'REG_DWORD' '1'
+            Opt-Fin 'Windows vuelve a reducir un 80 por ciento el resto de los sonidos'
+        }
+    },
+    @{
+        Id = 'mm'; Seccion = 'CPU Y PRIORIDAD'
+        Q = '- Desea dar prioridad multimedia a los juegos? (Mas CPU para el juego; efecto chico)'
+        Hace = 'el programador multimedia de Windows le da mas prioridad a los juegos. El limite de red queda en 10, el valor de Windows, porque sacarlo puede empeorar la latencia.'
+        Favor = 'un poco mas de CPU para el juego y menos tirones.'
+        Contra = 'el efecto es chico.'
+        S = {
+            Opt-Ini 'Prioridad multimedia (MMCSS)'
+            $g = 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games'
+            $sp = 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
+            Reg-Set $g 'GPU Priority' 'REG_DWORD' '8'
+            Reg-Set $g 'Priority' 'REG_DWORD' '6'
+            Reg-Set $g 'Scheduling Category' 'REG_SZ' 'High'
+            Reg-Set $g 'SFIO Priority' 'REG_SZ' 'High'
+            Reg-Set $sp 'NetworkThrottlingIndex' 'REG_DWORD' '10'
+            Reg-Set $sp 'SystemResponsiveness' 'REG_DWORD' '10'
+            Opt-Fin 'Prioridad multimedia para juegos aplicada'
+        }
+        R = {
+            Opt-Ini 'Prioridad multimedia (restaurar)'
+            $g = 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games'
+            $sp = 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
+            Reg-Set $g 'GPU Priority' 'REG_DWORD' '8'
+            Reg-Set $g 'Priority' 'REG_DWORD' '2'
+            Reg-Set $g 'Scheduling Category' 'REG_SZ' 'Medium'
+            Reg-Set $g 'SFIO Priority' 'REG_SZ' 'Normal'
+            Reg-Set $sp 'NetworkThrottlingIndex' 'REG_DWORD' '10'
+            Reg-Set $sp 'SystemResponsiveness' 'REG_DWORD' '20'
+            Opt-Fin 'Prioridad multimedia restaurada a los valores de Windows'
+        }
+    },
+    @{
+        Id = 'pri'; Seccion = 'CPU Y PRIORIDAD'
+        Q = '- Desea dar prioridad alta a tus juegos? (Escribis sus procesos separados por comas; R se la quita a todos)'
+        Hace = 'cada vez que abris esos juegos, Windows les da mas tiempo de CPU que a lo que corre de fondo.'
+        Favor = 'menos tirones cuando tenes cosas abiertas atras, como Discord, el navegador u OBS.'
+        Contra = 'si el CPU llega al 100 por ciento, lo de fondo puede trabarse un poco (por ejemplo, el stream de OBS).'
+        S = {
+            Opt-Ini 'Prioridad alta para juegos'
+            Resps (Act 'PRIO_ON')
+            Opt-Fin 'Prioridad alta aplicada (cerra y abri el juego para que la tome)'
+        }
+        R = {
+            Opt-Ini 'Prioridad alta para juegos (restaurar)'
+            Resps (Act 'PRIO_OFF')
+            Opt-Fin 'Los juegos vuelven a la prioridad normal'
+        }
+    },
+    @{
+        Id = 'afi'; Seccion = 'CPU Y PRIORIDAD'
+        Q = '- Desea usar afinidad de CPU para tus juegos? (Juegos en los mejores nucleos y programas de fondo aparte; se detecta tu procesador)'
+        Hace = 'un programa chico en segundo plano pone tus juegos en los mejores nucleos y lleva Discord, Spotify y el navegador a otros.'
+        Favor = 'lo de fondo no le roba nucleos al juego: frametimes mas parejos y menos tirones, sobre todo en Minecraft.'
+        Contra = 'mientras jugas, lo de fondo anda un poco mas lento.'
+        S = {
+            Opt-Ini 'Afinidad de CPU para juegos'
+            Resps (Act 'AFI_ON')
+            Opt-Fin 'Afinidad activa (si el juego ya estaba abierto, se aplica en unos segundos)'
+        }
+        R = {
+            Opt-Ini 'Afinidad de CPU (restaurar)'
+            Resps (Act 'AFI_OFF')
+            Opt-Fin 'Afinidad quitada: todo vuelve a usar todos los nucleos'
+        }
+    },
+    @{
+        Id = 'pw'; Seccion = 'PLAN DE ENERGIA'
+        Q = '- Desea usar el plan Alto rendimiento? (Mas consumo y calor en notebook)'
+        Hace = 'activa el plan de energia Alto rendimiento.'
+        Favor = 'el CPU responde mas rapido y no baja tanto la frecuencia.'
+        Contra = 'mas consumo y calor, sobre todo en notebook.'
+        S = {
+            Opt-Ini 'Plan de energia'
+            $alto = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
+            if (Plan-Es $alto) { Ya-Estaba }
+            else {
+                & powercfg.exe -setactive $alto 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) {
+                    & powercfg.exe -duplicatescheme $alto $alto 2>&1 | Out-Null
+                    & powercfg.exe -setactive $alto 2>&1 | Out-Null
                 }
-                $nivel = $sig
+                Res (Plan-Es $alto) ('plan de energia activo ' + $alto)
             }
+            Opt-Fin 'Plan Alto rendimiento activo'
         }
-        $drvVgk = Join-Path $env:SystemRoot 'System32\drivers\vgk.sys'
-        if (Test-Path -LiteralPath $drvVgk) { $restos.Add($drvVgk) }
-        $quedan = @()
-        foreach ($x in @($restos | Select-Object -Unique)) {
-            if (Test-Path -LiteralPath $x -PathType Container) {
-                # rd no sigue los accesos directos de carpeta que haya adentro: solo borra lo que es de Vanguard
-                & takeown.exe /f $x /a /r /d s 2>&1 | Out-Null
-                if ($LASTEXITCODE -ne 0) { & takeown.exe /f $x /a /r /d y 2>&1 | Out-Null }
-                & icacls.exe $x /grant '*S-1-5-32-544:F' /t /c /q 2>&1 | Out-Null
-                & cmd.exe /c ('rd /s /q "' + $x + '"') 2>&1 | Out-Null
-            } else {
-                & takeown.exe /f $x /a 2>&1 | Out-Null
-                & icacls.exe $x /grant '*S-1-5-32-544:F' /c /q 2>&1 | Out-Null
-                Remove-Item -LiteralPath $x -Force -ErrorAction SilentlyContinue
+        R = {
+            Opt-Ini 'Plan de energia (restaurar)'
+            $equi = '381b4222-f694-41f0-9685-ff5bb260df2e'
+            if (Plan-Es $equi) { Ya-Estaba }
+            else {
+                & powercfg.exe -setactive $equi 2>&1 | Out-Null
+                Res (Plan-Es $equi) ('plan de energia activo ' + $equi)
             }
-            if (Test-Path -LiteralPath $x) { $quedan += $x; Log 'INFO' ('resto de Vanguard en uso, se borra al reiniciar: ' + $x) }
-            else { Log 'OK' ('resto de Vanguard borrado: ' + $x) }
+            Opt-Fin 'Plan Equilibrado activo'
         }
-        # Inicio automatico de la bandeja de Vanguard
-        foreach ($rk in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run') {
-            $vals = Get-ItemProperty -LiteralPath $rk -ErrorAction SilentlyContinue
-            if (-not $vals) { continue }
-            foreach ($pp in @($vals.PSObject.Properties | Where-Object { ($_.Name -notlike 'PS*') -and (([string]$_.Value -like '*Riot Vanguard*') -or ([string]$_.Value -like '*vgtray*')) })) {
-                Remove-ItemProperty -LiteralPath $rk -Name $pp.Name -Force -ErrorAction SilentlyContinue
-                Log 'OK' ('inicio automatico de Vanguard quitado: ' + $pp.Name)
+    },
+    @{
+        Id = 'nb'; Seccion = 'PLAN DE ENERGIA'
+        Q = '- Desea priorizar la bateria de la notebook? (Solo a bateria: turbo eficiente, ahorro de energia y ahorro de bateria al 30 por ciento)'
+        Hace = 'solo con la notebook a bateria: el turbo se usa cuando hace falta, el procesador prioriza el ahorro de energia, baja la velocidad antes de prender los ventiladores y el ahorro de bateria de Windows se prende solo al 30 por ciento. Enchufada no cambia nada.'
+        Favor = 'la bateria dura bastante mas y la notebook calienta y hace menos ruido fuera del cargador.'
+        Contra = 'a bateria rinde un poco menos; para jugar, enchufala.'
+        S = {
+            Opt-Ini 'Bateria de la notebook'
+            Resps (Act 'NB_ON')
+            Opt-Fin 'Bateria priorizada: turbo eficiente, ahorro de energia y ahorro de bateria al 30 por ciento (solo a bateria)'
+        }
+        R = {
+            Opt-Ini 'Bateria de la notebook (restaurar)'
+            Resps (Act 'NB_OFF')
+            Opt-Fin 'Bateria de la notebook: vuelven tus valores anteriores'
+        }
+    },
+    @{
+        Id = 'cpu'; Seccion = 'PROCESADOR'
+        Q = '- Desea activar el Modo Nitro del procesador? (Nucleos siempre despiertos, turbo y rendimiento al maximo, solo con corriente)'
+        Hace = 'deja todos los nucleos activos, el turbo al maximo y en modo agresivo, la subida de velocidad rapida y los ventiladores antes que bajar la velocidad, con la PC enchufada; ademas Windows deja de frenar los programas de fondo.'
+        Favor = 'menos tirones cuando el juego pide mas CPU de golpe.'
+        Contra = 'mas consumo, calor y ruido de ventiladores.'
+        S = {
+            Opt-Ini 'Modo Nitro del procesador'
+            Resps (Act 'CPU_ON')
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling' 'PowerThrottlingOff' 'REG_DWORD' '1'
+            Opt-Fin 'Modo Nitro activo: nucleos 100, frecuencia 0 a 100, turbo 100 agresivo, subida rapida, ventiladores primero (con corriente) y sin limitar programas de fondo'
+        }
+        R = {
+            Opt-Ini 'Modo Nitro del procesador (restaurar)'
+            Resps (Act 'CPU_OFF')
+            Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling' 'PowerThrottlingOff'
+            Opt-Fin 'Procesador restaurado a tus valores anteriores'
+        }
+    },
+    @{
+        Id = 'll'; Seccion = 'PROCESADOR'
+        Q = '- Desea activar Baja latencia? (El CPU sube al maximo 1 a 3 segundos al abrir menus y apps; pide reiniciar)'
+        Hace = 'activa Baja latencia (Low Latency Profile), una funcion oculta de Windows 11 que tambien se activa con ViVeTool y el ID 58989092: al abrir el Inicio, menus, la busqueda o apps, el procesador sube al maximo por 1 a 3 segundos.'
+        Favor = 'el Inicio, los menus y las apps abren mas rapido, sobre todo en PCs de gama baja.'
+        Contra = 'picos cortos de consumo y calor; Microsoft todavia la esta probando y en PCs potentes casi no se nota.'
+        S = {
+            Opt-Ini 'Baja latencia'
+            Resps (Act 'LL_ON')
+            Opt-Fin 'Baja latencia activada (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Baja latencia (restaurar)'
+            Resps (Act 'LL_OFF')
+            Opt-Fin 'Baja latencia vuelve a como la maneja Windows (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'gm'; Seccion = 'MODO JUEGO Y GAME BAR'
+        Q = '- Desea activar el Modo Juego? (Y evitar que el joystick abra la Game Bar)'
+        Hace = 'activa el Modo Juego y evita que el boton Xbox del joystick abra la Game Bar.'
+        Favor = 'Windows prioriza el juego y frena actualizaciones mientras jugas.'
+        Contra = 'ninguno importante.'
+        S = {
+            Opt-Ini 'Modo Juego'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'AutoGameModeEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'AllowAutoGameMode' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'GamepadNexusChordEnabled' 'REG_DWORD' '0'
+            Opt-Fin 'Modo Juego activo y Game Bar sin atajo del joystick'
+        }
+        R = {
+            Opt-Ini 'Modo Juego (restaurar)'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'AutoGameModeEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'AllowAutoGameMode' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'GamepadNexusChordEnabled' 'REG_DWORD' '1'
+            Opt-Fin 'Modo Juego y Game Bar restaurados'
+        }
+    },
+    @{
+        Id = 'xb'; Seccion = 'MODO JUEGO Y GAME BAR'
+        Q = '- Desea borrar la app Xbox Game Bar? (No toca los servicios de Xbox que usan los juegos)'
+        Hace = 'borra la app Xbox Game Bar y apaga sus grabaciones. En los Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D, 9950X3D) solo apaga las grabaciones: ahi la app hace falta.'
+        Favor = 'menos procesos y nada grabando de fondo.'
+        Contra = 'perdes las capturas y clips de Windows; podes usar NVIDIA, AMD u OBS.'
+        S = {
+            Opt-Ini 'Xbox Game Bar'
+            if ((Act 'GB_CHECK') -ge 10) {
+                # Ryzen X3D de dos bloques: solo se apagan las grabaciones. Si una version anterior la habia bloqueado, se desbloquea.
+                Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'HistoricalCaptureEnabled' 'REG_DWORD' '0'
+                Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR'
+                foreach ($p in $GameBarProtocolos) { Proto-Del $p }
+                Opt-Fin 'Grabaciones de la Game Bar apagadas. La app no se borro: tu Ryzen X3D la usa para mandar los juegos al bloque con V-Cache'
+                return
             }
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '0'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR' 'REG_DWORD' '0'
+            foreach ($p in $GameBarProtocolos) { Protocolo $p }
+            Resps (Act 'GAMEBAR_OFF')
+            Opt-Fin 'Xbox Game Bar borrada'
         }
-        # Lo que esta en uso (por ejemplo el driver cargado) se borra solo al reiniciar, antes de que nada lo use
-        if ($quedan.Count -gt 0) {
-            $tn = 'BorrarRestosVanguard'
-            $cmds = @(foreach ($x in $quedan) { if ($x -like '*.sys') { 'del /f /q "' + $x + '"' } else { 'rd /s /q "' + $x + '"' } })
-            try {
-                $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/c ' + ($cmds -join ' & ') + ' & schtasks.exe /delete /tn ' + $tn + ' /f')
-                $trg = New-ScheduledTaskTrigger -AtStartup
-                $prn = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-                Register-ScheduledTask -TaskName $tn -Action $act -Trigger $trg -Principal $prn -Force | Out-Null
-            } catch { Log 'INFO' ('no se pudo programar el borrado al reiniciar: ' + $_.Exception.Message) }
+        R = {
+            Opt-Ini 'Xbox Game Bar (restaurar)'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '1'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR'
+            foreach ($p in $GameBarProtocolos) { Proto-Del $p }
+            Resps (Act 'GAMEBAR_ON')
+            Opt-Fin 'Xbox Game Bar restaurada. Si no vuelve, instalala desde la Microsoft Store'
         }
-        $nRestos = @($restos | Select-Object -Unique).Count - $quedan.Count
-        if ($nRestos -gt 0) { Say ('  Restos de Vanguard borrados del disco: ' + $nRestos + '.') }
-        Start-Sleep -Seconds 1
-        $queda = (Get-Service -Name 'vgc','vgk' -ErrorAction SilentlyContinue) -or (Test-Path $vgDir) -or ($quedan.Count -gt 0)
-        if (-not $queda) {
-            Log 'OK' 'Riot Vanguard desinstalado del todo, sin restos en el disco: abri el cliente de Riot y te pide instalarlo de nuevo'
-            Say '  Riot Vanguard desinstalado, sin restos. Reinicia, abri el cliente de Riot y te pide instalarlo de nuevo.' 'Yellow'
-            $code = 0
-        } else {
-            Log 'PENDIENTE' 'Riot Vanguard quitado: quedan restos en uso que se borran al reiniciar'
-            Say '  Riot Vanguard quitado: los restos que estaban en uso se borran al reiniciar. Despues abri el cliente de Riot y te pide instalarlo.' 'Yellow'
-            $code = 6
+    },
+    @{
+        Id = 'notif'; Seccion = 'MODO JUEGO Y GAME BAR'
+        Q = '- Desea desactivar las notificaciones de Windows? (Apaga los avisos emergentes y el Centro de notificaciones)'
+        Hace = 'apaga los avisos emergentes y el Centro de notificaciones.'
+        Favor = 'nada te tapa la pantalla en partida.'
+        Contra = 'no ves avisos de apps como Discord o el correo.'
+        S = {
+            Opt-Ini 'Notificaciones de Windows'
+            Reg-Set 'HKCU\Software\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled' 'REG_DWORD' '0'
+            Opt-Fin 'Notificaciones desactivadas (se aplica al reiniciar el Explorador o la PC)'
+        }
+        R = {
+            Opt-Ini 'Notificaciones de Windows (restaurar)'
+            Reg-Del 'HKCU\Software\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter'
+            Reg-Del 'HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled'
+            Opt-Fin 'Notificaciones restauradas (se aplica al reiniciar el Explorador o la PC)'
+        }
+    },
+    @{
+        Id = 'xm'; Seccion = 'MODO JUEGO Y GAME BAR'
+        Q = '- Desea desactivar el Modo Xbox? (La pantalla completa tipo consola de Windows 11)'
+        Hace = 'apaga el Modo Xbox de Windows 11 (la pantalla completa tipo consola con la app de Xbox).'
+        Favor = 'no se abre ni te lo ofrece Windows si no lo usas. No cambia los FPS: es solo por comodidad.'
+        Contra = 'para usar la PC como consola con el control, lo tenes que volver a prender.'
+        S = {
+            Opt-Ini 'Modo Xbox'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration' 'GamingHomeApp' 'REG_SZ' ''
+            Opt-Fin 'Modo Xbox desactivado'
+        }
+        R = {
+            Opt-Ini 'Modo Xbox (restaurar)'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration' 'GamingHomeApp' 'REG_SZ' 'Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App'
+            Opt-Fin 'Modo Xbox restaurado'
+        }
+    },
+    @{
+        Id = 'gf'; Seccion = 'GRAFICOS'
+        Q = '- Desea optimizar juegos en ventana y GPU por hardware? (Menos latencia; pide reiniciar)'
+        Hace = 'usa el modo moderno para juegos en ventana y activa la GPU acelerada por hardware.'
+        Favor = 'menos latencia en ventana y sin bordes, y hace falta para Frame Generation.'
+        Contra = 'en algunas PCs viejas puede dar problemas; R lo vuelve atras.'
+        S = {
+            Opt-Ini 'Graficos'
+            # "Optimizaciones para juegos en ventana" existe solo en Windows 11 (22000 o mas). En Windows 10 se aplica solo la GPU por hardware.
+            if (-not (($Build -gt 0) -and ($Build -lt 22000))) { Resps (Act 'DX' 'SwapEffectUpgradeEnable=1;') }
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode' 'REG_DWORD' '2'
+            Opt-Fin 'Juegos en ventana optimizados y GPU acelerada por hardware (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Graficos (restaurar)'
+            Resps (Act 'DX' 'SwapEffectUpgradeEnable=DEL;')
+            Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode'
+            Opt-Fin 'Graficos restaurados (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'mpo'; Seccion = 'GRAFICOS'
+        Q = '- Desea desactivar MPO? (Evita parpadeos y cursor invisible; pide reiniciar)'
+        Hace = 'desactiva MPO, una funcion de la pantalla que superpone imagenes.'
+        Favor = 'arregla parpadeos, pantallas negras y cursor invisible en algunas PCs.'
+        Contra = 'si no tenias esos problemas, puede subir un poco el uso de la GPU en ventana.'
+        S = {
+            Opt-Ini 'MPO'
+            Reg-Set 'HKLM\SOFTWARE\Microsoft\Windows\Dwm' 'OverlayTestMode' 'REG_DWORD' '5'
+            Opt-Fin 'MPO desactivado (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'MPO (restaurar)'
+            Reg-Del 'HKLM\SOFTWARE\Microsoft\Windows\Dwm' 'OverlayTestMode'
+            Opt-Fin 'MPO restaurado (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'msi'; Seccion = 'GRAFICOS'
+        Q = '- Desea activar el modo MSI en la placa de video y la de red? (Menos latencia; pide reiniciar)'
+        Hace = 'las placas le avisan al procesador con mensajes (MSI) en vez de usar la linea compartida vieja.'
+        Favor = 'un poco menos de latencia y de microtirones. Muchas placas nuevas ya vienen asi, en ese caso no cambia nada.'
+        Contra = 'si el driver no lo soporta bien, al reiniciar podes ver pantalla negra o quedarte sin internet.'
+        S = {
+            Opt-Ini 'Modo MSI'
+            Resps (Act 'MSI_ON')
+            Opt-Fin 'Modo MSI activado (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Modo MSI (restaurar)'
+            Resps (Act 'MSI_OFF')
+            Opt-Fin 'Modo MSI vuelto a como estaba (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'pca'; Seccion = 'GRAFICOS'
+        Q = '- Desea desactivar el Asistente de compatibilidad (PcaSvc)? (Evita ventanas que roban el foco en partida; pide reiniciar)'
+        Hace = 'apaga el Asistente de compatibilidad de programas.'
+        Favor = 'evita ventanas que te roban el foco en partida.'
+        Contra = 'no te avisa de problemas con programas viejos.'
+        S = {
+            Opt-Ini 'Asistente de compatibilidad (PcaSvc)'
+            Svc 'PcaSvc' 'disabled' '4'
+            Svc-Parar 'PcaSvc'
+            Opt-Fin 'Asistente de compatibilidad desactivado (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Asistente de compatibilidad (restaurar)'
+            Svc 'PcaSvc' 'delayed-auto' '2'
+            Svc-Arrancar 'PcaSvc'
+            Opt-Fin 'Asistente de compatibilidad restaurado (inicio automatico retrasado)'
+        }
+    },
+    @{
+        Id = 'tr'; Seccion = 'TEMPORIZADOR Y LATENCIA'
+        Q = '- Desea fijar el temporizador del sistema en el minimo? (Siempre 0.5 ms; menos latencia y tirones)'
+        Hace = 'deja el temporizador de Windows fijo en 0.5 ms para todo el sistema.'
+        Favor = 'menos latencia y tiempos de frame mas parejos.'
+        Contra = 'mas consumo y calor, sobre todo en notebook.'
+        Saltar = {
+            # En Windows 10 (2004 o mas nuevo) cada programa tiene su propio temporizador: uno fijo para todo el sistema no llega a los juegos.
+            if (($Build -gt 0) -and ($Build -lt 22000)) { Log 'SALTADO' ('Temporizador: el temporizador global fijo necesita Windows 11 - build ' + $Build); return $true }
+            return $false
+        }
+        S = {
+            Opt-Ini 'Temporizador al minimo'
+            Resps (Act 'TIMER_ON')
+            Opt-Fin 'Temporizador fijo en el minimo para todo el sistema (se aplica del todo al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Temporizador (restaurar)'
+            Resps (Act 'TIMER_OFF')
+            Opt-Fin 'Temporizador restaurado al valor por defecto de Windows'
+        }
+    },
+    @{
+        Id = 'ram'; Seccion = 'LIMPIEZA DE RAM (STANDBY LIST)'
+        Q = '- Desea activar la limpieza automatica de RAM en espera? (Vacia el cache al bajar de 1024 MB libres)'
+        Hace = 'vacia la memoria en espera cuando quedan menos de 1024 MB libres.'
+        Favor = 'evita tirones cuando la RAM se llena.'
+        Contra = 'lo que estaba guardado en cache se vuelve a leer del disco.'
+        S = {
+            Opt-Ini 'Limpieza de RAM automatica'
+            Resps (Act 'RAM_ON')
+            Opt-Fin 'Limpiador de RAM activado'
+        }
+        R = {
+            Opt-Ini 'Limpieza de RAM (restaurar)'
+            Resps (Act 'RAM_OFF')
+            Opt-Fin 'Limpiador de RAM desactivado'
+        }
+    },
+    @{
+        Id = 'sm'; Seccion = 'LIMPIEZA DE RAM (STANDBY LIST)'
+        Q = '- Desea desactivar SysMain y Prefetch? (Deja la RAM libre; hace falta 16 GB y SSD)'
+        Hace = 'apaga SysMain y Prefetch, que precargan programas en la RAM.'
+        Favor = 'deja mas RAM libre para el juego.'
+        Contra = 'algunos programas abren un poco mas lento la primera vez.'
+        Saltar = {
+            if (($RamGB -ge 16) -and (-not $EsHdd)) { return $false }
+            Say ''
+            Say '  SysMain/Prefetch se omite: hace falta 16 GB de RAM o mas y Windows en SSD o NVMe.'
+            Log 'SALTADO' ('SysMain/Prefetch: RAM ' + $RamGB + ' GB, disco HDD=' + $(if ($EsHdd) { 1 } else { 0 }))
+            return $true
+        }
+        S = {
+            Opt-Ini 'SysMain y Prefetch'
+            $pf = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters'
+            Svc 'SysMain' 'disabled' '4'
+            Reg-Set $pf 'EnablePrefetcher' 'REG_DWORD' '0'
+            Reg-Set $pf 'EnableSuperfetch' 'REG_DWORD' '0'
+            Svc-Parar 'SysMain'
+            Opt-Fin 'SysMain y Prefetch desactivados'
+        }
+        R = {
+            Opt-Ini 'SysMain y Prefetch (restaurar)'
+            $pf = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters'
+            Svc 'SysMain' 'auto' '2'
+            Reg-Set $pf 'EnablePrefetcher' 'REG_DWORD' '3'
+            Reg-Set $pf 'EnableSuperfetch' 'REG_DWORD' '3'
+            Svc-Arrancar 'SysMain'
+            Opt-Fin 'SysMain y Prefetch restaurados'
+        }
+    },
+    @{
+        Id = 'pe'; Seccion = 'ENERGIA Y RED'
+        Q = '- Desea desactivar el ahorro de energia de USB, PCIe y discos? (Evita microcortes de mouse y teclado, y tirones de discos HDD)'
+        Hace = 'apaga el ahorro de energia de USB, USB 3 y PCI Express, y con la PC enchufada los discos ya no se apagan solos.'
+        Favor = 'evita microcortes del mouse y el teclado, y los tirones de unos segundos cuando un disco HDD se vuelve a encender.'
+        Contra = 'en reposo la PC gasta unos vatios mas y la placa de video y los SSD NVMe pueden calentar un poco mas; en notebook la bateria dura menos (tambien con la tapa cerrada) y los discos HDD quedan girando mientras la PC esta prendida.'
+        S = {
+            Opt-Ini 'Ahorro de energia USB, PCIe y discos'
+            Resps (Act 'PWR_OFF')
+            Opt-Fin 'Ahorro de energia de USB, PCIe y discos desactivado'
+        }
+        R = {
+            Opt-Ini 'Ahorro de energia USB, PCIe y discos (restaurar)'
+            Resps (Act 'PWR_ON')
+            Opt-Fin 'Ahorro de energia de USB, PCIe y discos restaurado'
+        }
+    },
+    @{
+        Id = 'nic'; Seccion = 'ENERGIA Y RED'
+        Q = '- Desea desactivar el ahorro de energia de la red? (Menos picos de ping; no toca Wake-on-LAN; pide reiniciar)'
+        Hace = 'apaga el ahorro de energia de la placa de red.'
+        Favor = 'menos picos de ping.'
+        Contra = 'un poco mas de consumo; en placas malas puede causar cortes, y R lo vuelve atras.'
+        S = {
+            Opt-Ini 'Ahorro de energia de la placa de red'
+            Resps (Act 'NIC_OFF')
+            Opt-Fin 'Ahorro de energia de la placa de red desactivado (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Ahorro de energia de la placa de red (restaurar)'
+            Resps (Act 'NIC_ON')
+            Opt-Fin 'Ahorro de energia de la placa de red restaurado (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'dup'; Seccion = 'ENERGIA Y RED'
+        Q = '- Desea limitar el cable a 1 Gbps? (Para placas de cable de 2.5 Gbps o mas que se cortan solas; pide reiniciar)'
+        Hace = 'pone la placa de cable en 1 Gbps fijo en vez de automatico (Speed & Duplex = 1.0 Gbps Full Duplex). Solo en placas de 2.5 Gbps o mas, como las Realtek 2.5GbE.'
+        Favor = 'arregla los cortes de unos segundos en los que el cable se desconecta y se vuelve a conectar solo. Con internet de 1 Gbps o menos no perdes nada.'
+        Contra = 'la placa no pasa de 1 Gbps: si tu internet es de mas de 1 Gbps, o pasas archivos entre PCs de tu casa, va mas lento; R lo vuelve atras.'
+        S = {
+            Opt-Ini 'Cable a 1 Gbps'
+            Resps (Act 'DUP_ON')
+            Opt-Fin 'Cable limitado a 1 Gbps (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Cable a 1 Gbps (restaurar)'
+            Resps (Act 'DUP_R')
+            Opt-Fin 'Velocidad del cable otra vez en automatico (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'wf'; Seccion = 'ENERGIA Y RED'
+        Q = '- Desea usar WiFi y cable a la vez sin cortes? (Para PCs con WiFi y cable; el cable queda primero)'
+        Hace = 'deja el WiFi y el cable conectados a la vez: Windows ya no corta el WiFi cuando enchufas el cable, el cable queda primero y el WiFi no se apaga por ahorro de energia.'
+        Favor = 'el WiFi deja de desconectarse solo en las PCs que tienen WiFi y cable (como las placas madre con WiFi integrado).'
+        Contra = 'un poco mas de consumo, porque las dos conexiones quedan prendidas.'
+        S = {
+            Opt-Ini 'WiFi y cable a la vez'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy' 'fMinimizeConnections' 'REG_DWORD' '0'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy' 'fSoftDisconnectConnections' 'REG_DWORD' '0'
+            Resps (Act 'WIFILAN_ON')
+            Opt-Fin 'WiFi y cable a la vez activado'
+        }
+        R = {
+            Opt-Ini 'WiFi y cable a la vez (restaurar)'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy' 'fMinimizeConnections'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy' 'fSoftDisconnectConnections'
+            Resps (Act 'WIFILAN_R')
+            Opt-Fin 'WiFi y cable restaurados'
+        }
+    },
+    @{
+        Id = 'nag'; Seccion = 'ENERGIA Y RED'
+        Q = '- Desea desactivar el algoritmo de Nagle? (Paquetes de red sin espera; menos ping en juegos que usan TCP; pide reiniciar)'
+        Hace = 'apaga el algoritmo de Nagle en tus conexiones de red: Windows manda cada paquete chico al instante en vez de juntarlos y esperar.'
+        Favor = 'puede bajar unos milisegundos el ping en juegos que usan TCP, como Minecraft o juegos de MMO y estrategia.'
+        Contra = 'la mayoria de los shooters modernos usan UDP y no notan cambio; con conexiones lentas puede subir un poco el uso de red.'
+        S = {
+            Opt-Ini 'Algoritmo de Nagle'
+            Resps (Act 'NAGLE_OFF')
+            Opt-Fin 'Algoritmo de Nagle desactivado (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Algoritmo de Nagle (restaurar)'
+            Resps (Act 'NAGLE_ON')
+            Opt-Fin 'Algoritmo de Nagle restaurado a como viene en Windows (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'dns'; Seccion = 'DNS'
+        Q = '- Desea cambiar el DNS por el mas rapido para tu conexion? (R vuelve al DNS que tenias)'
+        Hace = 'mide Cloudflare, Google, Quad9 y OpenDNS desde tu conexion y pone el mas rapido.'
+        Favor = 'logins, matchmaking y paginas web cargan mas rapido.'
+        Contra = 'no baja el ping dentro de la partida.'
+        S = {
+            Opt-Ini 'DNS mas rapido'
+            Resps (Act 'DNS_ON')
+            Opt-Fin 'DNS cambiado por el mas rapido (los tiempos de cada uno estan en el log)'
+        }
+        R = {
+            Opt-Ini 'DNS (restaurar)'
+            Resps (Act 'DNS_OFF')
+            Opt-Fin 'DNS restaurado al que tenias antes'
+        }
+    },
+    @{
+        Id = 'mi'; Seccion = 'SEGURIDAD (MAS RENDIMIENTO)'
+        Q = '- Desea desactivar la Integridad de memoria? (Mas rendimiento, menos proteccion contra drivers maliciosos)'
+        Hace = 'apaga la Integridad de memoria de Windows.'
+        Favor = 'mas FPS en algunos juegos.'
+        Contra = 'menos proteccion contra drivers maliciosos.'
+        S = {
+            Opt-Ini 'Integridad de memoria'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' 'Enabled' 'REG_DWORD' '0'
+            Opt-Fin 'Integridad de memoria desactivada (se aplica al reiniciar)'
+            Vanguard-Check
+        }
+        R = {
+            Opt-Ini 'Integridad de memoria (restaurar)'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' 'Enabled' 'REG_DWORD' '1'
+            Opt-Fin 'Integridad de memoria restaurada (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'avl'; Seccion = 'SEGURIDAD (MAS RENDIMIENTO)'
+        Q = '- Desea que el antivirus use menos CPU? (Limita los analisis y sigue encendido)'
+        Hace = 'limita los analisis de Defender al 5 por ciento de CPU, con prioridad baja.'
+        Favor = 'los analisis no te bajan FPS.'
+        Contra = 'los analisis tardan mas en terminar.'
+        Saltar = {
+            # Si no marcaste "Antivirus liviano" no se revisa el antivirus
+            if ((Respuesta 'avl') -eq 'N') { return $true }
+            if ((Act 'AV_STATUS') -ge 10) {
+                Log 'OMITIDO' 'Antivirus liviano: el antivirus esta desactivado'
+                Say '  Antivirus liviano se omite: el antivirus ya esta apagado.'
+                return $true
+            }
+            return $false
+        }
+        S = {
+            Opt-Ini 'Antivirus liviano'
+            Resps (Act 'AV_LIGHT')
+            Opt-Fin 'Antivirus con menor impacto en la CPU'
+        }
+        R = {
+            Opt-Ini 'Antivirus liviano (restaurar)'
+            Resps (Act 'AV_LIGHT_R')
+            Opt-Fin 'Antivirus con su limite de CPU original'
+        }
+    },
+    @{
+        Id = 'vbs'; Seccion = 'SEGURIDAD (MAS RENDIMIENTO)'
+        Q = '- Desea desactivar VBS? (5 a 10 por ciento mas en juegos; rompe Docker, WSL y Hyper-V)'
+        Hace = 'apaga la seguridad basada en virtualizacion.'
+        Favor = 'entre 5 y 10 por ciento mas de FPS.'
+        Contra = 'deja de andar WSL, Docker, Hyper-V y las maquinas virtuales.'
+        S = {
+            Opt-Ini 'VBS'
+            Say '  Revisando el estado de la virtualizacion, un momento...'
+            Resps (Act 'VBS_FEATS_OFF')
+            Bcd 'hypervisorlaunchtype' 'off'
+            Bcd 'vsmlaunchtype' 'off'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard' 'EnableVirtualizationBasedSecurity' 'REG_DWORD' '0'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard' 'EnableVirtualizationBasedSecurity' 'REG_DWORD' '0'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa' 'LsaCfgFlags' 'REG_DWORD' '0'
+            Opt-Fin 'VBS desactivado (se aplica al reiniciar)'
+            Vanguard-Check
+        }
+        R = {
+            Opt-Ini 'VBS (restaurar)'
+            Bcd-Del 'hypervisorlaunchtype'
+            Bcd-Del 'vsmlaunchtype'
+            Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard' 'EnableVirtualizationBasedSecurity'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard' 'EnableVirtualizationBasedSecurity'
+            Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa' 'LsaCfgFlags'
+            Opt-Fin 'VBS restaurado. Hyper-V y WSL, si los usabas, hay que volver a activarlos a mano'
+        }
+    },
+    @{
+        Id = 'wsr'; Seccion = 'BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR'
+        Q = '- Desea desactivar Windows Search? (Sin indexado: libera disco y CPU, pero la busqueda del Inicio es mas lenta)'
+        Hace = 'apaga el indexado de archivos.'
+        Favor = 'libera disco y CPU.'
+        Contra = 'la busqueda del Inicio es mas lenta.'
+        S = {
+            Opt-Ini 'Windows Search'
+            Svc 'WSearch' 'disabled' '4'
+            Svc-Parar 'WSearch'
+            Opt-Fin 'Windows Search desactivado'
+        }
+        R = {
+            Opt-Ini 'Windows Search (restaurar)'
+            Svc 'WSearch' 'delayed-auto' '2'
+            Svc-Arrancar 'WSearch'
+            Opt-Fin 'Windows Search restaurado'
+        }
+    },
+    @{
+        Id = 'stg'; Seccion = 'BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR'
+        Q = '- Desea desactivar Storage Sense? (Windows deja de borrar archivos temporales por su cuenta)'
+        Hace = 'Windows deja de borrar archivos temporales por su cuenta.'
+        Favor = 'no borra nada solo mientras jugas.'
+        Contra = 'la limpieza la haces vos, por ejemplo con Limpiar cache de la app.'
+        S = {
+            Opt-Ini 'Storage Sense'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\StorageSense' 'AllowStorageSenseGlobal' 'REG_DWORD' '0'
+            Opt-Fin 'Storage Sense desactivado'
+        }
+        R = {
+            Opt-Ini 'Storage Sense (restaurar)'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\StorageSense' 'AllowStorageSenseGlobal'
+            Opt-Fin 'Storage Sense restaurado'
+        }
+    },
+    @{
+        Id = 'ext'; Seccion = 'BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR'
+        Q = '- Desea mostrar las extensiones de los archivos? (Ves .exe, .bat, .txt al final del nombre)'
+        Hace = 'muestra el final del nombre de los archivos, como .exe o .txt.'
+        Favor = 'ves que tipo de archivo es y detectas virus disfrazados.'
+        Contra = 'ninguno.'
+        S = {
+            Opt-Ini 'Extensiones de archivo'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt' 'REG_DWORD' '0'
+            Opt-Fin 'Extensiones de archivo visibles'
+        }
+        R = {
+            Opt-Ini 'Extensiones de archivo (restaurar)'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt' 'REG_DWORD' '1'
+            Opt-Fin 'Extensiones de archivo ocultas de nuevo'
+        }
+    },
+    @{
+        Id = 'md'; Seccion = 'AJUSTES EXTRA'
+        Q = '- Desea quitar el retraso de los menus? (Baja de 400 a 0 ms la espera al abrir menus; todo se siente mas rapido)'
+        Hace = 'baja de 400 a 0 ms la espera al abrir menus.'
+        Favor = 'Windows se siente mas rapido.'
+        Contra = 'ninguno.'
+        S = {
+            Opt-Ini 'Retraso de menus'
+            Reg-Set 'HKCU\Control Panel\Desktop' 'MenuShowDelay' 'REG_SZ' '0'
+            Opt-Fin 'Retraso de menus quitado (se aplica al volver a iniciar sesion)'
+        }
+        R = {
+            Opt-Ini 'Retraso de menus (restaurar)'
+            Reg-Set 'HKCU\Control Panel\Desktop' 'MenuShowDelay' 'REG_SZ' '400'
+            Opt-Fin 'Retraso de menus restaurado'
+        }
+    },
+    @{
+        Id = 'v4'; Seccion = 'AJUSTES EXTRA'
+        Q = '- Desea preferir IPv4 sobre IPv6? (Puede bajar la latencia en juegos; IPv6 sigue funcionando; pide reiniciar)'
+        Hace = 'Windows usa IPv4 antes que IPv6 cuando hay las dos.'
+        Favor = 'puede bajar la latencia con algunos servidores.'
+        Contra = 'casi ninguno; IPv6 sigue funcionando.'
+        S = {
+            Opt-Ini 'IPv4 preferido'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters' 'DisabledComponents' 'REG_DWORD' '32'
+            Opt-Fin 'IPv4 preferido (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'IPv4 preferido (restaurar)'
+            Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters' 'DisabledComponents'
+            Opt-Fin 'IPv4 restaurado (se aplica al reiniciar)'
         }
     }
+)
+
+# Lo que llama la app (en otro hilo, con Comun.ps1 cargado). $salida = archivo donde la app lee el progreso.
+function Correr-Gaming([string]$salida, [string]$carpeta) {
+    Correr-Opciones -Nombre 'gaming' -Titulo 'OPTIMIZACION PARA GAMING' -Lista $ListaOpciones -Rein $ReinGaming -Salida $salida -Carpeta $carpeta
 }
-
-exit $code
-
-<#XUCA-UPD
-# ------------------------------------------------------------
-# Buscador de actualizaciones. Lo corre la parte de arriba del .bat.
-# Esta dentro de un comentario para que el resto del PowerShell de este archivo lo ignore.
-# Compara el version.txt de tu PC con el de GitHub: si son distintos, avisa.
-# ------------------------------------------------------------
-& {
-    $ErrorActionPreference = 'Stop'
-    $repo = [string]$env:XUCA_REPO; $rama = [string]$env:XUCA_RAMA; $gh = [string]$env:XUCA_GH
-    $self = [string]$env:XUCA_SELF
-    if ((-not $repo) -or ($repo -like 'TU_USUARIO*')) { return }
-    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
-    $latin = [Text.Encoding]::GetEncoding(28591)
-    $base = 'https://raw.githubusercontent.com/' + $repo + '/' + $rama + '/'
-
-    # Si el .bat esta en la carpeta scripts de la app, el version.txt es el de la app (al lado de XucaOP.ps1).
-    # Si esta suelto, el version.txt va en la misma carpeta que el .bat.
-    $dir = Split-Path -Parent $self
-    $arriba = Split-Path -Parent $dir
-    $conApp = [bool]($arriba -and (Test-Path -LiteralPath (Join-Path $arriba 'XucaOP.ps1')))
-    $raiz = $(if ($conApp) { $arriba } else { $dir })
-    $verLocal = Join-Path $raiz 'version.txt'
-
-    function Limpiar([string]$t) { return (($t -replace '^(\u00EF\u00BB\u00BF|\uFEFF)', '') -split "`r?`n")[0].Trim() }
-    function Bajar([string]$remoto, [int]$espera, [string]$etiqueta) {
-        $rq = [Net.HttpWebRequest]::Create($base + $remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
-        $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'XucaOP'
-        $rs = $rq.GetResponse()
-        try {
-            $len = $rs.ContentLength
-            $st = $rs.GetResponseStream(); $ms = New-Object IO.MemoryStream; $buf = New-Object byte[] 65536
-            while (($r = $st.Read($buf, 0, $buf.Length)) -gt 0) {
-                $ms.Write($buf, 0, $r)
-                if ($etiqueta -and ($len -gt 0)) { [Console]::Write("`r  Descargando " + $etiqueta + ': ' + [int](100 * $ms.Length / $len) + '%   ') }
-            }
-            if ($etiqueta) { [Console]::WriteLine('') }
-            return $latin.GetString($ms.ToArray())
-        } finally { $rs.Close() }
-    }
-
-    $local = ''
-    if (Test-Path -LiteralPath $verLocal) { try { $local = Limpiar ([IO.File]::ReadAllText($verLocal)) } catch { } }
-    [Console]::Write('Buscando actualizaciones...')
-    $remota = ''
-    try { $remota = Limpiar (Bajar 'version.txt' 4000 '') } catch { }
-    [Console]::Write("`r" + (' ' * 30) + "`r")
-    if ((-not $remota) -or ($remota -eq $local)) { return }
-
-    # Cartel amarillo. En Windows Terminal se ve el simbolo de advertencia; en la consola vieja va /!\
-    $icono = '/!\'
-    if ($env:WT_SESSION) { $icono = [string][char]0x26A0 }
-    $ancho = 76
-    try { $ancho = [math]::Max(40, [math]::Min([Console]::WindowWidth - 1, 76)) } catch { }
-    $tuya = $(if ($local) { $local } else { 'sin version' })
-    Write-Host ''
-    foreach ($l in @('', ('  ' + $icono + '  HAY UNA ACTUALIZACION DISPONIBLE'), ('     Tenes la version ' + $tuya + ' y en GitHub esta la ' + $remota + '.'), '     Si la bajas, se cierra esta ventana y se abre la version nueva sola.', '')) {
-        $t = $l; if ($t.Length -gt $ancho) { $t = $t.Substring(0, $ancho) }
-        Write-Host ($t.PadRight($ancho)) -ForegroundColor Black -BackgroundColor Yellow
-    }
-    Write-Host ''
-    Write-Host '- Desea descargar la actualizacion? [S] Si  [N] No: ' -NoNewline -ForegroundColor Yellow
-    $k = ''
-    while (@('S', 'N') -notcontains $k) { $k = ([string][Console]::ReadKey($true).KeyChar).ToUpper() }
-    Write-Host $k
-    if ($k -eq 'N') {
-        Write-Host '  Seguis con esta version.' -ForegroundColor DarkGray
-        Write-Host ''
-        return
-    }
-
-    # Que se baja: con la app, todo (app y los 3 scripts). Suelto, este .bat y los otros scripts que esten en la misma carpeta.
-    $lista = @()
-    if ($conApp) {
-        foreach ($r in 'XucaOP.ps1', 'scripts/windows_debloat.bat', 'scripts/optimizacion_gaming.bat', 'scripts/limpiar_cache.bat', 'lang/en-en/textos.txt', 'lang/es-mx/textos.txt') {
-            $lista += [pscustomobject]@{ Remoto = $r; Local = (Join-Path $raiz ($r -replace '/', '\')); Opc = ($r -like 'lang/*') }
-        }
-    } else {
-        $lista += [pscustomobject]@{ Remoto = $gh; Local = $self }
-        foreach ($n in 'windows_debloat.bat', 'optimizacion_gaming.bat', 'limpiar_cache.bat') {
-            $p = Join-Path $dir $n
-            if (('scripts/' + $n) -ne $gh -and (Test-Path -LiteralPath $p)) { $lista += [pscustomobject]@{ Remoto = ('scripts/' + $n); Local = $p } }
-        }
-    }
-
-    # Se baja todo a archivos .nuevo; el version.txt va ultimo
-    $nuevos = @()
-    try {
-        foreach ($a in $lista) {
-            # Los opcionales (los idiomas de la app) se saltean si todavia no estan en GitHub
-            try { $txt = Bajar $a.Remoto 30000 (Split-Path -Leaf $a.Remoto) } catch { if ($a.Opc) { continue }; throw }
-            if ($txt.Length -lt 100) { if ($a.Opc) { continue }; throw ('lo que llego de GitHub para ' + $a.Remoto + ' no es el archivo esperado') }
-            $tmp = $a.Local + '.nuevo'
-            $dd = Split-Path -Parent $tmp
-            if (-not (Test-Path -LiteralPath $dd)) { New-Item -ItemType Directory -Path $dd -Force | Out-Null }
-            [IO.File]::WriteAllText($tmp, ($txt -replace '\r?\n', "`r`n"), $latin)
-            $nuevos += [pscustomobject]@{ Tmp = $tmp; Local = $a.Local }
-        }
-        $tmp = $verLocal + '.nuevo'
-        [IO.File]::WriteAllText($tmp, ($remota + "`r`n"), $latin)
-        $nuevos += [pscustomobject]@{ Tmp = $tmp; Local = $verLocal }
-    } catch {
-        foreach ($n in $nuevos) { Remove-Item -LiteralPath $n.Tmp -Force -ErrorAction SilentlyContinue }
-        Remove-Item -LiteralPath ($verLocal + '.nuevo') -Force -ErrorAction SilentlyContinue
-        Write-Host ('  No se pudo descargar: ' + $_.Exception.Message) -ForegroundColor Red
-        Write-Host '  Seguis con esta version.' -ForegroundColor DarkGray
-        Start-Sleep -Seconds 3
-        return
-    }
-
-    # Un ayudante oculto espera a que se cierre esta ventana, pone los archivos nuevos en lugar de los viejos y abre este .bat.
-    $padre = 0
-    try { $padre = [int](Get-CimInstance Win32_Process -Filter ('ProcessId=' + $PID)).ParentProcessId } catch { }
-    $c = { param($s) "'" + ($s -replace "'", "''") + "'" }
-    $h = @(
-        ('$p = ' + $padre),
-        'Start-Sleep -Milliseconds 800',
-        '$fin = (Get-Date).AddSeconds(30)',
-        'while (($p -gt 0) -and (Get-Process -Id $p -ErrorAction SilentlyContinue) -and ((Get-Date) -lt $fin)) { Start-Sleep -Milliseconds 200 }'
-    )
-    foreach ($n in $nuevos) {
-        $h += ('for ($i = 0; $i -lt 30; $i++) { try { Move-Item -LiteralPath ' + (& $c $n.Tmp) + ' -Destination ' + (& $c $n.Local) + ' -Force -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 300 } }')
-    }
-    $h += ('Start-Process -FilePath ' + (& $c $self) + ' -WorkingDirectory ' + (& $c $dir))
-    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes(($h -join "`n")))
-    Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -EncodedCommand ' + $enc)
-    Write-Host '  Listo. Se cierra esta ventana y se abre la version nueva.' -ForegroundColor Green
-    Start-Sleep -Milliseconds 1200
-    $global:XucaUpd = 10
-}
-XUCA-UPD#>

@@ -1,0 +1,413 @@
+﻿# Opciones de Debloat, Gaming y Limpieza, por su Id (el mismo Id que en Debloat.ps1, Gaming.ps1 y XucaOP.ps1).
+# Cada bloque empieza con [Pagina Id] y lleva Titulo, Hace, Favor y Contra.
+# Si cambias el texto en espanol de una opcion, esto sigue andando: solo acordate de actualizar el ingles.
+# Si a una opcion le falta su bloque (o un campo), se muestra en espanol.
+
+# ============================================================
+# DEBLOAT
+# ============================================================
+
+[Debloat rpo]
+Titulo: Turn off restore points for good
+Hace: turns off restore points for good and deletes the ones you already have.
+Favor: frees disk space and Windows stops writing copies in the background.
+Contra: if something goes wrong you won't be able to go back with a restore point.
+
+[Debloat av]
+Titulo: Turn off ALL the antivirus
+Hace: turns off Defender, SmartScreen and Smart App Control.
+Favor: less CPU and disk use, and no scans in the middle of a match.
+Contra: the PC is left without virus protection and Smart App Control can't be turned back on without reinstalling Windows.
+
+[Debloat bl]
+Titulo: Disable BitLocker
+Hace: decrypts the disk and stops Windows from encrypting it again on its own.
+Favor: a bit more disk speed and it won't lock you out if you change hardware or the BIOS.
+Contra: if your PC is stolen, they can read your files.
+
+[Debloat hib]
+Titulo: Disable hibernation
+Hace: turns off hibernation and Fast Startup, and turns on memory compression.
+Favor: frees several GB of disk and every shutdown is complete, with fewer weird errors.
+Contra: turning the PC on from off takes a few more seconds.
+
+[Debloat rc]
+Titulo: Disable Recall
+Hace: turns off Recall, which takes screenshots of what you do to search it with AI.
+Favor: more privacy and less disk and CPU use.
+Contra: you lose that screenshot search; it only exists on Copilot+ PCs.
+
+[Debloat sch]
+Titulo: Mute Windows sounds
+Hace: mutes Windows sounds and the startup sound; only the device connect and disconnect sounds remain.
+Favor: no alert sounds in the middle of a match or a stream.
+Contra: you don't hear system alerts.
+
+[Debloat fx]
+Titulo: Reduce visual effects
+Hace: removes animations, shadows, fades and transparency.
+Favor: Windows feels faster and uses the graphics card a bit less.
+Contra: Windows looks plainer.
+
+[Debloat et]
+Titulo: Add End task to the taskbar right-click menu
+Hace: adds End task to the taskbar right-click menu.
+Favor: you close a frozen game or program without opening Task Manager.
+Contra: none.
+
+[Debloat cal]
+Titulo: Remove the calendar from the clock
+Hace: the date and time on the taskbar are still shown, but clicking them no longer opens the calendar or the notification center.
+Favor: the panel doesn't open by accident in the middle of a match and the taskbar stays the same.
+Contra: you don't see the calendar or the notification history; Win + N doesn't open it either.
+
+[Debloat apps]
+Titulo: Block Store apps in the background
+Hace: stops Store apps from running when you aren't using them.
+Favor: saves RAM and CPU.
+Contra: some apps don't notify you of anything until you open them.
+
+[Debloat ini]
+Titulo: Turn off junk startup apps
+Hace: turns off the programs that open by themselves when the PC starts (Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge and similar). It doesn't touch Windows stuff, drivers, mouse, keyboard, headset and RGB software (Logitech, Razer, SteelSeries Sonar, Corsair...), Wallpaper Engine, antivirus, VPN or anti-cheats.
+Favor: the PC boots faster and more RAM stays free.
+Contra: those programs no longer open by themselves: you open them when you need them.
+
+[Debloat tel]
+Titulo: Reduce telemetry and get the newest Windows updates for lower RAM use
+Hace: turns off the service that sends data to Microsoft and its tasks (disk and power diagnostics, error queue, MAR backup, startup measurement and maps), and sets the level Windows asks for to get new versions sooner.
+Favor: fewer background processes using disk and CPU, and you get 26H2 first, which uses less RAM.
+Contra: it's not a total shutdown of data: it's the middle ground to keep getting new things. Task Manager stops measuring the startup impact of programs.
+
+[Debloat wg]
+Titulo: Disable Widgets
+Hace: removes the Widgets panel and hides the Task View button.
+Favor: fewer processes and less RAM, and a cleaner taskbar.
+Contra: you lose the weather and news panel.
+
+[Debloat do]
+Titulo: Stop sharing updates with other PCs
+Hace: your PC stops sending updates to other PCs over the internet.
+Favor: it doesn't use your upload bandwidth and there's less risk of lag in matches.
+Contra: none for you.
+
+[Debloat wud]
+Titulo: Stop Windows Update from installing drivers
+Hace: Windows Update stops installing drivers.
+Favor: it won't change the graphics driver you chose or install old drivers.
+Contra: you update drivers yourself, from the NVIDIA, AMD or manufacturer app.
+
+[Debloat wup]
+Titulo: Allow pausing Windows updates for a long time
+Hace: lets you choose a pause of many years in Windows Update.
+Favor: it won't update or restart during a tournament or an important match.
+Contra: if you leave it paused for a long time, you miss security patches.
+
+[Debloat ad]
+Titulo: Remove ads, suggestions and Bing
+Hace: removes ads, the advertising ID, suggested apps and the ones Microsoft and the manufacturer install on their own, Start recommendations and Bing from search.
+Favor: a cleaner Start and search only looks in your PC, faster.
+Contra: Start search no longer searches the internet.
+
+[Debloat sv]
+Titulo: Disable services and features almost nobody uses
+Hace: turns off Fax, Maps, demo mode, geolocation and error report services, and removes Internet Explorer, Fax and Scan and the old Media Player.
+Favor: fewer services and features loaded in Windows.
+Contra: if you use the Windows scanner or the old Media Player, they're gone.
+
+[Debloat pv]
+Titulo: Turn off tracking and data collection
+Hace: turns off activity history, location, Wifi Sense, cloud clipboard and settings, typing learning and suggestions, cloud speech and apps listening for voice commands, maps, DRM and Homegroup.
+Favor: more privacy and fewer background tasks.
+Contra: apps that use location, like weather, can't detect it, and your settings aren't copied to other PCs.
+
+[Debloat ter]
+Titulo: Disable Teredo
+Hace: turns off Teredo, an IPv6 tunnel Windows uses on top of IPv4.
+Favor: it can remove extra latency on some connections.
+Contra: it can affect Xbox party chat and NAT in Xbox games on PC.
+
+[Debloat tp]
+Titulo: Turn off program telemetry
+Hace: turns off telemetry for Office, NVIDIA and PowerShell 7.
+Favor: less data sent and fewer background tasks.
+Contra: none in normal use.
+
+[Debloat hst]
+Titulo: Block Microsoft telemetry servers
+Hace: adds 38 telemetry servers to the hosts file so they don't respond.
+Favor: cuts data sending even if Windows turns something back on later.
+Contra: Defender sometimes warns about hosts changes and some Microsoft diagnostics may fail.
+
+[Debloat eb]
+Titulo: Reduce Edge and Brave bloat
+Hace: turns off the sidebar, shopping, rewards, wallet, VPN and AI in Edge and Brave; in Edge it also removes Copilot (it doesn't read your pages or your history), AI writing, AI themes, DevTools AI and downloading local AI models.
+Favor: lighter browsers without ads.
+Contra: you lose those features if you used them.
+
+[Debloat su]
+Titulo: Stop automatic updates of Store apps
+Hace: Store apps only update when you ask for it.
+Favor: they don't download anything in the middle of a match.
+Contra: you have to update them manually now and then.
+
+[Debloat ia]
+Titulo: Turn off Windows AI features
+Hace: turns off Click to Do, the AI in Notepad and Paint (image creator, Cocreator, generative fill and erase, remove background), the AI agent in Settings, Copilot in search, app access to generative AI and Copilot in Word and Excel.
+Favor: fewer AI processes and more privacy.
+Contra: you lose those features.
+
+[Debloat db]
+Titulo: Delete bloatware apps
+Hace: deletes OneDrive, Copilot, the AI packages and the apps that come preinstalled.
+Favor: more space, less RAM and fewer processes.
+Contra: it can't be reset: if you want one back, reinstall it from the Store. Your OneDrive files on the PC are not deleted.
+
+[Debloat edge]
+Titulo: Remove Edge, Bing and Get Started
+Hace: uninstalls Edge, Bing and Get Started, but keeps WebView2, which other programs use.
+Favor: fewer background processes and Edge stops opening by itself.
+Contra: a big Windows update can bring it back.
+
+[Debloat chr]
+Titulo: Install Google Chrome
+Hace: installs Google Chrome with winget.
+Favor: you have a browser even if you removed Edge.
+Contra: none.
+
+# ============================================================
+# GAMING
+# ============================================================
+
+[Gaming ms]
+Titulo: Competitive mouse
+Hace: removes mouse acceleration and the pointer trail, and sets the speed to the middle.
+Favor: the same hand movement always moves the same: better aim.
+Contra: on the desktop the mouse may feel different until you get used to it.
+
+[Gaming tk]
+Titulo: Disable accessibility shortcuts
+Hace: turns off the accessibility shortcuts that turn on by accident while gaming: Shift 5 times, right Shift for 8 seconds, Num Lock for 5 seconds, Alt+Shift+Num Lock (mouse keys), Alt+Shift+Print Screen (high contrast) and Win+Ctrl+Enter (Narrator).
+Favor: it doesn't kick you out of the game mid-match or change the colors of the whole screen.
+Contra: if you use any of these features for accessibility, turn it on manually from Settings.
+
+[Gaming du]
+Titulo: Stop Windows from lowering the volume during calls
+Hace: Windows stops lowering the game volume when there's a call, for example on Discord.
+Favor: the game always sounds the same.
+Contra: none.
+
+[Gaming mm]
+Titulo: Give games multimedia priority
+Hace: the Windows multimedia scheduler gives games more priority. The network limit stays at 10, the Windows value, because removing it can make latency worse.
+Favor: a bit more CPU for the game and less stutter.
+Contra: the effect is small.
+
+[Gaming pri]
+Titulo: Give your games high priority
+Hace: every time you open those games, Windows gives them more CPU time than what runs in the background.
+Favor: less stutter when you have things open in the background, like Discord, the browser or OBS.
+Contra: if the CPU reaches 100 percent, background stuff may stutter a bit (for example, the OBS stream).
+
+[Gaming afi]
+Titulo: Use CPU affinity for your games
+Hace: a small background program puts your games on the best cores and moves Discord, Spotify and the browser to others.
+Favor: background stuff doesn't steal cores from the game: steadier frametimes and less stutter, especially in Minecraft.
+Contra: while you play, background stuff runs a bit slower.
+
+[Gaming pw]
+Titulo: Use the High performance plan
+Hace: turns on the High performance power plan.
+Favor: the CPU responds faster and doesn't lower its frequency as much.
+Contra: more power use and heat, especially on laptops.
+
+[Gaming nb]
+Titulo: Prioritize the laptop battery
+Hace: only when the laptop is on battery: turbo is used only when needed, the processor favors saving power, it slows down before spinning up the fans, and Windows battery saver turns on by itself at 30 percent. Plugged in, nothing changes.
+Favor: the battery lasts quite a bit longer and the laptop runs cooler and quieter off the charger.
+Contra: on battery it performs a bit less; plug it in to play.
+
+[Gaming cpu]
+Titulo: Turn on the processor Nitro Mode
+Hace: keeps all cores active, turbo at maximum and in aggressive mode, fast speed ramp-up and fans before slowing down, with the PC plugged in; also Windows stops throttling background programs.
+Favor: less stutter when the game suddenly asks for more CPU.
+Contra: more power use, heat and fan noise.
+
+[Gaming ll]
+Titulo: Turn on Low latency
+Hace: turns on Low latency (Low Latency Profile), a hidden Windows 11 feature that can also be turned on with ViVeTool and ID 58989092: when you open Start, menus, search or apps, the processor goes to maximum for 1 to 3 seconds.
+Favor: Start, menus and apps open faster, especially on low-end PCs.
+Contra: short spikes of power use and heat; Microsoft is still testing it and on powerful PCs it's barely noticeable.
+
+[Gaming gm]
+Titulo: Turn on Game Mode
+Hace: turns on Game Mode and stops the controller's Xbox button from opening the Game Bar.
+Favor: Windows prioritizes the game and holds back updates while you play.
+Contra: nothing important.
+
+[Gaming xb]
+Titulo: Delete the Xbox Game Bar app
+Hace: deletes the Xbox Game Bar app and turns off its recordings. On two-CCD Ryzen X3D (7900X3D, 7950X3D, 9900X3D, 9950X3D) it only turns off the recordings: there the app is needed.
+Favor: fewer processes and nothing recording in the background.
+Contra: you lose Windows captures and clips; you can use NVIDIA, AMD or OBS.
+
+[Gaming notif]
+Titulo: Disable Windows notifications
+Hace: turns off pop-up notifications and the Notification Center.
+Favor: nothing covers your screen in a match.
+Contra: you don't see notifications from apps like Discord or email.
+
+[Gaming xm]
+Titulo: Turn off Xbox mode
+Hace: turns off Windows 11 Xbox mode (the console-style full screen with the Xbox app).
+Favor: Windows won't open it or offer it if you don't use it. It doesn't change FPS: it's just for comfort.
+Contra: to use the PC as a console with a controller, you have to turn it back on.
+
+[Gaming gf]
+Titulo: Optimize windowed games and hardware GPU scheduling
+Hace: uses the modern mode for windowed games and turns on hardware-accelerated GPU scheduling.
+Favor: less latency in windowed and borderless, and it's needed for Frame Generation.
+Contra: it can cause problems on some old PCs.
+
+[Gaming mpo]
+Titulo: Disable MPO
+Hace: disables MPO, a display feature that overlays images.
+Favor: fixes flickering, black screens and invisible cursor on some PCs.
+Contra: if you didn't have those problems, GPU use in windowed mode may go up a bit.
+
+[Gaming msi]
+Titulo: Turn on MSI mode on the graphics and network cards
+Hace: the cards notify the processor with messages (MSI) instead of using the old shared line.
+Favor: a bit less latency and micro-stutter. Many new cards already come like this, in that case nothing changes.
+Contra: if the driver doesn't support it well, after restarting you may see a black screen or lose internet.
+
+[Gaming pca]
+Titulo: Disable the Compatibility Assistant
+Hace: turns off the Program Compatibility Assistant.
+Favor: avoids windows that steal focus during a match.
+Contra: it doesn't warn you about problems with old programs.
+
+[Gaming tr]
+Titulo: Lock the system timer at the minimum
+Hace: keeps the Windows timer fixed at 0.5 ms for the whole system.
+Favor: less latency and steadier frame times.
+Contra: more power use and heat, especially on laptops.
+
+[Gaming ram]
+Titulo: Turn on automatic standby RAM cleaning
+Hace: empties standby memory when less than 1024 MB are free.
+Favor: avoids stutter when RAM fills up.
+Contra: what was cached is read from disk again.
+
+[Gaming sm]
+Titulo: Disable SysMain and Prefetch
+Hace: turns off SysMain and Prefetch, which preload programs into RAM.
+Favor: leaves more RAM free for the game.
+Contra: some programs open a bit slower the first time.
+
+[Gaming pe]
+Titulo: Disable USB, PCIe and disk power saving
+Hace: turns off power saving for USB, USB 3 and PCI Express, and with the PC plugged in the disks no longer turn off by themselves.
+Favor: avoids mouse and keyboard micro-drops, and the few-second stutters when an HDD spins back up.
+Contra: at idle the PC uses a few more watts and the graphics card and NVMe SSDs can run a bit hotter; on laptops the battery lasts less (also with the lid closed) and HDDs keep spinning while the PC is on.
+
+[Gaming nic]
+Titulo: Disable network power saving
+Hace: turns off power saving on the network card.
+Favor: fewer ping spikes.
+Contra: a bit more power use; on bad cards it can cause drops.
+
+[Gaming dup]
+Titulo: Limit the cable to 1 Gbps
+Hace: sets the wired card to a fixed 1 Gbps instead of automatic (Speed & Duplex = 1.0 Gbps Full Duplex). Only on 2.5 Gbps or faster cards, like Realtek 2.5GbE.
+Favor: fixes the few-second drops where the cable disconnects and reconnects by itself. With internet of 1 Gbps or less you lose nothing.
+Contra: the card won't go over 1 Gbps: if your internet is faster than 1 Gbps, or you copy files between PCs at home, it's slower.
+
+[Gaming wf]
+Titulo: Use WiFi and Ethernet together without drops
+Hace: keeps WiFi and Ethernet connected at the same time: Windows no longer cuts WiFi when you plug in the cable, the cable goes first and WiFi isn't turned off to save power.
+Favor: WiFi stops disconnecting by itself on PCs that have WiFi and Ethernet (like motherboards with built-in WiFi).
+Contra: slightly more power use, because both connections stay on.
+
+[Gaming nag]
+Titulo: Disable Nagle's algorithm
+Hace: turns off Nagle's algorithm on your network connections: Windows sends each small packet right away instead of bundling them and waiting.
+Favor: it can lower ping by a few milliseconds in games that use TCP, like Minecraft or MMO and strategy games.
+Contra: most modern shooters use UDP and notice no change; on slow connections network use may go up a bit.
+
+[Gaming dns]
+Titulo: Switch DNS to the fastest one for your connection
+Hace: measures Cloudflare, Google, Quad9 and OpenDNS from your connection and sets the fastest.
+Favor: logins, matchmaking and web pages load faster.
+Contra: it doesn't lower in-game ping.
+
+[Gaming mi]
+Titulo: Disable Memory integrity
+Hace: turns off Windows Memory integrity.
+Favor: more FPS in some games.
+Contra: less protection against malicious drivers.
+
+[Gaming avl]
+Titulo: Make the antivirus use less CPU
+Hace: limits Defender scans to 5 percent of CPU, with low priority.
+Favor: scans don't lower your FPS.
+Contra: scans take longer to finish.
+
+[Gaming vbs]
+Titulo: Disable VBS
+Hace: turns off virtualization-based security.
+Favor: between 5 and 10 percent more FPS.
+Contra: WSL, Docker, Hyper-V and virtual machines stop working.
+
+[Gaming wsr]
+Titulo: Disable Windows Search
+Hace: turns off file indexing.
+Favor: frees disk and CPU.
+Contra: Start search is slower.
+
+[Gaming stg]
+Titulo: Disable Storage Sense
+Hace: Windows stops deleting temporary files on its own.
+Favor: it doesn't delete anything by itself while you play.
+Contra: you do the cleaning yourself, for example with the app's Clean cache.
+
+[Gaming ext]
+Titulo: Show file extensions
+Hace: shows the end of file names, like .exe or .txt.
+Favor: you see what type of file it is and spot disguised viruses.
+Contra: none.
+
+[Gaming md]
+Titulo: Remove the menu delay
+Hace: lowers the wait when opening menus from 400 to 0 ms.
+Favor: Windows feels faster.
+Contra: none.
+
+[Gaming v4]
+Titulo: Prefer IPv4 over IPv6
+Hace: Windows uses IPv4 before IPv6 when both are available.
+Favor: it can lower latency with some servers.
+Contra: almost none; IPv6 keeps working.
+
+# ============================================================
+# LIMPIEZA
+# ============================================================
+
+[Limpieza CLEAN_BIN]
+Titulo: Empty the Recycle Bin
+Hace: empties the Recycle Bin on all disks.
+Favor: frees the space of what you already deleted.
+Contra: what's in the Recycle Bin can't be recovered anymore.
+
+[Limpieza CLEAN_GPU]
+Titulo: Delete the shader cache
+Hace: deletes the shaders that games already compiled for your graphics card.
+Favor: fixes stutter or weird graphics after updating the graphics driver.
+Contra: the first match of each game will stutter while it rebuilds them.
+
+[Limpieza CLEAN_RP]
+Titulo: Delete restore points
+Hace: deletes saved restore points; system protection stays on.
+Favor: frees several GB of disk.
+Contra: if something goes wrong, you can't go back to how Windows was before.
+

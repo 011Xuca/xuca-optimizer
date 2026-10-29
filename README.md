@@ -55,7 +55,7 @@ También podés bajar el repo como ZIP y abrir `XucaOP.bat`.
 - **Idioma:** español o inglés, con el botón de abajo a la izquierda.
 - **Logs:** con "Abrir carpeta de logs" ves todo lo que se cambió.
 - **Zoom:** Ctrl + rueda del mouse (o Ctrl + / Ctrl -) agranda o achica la app. Ctrl + 0 la vuelve al tamaño normal.
-- Los `.bat` de la carpeta `scripts` también se pueden usar solos, sin la app.
+- La optimización para gaming (`scripts/Gaming.ps1`), el debloat (`scripts/Debloat.ps1`) y la limpieza (`scripts/Limpieza.ps1`) corren dentro de la app, sin abrir ventanas de consola. Solo las herramientas que te piden datos (actualizar Windows, borrar una cuenta, entrar sin contraseña) abren una ventana de PowerShell.
 
 ## Créditos
 

@@ -2,6 +2,30 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## v1.0.5
+
+### Nuevo
+- **Undervolt y overclock de la placa de video** (en Herramientas): lee tu placa, puede medirla mientras jugás un minuto (NVIDIA) y te recomienda valores según lo que busques: más fresca y silenciosa, equilibrada o más FPS. Tenés dos formas: la **opción completa** con MSI Afterburner, paso a paso, o la **versión lite**, que la app pone sola en placas NVIDIA de escritorio.
+- **MSI Afterburner** en Apps recomendadas.
+- La pantalla de Inicio muestra las **novedades de la versión**.
+- **Buscar drivers** recomienda más cosas: el driver de red directo de Realtek, tabletas de dibujo, impresoras, volantes, placas de sonido y micrófonos, capturadoras, webcams, joysticks, el programa de tu SSD y antenas WiFi o Bluetooth USB.
+- En **Borrar las apps basura** y **Apagar apps de inicio**, si pasás el mouse por el contador te dice cuáles quedan.
+- **Scroll suave** con la rueda del mouse: la página se desliza en vez de saltar, y se ve fluida en monitores de muchos Hz.
+
+### Cambios
+- La app es **mucho más rápida**: lee tu Windows en segundo plano mientras estás en Inicio, así Debloat y Gaming abren al toque (y la lectura tarda menos de la mitad que antes).
+- **Aplicar también es más rápido**: sin esperas fijas, sin `gpupdate` en Telemetría (tardaba hasta 15 segundos) y sin volver a compilar los programitas de Gaming si ya están al día. **Desactivar BitLocker** ya no tarda varios segundos si no tenés ningún disco cifrado.
+- Gaming, Debloat y Limpieza ahora corren **dentro de la app**, sin ventanas de cmd. Solo las herramientas que te piden datos abren una ventana de PowerShell.
+- Los logs tienen nombres nuevos: `debloat_`, `gaming_` y `limpieza_` con la fecha.
+- Si cerrás la app mientras aplica algo, primero termina y después se cierra sola.
+- Si la limpieza no llega al final, te avisa con un cartel de error.
+- El contador de **Apagar apps de inicio** ya no cuenta como prendidas las que apagaste desde el Administrador de tareas ni restos de apps desinstaladas.
+- Herramientas: **Borrar una cuenta** se bloquea si tenés una sola cuenta, y la contraseña tiene un solo botón (Quitar o Volver a usar).
+- **Actualizar Windows** se bloquea si ya tenés la 26H2.
+- El **punto de restauración** no se ofrece si los tenés apagados.
+- El driver de audio de Realtek se recomienda solo si tenés algo enchufado en sus conectores.
+- La traducción al inglés es más fácil de mantener: las opciones se traducen por su nombre interno, así que cambiar un texto en español ya no la rompe.
+
 ## v1.0.4
 
 ### Nuevo
