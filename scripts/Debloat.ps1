@@ -1414,13 +1414,20 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
         # Audio de la placa: el de Realtek solo si Windows le puso el generico (sin el, pueden fallar los conectores del frente o el microfono)
         # y solo si hay algo enchufado en sus jacks (3,5 mm): con auriculares USB o el sonido del monitor no sirve de nada.
         # Cada salida/entrada de audio esta en MMDevices: DeviceState 1 = enchufada y activa, 8 = desenchufada; la propiedad ,2 dice de que chip es.
+        # Las salidas digitales (S/PDIF, optica) no son jacks y Windows las muestra siempre activas: no cuentan.
+        # Forma ({1da5d803-...},0): 7 = digital, 8 = S/PDIF, 9 = pantalla por HDMI/DisplayPort.
         $rtJacks = 0; $rtEnch = 0
         foreach ($tipoA in 'Render', 'Capture') {
             foreach ($k in @(Get-ChildItem ('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\' + $tipoA) -ErrorAction SilentlyContinue)) {
-                $chipA = ''; try { $chipA = [string](Get-ItemProperty -LiteralPath ($k.PSPath + '\Properties') -ErrorAction Stop).'{b3f8fa53-0004-438e-9003-51a46e139bfc},2' } catch { }
-                if ($chipA -notmatch 'VEN_10EC') { continue }
+                $pa = $null; try { $pa = Get-ItemProperty -LiteralPath ($k.PSPath + '\Properties') -ErrorAction Stop } catch { }
+                if (-not $pa) { continue }
+                if ([string]$pa.'{b3f8fa53-0004-438e-9003-51a46e139bfc},2' -notmatch 'VEN_10EC') { continue }
+                $forma = $pa.'{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},0'
+                if (($null -ne $forma) -and ([int]$forma -in 7, 8, 9)) { continue }
+                $estA = (Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction SilentlyContinue).DeviceState
+                Log 'INFO' ('audio Realtek ' + $tipoA + ': ' + [string]$pa.'{a45c254e-df1c-4efd-8020-67d146a850e0},2' + ' (estado ' + $estA + ', forma ' + $forma + ')')
                 $rtJacks++
-                if ((Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction SilentlyContinue).DeviceState -eq 1) { $rtEnch++ }
+                if ($estA -eq 1) { $rtEnch++ }
             }
         }
         $jackUsado = ($rtJacks -eq 0) -or ($rtEnch -gt 0)
@@ -1989,8 +1996,14 @@ $ListaOpciones = @(
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'TargetReleaseVersion' 'REG_DWORD' '1'
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ProductVersion' 'REG_SZ' 'Windows 11'
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'TargetReleaseVersionInfo' 'REG_SZ' '26H2'
-            & UsoClient.exe StartScan 2>&1 | Out-Null
-            Log 'INFO' 'UsoClient StartScan lanzado'
+            # Que Windows Update busque ya. UsoClient esta en System32 (si PowerShell corre en 32 bits se ve como Sysnative);
+            # si no esta, se le pide lo mismo a Windows Update directo.
+            $uso = @((Join-Path $env:SystemRoot 'System32\UsoClient.exe'), (Join-Path $env:SystemRoot 'Sysnative\UsoClient.exe')) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+            if ($uso) { & $uso StartScan 2>&1 | Out-Null; Log 'INFO' 'UsoClient StartScan lanzado' }
+            else {
+                try { (New-Object -ComObject Microsoft.Update.AutoUpdate).DetectNow(); Log 'INFO' 'busqueda de Windows Update lanzada (sin UsoClient)' }
+                catch { Log 'INFO' 'no se pudo lanzar la busqueda: se busca al abrir Windows Update' }
+            }
             Abrir-Pagina 'ms-settings:windowsupdate'
             Say '  Se abrio Windows Update: instala lo que aparezca y reinicia.'
             Say '  Si todavia no te ofrece la 26H2, volve a buscar en unos dias: Microsoft la va liberando de a poco.'
