@@ -142,7 +142,7 @@ function Hacer([scriptblock]$accion, [string]$nombre) {
         if ($r.Count -eq 0) { return 0 }
         return [int]$r[$r.Count - 1]
     } catch {
-        Log 'PS-ERROR' ($nombre + ' - ' + ($_.Exception.Message -replace '\s+', ' '))
+        Log 'PS-ERROR' ($nombre + ' - ' + ($_.Exception.Message -replace '\s+', ' ') + ' (linea ' + $_.InvocationInfo.ScriptLineNumber + ')')
         return 1
     }
 }
@@ -461,11 +461,11 @@ function Vanguard-Borrar {
         }
         # 2) Desinstalarlo como desde el Panel de control (su propio desinstalador, sin preguntas si se puede)
         $claves = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')
-        $entradas = @(foreach ($c in $claves) { Get-ChildItem -LiteralPath $c -ErrorAction SilentlyContinue | Where-Object { [string](Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue).DisplayName -like 'Riot Vanguard*' } })
+        $entradas = @(foreach ($c in $claves) { Get-ChildItem -LiteralPath $c -ErrorAction SilentlyContinue | Where-Object { $dn = ''; try { $dn = [string]$_.GetValue('DisplayName') } catch { }; $dn -like 'Riot Vanguard*' } })
         foreach ($e in $entradas) {
-            $pr = Get-ItemProperty -LiteralPath $e.PSPath -ErrorAction SilentlyContinue
-            $cmd = [string]$pr.QuietUninstallString
-            if (-not $cmd) { $cmd = [string]$pr.UninstallString }
+            $cmd = ''
+            try { $cmd = [string]$e.GetValue('QuietUninstallString') } catch { }
+            if (-not $cmd) { try { $cmd = [string]$e.GetValue('UninstallString') } catch { } }
             if (-not $cmd) { continue }
             $exeU = ''; $argU = ''
             if ($cmd -match '^\s*"([^"]+)"\s*(.*)$') { $exeU = $Matches[1]; $argU = $Matches[2] }
@@ -641,7 +641,7 @@ function Correr-Opciones {
             try {
                 if ($let -eq 'S') { & $o.S | Out-Null } else { & $o.R | Out-Null }
             } catch {
-                Log 'PS-ERROR' ($o.Id + ' - ' + ($_.Exception.Message -replace '\s+', ' '))
+                Log 'PS-ERROR' ($o.Id + ' - ' + ($_.Exception.Message -replace '\s+', ' ') + ' (linea ' + $_.InvocationInfo.ScriptLineNumber + ')')
                 $script:OptT++; $script:OptF++
                 Opt-Fin $o.Id
             }

@@ -394,6 +394,30 @@ function Inicio-Poner($e, [bool]$prender) {
 # 0 = hecho, 1 = fallo, 2 = no aplica, 3 = instalador lanzado, 4 = cancelado, 5 = ya estaba, 6 = queda un paso para despues.
 # $XDato: los valores para SPI (efectos visuales). $XChk: AV_OFF solo revisa si ya estaba todo apagado.
 # ------------------------------------------------------------
+# Programas instalados (nombre y version), leidos directo del registro.
+# Get-ItemProperty sobre Uninstall\* se rompe entero ("La conversion especificada no es valida") si un programa dejo un valor mal guardado.
+function Programas-Instalados {
+    $rutas = @(@([Microsoft.Win32.Registry]::LocalMachine, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'), @([Microsoft.Win32.Registry]::LocalMachine, 'SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'), @([Microsoft.Win32.Registry]::CurrentUser, 'Software\Microsoft\Windows\CurrentVersion\Uninstall'))
+    foreach ($r in $rutas) {
+        $k = $null
+        try { $k = $r[0].OpenSubKey($r[1]) } catch { }
+        if (-not $k) { continue }
+        try {
+            foreach ($n in $k.GetSubKeyNames()) {
+                $sk = $null
+                try { $sk = $k.OpenSubKey($n) } catch { }
+                if (-not $sk) { continue }
+                try {
+                    $nom = ''; $ver = ''
+                    try { $nom = [string]$sk.GetValue('DisplayName') } catch { }
+                    try { $ver = [string]$sk.GetValue('DisplayVersion') } catch { }
+                    if ($nom) { [pscustomobject]@{ DisplayName = $nom; DisplayVersion = $ver } }
+                } catch { } finally { $sk.Close() }
+            }
+        } catch { } finally { $k.Close() }
+    }
+}
+
 function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
     $code = 0
     # Quitar-Apps y Quitar-Contrasena anotan sus errores aca (antes tocaban el codigo de todo el script)
@@ -1470,7 +1494,7 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
         # 3) Procesador: en los Ryzen el driver de chipset de AMD trae el plan de energia y, en los X3D, el reparto de nucleos
         $cpu = @(Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue)[0]
         if ($cpu -and ([string]$cpu.Manufacturer -eq 'AuthenticAMD') -and ([string]$cpu.Name -match 'Ryzen')) {
-            $chip = @(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { [string]$_.DisplayName -match '(?i)AMD Chipset' })
+            $chip = @(Programas-Instalados | Where-Object { [string]$_.DisplayName -match '(?i)AMD Chipset' })
             if (($chip.Count -eq 0) -or $prueba) { Reco 'Driver de chipset de AMD' ('tenes un ' + ([string]$cpu.Name).Trim() + ' y no esta instalado: mejora el manejo de energia y de los nucleos (en los X3D hace falta)') @() 'https://www.amd.com/es/support/download/drivers.html'; Corto 'chipset' 'Chipset de AMD' 'No esta instalado: mejora la energia y el reparto de nucleos' }
             else { Log 'OK' ('driver de chipset de AMD instalado: ' + $chip[0].DisplayVersion) }
         }
@@ -1510,7 +1534,7 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
         # Marcas que ya se revisan arriba, y joysticks (Sony, Microsoft, Nintendo, 8BitDo, Valve): esos no necesitan programa
         $conocidos = '046D|1532|1038|1B1C|0951|03F0|31E3|1E7D|045E|054C|057E|2DC8|28DE|056A|256C|28BD|2FEB|044F|0EB7|346E|1235|19F7|14ED|1397|2708|0FD9|07CA|194F|0499|07FD|17CC|1C75|0763|0582'
         $genericos = '(?i)^(usb|hid|generic|wireless|wired|2\.4g|receiver|composite|input|device|keyboard|mouse|optical|gaming|dongle|nano|bt|bluetooth|rgb|kb|ms|and|audio|headset|headphones?|microphone|mic|speakers?|sound|card|adapter|dac|webcam|camera|hd|pnp|stereo|7\.1|virtual|[\s\-_\.\d\(\)])+$'
-        $progs = (@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | ForEach-Object { [string]$_.DisplayName }) -join ' | ')
+        $progs = (@(Programas-Instalados | ForEach-Object { $_.DisplayName }) -join ' | ')
         # Cada mouse, teclado, auricular o micro USB por separado (VID y PID): dos marcas distintas pueden compartir el mismo fabricante de chip
         $vps = @(Get-PnpDevice -PresentOnly -Class Keyboard, Mouse, Media -ErrorAction SilentlyContinue | ForEach-Object { if ([string]$_.InstanceId -match 'VID_([0-9A-F]{4})&PID_([0-9A-F]{4})') { $Matches[1].ToUpper() + '&' + $Matches[2].ToUpper() } } | Select-Object -Unique)
         # Modelos que se presentan con un nombre generico (tipo "Gaming Keyboard"): se reconocen por su VID y PID
