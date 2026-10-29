@@ -2323,3 +2323,6 @@ en: New
 
 es: Cambios
 en: Changes
+
+es: Cargando
+en: Loading

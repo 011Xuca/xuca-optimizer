@@ -6,6 +6,10 @@
 # ============================================================
 $XucaRepo = '011Xuca/xuca-optimizer'
 $XucaRama = 'main'
+# Cuanto tarda en abrir (queda en ProgramData\XucaScripts\tiempos_inicio.txt)
+$TiempoInicio = [Diagnostics.Stopwatch]::StartNew()
+$TiemposInicio = New-Object System.Collections.Generic.List[string]
+function Marca-Inicio([string]$n) { $TiemposInicio.Add(('{0,7} ms  {1}' -f $TiempoInicio.ElapsedMilliseconds, $n)) }
 
 $ErrorActionPreference = 'Stop'
 
@@ -279,6 +283,7 @@ function Bajar-Faltantes {
     }
 }
 Bajar-Faltantes
+Marca-Inicio 'archivos revisados'
 
 $faltan = @($Rutas.Values | Where-Object { -not (Test-Path -LiteralPath $_) })
 if ($faltan.Count -gt 0) {
@@ -1320,6 +1325,21 @@ $XamlTexto = @'
         <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="0" Opacity="0.55" Color="#000000"/></Border.Effect>
       <StackPanel Width="440">
         <TextBlock x:Name="CargaMarca" Foreground="#FFFFFF" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center"><Run Text="Xuca "/><Run Text="OP" Foreground="#22D3EE" FontWeight="Bold"/><Run Text="timizer"/></TextBlock>
+        <StackPanel x:Name="CargaSplash" Orientation="Horizontal" HorizontalAlignment="Center" Margin="18,8,0,0" Visibility="Collapsed">
+          <TextBlock x:Name="CargaSplashTxt" Text="Cargando" Foreground="#7D8590" FontSize="14"/>
+          <TextBlock x:Name="CargaSplashPts" Foreground="#7D8590" FontSize="14" Width="18"/>
+        </StackPanel>
+        <Grid x:Name="CargaSplashZona" Width="240" Height="5" Margin="0,12,0,0" Visibility="Collapsed">
+          <Border Background="#232833" CornerRadius="2.5"/>
+          <Border x:Name="CargaSplashBarra" HorizontalAlignment="Left" Width="0" CornerRadius="2.5">
+            <Border.Background>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#3D6FD9" Offset="0"/>
+                <GradientStop Color="#F9A8D4" Offset="1"/>
+              </LinearGradientBrush>
+            </Border.Background>
+          </Border>
+        </Grid>
         <TextBlock x:Name="CargaTitulo" Text="Leyendo como esta tu Windows" Foreground="#C3C8D0" FontSize="15" HorizontalAlignment="Center" Margin="0,10,0,0"/>
         <Grid x:Name="CargaZona" Margin="0,24,0,0" Height="8">
           <Border Background="#232833" CornerRadius="4"/>
@@ -1381,7 +1401,9 @@ try {
     [void][XucaWin.Barra]::SetCurrentProcessExplicitAppUserModelID('011Xuca.XucaOPtimizer')
 } catch { }
 
+Marca-Inicio 'opciones leidas'
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
+Marca-Inicio 'ventana cargada'
 
 # Estilos para todas las ventanas (la principal y los carteles): casillas con tilde moderno y barra de desplazamiento fina
 $EstilosXaml = @'
@@ -1531,7 +1553,7 @@ if ($quiero) {
 }
 
 $ui = @{}
-foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavApps', 'NavAdicional', 'CfgInsignia', 'CfgInsigniaTxt', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'TituloCaja', 'TituloIcono', 'Scroll', 'BtnSeguras', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'BtnTema', 'TemaTxt', 'Marco', 'Raiz', 'Barra', 'Contenido', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista', 'CargaCaja', 'CargaMarca', 'BuscarCaja', 'BuscarLupa', 'BuscarBorrar', 'BuscarPista', 'Buscar', 'BuscarInfo') { $ui[$n] = $win.FindName($n) }
+foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavApps', 'NavAdicional', 'CfgInsignia', 'CfgInsigniaTxt', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'TituloCaja', 'TituloIcono', 'Scroll', 'BtnSeguras', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'BtnTema', 'TemaTxt', 'Marco', 'Raiz', 'Barra', 'Contenido', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista', 'CargaCaja', 'CargaMarca', 'CargaSplash', 'CargaSplashTxt', 'CargaSplashPts', 'CargaSplashZona', 'CargaSplashBarra', 'BuscarCaja', 'BuscarLupa', 'BuscarBorrar', 'BuscarPista', 'Buscar', 'BuscarInfo') { $ui[$n] = $win.FindName($n) }
 
 # Numero de version (sale del version.txt de tu PC)
 function Poner-Version([bool]$vieja, [bool]$distinta) {
@@ -4133,7 +4155,33 @@ function Modo-Splash([bool]$si) {
     $v = $(if ($si) { 'Collapsed' } else { 'Visible' })
     $ui.CargaTitulo.Visibility = $v; $ui.CargaZona.Visibility = $v; $ui.CargaInfo.Visibility = $v
     $ui.CargaMarca.FontSize = $(if ($si) { 40 } else { 30 })
+    # Abajo de la marca dice "Cargando" con los puntitos moviendose, para que se note que la app esta abriendo
+    $ui.CargaSplash.Visibility = $(if ($si) { 'Visible' } else { 'Collapsed' })
+    $ui.CargaSplashZona.Visibility = $ui.CargaSplash.Visibility
+    if ($si) {
+        $ui.CargaSplashTxt.Text = (Con-Enie 'Cargando'); $script:PuntosN = 0; $ui.CargaSplashPts.Text = ''; $puntosTimer.Start()
+        # La barra avanza rapido al principio y despues mas lento (se completa cuando termina de buscar la actualizacion)
+        $a = [Windows.Media.Animation.DoubleAnimation]::new(0.0, 204.0, [Windows.Duration]::new([TimeSpan]::FromMilliseconds(850)))
+        $a.EasingFunction = [Windows.Media.Animation.CubicEase]::new()
+        $a.EasingFunction.EasingMode = 'EaseOut'
+        $ui.CargaSplashBarra.BeginAnimation([Windows.FrameworkElement]::WidthProperty, $a)
+    }
+    else { $puntosTimer.Stop() }
 }
+# Al terminar, la barra se llena del todo mientras se va la tarjeta
+function Llenar-Splash {
+    if ($ui.CargaSplashZona.Visibility -ne 'Visible') { return }
+    $a = [Windows.Media.Animation.DoubleAnimation]::new(240.0, [Windows.Duration]::new([TimeSpan]::FromMilliseconds(220)))
+    $ui.CargaSplashBarra.BeginAnimation([Windows.FrameworkElement]::WidthProperty, $a)
+}
+$script:PuntosN = 0
+$puntosTimer = New-Object Windows.Threading.DispatcherTimer
+$puntosTimer.Interval = [TimeSpan]::FromMilliseconds(380)
+$puntosTimer.Add_Tick({
+    $script:PuntosN = ($script:PuntosN + 1) % 4
+    $ui.CargaSplashPts.Text = ('.' * $script:PuntosN)
+    if ($ui.CargaSplash.Visibility -ne 'Visible') { $puntosTimer.Stop() }
+})
 
 function Mostrar-Carga([string]$titulo, [bool]$conFade) {
     Mostrar-Dns $null
@@ -4258,16 +4306,12 @@ function Entrar-Menus {
     $y2.BeginTime = [TimeSpan]::FromMilliseconds(80)
     $ui.Contenido.RenderTransform.BeginAnimation([Windows.Media.TranslateTransform]::YProperty, $y2)
     if ($Paginas[$script:Pagina]) { Desplegar $Paginas[$script:Pagina] }
-    if (-not $script:PreLeida) { $script:PreLeida = $true; $preTimer.Start() }
+    if (-not $script:InicioAnotado) {
+        $script:InicioAnotado = $true
+        Marca-Inicio 'entran los menus'
+        try { [IO.File]::WriteAllLines((Join-Path $env:ProgramData 'XucaScripts\tiempos_inicio.txt'), [string[]]$TiemposInicio.ToArray()) } catch { }
+    }
 }
-# Al abrir la app, apenas entran los menus, Windows se lee de fondo: cuando entras a Debloat o Gaming ya esta listo
-$script:PreLeida = $false
-$preTimer = New-Object Windows.Threading.DispatcherTimer
-$preTimer.Interval = [TimeSpan]::FromMilliseconds(700)
-$preTimer.Add_Tick({
-    $preTimer.Stop()
-    if ((-not $script:Leido) -and (-not $script:Lectura) -and (-not $script:Ocupado)) { Refrescar-Estado $null $true }
-})
 
 # ------------------------------------------------------------
 # Leer el estado de Windows (en segundo plano) y actualizar las etiquetas
@@ -4481,11 +4525,12 @@ if (-not $bajar) {
     $vr = $null; $vl = $null
     $sync.TuyaMasNueva = ($remota -and [version]::TryParse(($remota -replace '^[vV]', ''), [ref]$vr) -and [version]::TryParse(($local -replace '^[vV]', ''), [ref]$vl) -and ($vl -gt $vr))
     $sync.Listo = $true
-    # Mantiene vivo el contador de descargas de la pagina (solo lo lee, no suma ni manda datos)
+    # Mantiene vivo el contador de descargas de la pagina (solo lo lee, no suma ni manda datos).
+    # Se manda sin esperar la respuesta: si esa pagina anda lenta, la app no tarda mas en abrir.
     try {
         $rc = [Net.HttpWebRequest]::Create('https://abacus.jasoncameron.dev/get/011xuca/xuca-optimizer-instalaciones')
         $rc.Timeout = 3000; $rc.ReadWriteTimeout = 3000; $rc.UserAgent = 'XucaOP'
-        $rc.GetResponse().Close()
+        [void]$rc.BeginGetResponse($null, $null)
     } catch { }
     return
 }
@@ -4553,11 +4598,15 @@ function Buscar-Actualizacion {
     Upd-Iniciar $false
 }
 
-# La marca se ve por lo menos 1,6 segundos (para que se luzca la intro) y despues se va a los menus
+# La marca se ve por lo menos 0,9 segundos (para que se luzca la intro) y despues se va a los menus
 $script:SplashTimer = New-Object Windows.Threading.DispatcherTimer
-$script:SplashTimer.Add_Tick({ $script:SplashTimer.Stop(); Cerrar-Carga { Bloquear $false } })
+$script:SplashTimer.Add_Tick({
+    # En la intro la barra grande no se ve: se da por llena para no esperar a que se complete de a poco
+    $script:SplashTimer.Stop(); Llenar-Splash; $script:Carga.Mostrado = 1.0; Cerrar-Carga { Bloquear $false }
+    Marca-Inicio 'empieza a irse la intro'
+})
 function Fin-Splash {
-    $falta = 1600 - ((Get-Date) - $script:SplashDesde).TotalMilliseconds
+    $falta = 900 - ((Get-Date) - $script:SplashDesde).TotalMilliseconds
     $script:SplashTimer.Interval = [TimeSpan]::FromMilliseconds([math]::Max($falta, 1))
     $script:SplashTimer.Start()
 }
@@ -4569,6 +4618,7 @@ function Upd-MostrarCartel([bool]$si) {
 }
 
 function Fin-Busqueda($s) {
+    Marca-Inicio 'version de GitHub leida'
     $script:UpdHay = [bool]$s.Hay
     $script:UpdRemota = [string]$s.Remota
     if (-not $script:UpdHay) { Fin-Splash; return }
@@ -4627,10 +4677,13 @@ $updTimer.Add_Tick({
     $s = $u.Sync
     if ($u.Bajar) { Poner-Progreso (0.95 * $s.Prog) $(if ($s.Paso) { 'Descargando: ' + $s.Paso } else { '' }) }
     else { Poner-Progreso ((1 - [math]::Exp(-((Get-Date) - $u.Desde).TotalSeconds / 1.5)) * 0.9) 'Buscando versiones nuevas' }
-    if (-not $u.Handle.IsCompleted) { return }
+    # Al buscar alcanza con saber la version (Listo): no se espera a que termine lo demas
+    if (-not ($u.Handle.IsCompleted -or ((-not $u.Bajar) -and $s.Listo))) { return }
     $updTimer.Stop()
-    try { $u.PS.EndInvoke($u.Handle) | Out-Null } catch { if ($u.Bajar -and -not $s.Error) { $s.Error = $_.Exception.Message } }
-    try { $u.PS.Dispose() } catch { }
+    if ($u.Handle.IsCompleted) {
+        try { $u.PS.EndInvoke($u.Handle) | Out-Null } catch { if ($u.Bajar -and -not $s.Error) { $s.Error = $_.Exception.Message } }
+        try { $u.PS.Dispose() } catch { }
+    }
     $script:UpdRun = $null
     if ($u.Bajar) { Fin-Descarga $s } else { Fin-Busqueda $s }
 })
@@ -5556,7 +5609,7 @@ $win.Add_PreviewKeyDown({
     elseif (($k -eq 'F') -and ($ui.BuscarCaja.Visibility -eq 'Visible') -and $ui.Buscar.IsEnabled) { $ui.Buscar.Focus() | Out-Null; $ui.Buscar.SelectAll(); $e.Handled = $true }
 })
 
-$win.Add_ContentRendered({ Buscar-Actualizacion; Cargar-Configs $false })
+$win.Add_ContentRendered({ Marca-Inicio 'ventana dibujada'; Buscar-Actualizacion; Cargar-Configs $false })
 
 # Si algo falla al tocar un boton, la app no se cierra: el error queda anotado en logs\app_errores.txt y se avisa.
 $script:EnError = $false
@@ -5580,6 +5633,7 @@ $win.Dispatcher.Add_UnhandledException({
 
 Ir-A 'Inicio'
 $ui.Estado.Text = ''
+Marca-Inicio 'app armada (antes de mostrar la ventana)'
 $win.ShowDialog() | Out-Null
 # Si se estaba leyendo Windows de fondo, se corta (que no quede andando con la app cerrada)
 if ($script:Lectura) { try { [void]$script:Lectura.PS.BeginStop($null, $null) } catch { } }

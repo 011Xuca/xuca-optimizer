@@ -11,9 +11,11 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 - **Buscar drivers** recomienda más cosas: el driver de red directo de Realtek, tabletas de dibujo, impresoras, volantes, placas de sonido y micrófonos, capturadoras, webcams, joysticks, el programa de tu SSD y antenas WiFi o Bluetooth USB.
 - En **Borrar las apps basura** y **Apagar apps de inicio**, si pasás el mouse por el contador te dice cuáles quedan.
 - **Scroll suave** con la rueda del mouse: la página se desliza en vez de saltar, y se ve fluida en monitores de muchos Hz.
+- La intro dice **Cargando** con una barrita, para que se note que la app está abriendo.
 
 ### Cambios
-- La app es **mucho más rápida**: lee tu Windows en segundo plano mientras estás en Inicio, así Debloat y Gaming abren al toque (y la lectura tarda menos de la mitad que antes).
+- La app **abre más rápido**: la intro se va apenas está todo listo.
+- Leer tu Windows al entrar a Perfiles, Debloat o Gaming tarda **menos de la mitad** que antes (se lee solo la primera vez que entrás a una de esas).
 - **Aplicar también es más rápido**: sin esperas fijas, sin `gpupdate` en Telemetría (tardaba hasta 15 segundos) y sin volver a compilar los programitas de Gaming si ya están al día. **Desactivar BitLocker** ya no tarda varios segundos si no tenés ningún disco cifrado.
 - Gaming, Debloat y Limpieza ahora corren **dentro de la app**, sin ventanas de cmd. Solo las herramientas que te piden datos abren una ventana de PowerShell.
 - Los logs tienen nombres nuevos: `debloat_`, `gaming_` y `limpieza_` con la fecha.
