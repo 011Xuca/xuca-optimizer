@@ -2498,6 +2498,599 @@ $bDrv.Add_Click({ $this.Effect = $null })
 $script:BtnDrv = $bDrv
 $spH.Children.Add(($script:CardDrv = Nueva-Herramienta 'Drivers recomendados' 'revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD, el programa de tu mouse, teclado o auriculares de marca, de tu SSD y de otros aparatos (impresora, tableta grafica, volante, microfono, Stream Deck, capturadora, webcam, joystick, antena USB), y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.' 'tenes lo que hace falta, en su ultima version, y nada de programas de mas.' 'la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.' @($bDrv))) | Out-Null
 
+# --- Herramienta: ajustes de la BIOS ---
+# Lee desde Windows que opciones utiles de la BIOS estan activadas y dice donde activar las que faltan segun la marca de la placa.
+# Solo lee: no cambia nada en la PC. Algunas cosas no se pueden leer (el perfil de baja latencia de la RAM) y se marcan para revisar.
+# Donde esta cada opcion segun la marca. Si cambia entre AMD e Intel, va @{ amd; intel }.
+$BiosMarcas = @{
+    ASUS = @{
+        Tecla = 'Supr o F2 al prender la PC (F7 abre el modo avanzado)'
+        Uefi = 'Boot > CSM (Compatibility Support Module) > Launch CSM: Disabled'
+        Seguro = 'Boot > Secure Boot > OS Type: Windows UEFI mode'
+        Tpm = @{ amd = 'Advanced > AMD fTPM Configuration > Firmware TPM'; intel = 'Advanced > PCH-FW Configuration > PTT: Enabled' }
+        Virt = @{ amd = 'Advanced > CPU Configuration > SVM Mode: Enabled'; intel = 'Advanced > CPU Configuration > Intel Virtualization Technology: Enabled' }
+        Rebar = 'Advanced > PCI Subsystem Settings > Above 4G Decoding: Enabled > Re-Size BAR Support: Enabled'
+        Ram = @{ amd = 'Ai Tweaker > Ai Overclock Tuner > EXPO (DDR5) o D.O.C.P. (DDR4)'; intel = 'Ai Tweaker > Ai Overclock Tuner > XMP I' }
+        Latencia = 'Ai Tweaker: segun el modelo, "Memory Presets" o "AEMP"'
+        Uma = 'Advanced > NB Configuration > UMA Frame Buffer Size'
+    }
+    MSI = @{
+        Tecla = 'Supr al prender la PC (F7 abre el modo avanzado)'
+        Uefi = 'Settings > Advanced > Windows OS Configuration > BIOS UEFI/CSM Mode: UEFI'
+        Seguro = 'Settings > Security > Secure Boot: Enabled'
+        Tpm = @{ amd = 'Settings > Security > Trusted Computing > AMD fTPM switch: AMD CPU fTPM'; intel = 'Settings > Security > Trusted Computing > Intel Platform Trust Technology (PTT): Enabled' }
+        Virt = @{ amd = 'OC > Advanced CPU Configuration > SVM Mode: Enabled'; intel = 'OC > CPU Features > Intel Virtualization Tech: Enabled' }
+        Rebar = 'Settings > Advanced > PCI Subsystem Settings > Above 4G memory: Enabled > Re-Size BAR Support: Enabled'
+        Ram = @{ amd = 'OC > A-XMP o EXPO (tambien esta el boton de la pantalla principal)'; intel = 'OC > Extreme Memory Profile (X.M.P.) (tambien esta el boton de la pantalla principal)' }
+        Latencia = 'OC > Memory Try It! y Latency Killer'
+        Uma = 'Settings > Advanced > AMD CBS > NBIO Common Options > GFX Configuration > UMA Frame buffer Size'
+    }
+    Gigabyte = @{
+        Tecla = 'Supr al prender la PC (F2 cambia al modo avanzado)'
+        Uefi = 'Boot > CSM Support: Disabled'
+        Seguro = 'Boot > Secure Boot > Secure Boot: Enabled'
+        Tpm = @{ amd = 'Settings > Miscellaneous > AMD CPU fTPM: Enabled'; intel = 'Settings > Miscellaneous > Intel Platform Trust Technology (PTT): Enabled' }
+        Virt = @{ amd = 'Tweaker > Advanced CPU Settings > SVM Mode: Enabled'; intel = 'Tweaker > Advanced CPU Settings > Intel Virtualization Technology: Enabled' }
+        Rebar = 'Settings > IO Ports > Above 4G Decoding: Enabled > Re-Size BAR Support: Enabled'
+        Ram = @{ amd = 'Tweaker > Extreme Memory Profile (X.M.P.) / EXPO'; intel = 'Tweaker > Extreme Memory Profile (X.M.P.)' }
+        Latencia = 'Tweaker > Advanced Memory Settings > Memory Enhancement Settings (High Bandwidth o Low Latency)'
+        Uma = 'Settings > IO Ports > UMA Mode > UMA Frame Buffer Size'
+    }
+    ASRock = @{
+        Tecla = 'F2 o Supr al prender la PC'
+        Uefi = 'Boot > CSM (Compatibility Support Module) > CSM: Disabled'
+        Seguro = 'Security > Secure Boot: Enabled'
+        Tpm = @{ amd = 'Advanced > CPU Configuration > AMD fTPM switch: AMD CPU fTPM'; intel = 'Security > Intel Platform Trust Technology: Enabled' }
+        Virt = @{ amd = 'Advanced > CPU Configuration > SVM Mode: Enabled'; intel = 'Advanced > CPU Configuration > Intel Virtualization Technology: Enabled' }
+        Rebar = 'Advanced > Chipset Configuration > Above 4G Decoding: Enabled > Re-Size BAR Support: Enabled'
+        Ram = @{ amd = 'OC Tweaker > DRAM Configuration > Load XMP/EXPO Setting'; intel = 'OC Tweaker > DRAM Configuration > Load XMP Setting' }
+        Latencia = 'OC Tweaker > DRAM Configuration: perfil "Low Latency" o ajuste manual'
+        Uma = 'Advanced > AMD CBS > NBIO Common Options > GFX Configuration > UMA Frame buffer size (o Advanced > Chipset Configuration > Share Memory)'
+    }
+    Biostar = @{
+        Tecla = 'Supr al prender la PC'
+        Uefi = 'Boot > CSM: Disabled'
+        Seguro = 'Security > Secure Boot: Enabled'
+        Tpm = @{ amd = 'Advanced > Trusted Computing > AMD fTPM: Enabled'; intel = 'Advanced > Trusted Computing > Intel PTT: Enabled' }
+        Virt = @{ amd = 'Advanced > CPU Configuration > SVM Mode: Enabled'; intel = 'Advanced > CPU Configuration > Intel Virtualization Technology: Enabled' }
+        Rebar = 'Advanced > PCI Subsystem Settings > Above 4G Decoding: Enabled > Re-Size BAR Support: Enabled'
+        Ram = @{ amd = 'Tweaker > Memory Profile: XMP/EXPO'; intel = 'Tweaker > Memory Profile: XMP' }
+        Latencia = 'busca un perfil "Low Latency" en Tweaker'
+        Uma = 'Chipset > North Bridge > UMA Frame Buffer Size'
+    }
+    # PC de marca o notebook: casi siempre solo estan estas cuatro
+    OEM = @{
+        Tecla = 'F2, F10 o Supr al prender (la pantalla de arranque te dice cual)'
+        Uefi = 'Boot > Boot Mode: UEFI (Legacy o CSM apagado)'
+        Seguro = 'Security o Boot > Secure Boot: Enabled'
+        Tpm = @{ amd = 'Security > TPM / AMD fTPM: Enabled'; intel = 'Security > TPM / Intel PTT: Enabled' }
+        Virt = @{ amd = 'Advanced, Configuration o Security > SVM / Virtualization Technology: Enabled'; intel = 'Advanced, Configuration o Security > Intel Virtualization Technology (VT-x): Enabled' }
+    }
+    Generica = @{
+        Tecla = 'Supr o F2 al prender la PC (la pantalla de arranque te dice cual)'
+        Uefi = 'busca "CSM" y ponelo en Disabled (o "Boot Mode: UEFI")'
+        Seguro = 'busca "Secure Boot" (casi siempre en Boot o Security)'
+        Tpm = @{ amd = 'busca "fTPM" o "TPM" (casi siempre en Advanced o Security)'; intel = 'busca "PTT" o "TPM" (casi siempre en Advanced o Security)' }
+        Virt = @{ amd = 'busca "SVM Mode" (casi siempre en Advanced > CPU Configuration)'; intel = 'busca "Intel Virtualization Technology" o "VT-x" (casi siempre en Advanced > CPU Configuration)' }
+        Rebar = 'busca "Above 4G Decoding" y "Re-Size BAR Support" (casi siempre en Advanced > PCI Subsystem o Chipset)'
+        Ram = @{ amd = 'busca "EXPO", "XMP" o "DOCP" (casi siempre en la seccion de overclock)'; intel = 'busca "XMP" (casi siempre en la seccion de overclock)' }
+        Latencia = 'busca un perfil "Low Latency" en la seccion de la memoria'
+        Uma = 'busca "UMA Frame Buffer Size" (casi siempre en Advanced > AMD CBS > NBIO > GFX Configuration)'
+    }
+}
+# Tecla para entrar a la BIOS en PCs de marca y notebooks (por el fabricante de la PC)
+$BiosTeclaOem = @(
+    @('Dell', 'F2 al prender la PC'),
+    @('HP|Hewlett', 'F10 al prender la PC (o Esc y despues F10)'),
+    @('Lenovo', 'F1 o F2 al prender la PC (en algunas notebooks, el boton Novo)'),
+    @('Acer|ASUS|Gigabyte|Samsung|Toshiba|Dynabook', 'F2 al prender la PC'),
+    @('Micro-Star|MSI', 'Supr al prender la PC')
+)
+$BiosColor = @{ Ok = '#81C995'; Falta = '#F28B82'; Revisar = '#E5B567'; NoCompat = '#9AA0A6'; NoAplica = '#9AA0A6' }
+$BiosIcono = @{ Ok = 0xE73E; Falta = 0xE711; Revisar = 0xE897; NoCompat = 0xE7BA; NoAplica = 0xE738 }
+$BiosEstadoNombre = @{ Ok = 'Activado'; Falta = 'Falta activarlo'; Revisar = 'Revisalo vos'; NoCompat = 'No compatible con tu PC'; NoAplica = 'No aplica' }
+
+# Texto con datos en el medio: se traduce el molde entero y despues se ponen los datos
+function Texto-Bios([string]$molde) { return ((Traducir $molde) -f $args) }
+
+# Firmware de arranque (GetFirmwareType de Windows) y lectura de valores REG_RESOURCE_LIST, que .NET no lee
+function Cargar-BiosApi {
+    if ('XucaWin.Bios' -as [type]) { return $true }
+    try {
+        Add-Type -Namespace XucaWin -Name Bios -MemberDefinition '[DllImport("kernel32.dll")] public static extern bool GetFirmwareType(ref uint t); [DllImport("advapi32.dll", CharSet = CharSet.Unicode)] public static extern int RegGetValue(IntPtr k, string sub, string val, uint flags, IntPtr tipo, byte[] datos, ref uint largo);'
+        return $true
+    } catch { return $false }
+}
+
+# 'UEFI', 'Legacy' o $null si no se pudo saber
+function Leer-Firmware {
+    if (Cargar-BiosApi) {
+        try { $t = [uint32]0; if ([XucaWin.Bios]::GetFirmwareType([ref]$t)) { if ($t -eq 2) { return 'UEFI' }; if ($t -eq 1) { return 'Legacy' } } } catch { }
+    }
+    try { $v = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control' -Name 'PEFirmwareType' -ErrorAction Stop).PEFirmwareType } catch { $v = $null }
+    if ($v -eq 2) { return 'UEFI' }
+    if ($v -eq 1) { return 'Legacy' }
+    return $null
+}
+
+# Rangos de memoria que Windows le dio a la placa de video: @{ Inicio; Largo } en bytes.
+# Se leen del mapa de recursos del registro (WMI no muestra los rangos grandes de Resizable BAR); si falla, de WMI.
+function Rangos-Gpu([string]$pnp) {
+    $r = New-Object Collections.ArrayList
+    try {
+        $pdo = (Get-PnpDeviceProperty -InstanceId $pnp -KeyName 'DEVPKEY_Device_PDOName' -ErrorAction Stop).Data
+        if ($pdo -and (Cargar-BiosApi)) {
+            $hk = [IntPtr]::new(-2147483646)   # HKEY_LOCAL_MACHINE
+            $sub = 'HARDWARE\RESOURCEMAP\PnP Manager\PnpManager'
+            $largo = [uint32]0
+            [void][XucaWin.Bios]::RegGetValue($hk, $sub, ($pdo + '.Translated'), 0xFFFF, [IntPtr]::Zero, $null, [ref]$largo)
+            if ($largo -ge 20) {
+                $b = New-Object byte[] $largo
+                if ([XucaWin.Bios]::RegGetValue($hk, $sub, ($pdo + '.Translated'), 0xFFFF, [IntPtr]::Zero, $b, [ref]$largo) -eq 0) {
+                    # CM_RESOURCE_LIST: cantidad, y por cada bloque bus (8 bytes), version (4), cantidad (4) y descriptores de 20 bytes (16 en 32 bits)
+                    $paso = $(if ([Environment]::Is64BitOperatingSystem) { 20 } else { 16 })
+                    $p = 4
+                    for ($f = 0; $f -lt [BitConverter]::ToUInt32($b, 0); $f++) {
+                        $n = [BitConverter]::ToUInt32($b, $p + 12)
+                        $p += 16
+                        for ($i = 0; ($i -lt $n) -and ($p + $paso -le $b.Length); $i++) {
+                            $tipo = $b[$p]; $fl = [BitConverter]::ToUInt16($b, $p + 2)
+                            $ini = [BitConverter]::ToUInt64($b, $p + 4); $lar = [uint64][BitConverter]::ToUInt32($b, $p + 12)
+                            # 3 = memoria; 7 = memoria grande (el largo viene corrido segun las flags)
+                            if ($tipo -eq 7) { if ($fl -band 0x200) { $lar = $lar -shl 8 } elseif ($fl -band 0x400) { $lar = $lar -shl 16 } elseif ($fl -band 0x800) { $lar = $lar -shl 32 } }
+                            if (($tipo -eq 3) -or ($tipo -eq 7)) { [void]$r.Add(@{ Inicio = $ini; Largo = $lar }) }
+                            $p += $paso
+                        }
+                    }
+                }
+            }
+        }
+    } catch { }
+    if ($r.Count -eq 0) {
+        try {
+            $ent = Get-CimInstance Win32_PnPEntity -Filter ("DeviceID='" + $pnp.Replace('\', '\\') + "'") -ErrorAction Stop
+            foreach ($m in @(Get-CimAssociatedInstance -InputObject $ent -ResultClassName Win32_DeviceMemoryAddress -ErrorAction Stop)) {
+                [void]$r.Add(@{ Inicio = [uint64]$m.StartingAddress; Largo = [uint64]($m.EndingAddress - $m.StartingAddress + 1) })
+            }
+        } catch { }
+    }
+    return , $r
+}
+
+# Hasta cuantos MT/s da el kit, sacado del numero de parte (0 si no se reconoce)
+function Velocidad-Kit([string]$pn) {
+    $pn = ([string]$pn).Trim().ToUpperInvariant()
+    $v = 0
+    if ($pn -match '^F[45]-(\d{4})') { $v = [int]$Matches[1] }                                  # G.Skill: F4-3600C16-8GVKB
+    elseif ($pn -match '^CM[A-Z0-9]*?X[45]M\d[A-Z](\d{4})') { $v = [int]$Matches[1] }           # Corsair: CMK16GX4M2B3200C16
+    elseif ($pn -match '^(KF|HX)\d(\d{2})C') { $v = [int]$Matches[2] * 100 }                   # Kingston Fury / HyperX: KF436C17BB/8
+    elseif ($pn -match '^(BL|CP)(\d+K)?\d+G(\d{2})C') { $v = [int]$Matches[3] * 100 }          # Crucial Ballistix y Pro: BL8G36C16U4B
+    elseif ($pn -match '^BLS(\d+K)?\d+G4D(\d{2})') { $v = [int]$Matches[2] * 100 }             # Ballistix Sport: BLS8G4D32AESBK
+    elseif ($pn -match '^(T|FF)[A-Z0-9]*?D[45]\d{1,2}G(\d{4})') { $v = [int]$Matches[2] }      # TeamGroup: TF3D416G3600HC18J
+    elseif ($pn -match '^PV[A-Z]?[45]\d{1,2}G(\d{2,3})C') { $v = $(if ($Matches[1].Length -eq 3) { [int]$Matches[1] * 10 } else { [int]$Matches[1] * 100 }) }   # Patriot: PVS416G320C6K
+    if (($v -lt 1600) -or ($v -gt 12000)) { return 0 }
+    return $v
+}
+
+function Item-Bios([string]$id, [string]$titulo, [string]$estado, $lineas, [string]$ruta) {
+    return @{ Id = $id; Titulo = $titulo; Estado = $estado; Lineas = @($lineas | Where-Object { $_ }); Ruta = $ruta }
+}
+
+# Ruta de una opcion para la marca y el procesador de esta PC
+function Ruta-Bios($pl, [string]$op) {
+    $m = $BiosMarcas[$pl.Clave]
+    $v = $m[$op]
+    if (-not $v) { $v = $BiosMarcas.Generica[$op] }
+    if ($v -is [hashtable]) { $v = $(if ($pl.Cpu -eq 'intel') { $v.intel } else { $v.amd }) }
+    return [string]$v
+}
+
+# Que soportan el procesador y el chipset de la placa (sacado de los nombres). $null = no se sabe.
+#   CpuGen: generacion de Intel (2 a 14; 99 = Core Ultra) o serie de Ryzen (1 a 9)
+#   RebarCpu / TpmCpu: 'si' o 'no'. RebarPlaca: 'si', 'bios' (solo con BIOS nueva), 'quizas' (algunos modelos) o 'no'
+function Compat-Bios($pl) {
+    $c = @{ CpuGen = $null; Chipset = $null; RebarCpu = $null; RebarPlaca = $null; TpmCpu = $null }
+    $n = $pl.CpuNombre
+    if ($pl.Cpu -eq 'intel') {
+        if ($n -match '(?i)Core\s*Ultra') { $c.CpuGen = 99 }
+        elseif ($n -match '(?i)\bi[3579]-(\d{4,5})') { $c.CpuGen = $(if ($Matches[1].Length -eq 5) { [int]$Matches[1].Substring(0, 2) } else { [int]$Matches[1].Substring(0, 1) }) }
+        if ($c.CpuGen) {
+            $c.RebarCpu = $(if ($c.CpuGen -ge 10) { 'si' } else { 'no' })
+            # Intel PTT (el TPM integrado) llego con la 4ta generacion
+            $c.TpmCpu = $(if ($c.CpuGen -ge 4) { 'si' } else { 'no' })
+        }
+    } elseif ($pl.Cpu -eq 'amd') {
+        if ($n -match '(?i)Ryzen\s+(?:Threadripper\s+)?(?:\d\s+)?(?:PRO\s+)?(\d)\d{3}([A-Z0-9]*)') {
+            $c.CpuGen = [int]$Matches[1]
+            # Smart Access Memory: Ryzen 3000 en adelante, menos las APU 3200G y 3400G (que son de la generacion anterior)
+            $c.RebarCpu = $(if (($c.CpuGen -le 2) -or (($c.CpuGen -eq 3) -and ($Matches[2] -match '^G'))) { 'no' } else { 'si' })
+            $c.TpmCpu = 'si'
+        } elseif ($n -match '(?i)\b(FX|Phenom)\b') { $c.RebarCpu = 'no'; $c.TpmCpu = 'no' }
+    }
+    # Chipset por el modelo de la placa (B450, Z790...): la primera cifra es la serie
+    if ($pl.Modelo -match '(?i)(?<![A-Z0-9])([ABHQXZ])([1-9])\d0E?(?![0-9])') {
+        $letra = $Matches[1].ToUpper(); $serie = [int]$Matches[2]
+        $c.Chipset = ($Matches[0]).ToUpper()
+        if ($pl.Cpu -eq 'amd') {
+            $c.RebarPlaca = $(switch ($serie) { 3 { $(if ($letra -eq 'A') { 'no' } else { 'quizas' }) } 4 { 'bios' } default { $(if ($serie -ge 5) { 'si' } else { $null }) } })
+        } elseif ($pl.Cpu -eq 'intel') {
+            $c.RebarPlaca = $(if ($serie -le 3) { 'no' } elseif ($serie -le 5) { 'bios' } else { 'si' })
+        }
+    }
+    return $c
+}
+
+# Lee todo. Devuelve @{ Pl = datos de la PC; Items = lista de opciones con su estado }
+function Leer-Bios {
+    $pl = @{ Cpu = ''; CpuNombre = ''; Marca = ''; Modelo = ''; Fabricante = ''; Clave = 'Generica'; Limitada = $false; Notebook = $false; Bios = ''; BiosFecha = $null; Firmware = $null; Tecla = ''; RamTotal = 0; RamTexto = ''; Gpu = '' }
+    $items = New-Object Collections.ArrayList
+    # --- Plataforma ---
+    try {
+        $c = @(Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue)[0]
+        if ($c) {
+            $pl.CpuNombre = (([string]$c.Name) -replace '\((R|TM)\)', '' -replace '\s+', ' ').Trim()
+            $pl.Cpu = $(switch -Regex ([string]$c.Manufacturer) { 'AuthenticAMD' { 'amd' } 'GenuineIntel' { 'intel' } default { '' } })
+            $pl.VirtCpu = $c.VirtualizationFirmwareEnabled
+        }
+    } catch { }
+    try {
+        $bb = @(Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue)[0]
+        if ($bb) { $pl.Marca = ([string]$bb.Manufacturer).Trim(); $pl.Modelo = ([string]$bb.Product).Trim() }
+    } catch { }
+    try {
+        $bi = @(Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue)[0]
+        if ($bi) { $pl.Bios = ([string]$bi.SMBIOSBIOSVersion).Trim(); try { $pl.BiosFecha = [datetime]$bi.ReleaseDate } catch { } }
+    } catch { }
+    $cs = $null
+    try { $cs = @(Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue)[0] } catch { }
+    if ($cs) { $pl.Fabricante = ([string]$cs.Manufacturer).Trim(); $pl.RamTotal = [uint64]$cs.TotalPhysicalMemory; $pl.Hyperv = [bool]$cs.HypervisorPresent }
+    try {
+        $chasis = @(Get-CimInstance Win32_SystemEnclosure -ErrorAction SilentlyContinue | ForEach-Object { $_.ChassisTypes })
+        $pl.Notebook = (@(Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue).Count -gt 0) -or (@($chasis | Where-Object { $_ -in 8, 9, 10, 11, 12, 14, 18, 21, 30, 31, 32 }).Count -gt 0)
+    } catch { }
+    $pl.Clave = $(switch -Regex ($pl.Marca) { 'ASUS' { 'ASUS' } 'Micro-Star|MSI' { 'MSI' } 'Gigabyte' { 'Gigabyte' } 'ASRock' { 'ASRock' } 'Biostar' { 'Biostar' } default { 'Generica' } })
+    # PC de marca: la placa la hace el mismo fabricante de la PC
+    $oem = ("$($pl.Marca) $($pl.Fabricante)" -match '(?i)\b(Dell|HP|Hewlett|Lenovo|Acer|Toshiba|Dynabook|Fujitsu|Samsung|Huawei|Microsoft|Medion|Sony|Packard|Alienware)\b')
+    if ($pl.Notebook -or $oem) {
+        $pl.Limitada = $true; $pl.Clave = 'OEM'
+        $pl.Tecla = $BiosMarcas.OEM.Tecla
+        foreach ($t in $BiosTeclaOem) { if ($pl.Fabricante -match ('(?i)' + $t[0])) { $pl.Tecla = $t[1]; break } }
+    } else { $pl.Tecla = $BiosMarcas[$pl.Clave].Tecla }
+    $pl.Firmware = Leer-Firmware
+    $cp = Compat-Bios $pl
+    $pl.Compat = $cp
+    $pl.ActualizarBios = $false
+    # Pagina de soporte de la placa (como en Buscar drivers): el primer resultado de DuckDuckGo en el sitio de la marca
+    $sitio = $(switch ($pl.Clave) { 'ASUS' { 'asus.com' } 'MSI' { 'msi.com' } 'Gigabyte' { 'gigabyte.com' } 'ASRock' { 'asrock.com' } 'Biostar' { 'biostar.com.tw' } default { '' } })
+    $pl.BiosLink = $(if ($sitio -and $pl.Modelo) { 'https://duckduckgo.com/?q=' + [uri]::EscapeDataString('!ducky site:' + $sitio + ' ' + $pl.Modelo + ' support BIOS') } elseif ($pl.Modelo) { 'https://www.google.com/search?q=' + [uri]::EscapeDataString($pl.Marca + ' ' + $pl.Modelo + ' BIOS') } else { '' })
+
+    # --- Placa de video aparte (como Leer-Gpu) y graficos integrados ---
+    $vids = @()
+    try { $vids = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.Name }) } catch { }
+    $gpu = @($vids | Where-Object { $_.Name -match '(?i)nvidia' })[0]
+    if (-not $gpu) { $gpu = @($vids | Where-Object { ($_.Name -match '(?i)radeon') -and ($_.Name -match '(?i)\bRX\s*\d{3,4}') })[0] }
+    if (-not $gpu) { $gpu = @($vids | Where-Object { $_.Name -match '(?i)\bArc\b.*\b[AB]\d{3}' })[0] }
+    $igp = @($vids | Where-Object { ($_ -ne $gpu) -and ($_.Name -match '(?i)Radeon\s*(\(TM\))?\s*(\d{3}M\s*)?Graphics|Radeon.*\b\d{3}M\b|Radeon Vega|\bVega\b|Intel.*(UHD|Iris|HD Graphics)') })[0]
+    $gpuNom = $(if ($gpu) { (([string]$gpu.Name) -replace '\((R|TM)\)', '').Trim() } else { '' })
+    $pl.Gpu = $gpuNom
+
+    # --- Modo UEFI ---
+    $rUefi = Ruta-Bios $pl 'Uefi'
+    if ($pl.Firmware -eq 'UEFI') { [void]$items.Add((Item-Bios 'uefi' 'Modo UEFI (CSM apagado)' 'Ok' @('Tu PC arranca en modo UEFI.') '')) }
+    elseif ($pl.Firmware -eq 'Legacy') { [void]$items.Add((Item-Bios 'uefi' 'Modo UEFI (CSM apagado)' 'Falta' @('Tu PC arranca en modo Legacy (CSM). Resizable BAR y Secure Boot necesitan UEFI.', 'Ojo: antes de apagar el CSM, el disco de Windows tiene que ser GPT. Si es MBR, convertilo primero con mbr2gpt; si no, Windows no arranca.') $rUefi)) }
+    else { [void]$items.Add((Item-Bios 'uefi' 'Modo UEFI (CSM apagado)' 'Revisar' @('No se pudo leer el modo de arranque.') $rUefi)) }
+
+    # --- Secure Boot ---
+    $sb = $null
+    try { $sb = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\State' -Name 'UEFISecureBootEnabled' -ErrorAction Stop).UEFISecureBootEnabled } catch { }
+    $porQue = 'Lo piden Windows 11 y algunos antitrampas (Vanguard de Valorant, el de Battlefield 6). No cambia los FPS.'
+    if ($sb -eq 1) { [void]$items.Add((Item-Bios 'seguro' 'Secure Boot' 'Ok' @() '')) }
+    elseif (($sb -eq 0) -or ($pl.Firmware -eq 'Legacy')) {
+        $l = @($porQue)
+        if ($pl.Firmware -eq 'Legacy') { $l += 'Primero tenes que pasar a modo UEFI.' }
+        [void]$items.Add((Item-Bios 'seguro' 'Secure Boot' 'Falta' $l (Ruta-Bios $pl 'Seguro')))
+    } else { [void]$items.Add((Item-Bios 'seguro' 'Secure Boot' 'Revisar' @('No se pudo leer.', $porQue) (Ruta-Bios $pl 'Seguro'))) }
+
+    # --- TPM 2.0 (Win32_Tpm pide admin y sin admin tarda 5 s en fallar: ahi se mira si esta el dispositivo TPM 2.0, ACPI\MSFT0101) ---
+    $tpmNom = $(if ($pl.Cpu -eq 'intel') { 'TPM 2.0 (Intel PTT)' } elseif ($pl.Cpu -eq 'amd') { 'TPM 2.0 (AMD fTPM)' } else { 'TPM 2.0' })
+    $tpmPor = 'Lo piden Windows 11 y algunos antitrampas. No cambia los FPS.'
+    $tpmEst = $null; $tpmVer = ''
+    $esAdmin = $false
+    try { $esAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) } catch { }
+    if ($esAdmin) {
+        try {
+            $tp = @(Get-CimInstance -Namespace 'root/cimv2/Security/MicrosoftTpm' -ClassName Win32_Tpm -ErrorAction Stop)[0]
+            if (-not $tp) { $tpmEst = 'Falta' }
+            else {
+                $tpmVer = (([string]$tp.SpecVersion) -split ',')[0].Trim()
+                $tpmEst = $(if ($tp.IsEnabled_InitialValue -and ($tpmVer -like '2.*')) { 'Ok' } else { 'Falta' })
+            }
+        } catch { }
+    }
+    if (-not $tpmEst) {
+        try { if (@(Get-CimInstance Win32_PnPEntity -Filter "PNPClass='SecurityDevices'" -ErrorAction Stop | Where-Object { [string]$_.PNPDeviceID -match '(?i)MSFT0101' }).Count -gt 0) { $tpmEst = 'Ok'; $tpmVer = '2.0' } } catch { }
+    }
+    if ($tpmEst -eq 'Ok') { [void]$items.Add((Item-Bios 'tpm' $tpmNom 'Ok' @(Texto-Bios 'Activado (version {0}).' $tpmVer) '')) }
+    elseif (($tpmEst -eq 'Falta') -and ($cp.TpmCpu -eq 'no')) {
+        [void]$items.Add((Item-Bios 'tpm' 'TPM 2.0' 'NoCompat' @('Tu procesador no tiene TPM 2.0 integrado (en Intel llego con la 4ta generacion; en AMD, con los Ryzen).', 'Algunas placas tienen un conector para un modulo TPM aparte: fijate en el manual de la tuya.') ''))
+    } elseif ($tpmEst -eq 'Falta') {
+        $l = @($tpmPor)
+        if ($tpmVer -and ($tpmVer -notlike '2.*')) { $l = @((Texto-Bios 'Tenes TPM {0}: Windows 11 pide 2.0.' $tpmVer)) + $l }
+        [void]$items.Add((Item-Bios 'tpm' $tpmNom 'Falta' $l (Ruta-Bios $pl 'Tpm')))
+    } else { [void]$items.Add((Item-Bios 'tpm' $tpmNom 'Revisar' @('No se pudo leer.', $tpmPor) (Ruta-Bios $pl 'Tpm'))) }
+
+    # --- Virtualizacion (con Hyper-V prendido, Windows la oculta pero esta activada) ---
+    $vNom = $(if ($pl.Cpu -eq 'intel') { 'Virtualizacion (Intel VT-x)' } elseif ($pl.Cpu -eq 'amd') { 'Virtualizacion (SVM)' } else { 'Virtualizacion' })
+    $vPor = 'Activala si usas emuladores de Android (BlueStacks, LDPlayer), WSL o maquinas virtuales. No baja los FPS por si sola.'
+    if ($pl.VirtCpu -eq $true) { [void]$items.Add((Item-Bios 'virt' $vNom 'Ok' @() '')) }
+    elseif ($pl.Hyperv) { [void]$items.Add((Item-Bios 'virt' $vNom 'Ok' @('Activada: Windows la esta usando (Hyper-V o la seguridad basada en virtualizacion).') '')) }
+    elseif ($pl.VirtCpu -eq $false) { [void]$items.Add((Item-Bios 'virt' $vNom 'Falta' @($vPor) (Ruta-Bios $pl 'Virt'))) }
+    else { [void]$items.Add((Item-Bios 'virt' $vNom 'Revisar' @('No se pudo leer.', $vPor) (Ruta-Bios $pl 'Virt'))) }
+
+    # --- Resizable BAR y Above 4G Decoding ---
+    $rbNom = $(if (($pl.Cpu -eq 'amd') -and ($gpuNom -match '(?i)radeon')) { 'Resizable BAR (Smart Access Memory)' } else { 'Resizable BAR' })
+    $a4Nom = 'Above 4G Decoding'
+    $limTxt = 'En notebooks y PCs de marca la BIOS casi nunca tiene esta opcion.'
+    if ($pl.Limitada) {
+        [void]$items.Add((Item-Bios 'rebar' $rbNom 'NoAplica' @($limTxt) ''))
+        [void]$items.Add((Item-Bios 'a4g' $a4Nom 'NoAplica' @($limTxt) ''))
+    } elseif (-not $gpu) {
+        [void]$items.Add((Item-Bios 'rebar' $rbNom 'NoAplica' @('No tenes placa de video aparte: con graficos integrados no hace falta.') ''))
+        [void]$items.Add((Item-Bios 'a4g' $a4Nom 'NoAplica' @('Solo hace falta para Resizable BAR, con placa de video aparte.') ''))
+    } elseif ($gpuNom -match '(?i)GTX|RTX\s*20\d\d|\bRX\s*(4\d\d|5\d\d|5\d{3}|Vega)\b') {
+        [void]$items.Add((Item-Bios 'rebar' $rbNom 'NoAplica' @('Tu placa de video no lo soporta (lo tienen las NVIDIA RTX 30 en adelante, las AMD RX 6000 en adelante y las Intel Arc).') ''))
+        [void]$items.Add((Item-Bios 'a4g' $a4Nom 'NoAplica' @('Solo hace falta para Resizable BAR, y tu placa de video no lo soporta.') ''))
+    } else {
+        $rg = Rangos-Gpu ([string]$gpu.PNPDeviceID)
+        $max = [uint64]0; $alto = $false
+        foreach ($x in $rg) { if ($x.Largo -gt $max) { $max = $x.Largo }; if ($x.Inicio -ge 0x100000000) { $alto = $true } }
+        $bar1 = 0
+        if ($gpuNom -match '(?i)nvidia') {
+            $q = Correr-Smi '-q -d MEMORY'
+            if ($q.Ok -and ($q.Texto -match '(?s)BAR1 Memory Usage\s+Total\s*:\s*(\d+)\s*MiB')) { $bar1 = [int]$Matches[1] }
+        }
+        # NVIDIA: BAR1 de mas de 256 MiB. Resto: el rango mas grande (1 GB o mas = activado; 256 MB = apagado).
+        $rb = $null
+        if ($bar1 -gt 0) { $rb = ($bar1 -gt 256) }
+        elseif ($max -ge 1GB) { $rb = $true }
+        elseif (($max -gt 0) -and ($max -le 512MB)) { $rb = $false }
+        $tam = $(if ($bar1 -gt 256) { [math]::Round($bar1 / 1024, 1) } elseif ($max -ge 1GB) { [math]::Round($max / 1GB, 1) } else { 0 })
+        $rRebar = Ruta-Bios $pl 'Rebar'
+        if ($rb -eq $true) {
+            $l = @(Texto-Bios 'Activado: el procesador ve toda la memoria de la placa de video de una vez ({0} GB). Da unos FPS mas en muchos juegos.' $tam)
+            if ($gpuNom -match '(?i)nvidia') { $l += 'En NVIDIA, el driver lo usa solo en los juegos que tiene habilitados.' }
+            [void]$items.Add((Item-Bios 'rebar' $rbNom 'Ok' $l ''))
+        } elseif (($cp.RebarCpu -eq 'no') -or ($cp.RebarPlaca -eq 'no')) {
+            # Apagado (o sin leer) y el procesador o el chipset no lo soportan: no hay nada que activar
+            $l = $(if ($cp.RebarCpu -eq 'no') { @('Tu procesador no lo soporta: en Intel hace falta un Core de 10ma generacion o mas nuevo, y en AMD un Ryzen 3000 o mas nuevo (menos los 3200G y 3400G).') } else { @((Texto-Bios 'Tu placa (chipset {0}) no lo soporta: en Intel hace falta una placa serie 400 o mas nueva, y en AMD una B350/X370 con BIOS nueva o una serie 400 o mas nueva.' $cp.Chipset)) })
+            [void]$items.Add((Item-Bios 'rebar' $rbNom 'NoCompat' $l ''))
+        } elseif ($rb -eq $false) {
+            $l = @('El procesador ve la memoria de la placa de video de a 256 MB. Activandolo ganas unos FPS en muchos juegos.', 'Necesita Above 4G Decoding y modo UEFI.')
+            if ($cp.RebarPlaca -eq 'bios') { $l += (Texto-Bios 'Tu placa (chipset {0}) lo tiene solo con una BIOS nueva: si no ves la opcion, actualiza la BIOS desde la pagina de tu placa.' $cp.Chipset); $pl.ActualizarBios = $true }
+            elseif ($cp.RebarPlaca -eq 'quizas') { $l += (Texto-Bios 'Con tu placa (chipset {0}) depende del modelo: algunas lo agregaron con una BIOS nueva y otras nunca. Fijate en la pagina de tu placa.' $cp.Chipset); $pl.ActualizarBios = $true }
+            else { $l += 'Si no ves la opcion, actualiza la BIOS: muchas placas la agregaron despues.'; $pl.ActualizarBios = $true }
+            if ($pl.Firmware -eq 'Legacy') { $l += 'Primero tenes que pasar a modo UEFI.' }
+            [void]$items.Add((Item-Bios 'rebar' $rbNom 'Falta' $l $rRebar))
+        } else { [void]$items.Add((Item-Bios 'rebar' $rbNom 'Revisar' @('No se pudo leer.') $rRebar)) }
+        if (($rb -ne $true) -and (($cp.RebarCpu -eq 'no') -or ($cp.RebarPlaca -eq 'no'))) { [void]$items.Add((Item-Bios 'a4g' $a4Nom 'NoAplica' @('Solo hace falta para Resizable BAR, y tu PC no lo soporta.') '')) }
+        elseif (($rb -eq $true) -or $alto) { [void]$items.Add((Item-Bios 'a4g' $a4Nom 'Ok' @() '')) }
+        elseif ($rg.Count -gt 0) { [void]$items.Add((Item-Bios 'a4g' $a4Nom 'Falta' @('Hace falta para Resizable BAR: activalos juntos.') $rRebar)) }
+        else { [void]$items.Add((Item-Bios 'a4g' $a4Nom 'Revisar' @('No se pudo leer.') $rRebar)) }
+    }
+
+    # --- Perfil de la RAM (XMP / EXPO / DOCP) ---
+    $mods = @()
+    try { $mods = @(Get-CimInstance Win32_PhysicalMemory -ErrorAction SilentlyContinue | Where-Object { $_.Capacity -gt 0 }) } catch { }
+    $tipoN = $(if ($mods.Count -gt 0) { [int]$mods[0].SMBIOSMemoryType } else { 0 })
+    $tipo = $(switch ($tipoN) { 26 { 'DDR4' } 34 { 'DDR5' } 24 { 'DDR3' } default { '' } })
+    $actual = [int](@($mods | ForEach-Object { [int]$_.ConfiguredClockSpeed } | Measure-Object -Minimum).Minimum)
+    $gbRam = $(if ($pl.RamTotal) { [math]::Round($pl.RamTotal / 1GB) } else { [math]::Round((@($mods | ForEach-Object { [uint64]$_.Capacity }) | Measure-Object -Sum).Sum / 1GB) })
+    $pl.RamTexto = ([string]$gbRam + ' GB')
+    if ($tipo) { $pl.RamTexto += ' ' + $tipo }
+    if ($actual -gt 0) { $pl.RamTexto += ' ' + (Texto-Bios 'a {0} MT/s' $actual) }
+    if ($mods.Count -gt 0) { $pl.RamTexto += ', ' + $mods.Count + ' ' + $(if ($mods.Count -eq 1) { 'modulo' } else { 'modulos' }) }
+    $perfil = $(if ($pl.Cpu -eq 'intel') { 'XMP' } elseif ($tipo -eq 'DDR5') { 'EXPO' } elseif ($pl.Clave -eq 'ASUS') { 'D.O.C.P.' } elseif ($pl.Clave -eq 'MSI') { 'A-XMP' } else { 'XMP' })
+    $ramNom = 'Perfil de la RAM (' + $perfil + ')'
+    $extra = @()
+    if ($mods.Count -eq 1) { $extra += 'Tenes un solo modulo de RAM: con dos iguales anda en dual channel y se notan los FPS.' }
+    $pns = @($mods | ForEach-Object { ([string]$_.PartNumber).Trim() + '|' + [string]$_.Capacity } | Sort-Object -Unique)
+    if ($pns.Count -gt 1) { $extra += 'Tus modulos de RAM son distintos: pueden no aguantar el perfil. Lo ideal es un kit de modulos iguales.' }
+    if ($pl.Limitada) { [void]$items.Add((Item-Bios 'ram' $ramNom 'NoAplica' (@('En notebooks y PCs de marca la BIOS casi nunca deja elegir el perfil de la RAM.') + $extra) '')) }
+    elseif ((-not $tipo) -or ($tipo -eq 'DDR3') -or ($actual -le 0)) { [void]$items.Add((Item-Bios 'ram' $ramNom 'Revisar' (@('No se pudo leer la velocidad de tu RAM.') + $extra) (Ruta-Bios $pl 'Ram'))) }
+    else {
+        # Velocidades base (JEDEC): si anda en una de estas, el perfil esta apagado
+        $jedec = $(if ($tipo -eq 'DDR4') { @(2133, 2400, 2666, 2667, 2933, 3200) } else { @(4000, 4400, 4800, 5200, 5600, 6400) })
+        $base = (@($jedec | Where-Object { [math]::Abs($_ - $actual) -le 2 }).Count -gt 0)
+        $kit = [int](@($mods | ForEach-Object { Velocidad-Kit $_.PartNumber } | Where-Object { $_ -gt 0 } | Measure-Object -Minimum).Minimum)
+        if ($kit -le 0) {
+            # Sin numero de parte conocido: Speed sirve si no es una velocidad base (ahi es la del perfil)
+            $vel = [int](@($mods | ForEach-Object { [int]$_.Speed } | Measure-Object -Minimum).Minimum)
+            if (($vel -gt $actual) -and (@($jedec | Where-Object { [math]::Abs($_ - $vel) -le 2 }).Count -eq 0)) { $kit = $vel }
+        }
+        if (-not $base) {
+            $l = @(Texto-Bios 'Activado: tu RAM anda a {0} MT/s.' $actual)
+            if (($kit - $actual) -ge 200) {
+                if (($pl.Cpu -eq 'amd') -and ($tipo -eq 'DDR5') -and ($actual -ge 6000)) { $l += (Texto-Bios 'Tu kit da hasta {0} MT/s, pero en los Ryzen 7000 y 9000 6000 es el punto justo: dejalo asi.' $kit) }
+                else { $l += (Texto-Bios 'Tu kit da hasta {0} MT/s: si queres, elegi ese perfil.' $kit) }
+            }
+            [void]$items.Add((Item-Bios 'ram' $ramNom 'Ok' ($l + $extra) ''))
+        } elseif ($kit -gt ($actual + 100)) {
+            [void]$items.Add((Item-Bios 'ram' $ramNom 'Falta' (@((Texto-Bios 'Tu RAM anda a {0} MT/s y puede ir a {1} MT/s: activa {2}. Es gratis y da FPS.' $actual $kit $perfil)) + $extra) (Ruta-Bios $pl 'Ram')))
+        } elseif ($kit -gt 0) {
+            [void]$items.Add((Item-Bios 'ram' $ramNom 'Ok' (@((Texto-Bios 'Tu RAM ya anda a la velocidad de su caja ({0} MT/s).' $actual)) + $extra) ''))
+        } else {
+            [void]$items.Add((Item-Bios 'ram' $ramNom 'Revisar' (@((Texto-Bios 'Anda a la velocidad base ({0} MT/s): si la caja de tu RAM dice mas, activa {1}.' $actual $perfil)) + $extra) (Ruta-Bios $pl 'Ram')))
+        }
+    }
+
+    # --- Perfil de baja latencia de la RAM: no se puede leer desde Windows ---
+    $latNom = 'Perfil de baja latencia de la RAM'
+    if ($pl.Limitada) { [void]$items.Add((Item-Bios 'lat' $latNom 'NoAplica' @($limTxt) '')) }
+    else {
+        $l = @('No se puede leer desde Windows. Si tu placa lo tiene, ajusta los tiempos de la RAM para que responda mas rapido: da unos FPS mas, sobre todo en los minimos.')
+        if (@($items | Where-Object { ($_.Id -eq 'ram') -and ($_.Estado -ne 'Ok') }).Count -gt 0) { $l += (Texto-Bios 'Primero activa {0}.' $perfil) }
+        $l += (Texto-Bios 'Solo si aguanta: despues de activarlo, proba la estabilidad un rato con TestMem5 u OCCT. Si se cuelga o da errores, volve al perfil {0} comun.' $perfil)
+        [void]$items.Add((Item-Bios 'lat' $latNom 'Revisar' $l (Ruta-Bios $pl 'Latencia')))
+    }
+
+    # --- Memoria del grafico integrado (UMA Frame Buffer, solo AMD) ---
+    $umaNom = 'Memoria del grafico integrado (UMA Frame Buffer)'
+    if ($pl.Cpu -eq 'intel') { [void]$items.Add((Item-Bios 'uma' $umaNom 'NoAplica' @('En Intel la memoria del grafico integrado es compartida y se ajusta sola: no hace falta tocarlo.') '')) }
+    elseif ($pl.Limitada) { [void]$items.Add((Item-Bios 'uma' $umaNom 'NoAplica' @($limTxt) '')) }
+    elseif (-not $igp) {
+        $t = $(if ($gpu) { 'El grafico integrado esta apagado o no se usa: no hace falta tocarlo.' } else { 'No se encontro un grafico integrado.' })
+        [void]$items.Add((Item-Bios 'uma' $umaNom 'NoAplica' @($t) ''))
+    } else {
+        # La memoria dedicada se lee de la clave del adaptador (AdapterRAM se corta en 4 GB)
+        $mem = [uint64]0
+        try {
+            foreach ($k in @(Get-ChildItem -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}' -ErrorAction SilentlyContinue)) {
+                $p = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction SilentlyContinue
+                if ((-not $p) -or ([string]$p.DriverDesc -ne [string]$igp.Name)) { continue }
+                $q = $p.'HardwareInformation.qwMemorySize'
+                if ($q) { $mem = [uint64]$q }
+                else {
+                    $m = $p.'HardwareInformation.MemorySize'
+                    if ($m -is [byte[]]) { if ($m.Length -ge 8) { $mem = [BitConverter]::ToUInt64($m, 0) } elseif ($m.Length -ge 4) { $mem = [BitConverter]::ToUInt32($m, 0) } }
+                    elseif ($m) { $mem = [uint64]$m }
+                }
+                if ($mem) { break }
+            }
+        } catch { }
+        if ((-not $mem) -and $igp.AdapterRAM) { $mem = [uint64]$igp.AdapterRAM }
+        $mb = [int]($mem / 1MB)
+        $mucha = ($pl.RamTotal -gt 8.5GB)
+        $rUma = Ruta-Bios $pl 'Uma'
+        if ($gpu) {
+            # Con placa aparte, lo que tenga reservado el integrado es RAM que Windows no puede usar
+            $monitor = 'Si tenes un monitor enchufado a la placa madre, no lo apagues: dejalo en el minimo.'
+            if ($mb -le 0) { [void]$items.Add((Item-Bios 'uma' $umaNom 'Revisar' @('No se pudo leer. Tenes placa de video aparte: el integrado deberia estar en el minimo o apagado, porque lo que tenga reservado es RAM que no se usa.', $monitor) $rUma)) }
+            elseif ($mb -gt 512) { [void]$items.Add((Item-Bios 'uma' $umaNom 'Falta' @((Texto-Bios 'Tenes placa de video aparte y el integrado tiene {0} MB reservados que no se usan: es RAM que perdes. Ponelo en el minimo o apagalo en la BIOS.' $mb), $monitor) $rUma)) }
+            else { [void]$items.Add((Item-Bios 'uma' $umaNom 'Ok' @((Texto-Bios 'Tiene {0} MB, el minimo: con placa de video aparte no le hace falta mas.' $mb)) '')) }
+        } elseif ($mb -le 0) {
+            [void]$items.Add((Item-Bios 'uma' $umaNom 'Revisar' @($(if ($mucha) { 'No se pudo leer. Con mas de 8 GB de RAM, lo ideal es 2 GB.' } else { 'No se pudo leer. Con 8 GB de RAM o menos, lo ideal es de 512 MB a 1 GB.' })) $rUma))
+        } elseif ($mucha) {
+            if ($mb -gt 2048) { [void]$items.Add((Item-Bios 'uma' $umaNom 'Falta' @((Texto-Bios 'Tiene {0} MB: bajalo a 2 GB. Mas es inutil y te quita RAM.' $mb)) $rUma)) }
+            elseif ($mb -lt 2000) { [void]$items.Add((Item-Bios 'uma' $umaNom 'Falta' @((Texto-Bios 'Tiene {0} MB: con mas de 8 GB de RAM, subilo a 2 GB para que los juegos anden mejor.' $mb)) $rUma)) }
+            else { [void]$items.Add((Item-Bios 'uma' $umaNom 'Ok' @('Tiene 2 GB, lo ideal.') '')) }
+        } else {
+            if ($mb -gt 1024) { [void]$items.Add((Item-Bios 'uma' $umaNom 'Falta' @((Texto-Bios 'Tiene {0} MB: con 8 GB de RAM o menos, bajalo a 1 GB o 512 MB para no quedarte sin RAM.' $mb)) $rUma)) }
+            elseif ($mb -lt 500) { [void]$items.Add((Item-Bios 'uma' $umaNom 'Falta' @((Texto-Bios 'Tiene {0} MB: subilo a 512 MB o 1 GB.' $mb)) $rUma)) }
+            else { [void]$items.Add((Item-Bios 'uma' $umaNom 'Ok' @((Texto-Bios 'Tiene {0} MB, lo ideal para tu RAM.' $mb)) '')) }
+        }
+    }
+    return @{ Pl = $pl; Items = $items }
+}
+
+# Cuantas estan activadas (sin contar las que no aplican ni las que no se pueden leer)
+function Contar-Bios($rb) {
+    $ok = @($rb.Items | Where-Object { $_.Estado -eq 'Ok' }).Count
+    $falta = @($rb.Items | Where-Object { $_.Estado -eq 'Falta' }).Count
+    return @{ Ok = $ok; Total = ($ok + $falta) }
+}
+
+# Cartel con el resultado: datos de la PC, resumen y una caja por opcion
+function Resultado-Bios($rb, $cu) {
+    $pl = $rb.Pl
+    $w = Nuevo-Dialogo 600
+    $sp = New-Object Windows.Controls.StackPanel
+    $cab = New-Object Windows.Controls.Grid
+    $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'
+    $cab.ColumnDefinitions.Add($c0); $cab.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
+    $ic = Icono-Dialogo 0xE950 '#8AB4F8' 42
+    $ic.Margin = '0,0,14,0'
+    $cab.Children.Add($ic) | Out-Null
+    $tx = New-Object Windows.Controls.StackPanel
+    $tx.VerticalAlignment = 'Center'
+    [Windows.Controls.Grid]::SetColumn($tx, 1)
+    $tx.Children.Add((Nuevo-Texto 'Ajustes de la BIOS' 17 '#FFFFFF' $true)) | Out-Null
+    $datos = @()
+    # La marca corta (Gigabyte en vez de Gigabyte Technology Co., Ltd.) si es una de las conocidas
+    $placa = ($(if ($pl.Clave -in 'ASUS', 'MSI', 'Gigabyte', 'ASRock', 'Biostar') { $pl.Clave } else { $pl.Marca }) + ' ' + $pl.Modelo).Trim()
+    if ($placa) {
+        $t = 'Placa madre: ' + $placa
+        if ($pl.Bios) { $t += ' - BIOS ' + $pl.Bios + $(if ($pl.BiosFecha) { ' (' + $pl.BiosFecha.ToString('dd/MM/yyyy') + ')' } else { '' }) }
+        $datos += $t
+    }
+    if ($pl.CpuNombre) { $datos += ('Procesador: ' + $pl.CpuNombre) }
+    if ($pl.RamTexto) { $datos += ('RAM: ' + $pl.RamTexto) }
+    $datos += ('Placa de video: ' + $(if ($pl.Gpu) { $pl.Gpu } else { 'solo graficos integrados' }))
+    $sub = Nuevo-Texto ($datos -join "`n") 12.5 '#9AA0A6' $false
+    $sub.Margin = '0,4,0,0'; $sub.LineHeight = 19
+    $tx.Children.Add($sub) | Out-Null
+    $cab.Children.Add($tx) | Out-Null
+    $sp.Children.Add($cab) | Out-Null
+    $colRes = $(if ($cu.Total -gt 0 -and $cu.Ok -eq $cu.Total) { '#81C995' } else { '#E5B567' })
+    $res = Nuevo-Texto (Texto-Bios 'Tenes {0} de {1} activadas.' $cu.Ok $cu.Total) 15 $colRes $true
+    $res.Margin = '2,14,0,0'
+    $sp.Children.Add($res) | Out-Null
+    $notas = @()
+    if ($pl.Limitada) { $notas += 'Es una notebook o una PC de marca: la mayoria de estas opciones no aparecen en su BIOS. Se revisan solo la virtualizacion, Secure Boot, TPM y el modo UEFI.' }
+    $notas += ('Para entrar a la BIOS: ' + $pl.Tecla + '.')
+    $notas += 'Los nombres cambian segun el modelo: si no lo encontras, usa la busqueda de la BIOS (F3 en ASUS y MSI).'
+    $nt = Nuevo-Texto ($notas -join "`n") 12 '#C3C8D0' $false
+    $nt.Margin = '2,4,0,0'; $nt.LineHeight = 18
+    $sp.Children.Add($nt) | Out-Null
+    $lista = New-Object Windows.Controls.StackPanel
+    $lista.Margin = '0,0,6,0'
+    # Primero lo que falta, despues lo que hay que revisar, lo activado y lo que no aplica
+    foreach ($est in 'Falta', 'Revisar', 'Ok', 'NoCompat', 'NoAplica') {
+        foreach ($it in @($rb.Items | Where-Object { $_.Estado -eq $est })) {
+            $l = @($it.Lineas)
+            if ($it.Ruta -and ($est -in 'Falta', 'Revisar')) { $l += ('Donde: ' + $it.Ruta) }
+            $lista.Children.Add((Caja-Gpu ((Con-Enie $it.Titulo) + ': ' + (Con-Enie $BiosEstadoNombre[$est])) $BiosColor[$est] $BiosIcono[$est] $l $false)) | Out-Null
+        }
+    }
+    $sv = New-Object Windows.Controls.ScrollViewer
+    $sv.VerticalScrollBarVisibility = 'Auto'; $sv.MaxHeight = 430
+    Scroll-Suave $sv
+    $sv.Content = $lista
+    $sp.Children.Add($sv) | Out-Null
+    $izq = @()
+    # /fw reinicia directo a la BIOS: solo anda en modo UEFI
+    if ($pl.Firmware -eq 'UEFI') {
+        $bFw = Nuevo-Boton 'Reiniciar y entrar a la BIOS' '#3D6FD9'
+        $bFw.Add_Click({
+            if (-not (Confirmar 'Entrar a la BIOS' 'La PC se reinicia ya y entra directo a la BIOS. Guarda todo lo que tengas abierto antes de seguir.' 'Reiniciar' '#B3412F' 'Cancelar')) { return }
+            try {
+                $pr = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\shutdown.exe') -ArgumentList '/r /fw /t 0' -WindowStyle Hidden -PassThru -Wait -ErrorAction Stop
+                if ($pr.ExitCode -ne 0) { Avisar 'No se pudo reiniciar' (Texto-Bios 'Windows no dejo reiniciar directo a la BIOS (codigo {0}). Reinicia la PC y entra con: {1}.' $pr.ExitCode $script:BiosTecla) }
+            } catch { Avisar 'No se pudo reiniciar' $_.Exception.Message }
+        })
+        $izq += $bFw
+    }
+    # Si a algo le hace falta una BIOS nueva, la pagina de soporte de la placa
+    if ($pl.ActualizarBios -and $pl.BiosLink) {
+        $bPag = Nuevo-Boton 'Pagina de tu placa (BIOS)'
+        $bPag.Tag = $pl.BiosLink
+        $bPag.Add_Click({ Abrir-Normal ([string]$this.Tag) })
+        $izq += $bPag
+    }
+    $script:BiosTecla = $pl.Tecla
+    $bCer = Nuevo-Boton 'Cerrar'; $bCer.IsCancel = $true
+    $sp.Children.Add((Fila-Botones $izq @($bCer))) | Out-Null
+    $w.Content.Child = $sp
+    [void]$w.ShowDialog()
+}
+
+function Abrir-Bios {
+    $win.Cursor = [Windows.Input.Cursors]::Wait
+    try { $rb = Leer-Bios } finally { $win.Cursor = $null }
+    $cu = Contar-Bios $rb
+    $script:BiosEstado.Foreground = (Pincel (Tema-Letra $(if (($cu.Total -gt 0) -and ($cu.Ok -eq $cu.Total)) { '#81C995' } else { '#E5B567' })))
+    $script:BiosEstado.Text = (Con-Enie (Texto-Bios 'Ultima revision: tenes {0} de {1} activadas.' $cu.Ok $cu.Total))
+    $script:BiosEstado.Visibility = 'Visible'
+    Resultado-Bios $rb $cu
+}
+
+$bBios = Nuevo-Boton 'Revisar la BIOS' '#3D6FD9'
+$bBios.Add_Click({ Abrir-Bios })
+$script:BiosEstado = Nuevo-Texto '' 12 '#81C995' $false
+$script:BiosEstado.Margin = '0,8,0,0'; $script:BiosEstado.Visibility = 'Collapsed'
+$cardBios = Nueva-Herramienta 'Ajustes de la BIOS' 'revisa que opciones utiles de la BIOS tenes activadas (Resizable BAR, Above 4G, perfil de la RAM, virtualizacion, memoria del grafico integrado y mas) y te dice donde activar las que te faltan segun tu placa y tu procesador.' 'sabes que te falta para sacarle todo a tu PC.' 'la app no cambia la BIOS: lo activas vos. Algunas cosas no se pueden leer desde Windows.' @($bBios)
+$cardBios.Child.Children.Add($script:BiosEstado) | Out-Null
+$spH.Children.Add($cardBios) | Out-Null
+
 # --- Herramienta: undervolt y overclock de la placa de video ---
 # Lee la placa (NVIDIA con nvidia-smi, que viene con su driver; AMD e Intel por el nombre) y recomienda valores segun lo que elijas.
 # En NVIDIA de escritorio aplica sola lo seguro: limite de consumo y tope de reloj (con el tope baja el voltaje solo),
@@ -4403,7 +4996,8 @@ function Actualizar-Cpu($cpu) {
     if (-not $cpu) { return }
     $a = $script:CpuTxt['afi']
     if ($a -and $cpu.Afi) {
-        Agregar-Linea $a 'Con tu procesador: ' '#8AB4F8' ($cpu.Nombre + ' - cambio ' + $cpu.Afi.Nivel)
+        # Rosa: el azul ya es de "Que hace" y se confundian
+        Agregar-Linea $a 'Con tu procesador: ' '#F9A8D4' ($cpu.Nombre + ' - cambio ' + $cpu.Afi.Nivel)
         Agregar-Linea $a 'Puede mejorar: ' '#81C995' $cpu.Afi.Favor
         Agregar-Linea $a 'Puede empeorar: ' '#F28B82' $cpu.Afi.Contra
         Agregar-Linea $a 'Conviene: ' '#E5B567' $cpu.Afi.Recom
@@ -4415,7 +5009,7 @@ function Actualizar-Cpu($cpu) {
             Agregar-Linea $g ($Aviso + ' Atencion: ') '#E5B567' $cpu.Gb.Aviso
             if ($script:XbIcono) { $script:XbIcono.ToolTip = (Con-Enie $cpu.Gb.Aviso); $script:XbIcono.Visibility = 'Visible' }
         }
-        Agregar-Linea $g 'Con tu procesador: ' '#8AB4F8' $cpu.Gb.Texto
+        Agregar-Linea $g 'Con tu procesador: ' '#F9A8D4' $cpu.Gb.Texto
         $g.Visibility = 'Visible'
     }
 }

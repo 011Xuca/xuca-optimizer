@@ -2326,3 +2326,389 @@ en: Changes
 
 es: Cargando
 en: Loading
+
+# Herramienta: ajustes de la BIOS
+
+es: Ajustes de la BIOS
+en: BIOS settings
+
+es: revisa que opciones utiles de la BIOS tenes activadas (Resizable BAR, Above 4G, perfil de la RAM, virtualizacion, memoria del grafico integrado y mas) y te dice donde activar las que te faltan segun tu placa y tu procesador.
+en: checks which useful BIOS options you have enabled (Resizable BAR, Above 4G, RAM profile, virtualization, integrated graphics memory and more) and tells you where to enable the missing ones for your motherboard and your processor.
+
+es: sabes que te falta para sacarle todo a tu PC.
+en: you know what you are missing to get everything out of your PC.
+
+es: la app no cambia la BIOS: lo activas vos. Algunas cosas no se pueden leer desde Windows.
+en: the app does not change the BIOS: you enable it yourself. Some things cannot be read from Windows.
+
+es: Revisar la BIOS
+en: Check the BIOS
+
+es: Ultima revision: tenes {0} de {1} activadas.
+en: Last check: you have {0} of {1} enabled.
+
+es: Tenes {0} de {1} activadas.
+en: You have {0} of {1} enabled.
+
+es: Activado
+en: Enabled
+
+es: Falta activarlo
+en: Not enabled
+
+es: Revisalo vos
+en: Check it yourself
+
+es: No aplica
+en: Not applicable
+
+es: "Placa madre: "
+en: "Motherboard: "
+
+es: "Procesador: "
+en: "Processor: "
+
+es: "Placa de video: "
+en: "Graphics card: "
+
+es: solo graficos integrados
+en: integrated graphics only
+
+es: "Donde: "
+en: "Where: "
+
+es: "Para entrar a la BIOS: "
+en: "To enter the BIOS: "
+
+es: Es una notebook o una PC de marca: la mayoria de estas opciones no aparecen en su BIOS. Se revisan solo la virtualizacion, Secure Boot, TPM y el modo UEFI.
+en: This is a laptop or a brand-name PC: most of these options do not appear in its BIOS. Only virtualization, Secure Boot, TPM and UEFI mode are checked.
+
+es: Los nombres cambian segun el modelo: si no lo encontras, usa la busqueda de la BIOS (F3 en ASUS y MSI).
+en: Names change depending on the model: if you cannot find it, use the BIOS search (F3 on ASUS and MSI).
+
+es: Reiniciar y entrar a la BIOS
+en: Restart into the BIOS
+
+es: Entrar a la BIOS
+en: Enter the BIOS
+
+es: La PC se reinicia ya y entra directo a la BIOS. Guarda todo lo que tengas abierto antes de seguir.
+en: The PC restarts right now and goes straight into the BIOS. Save everything you have open before continuing.
+
+es: No se pudo reiniciar
+en: Could not restart
+
+es: Windows no dejo reiniciar directo a la BIOS (codigo {0}). Reinicia la PC y entra con: {1}.
+en: Windows did not allow restarting straight into the BIOS (code {0}). Restart the PC and enter with: {1}.
+
+es: a {0} MT/s
+en: at {0} MT/s
+
+es: modulo
+en: module
+
+es: modulos
+en: modules
+
+es: Modo UEFI (CSM apagado)
+en: UEFI mode (CSM off)
+
+es: Tu PC arranca en modo UEFI.
+en: Your PC boots in UEFI mode.
+
+es: Tu PC arranca en modo Legacy (CSM). Resizable BAR y Secure Boot necesitan UEFI.
+en: Your PC boots in Legacy mode (CSM). Resizable BAR and Secure Boot need UEFI.
+
+es: Ojo: antes de apagar el CSM, el disco de Windows tiene que ser GPT. Si es MBR, convertilo primero con mbr2gpt; si no, Windows no arranca.
+en: Careful: before turning CSM off, the Windows drive must be GPT. If it is MBR, convert it first with mbr2gpt; otherwise Windows will not boot.
+
+es: No se pudo leer el modo de arranque.
+en: Could not read the boot mode.
+
+es: Lo piden Windows 11 y algunos antitrampas (Vanguard de Valorant, el de Battlefield 6). No cambia los FPS.
+en: Windows 11 and some anti-cheats (Valorant's Vanguard, Battlefield 6's) require it. It does not change FPS.
+
+es: Primero tenes que pasar a modo UEFI.
+en: First you have to switch to UEFI mode.
+
+es: No se pudo leer.
+en: Could not be read.
+
+es: Lo piden Windows 11 y algunos antitrampas. No cambia los FPS.
+en: Windows 11 and some anti-cheats require it. It does not change FPS.
+
+es: Activado (version {0}).
+en: Enabled (version {0}).
+
+es: Tenes TPM {0}: Windows 11 pide 2.0.
+en: You have TPM {0}: Windows 11 requires 2.0.
+
+es: Virtualizacion
+en: Virtualization
+
+es: Virtualizacion (SVM)
+en: Virtualization (SVM)
+
+es: Virtualizacion (Intel VT-x)
+en: Virtualization (Intel VT-x)
+
+es: Activada: Windows la esta usando (Hyper-V o la seguridad basada en virtualizacion).
+en: Enabled: Windows is using it (Hyper-V or virtualization-based security).
+
+es: Activala si usas emuladores de Android (BlueStacks, LDPlayer), WSL o maquinas virtuales. No baja los FPS por si sola.
+en: Enable it if you use Android emulators (BlueStacks, LDPlayer), WSL or virtual machines. It does not lower FPS by itself.
+
+es: En notebooks y PCs de marca la BIOS casi nunca tiene esta opcion.
+en: On laptops and brand-name PCs the BIOS almost never has this option.
+
+es: No tenes placa de video aparte: con graficos integrados no hace falta.
+en: You do not have a dedicated graphics card: with integrated graphics it is not needed.
+
+es: Solo hace falta para Resizable BAR, con placa de video aparte.
+en: It is only needed for Resizable BAR, with a dedicated graphics card.
+
+es: Tu placa de video no lo soporta (lo tienen las NVIDIA RTX 30 en adelante, las AMD RX 6000 en adelante y las Intel Arc).
+en: Your graphics card does not support it (NVIDIA RTX 30 and newer, AMD RX 6000 and newer and Intel Arc have it).
+
+es: Solo hace falta para Resizable BAR, y tu placa de video no lo soporta.
+en: It is only needed for Resizable BAR, and your graphics card does not support it.
+
+es: Activado: el procesador ve toda la memoria de la placa de video de una vez ({0} GB). Da unos FPS mas en muchos juegos.
+en: Enabled: the processor sees all the graphics card memory at once ({0} GB). It gives a few more FPS in many games.
+
+es: En NVIDIA, el driver lo usa solo en los juegos que tiene habilitados.
+en: On NVIDIA, the driver only uses it in the games it has enabled.
+
+es: El procesador ve la memoria de la placa de video de a 256 MB. Activandolo ganas unos FPS en muchos juegos.
+en: The processor sees the graphics card memory 256 MB at a time. Enabling it gives you a few FPS in many games.
+
+es: Necesita Above 4G Decoding y modo UEFI.
+en: It needs Above 4G Decoding and UEFI mode.
+
+es: Si no ves la opcion, actualiza la BIOS: muchas placas la agregaron despues.
+en: If you do not see the option, update the BIOS: many boards added it later.
+
+es: No compatible con tu PC
+en: Not compatible with your PC
+
+es: Tu procesador no tiene TPM 2.0 integrado (en Intel llego con la 4ta generacion; en AMD, con los Ryzen).
+en: Your processor has no built-in TPM 2.0 (Intel added it with the 4th generation; AMD, with Ryzen).
+
+es: Algunas placas tienen un conector para un modulo TPM aparte: fijate en el manual de la tuya.
+en: Some boards have a header for a separate TPM module: check your board's manual.
+
+es: Tu procesador no lo soporta: en Intel hace falta un Core de 10ma generacion o mas nuevo, y en AMD un Ryzen 3000 o mas nuevo (menos los 3200G y 3400G).
+en: Your processor does not support it: Intel needs a 10th gen Core or newer, and AMD a Ryzen 3000 or newer (except the 3200G and 3400G).
+
+es: Tu placa (chipset {0}) no lo soporta: en Intel hace falta una placa serie 400 o mas nueva, y en AMD una B350/X370 con BIOS nueva o una serie 400 o mas nueva.
+en: Your board ({0} chipset) does not support it: Intel needs a 400 series board or newer, and AMD a B350/X370 with a new BIOS or a 400 series or newer.
+
+es: Tu placa (chipset {0}) lo tiene solo con una BIOS nueva: si no ves la opcion, actualiza la BIOS desde la pagina de tu placa.
+en: Your board ({0} chipset) only has it with a new BIOS: if you do not see the option, update the BIOS from your board's page.
+
+es: Con tu placa (chipset {0}) depende del modelo: algunas lo agregaron con una BIOS nueva y otras nunca. Fijate en la pagina de tu placa.
+en: With your board ({0} chipset) it depends on the model: some added it with a new BIOS and others never did. Check your board's page.
+
+es: Solo hace falta para Resizable BAR, y tu PC no lo soporta.
+en: It is only needed for Resizable BAR, and your PC does not support it.
+
+es: Pagina de tu placa (BIOS)
+en: Your board's page (BIOS)
+
+es: Hace falta para Resizable BAR: activalos juntos.
+en: It is needed for Resizable BAR: enable them together.
+
+es: Perfil de la RAM
+en: RAM profile
+
+es: Tenes un solo modulo de RAM: con dos iguales anda en dual channel y se notan los FPS.
+en: You have a single RAM stick: with two identical ones it runs in dual channel and you notice it in FPS.
+
+es: Tus modulos de RAM son distintos: pueden no aguantar el perfil. Lo ideal es un kit de modulos iguales.
+en: Your RAM sticks are different: they may not handle the profile. Ideally use a kit of identical sticks.
+
+es: En notebooks y PCs de marca la BIOS casi nunca deja elegir el perfil de la RAM.
+en: On laptops and brand-name PCs the BIOS almost never lets you choose the RAM profile.
+
+es: No se pudo leer la velocidad de tu RAM.
+en: Could not read your RAM speed.
+
+es: Activado: tu RAM anda a {0} MT/s.
+en: Enabled: your RAM runs at {0} MT/s.
+
+es: Tu kit da hasta {0} MT/s, pero en los Ryzen 7000 y 9000 6000 es el punto justo: dejalo asi.
+en: Your kit goes up to {0} MT/s, but on Ryzen 7000 and 9000 6000 is the sweet spot: leave it like that.
+
+es: Tu kit da hasta {0} MT/s: si queres, elegi ese perfil.
+en: Your kit goes up to {0} MT/s: if you want, choose that profile.
+
+es: Tu RAM anda a {0} MT/s y puede ir a {1} MT/s: activa {2}. Es gratis y da FPS.
+en: Your RAM runs at {0} MT/s and can go to {1} MT/s: enable {2}. It is free and gives FPS.
+
+es: Tu RAM ya anda a la velocidad de su caja ({0} MT/s).
+en: Your RAM already runs at the speed on its box ({0} MT/s).
+
+es: Anda a la velocidad base ({0} MT/s): si la caja de tu RAM dice mas, activa {1}.
+en: It runs at the base speed ({0} MT/s): if your RAM box says more, enable {1}.
+
+es: Perfil de baja latencia de la RAM
+en: Low latency RAM profile
+
+es: No se puede leer desde Windows. Si tu placa lo tiene, ajusta los tiempos de la RAM para que responda mas rapido: da unos FPS mas, sobre todo en los minimos.
+en: It cannot be read from Windows. If your board has it, it tunes the RAM timings so it responds faster: a few more FPS, especially in the lows.
+
+es: Primero activa {0}.
+en: First enable {0}.
+
+es: Solo si aguanta: despues de activarlo, proba la estabilidad un rato con TestMem5 u OCCT. Si se cuelga o da errores, volve al perfil {0} comun.
+en: Only if it is stable: after enabling it, test stability for a while with TestMem5 or OCCT. If it freezes or shows errors, go back to the regular {0} profile.
+
+es: Memoria del grafico integrado (UMA Frame Buffer)
+en: Integrated graphics memory (UMA Frame Buffer)
+
+es: En Intel la memoria del grafico integrado es compartida y se ajusta sola: no hace falta tocarlo.
+en: On Intel the integrated graphics memory is shared and adjusts itself: no need to touch it.
+
+es: El grafico integrado esta apagado o no se usa: no hace falta tocarlo.
+en: The integrated graphics is off or not used: no need to touch it.
+
+es: No se encontro un grafico integrado.
+en: No integrated graphics was found.
+
+es: No se pudo leer. Con mas de 8 GB de RAM, lo ideal es 2 GB.
+en: Could not be read. With more than 8 GB of RAM, 2 GB is ideal.
+
+es: No se pudo leer. Con 8 GB de RAM o menos, lo ideal es de 512 MB a 1 GB.
+en: Could not be read. With 8 GB of RAM or less, 512 MB to 1 GB is ideal.
+
+es: Tiene {0} MB: bajalo a 2 GB. Mas es inutil y te quita RAM.
+en: It has {0} MB: lower it to 2 GB. More is useless and takes RAM away from you.
+
+es: Tiene {0} MB: con mas de 8 GB de RAM, subilo a 2 GB para que los juegos anden mejor.
+en: It has {0} MB: with more than 8 GB of RAM, raise it to 2 GB so games run better.
+
+es: Tiene 2 GB, lo ideal.
+en: It has 2 GB, which is ideal.
+
+es: Tiene {0} MB: con 8 GB de RAM o menos, bajalo a 1 GB o 512 MB para no quedarte sin RAM.
+en: It has {0} MB: with 8 GB of RAM or less, lower it to 1 GB or 512 MB so you do not run out of RAM.
+
+es: Tiene {0} MB: subilo a 512 MB o 1 GB.
+en: It has {0} MB: raise it to 512 MB or 1 GB.
+
+es: Tiene {0} MB, lo ideal para tu RAM.
+en: It has {0} MB, ideal for your RAM.
+
+es: Si tenes un monitor enchufado a la placa madre, no lo apagues: dejalo en el minimo.
+en: If you have a monitor plugged into the motherboard, don't turn it off: leave it at the minimum.
+
+es: No se pudo leer. Tenes placa de video aparte: el integrado deberia estar en el minimo o apagado, porque lo que tenga reservado es RAM que no se usa.
+en: Couldn't read it. You have a dedicated graphics card: the integrated one should be at the minimum or off, because whatever it reserves is RAM that goes unused.
+
+es: Tenes placa de video aparte y el integrado tiene {0} MB reservados que no se usan: es RAM que perdes. Ponelo en el minimo o apagalo en la BIOS.
+en: You have a dedicated graphics card and the integrated one has {0} MB reserved that go unused: that's RAM you lose. Set it to the minimum or turn it off in the BIOS.
+
+es: Tiene {0} MB, el minimo: con placa de video aparte no le hace falta mas.
+en: It has {0} MB, the minimum: with a dedicated graphics card it doesn't need more.
+
+es: Supr o F2 al prender la PC (F7 abre el modo avanzado)
+en: Del or F2 when turning on the PC (F7 opens advanced mode)
+
+es: Supr al prender la PC (F7 abre el modo avanzado)
+en: Del when turning on the PC (F7 opens advanced mode)
+
+es: Supr al prender la PC (F2 cambia al modo avanzado)
+en: Del when turning on the PC (F2 switches to advanced mode)
+
+es: F2 o Supr al prender la PC
+en: F2 or Del when turning on the PC
+
+es: Supr al prender la PC
+en: Del when turning on the PC
+
+es: F2, F10 o Supr al prender (la pantalla de arranque te dice cual)
+en: F2, F10 or Del when turning on (the boot screen tells you which)
+
+es: Supr o F2 al prender la PC (la pantalla de arranque te dice cual)
+en: Del or F2 when turning on the PC (the boot screen tells you which)
+
+es: F2 al prender la PC
+en: F2 when turning on the PC
+
+es: F10 al prender la PC (o Esc y despues F10)
+en: F10 when turning on the PC (or Esc and then F10)
+
+es: F1 o F2 al prender la PC (en algunas notebooks, el boton Novo)
+en: F1 or F2 when turning on the PC (on some laptops, the Novo button)
+
+es: Ai Tweaker > Ai Overclock Tuner > EXPO (DDR5) o D.O.C.P. (DDR4)
+en: Ai Tweaker > Ai Overclock Tuner > EXPO (DDR5) or D.O.C.P. (DDR4)
+
+es: Ai Tweaker: segun el modelo, "Memory Presets" o "AEMP"
+en: Ai Tweaker: depending on the model, "Memory Presets" or "AEMP"
+
+es: OC > A-XMP o EXPO (tambien esta el boton de la pantalla principal)
+en: OC > A-XMP or EXPO (there is also the button on the main screen)
+
+es: OC > Extreme Memory Profile (X.M.P.) (tambien esta el boton de la pantalla principal)
+en: OC > Extreme Memory Profile (X.M.P.) (there is also the button on the main screen)
+
+es: OC > Memory Try It! y Latency Killer
+en: OC > Memory Try It! and Latency Killer
+
+es: Tweaker > Advanced Memory Settings > Memory Enhancement Settings (High Bandwidth o Low Latency)
+en: Tweaker > Advanced Memory Settings > Memory Enhancement Settings (High Bandwidth or Low Latency)
+
+es: OC Tweaker > DRAM Configuration: perfil "Low Latency" o ajuste manual
+en: OC Tweaker > DRAM Configuration: "Low Latency" profile or manual tuning
+
+es: Advanced > AMD CBS > NBIO Common Options > GFX Configuration > UMA Frame buffer size (o Advanced > Chipset Configuration > Share Memory)
+en: Advanced > AMD CBS > NBIO Common Options > GFX Configuration > UMA Frame buffer size (or Advanced > Chipset Configuration > Share Memory)
+
+es: busca un perfil "Low Latency" en Tweaker
+en: look for a "Low Latency" profile in Tweaker
+
+es: Boot > Boot Mode: UEFI (Legacy o CSM apagado)
+en: Boot > Boot Mode: UEFI (Legacy or CSM off)
+
+es: Security o Boot > Secure Boot: Enabled
+en: Security or Boot > Secure Boot: Enabled
+
+es: Advanced, Configuration o Security > SVM / Virtualization Technology: Enabled
+en: Advanced, Configuration or Security > SVM / Virtualization Technology: Enabled
+
+es: Advanced, Configuration o Security > Intel Virtualization Technology (VT-x): Enabled
+en: Advanced, Configuration or Security > Intel Virtualization Technology (VT-x): Enabled
+
+es: busca "CSM" y ponelo en Disabled (o "Boot Mode: UEFI")
+en: look for "CSM" and set it to Disabled (or "Boot Mode: UEFI")
+
+es: busca "Secure Boot" (casi siempre en Boot o Security)
+en: look for "Secure Boot" (almost always in Boot or Security)
+
+es: busca "fTPM" o "TPM" (casi siempre en Advanced o Security)
+en: look for "fTPM" or "TPM" (almost always in Advanced or Security)
+
+es: busca "PTT" o "TPM" (casi siempre en Advanced o Security)
+en: look for "PTT" or "TPM" (almost always in Advanced or Security)
+
+es: busca "SVM Mode" (casi siempre en Advanced > CPU Configuration)
+en: look for "SVM Mode" (almost always in Advanced > CPU Configuration)
+
+es: busca "Intel Virtualization Technology" o "VT-x" (casi siempre en Advanced > CPU Configuration)
+en: look for "Intel Virtualization Technology" or "VT-x" (almost always in Advanced > CPU Configuration)
+
+es: busca "Above 4G Decoding" y "Re-Size BAR Support" (casi siempre en Advanced > PCI Subsystem o Chipset)
+en: look for "Above 4G Decoding" and "Re-Size BAR Support" (almost always in Advanced > PCI Subsystem or Chipset)
+
+es: busca "EXPO", "XMP" o "DOCP" (casi siempre en la seccion de overclock)
+en: look for "EXPO", "XMP" or "DOCP" (almost always in the overclocking section)
+
+es: busca "XMP" (casi siempre en la seccion de overclock)
+en: look for "XMP" (almost always in the overclocking section)
+
+es: busca un perfil "Low Latency" en la seccion de la memoria
+en: look for a "Low Latency" profile in the memory section
+
+es: busca "UMA Frame Buffer Size" (casi siempre en Advanced > AMD CBS > NBIO > GFX Configuration)
+en: look for "UMA Frame Buffer Size" (almost always in Advanced > AMD CBS > NBIO > GFX Configuration)

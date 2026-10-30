@@ -30,7 +30,7 @@ También podés bajar el repo como ZIP y abrir `XucaOP.bat`.
 | **Debloat y privacidad** | Saca publicidad, telemetría, IA de Windows, apps basura y apps de inicio que no hacen falta. |
 | **Optimización gaming** | Mouse sin aceleración, prioridad y afinidad para tus juegos, plan de energía, red, DNS y más. |
 | **Limpiar caché** | Borra temporales, caché de Windows Update, shaders y otras cosas que ocupan espacio. |
-| **Herramientas** | Drivers recomendados, actualizar Windows, entrar sin contraseña y otras opciones que te piden datos. |
+| **Herramientas** | Drivers recomendados, ajustes de la BIOS, actualizar Windows, entrar sin contraseña y otras opciones que te piden datos. |
 | **Apps recomendadas** | Programas gratis para revisar, cuidar y limpiar tu PC (CrystalDiskInfo, HWiNFO, DDU, WizTree y más). Cada uno se baja de su página oficial. |
 | **Configs recomendadas** | Configs de juegos y apps que subo a GitHub. Se bajan al escritorio con sus instrucciones. El circulito verde dice cuántas hay. |
 

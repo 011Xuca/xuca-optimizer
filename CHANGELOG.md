@@ -2,6 +2,14 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## v1.0.6
+
+### Nuevo
+- **Ajustes de la BIOS** (en Herramientas): revisa qué opciones útiles de la BIOS tenés activadas (Resizable BAR, Above 4G, perfil XMP/EXPO de la RAM, virtualización, Secure Boot, TPM, modo UEFI y la memoria del gráfico integrado) y te dice dónde activar las que te faltan según la marca de tu placa y tu procesador. Si tu placa o tu procesador no soportan algo, te lo avisa, y si hace falta una BIOS nueva, te abre la página de tu placa.
+
+### Cambios
+- En **Optimización gaming**, el "Con tu procesador:" de **Afinidad de CPU** y de la **Game Bar** ahora es rosa, para que no se confunda con "Qué hace:".
+
 ## v1.0.5
 
 ### Nuevo
