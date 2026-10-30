@@ -5,6 +5,7 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 ## v1.0.6
 
 ### Nuevo
+- **Pantalla completa**: apretá **F11** para ver la app en pantalla completa. F11 o Esc la sacan.
 - **Ajustes de la BIOS** (en Herramientas): revisa qué opciones útiles de la BIOS tenés activadas (Resizable BAR, Above 4G, perfil XMP/EXPO de la RAM, virtualización, Secure Boot, TPM, modo UEFI y la memoria del gráfico integrado) y te dice dónde activar las que te faltan según la marca de tu placa y tu procesador. Si tu placa o tu procesador no soportan algo, te lo avisa, y si hace falta una BIOS nueva, te abre la página de tu placa.
 
 ### Cambios

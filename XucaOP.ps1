@@ -6193,8 +6193,24 @@ $win.Add_PreviewMouseWheel({
     Cambiar-Zoom ($script:ZoomUsuario + $(if ($e.Delta -gt 0) { 0.1 } else { -0.1 }))
     $e.Handled = $true
 })
+# F11: pantalla completa (sin barra de titulo y tapando la barra de tareas). F11 o Esc la sacan.
+$script:PantallaCompleta = $null
+function Alternar-PantallaCompleta {
+    if ($script:PantallaCompleta) {
+        $p = $script:PantallaCompleta; $script:PantallaCompleta = $null
+        $win.WindowState = 'Normal'; $win.WindowStyle = $p.Estilo; $win.ResizeMode = $p.Resize
+        $win.WindowState = $p.Estado
+    } else {
+        $script:PantallaCompleta = @{ Estilo = $win.WindowStyle; Resize = $win.ResizeMode; Estado = $win.WindowState }
+        # Primero Normal: si ya estaba maximizada, WPF no recalcula el tamano y la barra de tareas queda visible
+        $win.WindowState = 'Normal'; $win.WindowStyle = 'None'; $win.ResizeMode = 'NoResize'
+        $win.WindowState = 'Maximized'
+    }
+}
 $win.Add_PreviewKeyDown({
     param($o, $e)
+    if ($e.Key -eq 'F11') { Alternar-PantallaCompleta; $e.Handled = $true; return }
+    if (($e.Key -eq 'Escape') -and $script:PantallaCompleta -and (-not $ui.Buscar.IsKeyboardFocusWithin)) { Alternar-PantallaCompleta; $e.Handled = $true; return }
     if (([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control) -eq 0) { return }
     $k = [string]$e.Key
     if ($k -in 'OemPlus', 'Add') { Cambiar-Zoom ($script:ZoomUsuario + 0.1); $e.Handled = $true }
