@@ -2,6 +2,25 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## Próxima versión
+
+### Nuevo
+- **Efectos visuales en modo rendimiento** (en Optimización gaming, Gráficos): pone las animaciones, sombras y transparencias de Windows en modo rendimiento. Ayuda sobre todo en PCs con poca potencia; en una PC potente casi no cambia los FPS. R lo vuelve a los efectos de Windows.
+
+### Corregido
+- **Error al cerrar la app con la ventana minimizada**: ya no aparece el error de WPF al cerrar y la app se cierra normalmente.
+- **Modo Nitro: restauración**: al restaurar, cada ajuste que no tiene copia de tu valor anterior vuelve al valor de fábrica de Windows, en vez de quedarse como Nitro. Si no hay copia, la restauración igual se hace con esos valores.
+
+### Problemas conocidos
+- **Modo Nitro, "modo del turbo (agresivo)"**: Windows no tiene un valor de fábrica para ese ajuste en el plan de energía activo, así que al restaurar queda como está (la app lo avisa en el log de Optimización gaming). Si lo querés volver atrás a mano, hacelo desde las opciones avanzadas de energía.
+
+## v1.0.7
+
+### Nuevo
+- **Medir FPS antes y después** (en Herramientas): medí tu juego antes de aplicar cambios y después, y la app te muestra la diferencia en FPS promedio, 1% low y 0.1% low (en número y en %). Elegís cuánto medir (30, 60 o 120 segundos) y qué juego, o dejás que tome el que está en pantalla completa. Usa **PresentMon** de Intel, que lee el tiempo de cada cuadro desde Windows sin overlay y sin meterse en el juego: no viene con la app, se baja de su GitHub oficial la primera vez y se verifica antes de usarlo. Si algún cambio pide reiniciar, la app se acuerda de la medición de antes y te avisa que midas después de reiniciar. Cada medición queda en la carpeta de logs como `benchmark_` con la fecha, en CSV y en texto.
+- **Desactivar los estados de reposo del procesador (C-states)** en Optimización gaming ⚠: los núcleos dejan de dormirse, a cambio de mucho más consumo y calor. Lo que gana en FPS depende del juego: medilo con el benchmark antes de decidir. Guarda tus valores para poder volver atrás.
+- **Desactivar las protecciones contra Spectre y Meltdown** en Optimización gaming ⚠: en algunos juegos puede dar más FPS, pero baja mucho la seguridad de la PC. Medilo con el benchmark antes de decidir. Solo aparece si tu procesador tiene esas protecciones activas, pide reiniciar y se puede restablecer.
+
 ## v1.0.6
 
 ### Nuevo

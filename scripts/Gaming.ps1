@@ -8,7 +8,7 @@
 # ============================================================
 
 # Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
-$ReinGaming = @('tk', 'mm', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'mi', 'vbs', 'md', 'v4', 'll', 'nag', 'nic', 'dup')
+$ReinGaming = @('tk', 'mm', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'mi', 'vbs', 'md', 'v4', 'll', 'nag', 'nic', 'dup', 'spc')
 $GameBarProtocolos = @('ms-gamingoverlay', 'ms-gamebar', 'ms-gamebarservices')
 
 $dnsCand = [ordered]@{
@@ -622,6 +622,42 @@ function Afi-Mostrar($pl) {
     if ($pl.Liviano -ne $pl.Juego) { Say ('    Juegos livianos:  ' + (Afi-Lista $pl.Liviano) + ' (' + (Afi-Hilos $pl.Liviano) + ' hilos) - ' + ($afiLivianos -join ', ')) 'Cyan' }
     Say ('    Fondo:            ' + (Afi-Lista $pl.Fondo) + ' (' + (Afi-Hilos $pl.Fondo) + ' hilos), solo mientras jugas') 'Cyan'
 }
+
+# >>> XUCA-SPEC (la app XucaOP copia todo lo que esta entre estas dos marcas para saber si la opcion de Spectre sirve en esta PC)
+# Protecciones contra Spectre (variante 2) y Meltdown que Windows tiene activas ahora. Se leen del kernel con
+# NtQuerySystemInformation, igual que el modulo SpeculationControl de Microsoft:
+#   clase 196 (KVA shadow, contra Meltdown): bit 0x01 = activa
+#   clase 201 (control de especulacion): bit 0x01 = proteccion contra Spectre variante 2 (BTI) activa
+# Devuelve @{ Meltdown; Spectre; Activas } o $null si no se pudo leer.
+function Spec-Activas {
+    try {
+        if (-not ('XucaSpec' -as [type])) {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class XucaSpec {
+    [DllImport("ntdll.dll")]
+    static extern int NtQuerySystemInformation(int clase, byte[] info, int largo, out int devuelto);
+    public static long Leer(int clase) {
+        byte[] b = new byte[64];
+        int r;
+        int st = NtQuerySystemInformation(clase, b, b.Length, out r);
+        if (st != 0) { b = new byte[4]; st = NtQuerySystemInformation(clase, b, b.Length, out r); }
+        if (st != 0) return -1;
+        return (long)BitConverter.ToUInt32(b, 0);
+    }
+}
+'@
+        }
+        $kva = [XucaSpec]::Leer(196)
+        $scf = [XucaSpec]::Leer(201)
+        if (($kva -lt 0) -and ($scf -lt 0)) { return $null }
+        $m = ($kva -ge 0) -and (($kva -band 1) -ne 0)
+        $s = ($scf -ge 0) -and (($scf -band 1) -ne 0)
+        return @{ Meltdown = $m; Spectre = $s; Activas = ($m -or $s) }
+    } catch { return $null }
+}
+# <<< XUCA-SPEC
 
 # ------------------------------------------------------------
 # Acciones: lo que antes hacia la parte de PowerShell del .bat (una por cada ACT).
@@ -1303,6 +1339,11 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                 $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $g + '\' + $sub + '\' + $id
                 return (Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue).ACSettingIndex
             }
+            # Valor por defecto que Windows trae para este plan (sirve si no hay copia de tu valor anterior)
+            function DefPlan($id) {
+                $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\' + $sub + '\' + $id + '\DefaultPowerSchemeValues\' + $g
+                return (Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue).ACSettingIndex
+            }
             function Actual($id) {
                 $x = LeerAc $id
                 if ($null -eq $x) { $x = LeerReg $id }
@@ -1341,7 +1382,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                             New-Item -Path $dir -ItemType Directory -Force | Out-Null
                             Proteger-Carpeta $dir
                         }
-                        $lineas = @(foreach ($c in $cfg) { $c.Cfg + '=' + (Actual $c.Cfg) })
+                        $lineas = @(foreach ($c in $cfg) { $v = Actual $c.Cfg; if ($null -eq $v) { Log 'AVISO' ('no se pudo leer tu valor anterior de ' + $c.Nom + ': al restaurar se usara el valor de fabrica de Windows'); continue }; $c.Cfg + '=' + $v })
                         Set-Content -Path $bak -Value $lineas
                         if (Test-Path $bak) { Log 'INFO' ('copia de tus valores anteriores guardada en ' + $bak) }
                         else { Log 'FALLO' 'no se pudo guardar la copia de tus valores anteriores, no se cambio nada'; $code = 1; $sinCopia = $true }
@@ -1356,29 +1397,123 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                     }
                 }
             } else {
-                if (-not (Test-Path $bak)) {
-                    Log 'OMITIDO' 'no hay copia de tus valores anteriores para este plan, no se cambio nada'
-                    Say '  No hay copia de tus valores anteriores, no se cambio nada.' 'Yellow'
-                    $code = 2
-                } else {
+                # Sin copia (o con una copia incompleta), cada ajuste que falte vuelve al valor de fabrica de Windows
+                if (-not (Test-Path $bak)) { Log 'AVISO' 'no hay copia de tus valores anteriores para este plan: los ajustes de Nitro vuelven a los valores de fabrica de Windows' }
+                {
                     $guardado = @{}
-                    foreach ($l in (Get-Content $bak)) {
-                        $p = $l -split '='
-                        if ($p.Count -eq 2 -and $p[1] -match '^\d+$') { $guardado[$p[0]] = [int]$p[1] }
+                    if (Test-Path $bak) {
+                        foreach ($l in (Get-Content $bak)) {
+                            $p = $l -split '='
+                            if ($p.Count -eq 2 -and $p[1] -match '^\d+$') { $guardado[$p[0]] = [int]$p[1] }
+                        }
                     }
                     $hizo = $false
                     foreach ($c in $cfg) {
-                        if (-not $guardado.ContainsKey($c.Cfg)) { continue }
+                        if (-not $guardado.ContainsKey($c.Cfg)) {
+                            $def = DefPlan $c.Cfg
+                            if ($null -eq $def) { continue }
+                            $guardado[$c.Cfg] = [int]$def
+                            Log 'AVISO' ('no hay copia de tu valor anterior de ' + $c.Nom + ', lo pongo al valor de fabrica de Windows (' + $def + ')')
+                        }
                         $val = $guardado[$c.Cfg]
                         if ((Actual $c.Cfg) -eq $val) { Log 'OK' ('ya estaba: ' + $c.Nom + ' = ' + $val); continue }
                         $hizo = $true
                         if (Poner $c $val) { Log 'OK' ('verificado: ' + $c.Nom + ' = ' + $val + ' (restaurado)') }
                         else { Log 'FALLO' ('no se pudo restaurar ' + $c.Nom); $code = 1 }
                     }
+                    foreach ($c in $cfg) { if (-not $guardado.ContainsKey($c.Cfg)) { Log 'AVISO' ('no hay copia de tu valor anterior de ' + $c.Nom + ', queda como esta (ajustalo a mano si hace falta)') } }
                     if ($hizo) { & powercfg /setactive $g }
                     elseif ($code -eq 0) { $code = 5 }
-                    if ($code -ne 1) { Remove-Item -Path $bak -Force }
+                    if (($code -ne 1) -and (Test-Path $bak)) { Remove-Item -Path $bak -Force }
                 }
+            }
+        }
+    }
+
+    { $_ -eq 'IDLE_ON' -or $_ -eq 'IDLE_OFF' } {
+        # Estados de reposo del procesador (C-states): ajuste "Processor idle disable" (IDLEDISABLE) del plan activo.
+        # 1 = el procesador no entra en reposo, 0 = como viene en Windows. Viene oculto: se destapa con powercfg -attributes.
+        # Antes de cambiarlo se guardan los valores de ahora (corriente, bateria y si estaba oculto) en ProgramData\XucaScripts\idle_<plan>.txt
+        $g = [regex]::Match((& powercfg /getactivescheme | Out-String), '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}').Value
+        if (-not $g) {
+            Log 'FALLO' 'no se pudo leer el plan de energia activo'
+            $code = 1
+        } else {
+            $sub = '54533251-82be-4824-96c1-47b60b740d00'
+            $id = '5d76a2ca-e8c0-402f-a133-2158492d58ad'
+            $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $g + '\' + $sub + '\' + $id
+            $ak = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\' + $sub + '\' + $id
+            $dir = Join-Path $env:ProgramData 'XucaScripts'
+            $bak = Join-Path $dir ('idle_' + $g + '.txt')
+            # Valores de ahora: @{ Ac; Dc } (powercfg los muestra al final: primero corriente, despues bateria)
+            function LeerIdle {
+                $o = & powercfg /query $g $sub $id 2>$null | Out-String
+                $m = [regex]::Matches($o, '0x[0-9a-fA-F]{8}')
+                if (($LASTEXITCODE -eq 0) -and ($m.Count -ge 2)) {
+                    return @{ Ac = [Convert]::ToInt32($m[$m.Count - 2].Value.Substring(2), 16); Dc = [Convert]::ToInt32($m[$m.Count - 1].Value.Substring(2), 16) }
+                }
+                $p = Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue
+                $ac = $(if ($p -and ($null -ne $p.ACSettingIndex)) { [int]$p.ACSettingIndex } else { 0 })
+                $dc = $(if ($p -and ($null -ne $p.DCSettingIndex)) { [int]$p.DCSettingIndex } else { 0 })
+                return @{ Ac = $ac; Dc = $dc }
+            }
+            function PonerIdle([int]$ac, [int]$dc) {
+                & powercfg /setacvalueindex $g $sub $id $ac 2>&1 | Out-Null
+                $a = $LASTEXITCODE
+                & powercfg /setdcvalueindex $g $sub $id $dc 2>&1 | Out-Null
+                $d = $LASTEXITCODE
+                $v = LeerIdle
+                return (($a -eq 0) -and ($d -eq 0) -and ($v.Ac -eq $ac) -and ($v.Dc -eq $dc))
+            }
+            if (-not (Test-Path -LiteralPath $ak)) {
+                Log 'OMITIDO' 'este Windows no tiene el ajuste Processor idle disable'
+                $code = 2
+            } elseif ($XAct -eq 'IDLE_ON') {
+                $ahora = LeerIdle
+                if (($ahora.Ac -eq 1) -and ($ahora.Dc -eq 1)) {
+                    Log 'OK' ('ya estaba: estados de reposo del procesador apagados en el plan ' + $g)
+                    $code = 5
+                } else {
+                    $sinCopia = $false
+                    if (Test-Path $bak) { Log 'INFO' ('ya existia una copia de tus valores anteriores, se conserva: ' + $bak) }
+                    else {
+                        if (-not (Test-Path $dir)) {
+                            New-Item -Path $dir -ItemType Directory -Force | Out-Null
+                            Proteger-Carpeta $dir
+                        }
+                        $attr = (Get-ItemProperty -Path $ak -ErrorAction SilentlyContinue).Attributes
+                        Set-Content -Path $bak -Value @(('ac=' + $ahora.Ac), ('dc=' + $ahora.Dc), ('attr=' + $(if ($null -ne $attr) { [int]$attr } else { '' })))
+                        if (Test-Path $bak) { Log 'INFO' ('copia de tus valores anteriores guardada en ' + $bak + ' (corriente ' + $ahora.Ac + ', bateria ' + $ahora.Dc + ', atributos ' + $attr + ')') }
+                        else { Log 'FALLO' 'no se pudo guardar la copia de tus valores anteriores, no se cambio nada'; $code = 1; $sinCopia = $true }
+                    }
+                    if (-not $sinCopia) {
+                        & powercfg -attributes $sub $id -ATTRIB_HIDE 2>&1 | Out-Null
+                        Log 'INFO' ('powercfg -attributes -ATTRIB_HIDE termino con codigo ' + $LASTEXITCODE)
+                        if (PonerIdle 1 1) { Log 'OK' ('verificado: estados de reposo del procesador apagados (corriente 1, bateria 1) en el plan ' + $g) }
+                        else { Log 'FALLO' 'no se pudo verificar el ajuste Processor idle disable'; $code = 1 }
+                        & powercfg /setactive $g
+                    }
+                }
+            } else {
+                $ac = 0; $dc = 0; $attr = $null
+                if (Test-Path $bak) {
+                    foreach ($l in (Get-Content $bak)) {
+                        if ($l -match '^ac=(\d+)$') { $ac = [int]$Matches[1] }
+                        elseif ($l -match '^dc=(\d+)$') { $dc = [int]$Matches[1] }
+                        elseif ($l -match '^attr=(\d+)$') { $attr = [int]$Matches[1] }
+                    }
+                } else { Log 'INFO' 'no hay copia de tus valores anteriores: se pone el valor de Windows (0, el procesador puede entrar en reposo)' }
+                $ahora = LeerIdle
+                if (($ahora.Ac -eq $ac) -and ($ahora.Dc -eq $dc)) {
+                    Log 'OK' ('ya estaba: Processor idle disable = corriente ' + $ac + ', bateria ' + $dc)
+                    $code = 5
+                } elseif (PonerIdle $ac $dc) {
+                    Log 'OK' ('verificado: Processor idle disable = corriente ' + $ac + ', bateria ' + $dc + ' (restaurado)')
+                    & powercfg /setactive $g
+                } else { Log 'FALLO' 'no se pudo restaurar el ajuste Processor idle disable'; $code = 1 }
+                # Si venia oculto (bit 1 de Attributes), se vuelve a ocultar
+                if (($null -ne $attr) -and (($attr -band 1) -ne 0)) { & powercfg -attributes $sub $id +ATTRIB_HIDE 2>&1 | Out-Null }
+                if (($code -ne 1) -and (Test-Path $bak)) { Remove-Item -Path $bak -Force }
             }
         }
     }
@@ -2038,6 +2173,23 @@ $ListaOpciones = @(
         }
     },
     @{
+        Id = 'idle'; Seccion = 'PROCESADOR'
+        Q = '- Desea desactivar los estados de reposo del procesador (C-states)? (Nucleos siempre despiertos: menos latencia, mucho mas consumo y calor)'
+        Hace = 'activa el ajuste oculto "Processor idle disable" del plan de energia activo, con corriente y a bateria: los nucleos dejan de dormirse (C-states) cuando no tienen trabajo. Antes guarda tus valores para poder volver atras.'
+        Favor = 'el procesador no tarda en despertarse: un poco menos de latencia y de microtirones en juegos competitivos.'
+        Contra = 'el procesador nunca descansa: mucho mas consumo y calor aunque no estes jugando, los ventiladores suenan mas, en algunos procesadores baja el turbo por temperatura y en notebook la bateria dura mucho menos.'
+        S = {
+            Opt-Ini 'Estados de reposo del procesador (C-states)'
+            Resps (Act 'IDLE_ON')
+            Opt-Fin 'Estados de reposo del procesador desactivados en el plan activo'
+        }
+        R = {
+            Opt-Ini 'Estados de reposo del procesador (restaurar)'
+            Resps (Act 'IDLE_OFF')
+            Opt-Fin 'Estados de reposo del procesador: vuelven tus valores anteriores'
+        }
+    },
+    @{
         Id = 'gm'; Seccion = 'MODO JUEGO Y GAME BAR'
         Q = '- Desea activar el Modo Juego? (Y evitar que el joystick abra la Game Bar)'
         Hace = 'activa el Modo Juego y evita que el boton Xbox del joystick abra la Game Bar.'
@@ -2148,6 +2300,23 @@ $ListaOpciones = @(
             Resps (Act 'DX' 'SwapEffectUpgradeEnable=DEL;')
             Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode'
             Opt-Fin 'Graficos restaurados (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'vfx'; Seccion = 'GRAFICOS'
+        Q = '- Desea poner los efectos visuales de Windows en rendimiento? (Menos animaciones, sombras y transparencias; Windows se ve mas simple)'
+        Hace = 'pone los efectos visuales de Windows en modo rendimiento: menos animaciones, sombras y transparencias.'
+        Favor = 'libera un poco de GPU y CPU en PCs con poca potencia, sobre todo si el juego va justo.'
+        Contra = 'Windows se ve mas simple. En una PC potente casi no cambia los FPS; R lo vuelve atras.'
+        S = {
+            Opt-Ini 'Efectos visuales'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting' 'REG_DWORD' '2'
+            Opt-Fin 'Efectos visuales en modo rendimiento (puede pedir cerrar sesion)'
+        }
+        R = {
+            Opt-Ini 'Efectos visuales (restaurar)'
+            Reg-Del 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting'
+            Opt-Fin 'Efectos visuales vuelven a los de Windows (puede pedir cerrar sesion)'
         }
     },
     @{
@@ -2451,6 +2620,58 @@ $ListaOpciones = @(
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard' 'EnableVirtualizationBasedSecurity'
             Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa' 'LsaCfgFlags'
             Opt-Fin 'VBS restaurado. Hyper-V y WSL, si los usabas, hay que volver a activarlos a mano'
+        }
+    },
+    @{
+        Id = 'spc'; Seccion = 'SEGURIDAD (MAS RENDIMIENTO)'
+        Q = '- Desea desactivar las protecciones contra Spectre y Meltdown? (Mas FPS en procesadores viejos; PC mucho menos segura; pide reiniciar)'
+        Hace = 'apaga las protecciones de Windows contra Spectre (variante 2) y Meltdown, dos fallas de los procesadores, con el metodo oficial de Microsoft (FeatureSettingsOverride = 3 y FeatureSettingsOverrideMask = 3). Solo se puede si tu procesador tiene esas protecciones activas.'
+        Favor = 'en procesadores viejos (Intel de 8va generacion o anteriores) puede dar unos FPS mas y menos tirones en juegos que usan mucho el procesador o el disco. En procesadores nuevos la diferencia suele ser casi nula.'
+        Contra = 'tu PC queda expuesta: una pagina web o un programa malicioso podria leer datos de la memoria, como contrasenas. No lo uses en una PC con datos importantes o que comparten varias personas. Algunos antitrampas o programas de trabajo pueden quejarse.'
+        Saltar = {
+            # Solo se revisa si la marcaste. Si el procesador no tiene activas estas protecciones (no esta afectado), no hay nada que apagar.
+            if ((Respuesta 'spc') -ne 'S') { return $false }
+            $mm = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
+            $sp = Spec-Activas
+            if (($null -ne $sp) -and (-not $sp.Activas) -and (Reg-Dif $mm 'FeatureSettingsOverride' '3' 'REG_DWORD')) {
+                Say ''
+                Say '  Protecciones contra Spectre y Meltdown se omite: tu procesador no las tiene activas (no esta afectado), no hay nada que apagar.'
+                Log 'SALTADO' 'Spectre y Meltdown: el procesador no tiene activas esas protecciones'
+                return $true
+            }
+            return $false
+        }
+        S = {
+            Opt-Ini 'Protecciones contra Spectre y Meltdown'
+            $mm = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
+            # Copia de lo que habia antes (vacio = no existia), para que R lo deje igual
+            $dir = Join-Path $env:ProgramData 'XucaScripts'
+            $bak = Join-Path $dir 'spectre.txt'
+            if (-not (Test-Path -LiteralPath $bak)) {
+                if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null; Proteger-Carpeta $dir }
+                $lin = foreach ($n in 'FeatureSettingsOverride', 'FeatureSettingsOverrideMask') { $l = Reg-Leer $mm $n; $n + '=' + $(if ($l) { $l.Valor } else { '' }) }
+                Set-Content -LiteralPath $bak -Value @($lin)
+                Log 'INFO' ('copia de tus valores anteriores guardada en ' + $bak + ': ' + (@($lin) -join ', '))
+            } else { Log 'INFO' ('ya existia una copia de tus valores anteriores, se conserva: ' + $bak) }
+            $sp = Spec-Activas
+            if ($sp) { Log 'INFO' ('protecciones activas ahora: Meltdown (KVA shadow) = ' + $sp.Meltdown + ', Spectre variante 2 (BTI) = ' + $sp.Spectre) }
+            Reg-Set $mm 'FeatureSettingsOverride' 'REG_DWORD' '3'
+            Reg-Set $mm 'FeatureSettingsOverrideMask' 'REG_DWORD' '3'
+            Opt-Fin 'Protecciones contra Spectre y Meltdown desactivadas (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Protecciones contra Spectre y Meltdown (restaurar)'
+            $mm = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
+            $bak = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'spectre.txt'
+            $orig = @{ FeatureSettingsOverride = ''; FeatureSettingsOverrideMask = '' }
+            if (Test-Path -LiteralPath $bak) {
+                foreach ($l in (Get-Content -LiteralPath $bak)) { if ($l -match '^(FeatureSettingsOverride(Mask)?)=(\d*)$') { $orig[$Matches[1]] = $Matches[3] } }
+            } else { Log 'INFO' 'no hay copia de tus valores anteriores: se borran los dos valores (asi viene Windows)' }
+            foreach ($n in 'FeatureSettingsOverride', 'FeatureSettingsOverrideMask') {
+                if ($orig[$n]) { Reg-Set $mm $n 'REG_DWORD' $orig[$n] } else { Reg-Del $mm $n }
+            }
+            if (($script:OptF -eq 0) -and (Test-Path -LiteralPath $bak)) { Remove-Item -LiteralPath $bak -Force }
+            Opt-Fin 'Protecciones contra Spectre y Meltdown restauradas (se aplica al reiniciar)'
         }
     },
     @{

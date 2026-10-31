@@ -454,6 +454,9 @@ try {
     # Codigo de los programitas de Gaming (temporizador, RAM, afinidad): para saber si el instalado es el de esta version
     $FuncProg = [regex]::Match([IO.File]::ReadAllText($Rutas.Gaming), '(?s)# >>> XUCA-PROGRAMAS.*?# <<< XUCA-PROGRAMAS').Value
     if ($FuncProg) { $FuncLectura += ("`n" + $FuncProg) }
+    # Que protecciones contra Spectre y Meltdown tiene activas el procesador (para la opcion de Gaming)
+    $FuncSpec = [regex]::Match([IO.File]::ReadAllText($Rutas.Gaming), '(?s)# >>> XUCA-SPEC.*?# <<< XUCA-SPEC').Value
+    if ($FuncSpec) { $FuncLectura += ("`n" + $FuncSpec) }
 } catch { }
 # Las funciones de juegos tambien se cargan aca, para poner el nombre a los que agregas a mano
 try { if ($FuncJuegos) { . ([scriptblock]::Create($FuncJuegos)) } } catch { }
@@ -623,6 +626,7 @@ $Chequeos = @{
     'Gaming|cpu'    = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt')) }
     'Gaming|nb'     = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\nb_' + $global:XPlan + '.txt')) }
     'Gaming|ll'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446' 'EnabledState') -eq 2 }
+    'Gaming|idle'   = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\54533251-82be-4824-96c1-47b60b740d00\5d76a2ca-e8c0-402f-a133-2158492d58ad') 'ACSettingIndex') -eq 1 }
     'Gaming|gm'     = { ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled') -eq 1) -and ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled') -eq 0) }
     'Gaming|xb'     = { if ($global:XCpuClase -eq 'x3d') { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled') -eq 0 } else { -not (HasAppx 'Microsoft.XboxGamingOverlay') } }
     'Gaming|xm'     = { $v = Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration' 'GamingHomeApp'; ($null -ne $v) -and ([string]$v -eq '') }
@@ -630,6 +634,7 @@ $Chequeos = @{
     'Gaming|notif'  = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0 }
     'Gaming|gf'     = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode') -eq 2) -and (([Environment]::OSVersion.Version.Build -lt 22000) -or (([string](Leer-Reg 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences' 'DirectXUserGlobalSettings')) -like '*SwapEffectUpgradeEnable=1*')) }
     'Gaming|mpo'    = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Dwm' 'OverlayTestMode') -eq 5 }
+    'Gaming|vfx'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting') -eq 2 }
     'Gaming|msi'    = {
         # Las mismas placas que toca MSI_ON: video y red PCI que andan bien. Se leen por CIM (Get-PnpDevice a veces no
         # devuelve nada en la lectura en paralelo y la tarjeta quedaba sin etiqueta).
@@ -668,6 +673,7 @@ $Chequeos = @{
     'Gaming|mi'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' 'Enabled') -eq 0 }
     'Gaming|avl'    = { (Get-MpPreference -ErrorAction Stop).ScanAvgCPULoadFactor -eq 5 }
     'Gaming|vbs'    = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard' 'EnableVirtualizationBasedSecurity') -eq 0 }
+    'Gaming|spc'    = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' 'FeatureSettingsOverride') -eq 3) -and ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' 'FeatureSettingsOverrideMask') -eq 3) }
     'Gaming|wsr'    = { (Leer-Svc 'WSearch') -eq 4 }
     'Gaming|stg'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\StorageSense' 'AllowStorageSenseGlobal') -eq 0 }
     'Gaming|ext'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt') -eq 0 }
@@ -792,6 +798,17 @@ $Compat = {
             $i.AvOff = (-not $sv) -or ($sv.Status -ne 'Running') -or ((Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled -eq $false)
         } catch { }
         Lap 'Compat: Defender'
+        # Spectre y Meltdown: si el procesador no tiene activas esas protecciones (no esta afectado) la opcion no sirve.
+        # Si ya las apago la app (FeatureSettingsOverride = 3), el kernel las muestra apagadas pero la opcion sigue disponible.
+        $i.SpecLeido = $false; $i.SpecActivas = $false; $i.SpecApagadas = $false
+        try {
+            $i.SpecApagadas = ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' 'FeatureSettingsOverride') -eq 3)
+            if (Get-Command Spec-Activas -ErrorAction SilentlyContinue) {
+                $sp = Spec-Activas
+                if ($sp) { $i.SpecLeido = $true; $i.SpecActivas = [bool]$sp.Activas }
+            }
+        } catch { }
+        Lap 'Compat: Spectre y Meltdown'
         # Windows original o modificado (la misma revision que hacen los .bat al arrancar)
         $mot = New-Object System.Collections.Generic.List[string]
         # Windows sin activar no cuenta como no original (es un Windows normal, solo falta la licencia)
@@ -2167,6 +2184,7 @@ $Advertencias = @{
     'Gaming|cpu'   = 'Mas consumo y calor; con undervolt u overclock puede volverse inestable.'
     'Gaming|gf'    = 'En algunas PCs viejas puede dar problemas.'
     'Gaming|ll'    = 'Es una funcion oculta que Microsoft todavia esta probando: si notas algo raro, restablecelo.'
+    'Gaming|idle'  = 'Mucho mas consumo y calor todo el tiempo, no solo jugando. En notebooks o con mala refrigeracion el procesador puede bajar el turbo por temperatura y rendir menos. Si no notas mejora, restablecelo.'
     'Gaming|msi'   = 'Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro).'
     'Gaming|tr'    = 'Mas consumo y calor; con undervolt u overclock puede colgarse en juegos.'
     'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos. En notebooks la bateria baja mas rapido, incluso suspendida.'
@@ -2174,6 +2192,7 @@ $Advertencias = @{
     'Gaming|dup'   = 'Si tu internet es de mas de 1 Gbps vas a tener menos velocidad. Con 1 Gbps o menos (casi todos los planes) no cambia nada.'
     'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
     'Gaming|vbs'   = 'Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.'
+    'Gaming|spc'   = 'BAJA MUCHO LA SEGURIDAD: un programa o una pagina web maliciosa podria leer contrasenas y otros datos de la memoria. Usalo solo en una PC para jugar, sin datos importantes, y restablecelo si la vas a usar para otra cosa.'
 }
 
 # Opciones que necesitan un driver para funcionar bien: llevan un icono celeste de descarga y dicen cual bajar
@@ -2379,6 +2398,7 @@ function Calcular-NoDisp($i, $cpu) {
     elseif (([int]$i.DupPlacas -eq 0) -and -not ($i.DrvFalta -and $i.DrvFalta.ContainsKey('Gaming|dup'))) { $r['Gaming|dup'] = 'No hace falta: tu placa de cable es de 1 Gbps o menos.' }
     if (([int]$i.NicPlacas -gt 0) -and ([int]$i.NicOpc -eq 0) -and -not ($i.DrvFalta -and $i.DrvFalta.ContainsKey('Gaming|nic'))) { $r['Gaming|nic'] = 'Tu placa de red no tiene opciones de ahorro de energia para cambiar (depende del driver): no hace falta.' }
     if ($cpu -and (-not $cpu.Ok)) { $r['Gaming|afi'] = ('Tu procesador no sirve para esto: ' + $cpu.Motivo + '.') }
+    if ($i.SpecLeido -and (-not $i.SpecActivas) -and (-not $i.SpecApagadas)) { $r['Gaming|spc'] = 'No hace falta: tu procesador no tiene activas las protecciones contra Spectre y Meltdown (no esta afectado), asi que no hay nada que apagar.' }
     return $r
 }
 
@@ -3621,6 +3641,574 @@ $cardGpu = Nueva-Herramienta 'Undervolt y overclock de la placa de video' 'lee t
 $cardGpu.Child.Children.Add($script:GpuEstado) | Out-Null
 $spH.Children.Add($cardGpu) | Out-Null
 Actualizar-GpuCard
+
+# --- Herramienta: medir FPS antes y despues de aplicar (PresentMon) ---
+# PresentMon es el medidor de Intel (gratis, codigo abierto, Apache 2.0): lee el tiempo de cada cuadro desde Windows (ETW),
+# sin overlay y sin meterse en el juego. No viene con la app: se baja de su repo oficial la primera vez que medis y se verifica.
+# La medicion corre en un hilo aparte (como Gaming.ps1) y la ventana sigue fluida. Lo medido queda en
+# ProgramData\XucaScripts\benchmark_estado.txt, asi despues de reiniciar la app sabe que falta "Medir despues".
+$BenchRepo = 'GameTechDev/PresentMon'
+$BenchDir = Join-Path $XucaDir 'PresentMon'
+$BenchExe = Join-Path $BenchDir 'PresentMon.exe'
+$BenchEstado = Join-Path $XucaDir 'benchmark_estado.txt'
+$BenchEspera = 10
+$script:BenchRun = $null
+# Programas que pueden tener una ventana del tamano de la pantalla y no son juegos (no se miden en "cualquiera en pantalla completa")
+$BenchExcluir = @('explorer', 'dwm', 'textinputhost', 'shellexperiencehost', 'startmenuexperiencehost', 'searchhost', 'searchapp', 'lockapp', 'applicationframehost', 'systemsettings', 'nvidia share', 'nvidia overlay', 'nvcontainer', 'radeonsoftware', 'amdrsserv', 'gamebar', 'gamebarftserver', 'xboxgamebarwidgets', 'widgets', 'msedgewebview2', 'phoneexperiencehost', 'powershell', 'pwsh', 'conhost', 'windowsterminal', 'discord', 'steamwebhelper', 'obs64', 'msiafterburner', 'rtss')
+
+function Leer-BenchEstado {
+    if (-not (Test-Path -LiteralPath $BenchEstado)) { return $null }
+    $d = @{}
+    try { foreach ($l in [IO.File]::ReadAllLines($BenchEstado)) { $k = $l.IndexOf('='); if ($k -gt 0) { $d[$l.Substring(0, $k)] = $l.Substring($k + 1) } } } catch { return $null }
+    if ($d.Count -eq 0) { return $null }
+    return $d
+}
+function Guardar-BenchEstado($d) {
+    try {
+        if (-not (Test-Path -LiteralPath $XucaDir)) { New-Item -Path $XucaDir -ItemType Directory -Force | Out-Null }
+        [IO.File]::WriteAllLines($BenchEstado, [string[]]@($d.Keys | Sort-Object | ForEach-Object { $_ + '=' + $d[$_] }))
+    } catch { }
+}
+# Cuando arranco Windows por ultima vez (para saber si ya reiniciaste)
+function Bench-Arranque {
+    try { return (Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime.ToUniversalTime().ToString('yyyyMMddHHmm') } catch { return '' }
+}
+function Bench-Num($v) { return ([double]$v).ToString('0.0', [Globalization.CultureInfo]::InvariantCulture) }
+function Bench-Doble([string]$s) {
+    $v = 0.0
+    if ($s -and [double]::TryParse($s, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$v)) { return $v }
+    return $null
+}
+
+# Lo que corre en el hilo aparte: baja PresentMon si hace falta, espera que vuelvas al juego, mide y calcula.
+# Avisa por $Sync: Fase (bajando, verificando, espera, midiendo, calculando), Falta (segundos), Fin, Error y Res.
+$CodigoBench = {
+    param($Sync, $Op)
+    $ErrorActionPreference = 'Stop'
+    function Fallar([string]$cod, [string]$det) { $Sync.Error = $cod; $Sync.Detalle = $det }
+    function Num($v) { return ([double]$v).ToString('0.0', [Globalization.CultureInfo]::InvariantCulture) }
+    try {
+        if (-not (Test-Path -LiteralPath $Op.Dir)) { New-Item -ItemType Directory -Path $Op.Dir -Force | Out-Null }
+        # Restos de una medicion que se corto (por ejemplo, cerraste la app a la mitad)
+        Get-ChildItem -LiteralPath $Op.Dir -Filter 'captura_*.csv' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+
+        # 1) PresentMon: se baja del repo oficial y se verifica (tamano, que sea un programa, huella SHA-256 de GitHub y firma digital)
+        if ($Op.Bajar) {
+            $Sync.Fase = 'bajando'
+            try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
+            $wc = New-Object Net.WebClient
+            $wc.Headers['User-Agent'] = 'XucaOP'
+            $rel = $null
+            try { $rel = $wc.DownloadString('https://api.github.com/repos/' + $Op.Repo + '/releases/latest') | ConvertFrom-Json }
+            catch { Fallar 'descarga' ('No se pudo leer la ultima version en GitHub: ' + $_.Exception.Message); return }
+            $as = @($rel.assets | Where-Object { ([string]$_.name) -match '^PresentMon-[\d.]+-x64\.exe$' })[0]
+            if (-not $as) { Fallar 'descarga' ('La version ' + $rel.tag_name + ' de GitHub no trae el PresentMon de consola para x64.'); return }
+            $url = [string]$as.browser_download_url
+            if (-not $url.StartsWith('https://github.com/' + $Op.Repo + '/releases/download/')) { Fallar 'verificacion' 'La direccion de descarga no es la del repo oficial.'; return }
+            $tmp = Join-Path $Op.Dir 'descarga.tmp'
+            Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+            try { $wc.Headers['User-Agent'] = 'XucaOP'; $wc.DownloadFile($url, $tmp) }
+            catch { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; Fallar 'descarga' ('Fallo la descarga: ' + $_.Exception.Message); return }
+            $Sync.Fase = 'verificando'
+            $mal = ''
+            $largo = (Get-Item -LiteralPath $tmp).Length
+            if ($largo -ne [long]$as.size) { $mal = 'el tamano no coincide (' + $largo + ' de ' + $as.size + ' bytes)' }
+            if (-not $mal) {
+                $fs = [IO.File]::OpenRead($tmp)
+                try { $b0 = $fs.ReadByte(); $b1 = $fs.ReadByte() } finally { $fs.Dispose() }
+                if (($b0 -ne 0x4D) -or ($b1 -ne 0x5A)) { $mal = 'lo que se bajo no es un programa de Windows' }
+            }
+            $hashOk = $false
+            $sha = ''
+            if (-not $mal) {
+                $sha = (Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash
+                if (([string]$as.digest) -match '^sha256:([0-9a-fA-F]{64})$') {
+                    if ($sha -ieq $Matches[1]) { $hashOk = $true } else { $mal = 'la huella SHA-256 no coincide con la que publica GitHub' }
+                }
+            }
+            $firma = ''
+            if (-not $mal) {
+                $sg = $null
+                try { $sg = Get-AuthenticodeSignature -LiteralPath $tmp } catch { }
+                if ($sg -and $sg.SignerCertificate) { $firma = [string]$sg.SignerCertificate.Subject }
+                if ($sg -and ([string]$sg.Status -eq 'HashMismatch')) { $mal = 'la firma digital esta rota' }
+                elseif ((-not $hashOk) -and (-not ($sg -and ([string]$sg.Status -eq 'Valid')))) { $mal = 'GitHub no publica su huella y el programa no tiene una firma digital valida' }
+            }
+            if ($mal) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; Fallar 'verificacion' $mal; return }
+            Move-Item -LiteralPath $tmp -Destination $Op.Exe -Force
+            Set-Content -LiteralPath (Join-Path $Op.Dir 'version.txt') -Value @([string]$rel.tag_name, $url, ('sha256=' + $sha), ('firma=' + $firma)) -Encoding ASCII
+            $Sync.Bajado = $true; $Sync.Version = [string]$rel.tag_name
+        }
+        if (-not (Test-Path -LiteralPath $Op.Exe)) { Fallar 'descarga' 'PresentMon no esta instalado.'; return }
+        $ver = ''
+        try { $ver = [string](@(Get-Content -LiteralPath (Join-Path $Op.Dir 'version.txt') -ErrorAction Stop)[0]) } catch { }
+
+        # 2) Tiempo para que vuelvas al juego
+        $Sync.Fase = 'espera'
+        $hasta = (Get-Date).AddSeconds($Op.Espera)
+        while ((Get-Date) -lt $hasta) { $Sync.Falta = [int][math]::Ceiling(($hasta - (Get-Date)).TotalSeconds); Start-Sleep -Milliseconds 250 }
+
+        # 3) Que juego se mide: el que elegiste o el que esta en pantalla completa (primero el que tiene el foco)
+        $obj = $null
+        if ($Op.Proc) {
+            $n = ([string]$Op.Proc) -replace '(?i)\.exe$', ''
+            $ps = @(Get-Process -Name $n -ErrorAction SilentlyContinue)
+            if ($ps.Count -eq 0) { Fallar 'no-juego' ('No encontre ' + $n + '.exe abierto. No se midio nada.'); return }
+            $con = @($ps | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero })
+            $obj = $(if ($con.Count -gt 0) { $con[0] } else { $ps[0] })
+        } else {
+            if (-not ('XucaPantalla' -as [type])) {
+                Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+public static class XucaPantalla {
+    [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+    [StructLayout(LayoutKind.Sequential)] public struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public uint dwFlags; }
+    public delegate bool EnumProc(IntPtr h, IntPtr l);
+    [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr l);
+    [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr h, uint f);
+    [DllImport("user32.dll")] static extern bool GetMonitorInfo(IntPtr m, ref MONITORINFO mi);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern IntPtr GetShellWindow();
+    // Ventana visible que tapa todo su monitor (pantalla completa o sin bordes)
+    static bool Completa(IntPtr h) {
+        if (h == IntPtr.Zero || h == GetShellWindow() || !IsWindowVisible(h) || IsIconic(h)) return false;
+        RECT r;
+        if (!GetWindowRect(h, out r)) return false;
+        MONITORINFO mi = new MONITORINFO();
+        mi.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+        if (!GetMonitorInfo(MonitorFromWindow(h, 2), ref mi)) return false;
+        return r.L <= mi.rcMonitor.L && r.T <= mi.rcMonitor.T && r.R >= mi.rcMonitor.R && r.B >= mi.rcMonitor.B;
+    }
+    public static uint[] Procesos() {
+        List<uint> l = new List<uint>();
+        uint p;
+        IntPtr f = GetForegroundWindow();
+        if (Completa(f)) { GetWindowThreadProcessId(f, out p); l.Add(p); }
+        EnumWindows(delegate(IntPtr h, IntPtr x) {
+            uint q;
+            if (Completa(h)) { GetWindowThreadProcessId(h, out q); if (!l.Contains(q)) l.Add(q); }
+            return true;
+        }, IntPtr.Zero);
+        return l.ToArray();
+    }
+}
+'@
+            }
+            foreach ($id in [XucaPantalla]::Procesos()) {
+                $p = Get-Process -Id ([int]$id) -ErrorAction SilentlyContinue
+                if ($p -and ($p.Id -ne $PID) -and ($Op.Excluir -notcontains ([string]$p.ProcessName).ToLower())) { $obj = $p; break }
+            }
+            if (-not $obj) { Fallar 'no-juego' 'No hay ningun juego en pantalla completa. No se midio nada.'; return }
+        }
+        $Sync.App = [string]$obj.ProcessName + '.exe'
+
+        # 4) Medir con PresentMon (sin ventana). Solo ese proceso, durante los segundos que elegiste.
+        $Sync.Fase = 'midiendo'
+        $Sync.Falta = [int]$Op.Seg
+        $csvTmp = Join-Path $Op.Dir ('captura_' + [guid]::NewGuid().ToString('N') + '.csv')
+        $arg = '--process_id ' + $obj.Id + ' --output_file "' + $csvTmp + '" --timed ' + [int]$Op.Seg + ' --terminate_after_timed --terminate_on_proc_exit --no_console_stats --stop_existing_session --session_name XucaOP_FPS'
+        $psi = New-Object Diagnostics.ProcessStartInfo $Op.Exe, $arg
+        $psi.UseShellExecute = $false; $psi.CreateNoWindow = $true; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true
+        $pr = [Diagnostics.Process]::Start($psi)
+        $so = $pr.StandardOutput.ReadToEndAsync(); $se = $pr.StandardError.ReadToEndAsync()
+        $ini = Get-Date
+        $tope = $ini.AddSeconds([int]$Op.Seg + 40)
+        while (-not $pr.WaitForExit(250)) {
+            $Sync.Falta = [math]::Max(0, [int][math]::Ceiling([int]$Op.Seg - ((Get-Date) - $ini).TotalSeconds))
+            if ((Get-Date) -gt $tope) { try { $pr.Kill() } catch { }; break }
+        }
+        [void]$pr.WaitForExit(3000)
+        $msg = ''
+        try { $msg = (([string]$so.Result + ' ' + [string]$se.Result) -replace '\s+', ' ').Trim() } catch { }
+        if ($msg.Length -gt 300) { $msg = $msg.Substring(0, 300) }
+        if (-not (Test-Path -LiteralPath $csvTmp)) { Fallar 'presentmon' ('PresentMon no genero el archivo de la medicion (codigo ' + $pr.ExitCode + '). ' + $msg); return }
+
+        # 5) Calcular: FPS promedio = cuadros / tiempo; 1% y 0.1% low = percentil 99 y 99.9 del tiempo entre cuadros
+        $Sync.Fase = 'calculando'
+        $ft = New-Object 'System.Collections.Generic.List[double]'
+        $modos = @{}
+        $sr = New-Object IO.StreamReader($csvTmp)
+        try {
+            $cab = @(([string]$sr.ReadLine()).Split(','))
+            $iFt = [array]::IndexOf($cab, 'MsBetweenPresents')
+            if ($iFt -lt 0) { $iFt = [array]::IndexOf($cab, 'FrameTime') }
+            if ($iFt -lt 0) { $iFt = [array]::IndexOf($cab, 'MsBetweenAppStart') }
+            $iMo = [array]::IndexOf($cab, 'PresentMode')
+            if ($iFt -lt 0) { Fallar 'presentmon' 'El archivo de PresentMon no tiene la columna de tiempo entre cuadros (MsBetweenPresents).'; return }
+            $primera = $true
+            while ($null -ne ($l = $sr.ReadLine())) {
+                $c = $l.Split(',')
+                if ($c.Count -le $iFt) { continue }
+                # El primer cuadro no tiene uno anterior con que compararse
+                if ($primera) { $primera = $false; continue }
+                $v = 0.0
+                if ([double]::TryParse($c[$iFt], [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$v) -and ($v -gt 0) -and ($v -lt 5000)) { $ft.Add($v) }
+                if (($iMo -ge 0) -and ($c.Count -gt $iMo)) { $modos[$c[$iMo]] = 1 + [int]$modos[$c[$iMo]] }
+            }
+        } finally { $sr.Dispose() }
+        $n = $ft.Count
+        if ($n -lt 100) { Remove-Item -LiteralPath $csvTmp -Force -ErrorAction SilentlyContinue; Fallar 'pocos' ('PresentMon solo registro ' + $n + ' cuadros de ' + $Sync.App + '.'); return }
+        $tot = 0.0; foreach ($x in $ft) { $tot += $x }
+        $ord = $ft.ToArray(); [Array]::Sort($ord)
+        $p99 = $ord[[math]::Min($n - 1, [math]::Max(0, [int][math]::Ceiling(0.99 * $n) - 1))]
+        $p999 = $ord[[math]::Min($n - 1, [math]::Max(0, [int][math]::Ceiling(0.999 * $n) - 1))]
+        $modo = ''
+        if ($modos.Count -gt 0) { $modo = [string](@($modos.GetEnumerator() | Sort-Object Value -Descending)[0].Key) }
+        $res = @{ Fps = ($n * 1000.0 / $tot); Low1 = (1000.0 / $p99); Low01 = (1000.0 / $p999); Frames = $n; App = $Sync.App; Modo = $modo; Seg = ($tot / 1000.0); Fecha = (Get-Date -Format 'yyyy-MM-dd HH:mm') }
+
+        # 6) Guardar el CSV y un resumen en la carpeta de logs
+        if (-not (Test-Path -LiteralPath $Op.Logs)) { New-Item -ItemType Directory -Path $Op.Logs -Force | Out-Null }
+        $stamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
+        $res.Csv = Join-Path $Op.Logs ('benchmark_' + $stamp + '.csv')
+        $res.Txt = Join-Path $Op.Logs ('benchmark_' + $stamp + '.txt')
+        Move-Item -LiteralPath $csvTmp -Destination $res.Csv -Force
+        $txt = @(
+            ('Xuca OPtimizer - medicion de FPS con PresentMon ' + $ver),
+            ('Etapa: ' + $(if ($Op.Etapa -eq 'despues') { 'DESPUES de aplicar' } else { 'ANTES de aplicar' })),
+            ('Fecha: ' + $res.Fecha),
+            ('Juego: ' + $res.App + ' (PID ' + $obj.Id + ')'),
+            ('Duracion: ' + [int]$Op.Seg + ' s pedidos, ' + (Num $res.Seg) + ' s medidos'),
+            ('Cuadros: ' + $n),
+            ('Modo de presentacion mas usado: ' + $modo),
+            '',
+            ('FPS promedio: ' + (Num $res.Fps)),
+            ('1% low:       ' + (Num $res.Low1) + '  (percentil 99 del tiempo entre cuadros: ' + (Num $p99) + ' ms)'),
+            ('0.1% low:     ' + (Num $res.Low01) + '  (percentil 99.9 del tiempo entre cuadros: ' + (Num $p999) + ' ms)'),
+            ('Tiempo entre cuadros promedio: ' + (Num ($tot / $n)) + ' ms'),
+            '',
+            ('Cada cuadro: ' + $res.Csv)
+        )
+        Set-Content -LiteralPath $res.Txt -Value $txt -Encoding UTF8
+        $Sync.Res = $res
+    } catch {
+        Fallar 'error' ($_.Exception.Message + ' (linea ' + $_.InvocationInfo.ScriptLineNumber + ')')
+    } finally {
+        $Sync.Fin = $true
+    }
+}
+
+# Programas abiertos con ventana (para elegir el juego en el cartel)
+function Bench-Abiertos {
+    return @(Get-Process -ErrorAction SilentlyContinue | Where-Object { ($_.MainWindowHandle -ne [IntPtr]::Zero) -and ($_.Id -ne $PID) -and ($BenchExcluir -notcontains ([string]$_.ProcessName).ToLower()) -and ($_.ProcessName -notin 'ShellHost', 'SecHealthUI', 'Taskmgr', 'notepad', 'mspaint') } |
+        ForEach-Object { [string]$_.ProcessName + '.exe' } | Sort-Object -Unique)
+}
+
+# Cartel para elegir cuanto medir y que juego. Devuelve @{ Seg; Proc } o $null.
+function Elegir-Bench([string]$etapa, $est) {
+    $w = Nuevo-Dialogo 520
+    $w.Tag.Seg = 60; $w.Tag.Botones = New-Object Collections.ArrayList
+    $sp = New-Object Windows.Controls.StackPanel
+    $cab = New-Object Windows.Controls.Grid
+    $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'
+    $cab.ColumnDefinitions.Add($c0); $cab.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
+    $ic = Icono-Dialogo 0xE9D9 '#8AB4F8' 42
+    $ic.Margin = '0,0,14,0'
+    $cab.Children.Add($ic) | Out-Null
+    $tx = New-Object Windows.Controls.StackPanel
+    $tx.VerticalAlignment = 'Center'
+    [Windows.Controls.Grid]::SetColumn($tx, 1)
+    $tx.Children.Add((Nuevo-Texto $(if ($etapa -eq 'despues') { 'Medir FPS despues de aplicar' } else { 'Medir FPS antes de aplicar' }) 17 '#FFFFFF' $true)) | Out-Null
+    $ex = 'Al tocar Empezar tenes ' + $BenchEspera + ' segundos para volver al juego. Juga normal, mejor siempre en la misma escena, hasta que suene el aviso.'
+    if ($etapa -eq 'despues') { $ex = 'Usa el mismo juego, la misma escena y la misma duracion que en la medicion de antes, asi la comparacion es justa. ' + $ex }
+    $m = Nuevo-Texto $ex 12.5 '#C3C8D0' $false
+    $m.Margin = '0,6,0,0'; $m.LineHeight = 19
+    $tx.Children.Add($m) | Out-Null
+    $cab.Children.Add($tx) | Out-Null
+    $sp.Children.Add($cab) | Out-Null
+
+    $l1 = Nuevo-Texto 'Cuanto medir' 13 '#9AA0A6' $true
+    $l1.Margin = '2,16,0,0'
+    $sp.Children.Add($l1) | Out-Null
+    $fila = New-Object Windows.Controls.WrapPanel
+    $prevSeg = 60
+    if ($est -and $est['seg']) { $prevSeg = [int]$est['seg'] }
+    $w.Tag.Seg = $prevSeg
+    foreach ($s in 30, 60, 120) {
+        $b = Nuevo-Boton ([string]$s + ' s') $(if ($s -eq $prevSeg) { '#3D6FD9' } else { '' })
+        $b.Tag = $s
+        $b.Add_Click({
+            $ww = [Windows.Window]::GetWindow($this)
+            $ww.Tag.Seg = [int]$this.Tag
+            foreach ($o in $ww.Tag.Botones) { if ($o -eq $this) { $o.Background = (Pincel '#3D6FD9') } else { $o.ClearValue([Windows.Controls.Control]::BackgroundProperty) } }
+        })
+        [void]$w.Tag.Botones.Add($b)
+        $fila.Children.Add($b) | Out-Null
+    }
+    $sp.Children.Add($fila) | Out-Null
+
+    $l2 = Nuevo-Texto 'Que juego' 13 '#9AA0A6' $true
+    $l2.Margin = '2,16,0,6'
+    $sp.Children.Add($l2) | Out-Null
+    $t = New-Object Windows.Controls.TextBox
+    $t.Padding = '6,6'; $t.FontSize = 13.5; $t.VerticalContentAlignment = 'Center'
+    $t.Background = (Pincel '#0E1014'); $t.Foreground = (Pincel '#FFFFFF'); $t.BorderBrush = (Pincel '#3A404C'); $t.CaretBrush = (Pincel '#FFFFFF')
+    if ($est -and $est['proc']) { $t.Text = [string]$est['proc'] }
+    $w.Tag.Texto = $t
+    $sp.Children.Add($t) | Out-Null
+    $ay = Nuevo-Texto 'Vacio = el juego que este en pantalla completa (o sin bordes). Si jugas en ventana, escribi su proceso (por ejemplo, cs2.exe) o tocalo abajo.' 11.5 '#7D8590' $false
+    $ay.Margin = '2,4,0,0'
+    $sp.Children.Add($ay) | Out-Null
+    $wp = New-Object Windows.Controls.WrapPanel
+    $wp.Margin = '0,2,0,0'
+    $bAny = Nuevo-Boton 'Cualquiera en pantalla completa'
+    $bAny.Add_Click({ [Windows.Window]::GetWindow($this).Tag.Texto.Text = '' })
+    $wp.Children.Add($bAny) | Out-Null
+    foreach ($pn in @(Bench-Abiertos | Select-Object -First 10)) {
+        $bp = Nuevo-Boton $pn
+        $bp.Tag = $pn
+        $bp.Add_Click({ [Windows.Window]::GetWindow($this).Tag.Texto.Text = [string]$this.Tag })
+        $wp.Children.Add($bp) | Out-Null
+    }
+    $sp.Children.Add($wp) | Out-Null
+
+    $bNo = Nuevo-Boton 'Cancelar'; $bNo.IsCancel = $true
+    $bSi = Nuevo-Boton 'Empezar' '#3D6FD9'; $bSi.IsDefault = $true
+    $bSi.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
+    $sp.Children.Add((Fila-Botones @() @($bNo, $bSi))) | Out-Null
+    $w.Content.Child = $sp
+    if ($w.ShowDialog() -ne $true) { return $null }
+    $pr = ([string]$w.Tag.Texto.Text).Trim().Trim('"')
+    if ($pr -and ($pr -notmatch '(?i)\.exe$')) { $pr += '.exe' }
+    return @{ Seg = [int]$w.Tag.Seg; Proc = $pr }
+}
+
+function Empezar-Bench([string]$etapa) {
+    if ($script:BenchRun) { return }
+    if ($script:GpuMidiendo) { Avisar 'Medir FPS' 'Espera a que termine la medicion de la placa de video (1 minuto).'; return }
+    if ($script:Proc -and -not $script:Proc.HasExited) { Avisar 'Medir FPS' 'Espera a que termine lo que se esta aplicando.'; return }
+    $est = Leer-BenchEstado
+    if ($etapa -eq 'despues') {
+        if ((-not $est) -or (-not $est['antes_fps'])) { Avisar 'Medir FPS' 'Primero toca "Medir antes", con el juego abierto, antes de aplicar los cambios.'; return }
+        if (($est['pendiente'] -eq 'reinicio') -and ($est['arranque'] -eq (Bench-Arranque))) {
+            if (-not (Confirmar 'Todavia no reiniciaste' 'Algunos de los cambios que aplicaste se notan recien al reiniciar la PC. Si medis ahora, la comparacion puede no mostrar la diferencia.' 'Medir igual' '#3D6FD9' 'Cancelar')) { return }
+        }
+    } elseif ($est -and $est['antes_fps']) {
+        if (-not (Confirmar 'Medir antes otra vez' 'Ya tenes una medicion de antes guardada. Si medis de nuevo, se reemplaza (los archivos de la carpeta de logs quedan).' 'Medir de nuevo' '#3D6FD9' 'Cancelar')) { return }
+    }
+    $op = Elegir-Bench $etapa $(if ($etapa -eq 'despues') { $est } else { $null })
+    if (-not $op) { return }
+    # Si elegiste un juego, tiene que estar abierto: si no, no se mide
+    if ($op.Proc -and (@(Get-Process -Name ($op.Proc -replace '(?i)\.exe$', '') -ErrorAction SilentlyContinue).Count -eq 0)) {
+        Avisar 'No hay ningun juego abierto' ('No encontre ' + $op.Proc + ' abierto. Abri el juego y toca de nuevo. No se midio nada.')
+        return
+    }
+    $bajar = -not (Test-Path -LiteralPath $BenchExe)
+    if ($bajar) {
+        $q = 'Para medir los FPS la app usa PresentMon, el medidor gratis y de codigo abierto de Intel: lee el tiempo de cada cuadro desde Windows, sin overlay y sin meterse en el juego.' + "`n`n" + 'No lo tenes: se baja ahora de su pagina oficial de GitHub (github.com/' + $BenchRepo + ', unos 2 MB), se verifica y se guarda en ProgramData\XucaScripts\PresentMon.'
+        if (-not (Confirmar 'Hace falta PresentMon' $q 'Bajar y medir' '#3D6FD9' 'Cancelar')) { return }
+    }
+    $sync = [hashtable]::Synchronized(@{ Fase = 'inicio'; Falta = 0; Fin = $false; Error = ''; Detalle = ''; Res = $null; Bajado = $false; Version = ''; App = '' })
+    $opc = @{ Exe = $BenchExe; Dir = $BenchDir; Repo = $BenchRepo; Bajar = $bajar; Proc = $op.Proc; Seg = $op.Seg; Espera = $BenchEspera; Logs = (Join-Path $Scripts 'logs'); Etapa = $etapa; Excluir = $BenchExcluir }
+    $rs = [runspacefactory]::CreateRunspace()
+    $rs.ApartmentState = 'STA'
+    $rs.Open()
+    $ps = [powershell]::Create()
+    $ps.Runspace = $rs
+    [void]$ps.AddScript($CodigoBench.ToString()).AddArgument($sync).AddArgument($opc)
+    $script:BenchRun = @{ PS = $ps; Rs = $rs; H = $ps.BeginInvoke(); Sync = $sync; Etapa = $etapa; Op = $op; Timer = (New-Object Windows.Threading.DispatcherTimer) }
+    $script:BenchRun.Timer.Interval = [TimeSpan]::FromMilliseconds(400)
+    $script:BenchRun.Timer.Add_Tick({ Paso-Bench })
+    $script:BenchRun.Timer.Start()
+    foreach ($b in $script:BtnBenchAntes, $script:BtnBenchDespues, $script:BtnBenchVer, $script:BtnBenchBorrar) { $b.IsEnabled = $false }
+    Paso-Bench
+}
+
+function Paso-Bench {
+    $r = $script:BenchRun
+    if (-not $r) { return }
+    $s = $r.Sync
+    if (-not $s.Fin) {
+        $t = switch ($s.Fase) {
+            'bajando' { 'Bajando PresentMon de GitHub...' }
+            'verificando' { 'Verificando lo que se bajo...' }
+            'espera' { 'Volve al juego: la medicion empieza en ' + $s.Falta + ' s.' }
+            'midiendo' { 'Midiendo ' + $s.App + '... juga normal. Faltan ' + $s.Falta + ' s.' }
+            'calculando' { 'Calculando los resultados...' }
+            default { 'Preparando...' }
+        }
+        $script:BenchTxt.Foreground = (Pincel (Tema-Letra '#8AB4F8'))
+        $script:BenchTxt.Text = (Con-Enie $t)
+        $script:BenchTxt.Visibility = 'Visible'
+        return
+    }
+    $r.Timer.Stop()
+    try { [void]$r.PS.EndInvoke($r.H) } catch { }
+    try { $r.PS.Dispose() } catch { }
+    try { $r.Rs.Dispose() } catch { }
+    $script:BenchRun = $null
+    foreach ($b in $script:BtnBenchAntes, $script:BtnBenchDespues, $script:BtnBenchVer, $script:BtnBenchBorrar) { $b.IsEnabled = $true }
+    Fin-Bench $s $r.Etapa $r.Op
+}
+
+function Fin-Bench($s, [string]$etapa, $op) {
+    $extra = $(if ($s.Bajado) { 'PresentMon ' + $s.Version + ' se bajo de GitHub y se verifico bien. ' } else { '' })
+    if ($s.Error) {
+        try { [Media.SystemSounds]::Hand.Play() } catch { }
+        Actualizar-BenchCard
+        switch ($s.Error) {
+            'descarga' { Avisar 'No se pudo bajar PresentMon' ($s.Detalle + "`n`n" + 'No se cambio nada en tu PC. Revisa tu conexion y proba de nuevo, o bajalo a mano desde github.com/' + $BenchRepo + '/releases (el archivo PresentMon-...-x64.exe) y guardalo como ' + $BenchExe + '.') }
+            'verificacion' { Avisar 'No se pudo verificar PresentMon' ('Lo que se bajo no paso la verificacion (' + $s.Detalle + ') y se borro. No se cambio nada en tu PC. Proba de nuevo mas tarde.') }
+            'no-juego' { Avisar 'No hay ningun juego abierto' ($extra + $s.Detalle + ' Abri el juego (en pantalla completa, o elegi su proceso si jugas en ventana) y toca de nuevo.') }
+            'pocos' { Avisar 'No se pudieron medir los FPS' ($extra + $s.Detalle + ' Puede que el juego estuviera minimizado o en un menu en pausa. Volve al juego antes de que termine la cuenta y proba de nuevo.') }
+            default { Avisar 'No se pudieron medir los FPS' ($extra + $s.Detalle) }
+        }
+        return
+    }
+    $res = $s.Res
+    try { [Media.SystemSounds]::Asterisk.Play() } catch { }
+    $est = Leer-BenchEstado
+    if ($etapa -eq 'antes' -or (-not $est)) {
+        $est = @{}
+        $est['proc'] = [string]$op.Proc; $est['seg'] = [string]$op.Seg
+        $pre = 'antes_'
+    } else {
+        $pre = 'despues_'
+        $est.Remove('pendiente'); $est.Remove('arranque')
+    }
+    $est[$pre + 'fps'] = (Bench-Num $res.Fps); $est[$pre + 'low1'] = (Bench-Num $res.Low1); $est[$pre + 'low01'] = (Bench-Num $res.Low01)
+    $est[$pre + 'frames'] = [string]$res.Frames; $est[$pre + 'app'] = [string]$res.App; $est[$pre + 'fecha'] = [string]$res.Fecha
+    $est[$pre + 'txt'] = [string]$res.Txt; $est[$pre + 'csv'] = [string]$res.Csv
+    Guardar-BenchEstado $est
+    Actualizar-BenchCard
+    if ($pre -eq 'antes_') {
+        $m = $extra + $res.App + ': ' + (Bench-Num $res.Fps) + ' FPS promedio, 1% low ' + (Bench-Num $res.Low1) + ' y 0.1% low ' + (Bench-Num $res.Low01) + ' (' + $res.Frames + ' cuadros).'
+        $m += "`n`n" + 'Ahora aplica tus cambios en Optimizacion gaming (o con un perfil) y despues toca "Medir despues" con el mismo juego. Si algun cambio pide reiniciar, reinicia primero: la app se acuerda de esta medicion.'
+        Avisar 'Medicion de antes lista' $m
+    } else {
+        # La comparacion tambien queda escrita en el resumen de despues
+        try { Add-Content -LiteralPath $res.Txt -Value @('', 'COMPARACION CON LA MEDICION DE ANTES (' + $est['antes_fecha'] + ', ' + $est['antes_app'] + ')', (Bench-LineaTxt 'FPS promedio' $est['antes_fps'] $est['despues_fps']), (Bench-LineaTxt '1% low' $est['antes_low1'] $est['despues_low1']), (Bench-LineaTxt '0.1% low' $est['antes_low01'] $est['despues_low01'])) -Encoding UTF8 } catch { }
+        Resultado-Bench $est $extra
+    }
+}
+
+# "+12.3 (+8.1 %)"
+function Bench-Dif($a, $b) {
+    $va = Bench-Doble ([string]$a); $vb = Bench-Doble ([string]$b)
+    if (($null -eq $va) -or ($null -eq $vb)) { return @{ Texto = '-'; Pct = 0 } }
+    $d = $vb - $va
+    $p = $(if ($va -gt 0) { $d / $va * 100 } else { 0 })
+    $sg = $(if ($d -ge 0) { '+' } else { '' })
+    $sp = $(if ($p -ge 0) { '+' } else { '' })
+    return @{ Texto = ($sg + (Bench-Num $d) + ' (' + $sp + (Bench-Num $p) + ' %)'); Pct = $p }
+}
+function Bench-LineaTxt([string]$n, $a, $b) { return ($n + ': ' + $a + ' -> ' + $b + '  ' + (Bench-Dif $a $b).Texto) }
+
+# Cartel con la comparacion: antes, despues y la diferencia (verde si mejora, rojo si empeora)
+function Resultado-Bench($est, [string]$extra) {
+    $w = Nuevo-Dialogo 540
+    $sp = New-Object Windows.Controls.StackPanel
+    $sp.Children.Add((Nuevo-Texto 'Antes y despues' 17 '#FFFFFF' $true)) | Out-Null
+    $sub = Nuevo-Texto ($extra + 'Juego: ' + $est['despues_app'] + '. Antes: ' + $est['antes_fecha'] + '. Despues: ' + $est['despues_fecha'] + '.') 12.5 '#9AA0A6' $false
+    $sub.Margin = '0,4,0,0'
+    $sp.Children.Add($sub) | Out-Null
+    $g = New-Object Windows.Controls.Grid
+    $g.Margin = '0,14,0,0'
+    foreach ($ancho in '1.3*', '*', '*', '1.6*') { $cd = New-Object Windows.Controls.ColumnDefinition; $cd.Width = $ancho; $g.ColumnDefinitions.Add($cd) }
+    $filas = @(@('', 'Antes', 'Ahora', 'Diferencia'), @('FPS promedio', 'fps'), @('1% low', 'low1'), @('0.1% low', 'low01'))
+    $nf = 0
+    foreach ($f in $filas) {
+        $g.RowDefinitions.Add((New-Object Windows.Controls.RowDefinition))
+        if ($nf -eq 0) { $celdas = @(@($f[0], '#7D8590'), @($f[1], '#7D8590'), @($f[2], '#7D8590'), @($f[3], '#7D8590')) }
+        else {
+            $a = $est['antes_' + $f[1]]; $b = $est['despues_' + $f[1]]
+            $d = Bench-Dif $a $b
+            $col = $(if ($d.Pct -ge 1) { '#81C995' } elseif ($d.Pct -le -1) { '#F28B82' } else { '#C3C8D0' })
+            $celdas = @(@($f[0], '#FFFFFF'), @([string]$a, '#C3C8D0'), @([string]$b, '#FFFFFF'), @($d.Texto, $col))
+        }
+        for ($k = 0; $k -lt 4; $k++) {
+            $tb = Nuevo-Texto $celdas[$k][0] $(if ($nf -eq 0) { 12 } else { 14 }) $celdas[$k][1] ($nf -gt 0)
+            $tb.Margin = '0,6,8,6'
+            [Windows.Controls.Grid]::SetRow($tb, $nf); [Windows.Controls.Grid]::SetColumn($tb, $k)
+            $g.Children.Add($tb) | Out-Null
+        }
+        $nf++
+    }
+    $caja = New-Object Windows.Controls.Border
+    $caja.CornerRadius = 12; $caja.Padding = '14,6'; $caja.Margin = '0,12,0,0'; $caja.Background = (Pincel '#232833')
+    $caja.Child = $g
+    $sp.Children.Add($caja) | Out-Null
+    $notas = @('Cuanto mas alto, mejor. El 1% y el 0.1% low muestran los tirones: si suben, el juego se siente mas parejo.', 'Diferencias de menos de 3 % pueden ser solo la variacion normal entre una partida y otra.')
+    if (($est['antes_app'] -and $est['despues_app']) -and ($est['antes_app'] -ne $est['despues_app'])) { $notas = @('Ojo: antes se midio ' + $est['antes_app'] + ' y ahora ' + $est['despues_app'] + '. Para comparar, medi el mismo juego.') + $notas }
+    foreach ($n in $notas) {
+        $tn = Nuevo-Texto $n 12 '#9AA0A6' $false
+        $tn.Margin = '2,8,0,0'
+        $sp.Children.Add($tn) | Out-Null
+    }
+    $bLog = Nuevo-Boton 'Abrir carpeta de logs'
+    $bLog.Add_Click({ $d = Join-Path $Scripts 'logs'; if (Test-Path -LiteralPath $d) { Abrir-Normal $d } })
+    $bOk = Nuevo-Boton 'Entendido' '#3D6FD9'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
+    $bOk.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
+    $sp.Children.Add((Fila-Botones @($bLog) @($bOk))) | Out-Null
+    $w.Content.Child = $sp
+    [void]$w.ShowDialog()
+}
+
+# Lo llama Terminar-Corrida al aplicar o restablecer: si hay una medicion de antes sin la de despues, se anota
+# si los cambios piden reiniciar (y cuando arranco Windows), para avisar que hay que medir despues de reiniciar.
+function Bench-Aplicado([bool]$reinicio) {
+    try {
+        $est = Leer-BenchEstado
+        if ((-not $est) -or (-not $est['antes_fps'])) { return $false }
+        $est['aplicado'] = '1'
+        if ($reinicio) { $est['pendiente'] = 'reinicio'; $est['arranque'] = (Bench-Arranque) }
+        Guardar-BenchEstado $est
+        Actualizar-BenchCard
+        return $true
+    } catch { return $false }
+}
+
+function Borrar-Bench {
+    if (-not (Confirmar 'Borrar mediciones' 'Se borra la medicion de antes y la de despues que guardo la app. Los archivos de la carpeta de logs quedan.' 'Borrar' '#B3412F' 'Cancelar')) { return }
+    Remove-Item -LiteralPath $BenchEstado -Force -ErrorAction SilentlyContinue
+    Actualizar-BenchCard
+}
+
+# Linea de estado de la tarjeta: que se midio y que falta
+function Actualizar-BenchCard {
+    $est = Leer-BenchEstado
+    $tieneAntes = $est -and $est['antes_fps']
+    $tieneDesp = $est -and $est['despues_fps']
+    $script:BtnBenchVer.Visibility = $(if ($tieneDesp) { 'Visible' } else { 'Collapsed' })
+    $script:BtnBenchBorrar.Visibility = $(if ($est) { 'Visible' } else { 'Collapsed' })
+    $script:BtnBenchDespues.Visibility = $(if ($tieneAntes) { 'Visible' } else { 'Collapsed' })
+    $lin = @(); $col = '#81C995'
+    if ($tieneAntes) {
+        $lin += ('Antes (' + $est['antes_fecha'] + ', ' + $est['antes_app'] + '): ' + $est['antes_fps'] + ' FPS, 1% low ' + $est['antes_low1'] + ', 0.1% low ' + $est['antes_low01'] + '.')
+        if ($tieneDesp) {
+            $d = Bench-Dif $est['antes_fps'] $est['despues_fps']
+            $lin += ('Despues (' + $est['despues_fecha'] + '): ' + $est['despues_fps'] + ' FPS (' + $d.Texto + '), 1% low ' + $est['despues_low1'] + ', 0.1% low ' + $est['despues_low01'] + '.')
+        } elseif ($est['pendiente'] -eq 'reinicio') {
+            $col = '#E5B567'
+            if ($est['arranque'] -and ($est['arranque'] -eq (Bench-Arranque))) { $lin += 'Aplicaste cambios que piden reiniciar: reinicia la PC y despues toca "Medir despues".' }
+            else { $lin += 'Ya reiniciaste: abri el mismo juego y toca "Medir despues".' }
+        } elseif ($est['aplicado'] -eq '1') { $lin += 'Ya aplicaste cambios: abri el mismo juego y toca "Medir despues".' }
+        else { $lin += 'Ahora aplica tus cambios en Optimizacion gaming y despues toca "Medir despues".' }
+    }
+    $script:BenchTxt.Foreground = (Pincel (Tema-Letra $col))
+    $script:BenchTxt.Text = (Con-Enie ($lin -join "`n"))
+    $script:BenchTxt.Visibility = $(if ($lin.Count -gt 0) { 'Visible' } else { 'Collapsed' })
+}
+
+$script:BtnBenchAntes = Nuevo-Boton 'Medir antes' '#3D6FD9'
+$script:BtnBenchAntes.Add_Click({ Empezar-Bench 'antes' })
+$script:BtnBenchDespues = Nuevo-Boton 'Medir despues' '#3D6FD9'
+$script:BtnBenchDespues.Add_Click({ Empezar-Bench 'despues' })
+$script:BtnBenchVer = Nuevo-Boton 'Ver comparacion'
+$script:BtnBenchVer.Add_Click({ $e = Leer-BenchEstado; if ($e -and $e['despues_fps']) { Resultado-Bench $e '' } })
+$script:BtnBenchBorrar = Nuevo-Boton 'Borrar mediciones'
+$script:BtnBenchBorrar.Add_Click({ Borrar-Bench })
+$script:BenchTxt = Nuevo-Texto '' 12 '#81C995' $false
+$script:BenchTxt.Margin = '0,8,0,0'
+$cardBench = Nueva-Herramienta 'Medir FPS antes y despues' 'mide los FPS de tu juego antes de aplicar cambios y despues (aunque reinicies en el medio) y te muestra la diferencia: FPS promedio, 1% low y 0.1% low. Usa PresentMon de Intel, que lee el tiempo de cada cuadro desde Windows sin overlay y sin meterse en el juego; si no lo tenes, se baja de su GitHub oficial la primera vez. Los resultados quedan en la carpeta de logs (benchmark_ con la fecha, en CSV y en texto).' 'sabes con numeros si los cambios te dieron mas FPS o menos tirones en tu PC.' 'tenes que jugar la misma escena las dos veces para que la comparacion sea justa, y siempre hay algo de variacion entre partidas.' @($script:BtnBenchAntes, $script:BtnBenchDespues, $script:BtnBenchVer, $script:BtnBenchBorrar)
+$cardBench.Child.Children.Add($script:BenchTxt) | Out-Null
+$spH.Children.Add($cardBench) | Out-Null
+Actualizar-BenchCard
 
 $bAcc = Nuevo-Boton 'Elegir cuenta para borrar' '#B3412F'; $bAcc.Tag = 'ms_acc=S'
 $spH.Children.Add((Nueva-Herramienta 'Borrar una cuenta de esta PC' 'te muestra las otras cuentas de la PC (usuarios de Windows y cuentas de Microsoft vinculadas) y borras la que elijas. Tu cuenta actual no aparece.' 'limpia cuentas viejas que ya no usas.' 'si tambien borras su carpeta, se pierden sus archivos.' @($bAcc))) | Out-Null
@@ -5686,12 +6274,16 @@ function Terminar-Corrida {
         }
         if (-not $C.Reinicio) { return }
         $m = $(if ($C.Fallos -gt 0) { 'Termino, pero ' + $C.Fallos + ' cambios fallaron (mira la carpeta de logs).' } else { 'Se aplico todo bien.' })
+        # Medir FPS antes y despues: si hay una medicion de antes, se anota que ya aplicaste (y si hace falta reiniciar antes de medir)
+        $bench = Bench-Aplicado ([bool]$C.PideReinicio)
         if ($C.PideReinicio) {
-            if (Confirmar 'Listo' ($m + "`n`n" + 'Algunos de estos cambios necesitan reiniciar la PC. Reiniciar ahora?') 'Reiniciar' '#3D6FD9' 'Despues') { & shutdown.exe /r /t 10 }
+            $pre = 'Algunos de estos cambios necesitan reiniciar la PC.'
+            if ($bench) { $pre += ' Despues de reiniciar, abri la app y toca "Medir despues" en Herramientas para ver la diferencia de FPS.' }
+            if (Confirmar 'Listo' ($m + "`n`n" + $pre + ' Reiniciar ahora?') 'Reiniciar' '#3D6FD9' 'Despues') { & shutdown.exe /r /t 10 }
         } elseif ($C.Fallos -gt 0) {
-            Avisar 'Listo' ($m + "`n`n" + 'No hace falta reiniciar.')
+            Avisar 'Listo' ($m + "`n`n" + 'No hace falta reiniciar.' + $(if ($bench) { ' Ya podes tocar "Medir despues" en Herramientas.' } else { '' }))
         } else {
-            $ui.Estado.Text = ((Con-Enie 'Listo: se aplico todo bien y no hace falta reiniciar. ') + $ui.Estado.Text)
+            $ui.Estado.Text = ((Con-Enie 'Listo: se aplico todo bien y no hace falta reiniciar. ') + $(if ($bench) { (Con-Enie 'Ya podes tocar "Medir despues" en Herramientas. ') } else { '' }) + $ui.Estado.Text)
         }
     }
     # Limpiar y buscar drivers no cambian ningun ajuste: no hace falta leer Windows de nuevo
@@ -5987,7 +6579,8 @@ function Cerrar-Suave([bool]$reabre) {
     $a = [Windows.Media.Animation.DoubleAnimation]::new(1.0, 0.0, [Windows.Duration]::new([TimeSpan]::FromMilliseconds(950)))
     $a.EasingFunction = $script:Suave
     # Minimizada no se dibuja nada (la animacion queda frenada): se cierra en el momento
-    if ($win.WindowState -eq 'Minimized') { Cerrar-Ya; return }
+    # Cerrar la ventana dentro del evento Closing da error en WPF: se hace apenas termina el evento
+    if ($win.WindowState -eq 'Minimized') { $win.Dispatcher.BeginInvoke([Action]{ Cerrar-Ya }) | Out-Null; return }
     # El reloj cuenta aparte de la animacion, asi se cierra aunque la minimices a mitad del desvanecido
     $script:TimerCierre = New-Object Windows.Threading.DispatcherTimer
     $script:TimerCierre.Interval = [TimeSpan]::FromMilliseconds(950 + $script:EsperaCierre)
