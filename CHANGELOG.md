@@ -2,6 +2,18 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## Próxima versión
+
+### Nuevo
+- **Efectos visuales en modo rendimiento** (en Optimización gaming, Gráficos): pone las animaciones, sombras y transparencias de Windows en modo rendimiento. Ayuda sobre todo en PCs con poca potencia; en una PC potente casi no cambia los FPS. R lo vuelve a los efectos de Windows.
+
+### Corregido
+- **Error al cerrar la app con la ventana minimizada**: ya no aparece el error de WPF al cerrar y la app se cierra normalmente.
+- **Modo Nitro: restauración**: al restaurar, cada ajuste que no tiene copia de tu valor anterior vuelve al valor de fábrica de Windows, en vez de quedarse como Nitro. Si no hay copia, la restauración igual se hace con esos valores.
+
+### Problemas conocidos
+- **Modo Nitro, "modo del turbo (agresivo)"**: Windows no tiene un valor de fábrica para ese ajuste en el plan de energía activo, así que al restaurar queda como está (la app lo avisa en el log de Optimización gaming). Si lo querés volver atrás a mano, hacelo desde las opciones avanzadas de energía.
+
 ## v1.0.7
 
 ### Nuevo

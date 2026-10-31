@@ -634,6 +634,7 @@ $Chequeos = @{
     'Gaming|notif'  = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0 }
     'Gaming|gf'     = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode') -eq 2) -and (([Environment]::OSVersion.Version.Build -lt 22000) -or (([string](Leer-Reg 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences' 'DirectXUserGlobalSettings')) -like '*SwapEffectUpgradeEnable=1*')) }
     'Gaming|mpo'    = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Dwm' 'OverlayTestMode') -eq 5 }
+    'Gaming|vfx'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting') -eq 2 }
     'Gaming|msi'    = {
         # Las mismas placas que toca MSI_ON: video y red PCI que andan bien. Se leen por CIM (Get-PnpDevice a veces no
         # devuelve nada en la lectura en paralelo y la tarjeta quedaba sin etiqueta).
@@ -6578,7 +6579,8 @@ function Cerrar-Suave([bool]$reabre) {
     $a = [Windows.Media.Animation.DoubleAnimation]::new(1.0, 0.0, [Windows.Duration]::new([TimeSpan]::FromMilliseconds(950)))
     $a.EasingFunction = $script:Suave
     # Minimizada no se dibuja nada (la animacion queda frenada): se cierra en el momento
-    if ($win.WindowState -eq 'Minimized') { Cerrar-Ya; return }
+    # Cerrar la ventana dentro del evento Closing da error en WPF: se hace apenas termina el evento
+    if ($win.WindowState -eq 'Minimized') { $win.Dispatcher.BeginInvoke([Action]{ Cerrar-Ya }) | Out-Null; return }
     # El reloj cuenta aparte de la animacion, asi se cierra aunque la minimices a mitad del desvanecido
     $script:TimerCierre = New-Object Windows.Threading.DispatcherTimer
     $script:TimerCierre.Interval = [TimeSpan]::FromMilliseconds(950 + $script:EsperaCierre)

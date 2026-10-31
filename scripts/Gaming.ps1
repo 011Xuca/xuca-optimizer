@@ -1339,6 +1339,11 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                 $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $g + '\' + $sub + '\' + $id
                 return (Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue).ACSettingIndex
             }
+            # Valor por defecto que Windows trae para este plan (sirve si no hay copia de tu valor anterior)
+            function DefPlan($id) {
+                $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\' + $sub + '\' + $id + '\DefaultPowerSchemeValues\' + $g
+                return (Get-ItemProperty -Path $rk -ErrorAction SilentlyContinue).ACSettingIndex
+            }
             function Actual($id) {
                 $x = LeerAc $id
                 if ($null -eq $x) { $x = LeerReg $id }
@@ -1377,7 +1382,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                             New-Item -Path $dir -ItemType Directory -Force | Out-Null
                             Proteger-Carpeta $dir
                         }
-                        $lineas = @(foreach ($c in $cfg) { $c.Cfg + '=' + (Actual $c.Cfg) })
+                        $lineas = @(foreach ($c in $cfg) { $v = Actual $c.Cfg; if ($null -eq $v) { Log 'AVISO' ('no se pudo leer tu valor anterior de ' + $c.Nom + ': al restaurar se usara el valor de fabrica de Windows'); continue }; $c.Cfg + '=' + $v })
                         Set-Content -Path $bak -Value $lineas
                         if (Test-Path $bak) { Log 'INFO' ('copia de tus valores anteriores guardada en ' + $bak) }
                         else { Log 'FALLO' 'no se pudo guardar la copia de tus valores anteriores, no se cambio nada'; $code = 1; $sinCopia = $true }
@@ -1392,28 +1397,34 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                     }
                 }
             } else {
-                if (-not (Test-Path $bak)) {
-                    Log 'OMITIDO' 'no hay copia de tus valores anteriores para este plan, no se cambio nada'
-                    Say '  No hay copia de tus valores anteriores, no se cambio nada.' 'Yellow'
-                    $code = 2
-                } else {
+                # Sin copia (o con una copia incompleta), cada ajuste que falte vuelve al valor de fabrica de Windows
+                if (-not (Test-Path $bak)) { Log 'AVISO' 'no hay copia de tus valores anteriores para este plan: los ajustes de Nitro vuelven a los valores de fabrica de Windows' }
+                {
                     $guardado = @{}
-                    foreach ($l in (Get-Content $bak)) {
-                        $p = $l -split '='
-                        if ($p.Count -eq 2 -and $p[1] -match '^\d+$') { $guardado[$p[0]] = [int]$p[1] }
+                    if (Test-Path $bak) {
+                        foreach ($l in (Get-Content $bak)) {
+                            $p = $l -split '='
+                            if ($p.Count -eq 2 -and $p[1] -match '^\d+$') { $guardado[$p[0]] = [int]$p[1] }
+                        }
                     }
                     $hizo = $false
                     foreach ($c in $cfg) {
-                        if (-not $guardado.ContainsKey($c.Cfg)) { continue }
+                        if (-not $guardado.ContainsKey($c.Cfg)) {
+                            $def = DefPlan $c.Cfg
+                            if ($null -eq $def) { continue }
+                            $guardado[$c.Cfg] = [int]$def
+                            Log 'AVISO' ('no hay copia de tu valor anterior de ' + $c.Nom + ', lo pongo al valor de fabrica de Windows (' + $def + ')')
+                        }
                         $val = $guardado[$c.Cfg]
                         if ((Actual $c.Cfg) -eq $val) { Log 'OK' ('ya estaba: ' + $c.Nom + ' = ' + $val); continue }
                         $hizo = $true
                         if (Poner $c $val) { Log 'OK' ('verificado: ' + $c.Nom + ' = ' + $val + ' (restaurado)') }
                         else { Log 'FALLO' ('no se pudo restaurar ' + $c.Nom); $code = 1 }
                     }
+                    foreach ($c in $cfg) { if (-not $guardado.ContainsKey($c.Cfg)) { Log 'AVISO' ('no hay copia de tu valor anterior de ' + $c.Nom + ', queda como esta (ajustalo a mano si hace falta)') } }
                     if ($hizo) { & powercfg /setactive $g }
                     elseif ($code -eq 0) { $code = 5 }
-                    if ($code -ne 1) { Remove-Item -Path $bak -Force }
+                    if (($code -ne 1) -and (Test-Path $bak)) { Remove-Item -Path $bak -Force }
                 }
             }
         }
@@ -2289,6 +2300,23 @@ $ListaOpciones = @(
             Resps (Act 'DX' 'SwapEffectUpgradeEnable=DEL;')
             Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode'
             Opt-Fin 'Graficos restaurados (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'vfx'; Seccion = 'GRAFICOS'
+        Q = '- Desea poner los efectos visuales de Windows en rendimiento? (Menos animaciones, sombras y transparencias; Windows se ve mas simple)'
+        Hace = 'pone los efectos visuales de Windows en modo rendimiento: menos animaciones, sombras y transparencias.'
+        Favor = 'libera un poco de GPU y CPU en PCs con poca potencia, sobre todo si el juego va justo.'
+        Contra = 'Windows se ve mas simple. En una PC potente casi no cambia los FPS; R lo vuelve atras.'
+        S = {
+            Opt-Ini 'Efectos visuales'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting' 'REG_DWORD' '2'
+            Opt-Fin 'Efectos visuales en modo rendimiento (puede pedir cerrar sesion)'
+        }
+        R = {
+            Opt-Ini 'Efectos visuales (restaurar)'
+            Reg-Del 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting'
+            Opt-Fin 'Efectos visuales vuelven a los de Windows (puede pedir cerrar sesion)'
         }
     },
     @{
