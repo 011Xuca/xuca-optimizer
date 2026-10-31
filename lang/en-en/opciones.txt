@@ -239,6 +239,12 @@ Hace: turns on Low latency (Low Latency Profile), a hidden Windows 11 feature th
 Favor: Start, menus and apps open faster, especially on low-end PCs.
 Contra: short spikes of power use and heat; Microsoft is still testing it and on powerful PCs it's barely noticeable.
 
+[Gaming idle]
+Titulo: Disable processor idle states (C-states)
+Hace: turns on the hidden "Processor idle disable" setting of the active power plan, plugged in and on battery: the cores stop going to sleep (C-states) when they have no work. It saves your current values first so you can go back.
+Favor: the processor doesn't take time to wake up: a bit less latency and fewer micro-stutters in competitive games.
+Contra: the processor never rests: much more power use and heat even when you're not gaming, fans get louder, some processors lower their turbo because of temperature, and on laptops the battery lasts much less.
+
 [Gaming gm]
 Titulo: Turn on Game Mode
 Hace: turns on Game Mode and stops the controller's Xbox button from opening the Game Bar.
@@ -358,6 +364,12 @@ Titulo: Disable VBS
 Hace: turns off virtualization-based security.
 Favor: between 5 and 10 percent more FPS.
 Contra: WSL, Docker, Hyper-V and virtual machines stop working.
+
+[Gaming spc]
+Titulo: Disable Spectre and Meltdown protections
+Hace: turns off Windows' protections against Spectre (variant 2) and Meltdown, two processor flaws, using Microsoft's official method (FeatureSettingsOverride = 3 and FeatureSettingsOverrideMask = 3). Only available if your processor has those protections turned on.
+Favor: on older processors (Intel 8th gen or earlier) it can give a few more FPS and less stutter in games that use the processor or the disk a lot. On newer processors the difference is usually almost zero.
+Contra: your PC is left exposed: a malicious web page or program could read data from memory, like passwords. Don't use it on a PC with important data or one shared by several people. Some anti-cheats or work programs may complain.
 
 [Gaming wsr]
 Titulo: Disable Windows Search

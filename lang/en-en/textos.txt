@@ -2712,3 +2712,218 @@ en: look for a "Low Latency" profile in the memory section
 
 es: busca "UMA Frame Buffer Size" (casi siempre en Advanced > AMD CBS > NBIO > GFX Configuration)
 en: look for "UMA Frame Buffer Size" (almost always in Advanced > AMD CBS > NBIO > GFX Configuration)
+
+# --- Gaming: C-states y Spectre/Meltdown ---
+es: Mucho mas consumo y calor todo el tiempo, no solo jugando. En notebooks o con mala refrigeracion el procesador puede bajar el turbo por temperatura y rendir menos. Si no notas mejora, restablecelo.
+en: Much more power use and heat all the time, not only while gaming. On laptops or with poor cooling the processor can lower its turbo because of temperature and perform worse. If you don't notice an improvement, reset it.
+
+es: BAJA MUCHO LA SEGURIDAD: un programa o una pagina web maliciosa podria leer contrasenas y otros datos de la memoria. Usalo solo en una PC para jugar, sin datos importantes, y restablecelo si la vas a usar para otra cosa.
+en: IT LOWERS SECURITY A LOT: a malicious program or web page could read passwords and other data from memory. Use it only on a gaming PC with no important data, and reset it if you're going to use the PC for other things.
+
+es: No hace falta: tu procesador no tiene activas las protecciones contra Spectre y Meltdown (no esta afectado), asi que no hay nada que apagar.
+en: Not needed: your processor doesn't have the Spectre and Meltdown protections turned on (it isn't affected), so there's nothing to turn off.
+
+# --- Herramientas: medir FPS antes y despues ---
+es: Medir FPS antes y despues
+en: Measure FPS before and after
+
+es: mide los FPS de tu juego antes de aplicar cambios y despues (aunque reinicies en el medio) y te muestra la diferencia: FPS promedio, 1% low y 0.1% low. Usa PresentMon de Intel, que lee el tiempo de cada cuadro desde Windows sin overlay y sin meterse en el juego; si no lo tenes, se baja de su GitHub oficial la primera vez. Los resultados quedan en la carpeta de logs (benchmark_ con la fecha, en CSV y en texto).
+en: measures your game's FPS before you apply changes and after (even if you restart in between) and shows you the difference: average FPS, 1% low and 0.1% low. It uses Intel's PresentMon, which reads the time of every frame from Windows with no overlay and without touching the game; if you don't have it, it's downloaded from its official GitHub the first time. The results are saved in the logs folder (benchmark_ with the date, as CSV and text).
+
+es: sabes con numeros si los cambios te dieron mas FPS o menos tirones en tu PC.
+en: you know with numbers whether the changes gave you more FPS or less stutter on your PC.
+
+es: tenes que jugar la misma escena las dos veces para que la comparacion sea justa, y siempre hay algo de variacion entre partidas.
+en: you have to play the same scene both times for a fair comparison, and there's always some variation between matches.
+
+es: Medir antes
+en: Measure before
+
+es: Medir despues
+en: Measure after
+
+es: Ver comparacion
+en: See comparison
+
+es: Borrar mediciones
+en: Delete measurements
+
+es: Medir FPS antes de aplicar
+en: Measure FPS before applying
+
+es: Medir FPS despues de aplicar
+en: Measure FPS after applying
+
+es: Usa el mismo juego, la misma escena y la misma duracion que en la medicion de antes, asi la comparacion es justa.
+en: Use the same game, the same scene and the same duration as in the before measurement, so the comparison is fair.
+
+es: Al tocar Empezar tenes
+en: When you tap Start you have
+
+es: segundos para volver al juego. Juga normal, mejor siempre en la misma escena, hasta que suene el aviso.
+en: seconds to go back to the game. Play normally, ideally always in the same scene, until you hear the sound.
+
+es: Cuanto medir
+en: How long to measure
+
+es: Que juego
+en: Which game
+
+es: Vacio = el juego que este en pantalla completa (o sin bordes). Si jugas en ventana, escribi su proceso (por ejemplo, cs2.exe) o tocalo abajo.
+en: Empty = the game that's in fullscreen (or borderless). If you play windowed, type its process (for example, cs2.exe) or tap it below.
+
+es: Cualquiera en pantalla completa
+en: Any fullscreen game
+
+es: Medir FPS
+en: Measure FPS
+
+es: Espera a que termine la medicion de la placa de video (1 minuto).
+en: Wait for the graphics card measurement to finish (1 minute).
+
+es: Espera a que termine lo que se esta aplicando.
+en: Wait for what's being applied to finish.
+
+es: Primero toca "Medir antes", con el juego abierto, antes de aplicar los cambios.
+en: First tap "Measure before", with the game open, before applying the changes.
+
+es: Todavia no reiniciaste
+en: You haven't restarted yet
+
+es: Algunos de los cambios que aplicaste se notan recien al reiniciar la PC. Si medis ahora, la comparacion puede no mostrar la diferencia.
+en: Some of the changes you applied only take effect after restarting the PC. If you measure now, the comparison may not show the difference.
+
+es: Medir igual
+en: Measure anyway
+
+es: Medir antes otra vez
+en: Measure before again
+
+es: Ya tenes una medicion de antes guardada. Si medis de nuevo, se reemplaza (los archivos de la carpeta de logs quedan).
+en: You already have a before measurement saved. If you measure again, it gets replaced (the files in the logs folder stay).
+
+es: Medir de nuevo
+en: Measure again
+
+es: No hay ningun juego abierto
+en: No game is open
+
+es: Abri el juego y toca de nuevo. No se midio nada.
+en: Open the game and tap again. Nothing was measured.
+
+es: Hace falta PresentMon
+en: PresentMon is needed
+
+es: Para medir los FPS la app usa PresentMon, el medidor gratis y de codigo abierto de Intel: lee el tiempo de cada cuadro desde Windows, sin overlay y sin meterse en el juego.
+en: To measure FPS the app uses PresentMon, Intel's free and open-source tool: it reads the time of every frame from Windows, with no overlay and without touching the game.
+
+es: No lo tenes: se baja ahora de su pagina oficial de GitHub
+en: You don't have it: it will be downloaded now from its official GitHub page
+
+es: unos 2 MB), se verifica y se guarda en ProgramData\XucaScripts\PresentMon.
+en: about 2 MB), verified and saved in ProgramData\XucaScripts\PresentMon.
+
+es: Bajar y medir
+en: Download and measure
+
+es: Bajando PresentMon de GitHub...
+en: Downloading PresentMon from GitHub...
+
+es: Verificando lo que se bajo...
+en: Verifying the download...
+
+es: Volve al juego: la medicion empieza en
+en: Go back to the game: the measurement starts in
+
+es: juga normal. Faltan
+en: play normally. Time left:
+
+es: Calculando los resultados...
+en: Calculating the results...
+
+es: Preparando...
+en: Preparing...
+
+es: No se pudo bajar PresentMon
+en: Couldn't download PresentMon
+
+es: No se cambio nada en tu PC. Revisa tu conexion y proba de nuevo, o bajalo a mano desde
+en: Nothing was changed on your PC. Check your connection and try again, or download it manually from
+
+es: No se pudo verificar PresentMon
+en: Couldn't verify PresentMon
+
+es: Lo que se bajo no paso la verificacion
+en: The download didn't pass verification
+
+es: y se borro. No se cambio nada en tu PC. Proba de nuevo mas tarde.
+en: and was deleted. Nothing was changed on your PC. Try again later.
+
+es: Abri el juego (en pantalla completa, o elegi su proceso si jugas en ventana) y toca de nuevo.
+en: Open the game (in fullscreen, or pick its process if you play windowed) and tap again.
+
+es: No hay ningun juego en pantalla completa. No se midio nada.
+en: There's no game in fullscreen. Nothing was measured.
+
+es: No se pudieron medir los FPS
+en: Couldn't measure FPS
+
+es: Puede que el juego estuviera minimizado o en un menu en pausa. Volve al juego antes de que termine la cuenta y proba de nuevo.
+en: The game may have been minimized or in a paused menu. Go back to the game before the countdown ends and try again.
+
+es: Medicion de antes lista
+en: Before measurement ready
+
+es: Ahora aplica tus cambios en Optimizacion gaming (o con un perfil) y despues toca "Medir despues" con el mismo juego. Si algun cambio pide reiniciar, reinicia primero: la app se acuerda de esta medicion.
+en: Now apply your changes in Gaming optimization (or with a profile) and then tap "Measure after" with the same game. If a change asks for a restart, restart first: the app remembers this measurement.
+
+es: FPS promedio
+en: Average FPS
+
+es: Antes y despues
+en: Before and after
+
+es: Diferencia
+en: Difference
+
+es: Antes
+en: Before
+
+es: Ahora
+en: Now
+
+es: Cuanto mas alto, mejor. El 1% y el 0.1% low muestran los tirones: si suben, el juego se siente mas parejo.
+en: Higher is better. The 1% and 0.1% lows show stutter: if they go up, the game feels smoother.
+
+es: Diferencias de menos de 3 % pueden ser solo la variacion normal entre una partida y otra.
+en: Differences under 3 % can just be the normal variation from one match to another.
+
+es: Se borra la medicion de antes y la de despues que guardo la app. Los archivos de la carpeta de logs quedan.
+en: The before and after measurements saved by the app are deleted. The files in the logs folder stay.
+
+es: Aplicaste cambios que piden reiniciar: reinicia la PC y despues toca "Medir despues".
+en: You applied changes that need a restart: restart the PC and then tap "Measure after".
+
+es: Ya reiniciaste: abri el mismo juego y toca "Medir despues".
+en: You already restarted: open the same game and tap "Measure after".
+
+es: Ya aplicaste cambios: abri el mismo juego y toca "Medir despues".
+en: You already applied changes: open the same game and tap "Measure after".
+
+es: Ahora aplica tus cambios en Optimizacion gaming y despues toca "Medir despues".
+en: Now apply your changes in Gaming optimization and then tap "Measure after".
+
+es: Algunos de estos cambios necesitan reiniciar la PC.
+en: Some of these changes need the PC to restart.
+
+es: Despues de reiniciar, abri la app y toca "Medir despues" en Herramientas para ver la diferencia de FPS.
+en: After restarting, open the app and tap "Measure after" in Tools to see the FPS difference.
+
+es: Reiniciar ahora?
+en: Restart now?
+
+es: Ya podes tocar "Medir despues" en Herramientas.
+en: You can now tap "Measure after" in Tools.
+
+es: "Ya podes tocar "Medir despues" en Herramientas. "
+en: "You can now tap "Measure after" in Tools. "
