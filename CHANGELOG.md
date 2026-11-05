@@ -2,12 +2,20 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
-## Próxima versión
+## v1.0.8
 
 ### Nuevo
 - **Efectos visuales en modo rendimiento** (en Optimización gaming, Gráficos): pone las animaciones, sombras y transparencias de Windows en modo rendimiento. Ayuda sobre todo en PCs con poca potencia; en una PC potente casi no cambia los FPS. R lo vuelve a los efectos de Windows.
+- **Interfaz más cercana a Windows 11**: fondos en grises neutros, azul de Windows como color de acento, esquinas más chicas, y sin los degradados azul-rosa ni las sombras del logo y del título de cada página. Funciona igual en tema claro y oscuro.
+- **Extensiones y elementos ocultos**: la opción de mostrar las extensiones de los archivos ahora también muestra las carpetas y archivos ocultos, y avisa al Explorador para que las ventanas abiertas se actualicen sin reiniciarlo. R lo deja como Windows.
 
 ### Corregido
+- **Opción en español con la app en inglés**: "Poner los efectos visuales de Windows en rendimiento" ahora tiene su traducción al inglés.
+- **Baja latencia: el CPU seguía subiendo al 100%**: al restaurar, la función se borraba y Windows decidía solo, y en las builds nuevas puede venir prendida de fábrica. Ahora restaurar la apaga explícitamente (equivale a `vivetool /disable /id:58989092`). Si la tenías "apagada" y notabas picos de CPU, volvé a aplicarla y reiniciá.
+- **Aviso "Get an app to open 'ms-gamingoverlay'"**: al borrar la Xbox Game Bar, los protocolos se redirigían antes de desinstalar la app, y Windows los volvía a sacar. Ahora se redirigen después.
+- **Recomendados de la Microsoft Store al buscar**: "Quitar anuncios, sugerencias y Bing" ahora también apaga las sugerencias de la caja de búsqueda por política, el contenido destacado y el historial de búsqueda del dispositivo. Si ya la habías aplicado, aparece como sin aplicar para que la apliques de nuevo.
+- **Borrar apps basura ya no toca Películas y TV ni el Reproductor de música**: `Microsoft.ZuneVideo` y `Microsoft.ZuneMusic` salieron de la lista. WhatsApp nunca estuvo en la lista de apps a borrar.
+- **Afinidad de CPU: navegadores y Discord/Spotify laggeados**: los navegadores (Chrome, Edge, Firefox, Opera, Brave) y los lanzadores web de Steam y Epic ya no se mandan a los núcleos de fondo por defecto. Abren muchos procesos y, apretados en uno o dos núcleos, quedaban muy lentos y se colgaban. Para que tome efecto, volvé a aplicar la afinidad; si tenías una lista de fondo guardada, revisá que no incluya el navegador.
 - **Error al cerrar la app con la ventana minimizada**: ya no aparece el error de WPF al cerrar y la app se cierra normalmente.
 - **Modo Nitro: restauración**: al restaurar, cada ajuste que no tiene copia de tu valor anterior vuelve al valor de fábrica de Windows, en vez de quedarse como Nitro. Si no hay copia, la restauración igual se hace con esos valores.
 

@@ -383,6 +383,17 @@ function Protocolo([string]$p) {
     }
 }
 
+# Avisa al Explorador que cambiaron sus opciones (extensiones, ocultos) para que las ventanas abiertas se actualicen sin reiniciarlo
+function Refrescar-Explorer {
+    try {
+        if (-not ('XucaShell' -as [type])) {
+            Add-Type -Namespace '' -Name 'XucaShell' -MemberDefinition '[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)] public static extern System.IntPtr SendMessageTimeout(System.IntPtr h, uint m, System.UIntPtr w, string l, uint f, uint t, out System.UIntPtr r);' -ErrorAction Stop
+        }
+        $r = [UIntPtr]::Zero
+        [void][XucaShell]::SendMessageTimeout([IntPtr]0xffff, 0x1A, [UIntPtr]::Zero, 'ShellState', 2, 2000, [ref]$r)
+    } catch { Log 'INFO' ('no se pudo avisar al Explorador: ' + $_.Exception.Message) }
+}
+
 function Proto-Del([string]$p) {
     if (-not (Reg-Existe ('HKCR\' + $p))) { $script:OptS++; Log 'OK' ('el protocolo ' + $p + ' ya no existia'); return }
     $script:OptT++

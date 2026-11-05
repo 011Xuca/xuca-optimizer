@@ -116,9 +116,9 @@ function Windows-EnClaro {
 $script:Claro = ($script:TemaCfg -eq 'claro') -or (($script:TemaCfg -eq 'sistema') -and (Windows-EnClaro))
 # Fondos y sus tonos (oscuro -> claro)
 $MapaClaro = @{
-    '#14161B' = '#F2F4F7'; '#0E1014' = '#FFFFFF'; '#1C2027' = '#FFFFFF'; '#181A1F' = '#F6F7F9'; '#232833' = '#E3E6EC'
-    '#262B34' = '#E8EAEE'; '#2A2D33' = '#E8EAEE'; '#2E3440' = '#D5D9E0'; '#3A414E' = '#C2C8D1'; '#3A404C' = '#C2C8D1'
-    '#1E232D' = '#E1E4EA'; '#1F2D4A' = '#DCE6FA'; '#1A2238' = '#EAF0FD'; '#231A2A' = '#FBEDF5'; '#171D2C' = '#FFFFFF'
+    '#202020' = '#F2F4F7'; '#191919' = '#FFFFFF'; '#2B2B2B' = '#FFFFFF'; '#1C1C1C' = '#F6F7F9'; '#2F2F2F' = '#E3E6EC'
+    '#333333' = '#E8EAEE'; '#363636' = '#E8EAEE'; '#3D3D3D' = '#D5D9E0'; '#4A4A4A' = '#C2C8D1'; '#454545' = '#C2C8D1'
+    '#262626' = '#E1E4EA'; '#273445' = '#DCE6FA'; '#1A2238' = '#EAF0FD'; '#231A2A' = '#FBEDF5'; '#171D2C' = '#FFFFFF'
     '#1C1722' = '#FCF6FA'; '#1B2130' = '#FFFFFF'; '#1D1A24' = '#FBF7FC'; '#1C1A26' = '#FAF4F8'; '#14222B' = '#E6F5FC'
     '#1A2A33' = '#E6F4FA'; '#221A0E' = '#FDF2E4'; '#3A2A12' = '#FAE2C4'; '#22D3EE' = '#0891B2'; '#0F2119' = '#E3F7EF'; '#163A2B' = '#C9EFDD'; '#182008' = '#F1FAE0'; '#263512' = '#DCF0BC'
     '#1E3A2C' = '#DDF3E6'; '#1E3A2B' = '#DDF3E6'; '#3A1E1E' = '#FBE3E3'; '#3A1F40' = '#F7E3FA'; '#3A1F1F' = '#FBE3E3'
@@ -604,7 +604,7 @@ $Chequeos = @{
     'Debloat|do'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' 'DODownloadMode') -eq 0 }
     'Debloat|wud'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate') -eq 1 }
     'Debloat|wup'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'FlightSettingsMaxPauseDays') -eq 7300 }
-    'Debloat|ad'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SystemPaneSuggestionsEnabled') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch') -eq 1) }
+    'Debloat|ad'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SystemPaneSuggestionsEnabled') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB') -eq 0) }
     'Debloat|sv'    = { ((Leer-Svc 'MapsBroker') -eq 4) -and ((Leer-Svc 'WerSvc') -eq 4) }
     'Debloat|pv'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' 'DisableLocation') -eq 1) }
     'Debloat|ter'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\TCPIP\v6Transition' 'Teredo_State') -eq 'Disabled' }
@@ -676,7 +676,7 @@ $Chequeos = @{
     'Gaming|spc'    = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' 'FeatureSettingsOverride') -eq 3) -and ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' 'FeatureSettingsOverrideMask') -eq 3) }
     'Gaming|wsr'    = { (Leer-Svc 'WSearch') -eq 4 }
     'Gaming|stg'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\StorageSense' 'AllowStorageSenseGlobal') -eq 0 }
-    'Gaming|ext'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt') -eq 0 }
+    'Gaming|ext'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt') -eq 0 -and (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden') -eq 1 }
     'Gaming|md'     = { (Leer-Reg 'HKCU:\Control Panel\Desktop' 'MenuShowDelay') -eq '0' }
     'Gaming|v4'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters' 'DisabledComponents') -eq 32 }
 }
@@ -981,7 +981,7 @@ $XamlTexto = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Xuca OPtimizer" Width="1080" Height="740" MinWidth="420" MinHeight="320"
-        WindowStartupLocation="CenterScreen" Background="#14161B" FontFamily="Segoe UI">
+        WindowStartupLocation="CenterScreen" Background="#202020" FontFamily="Segoe UI">
   <Window.Resources>
     <Style x:Key="Nav" TargetType="Button">
       <Setter Property="Foreground" Value="#C9CDD4"/>
@@ -996,11 +996,11 @@ $XamlTexto = @'
           <ControlTemplate TargetType="Button">
             <Grid x:Name="g" RenderTransformOrigin="0.5,0.5">
               <Grid.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
-              <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="19"/>
+              <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6"/>
               <!-- Brillo que aparece suave al pasar el mouse -->
-              <Border x:Name="luz" Background="#14FFFFFF" CornerRadius="19" Opacity="0"/>
+              <Border x:Name="luz" Background="#14FFFFFF" CornerRadius="6" Opacity="0"/>
               <!-- Relleno blanco que se abre desde el centro al tocar (como en Android) -->
-              <Border x:Name="onda" Background="White" CornerRadius="19" Opacity="0" RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False">
+              <Border x:Name="onda" Background="White" CornerRadius="6" Opacity="0" RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False">
                 <Border.RenderTransform><ScaleTransform ScaleX="0.3" ScaleY="0.3"/></Border.RenderTransform>
               </Border>
               <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
@@ -1155,25 +1155,12 @@ $XamlTexto = @'
     </Grid.ColumnDefinitions>
 
     <!-- Barra de la izquierda: panel flotante con bordes redondos -->
-    <Border x:Name="Barra" Grid.Column="0" Background="#0E1014" BorderBrush="#1E232D" BorderThickness="1" CornerRadius="18" Margin="12,12,0,12" Padding="14,16">
+    <Border x:Name="Barra" Grid.Column="0" Background="#191919" BorderBrush="#262626" BorderThickness="1" CornerRadius="8" Margin="12,12,0,12" Padding="14,16">
       <Border.RenderTransform><TranslateTransform/></Border.RenderTransform>
-      <Border.Effect><DropShadowEffect BlurRadius="20" ShadowDepth="0" Opacity="0.45" Color="#000000"/></Border.Effect>
       <DockPanel LastChildFill="False">
         <StackPanel DockPanel.Dock="Top">
           <!-- Recuadro del nombre, con el borde en celeste y magenta -->
-          <Border CornerRadius="14" BorderThickness="1.5" Padding="14,12" Margin="0,0,0,18">
-            <Border.BorderBrush>
-              <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#3D6FD9" Offset="0"/>
-                <GradientStop Color="#F9A8D4" Offset="1"/>
-              </LinearGradientBrush>
-            </Border.BorderBrush>
-            <Border.Background>
-              <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#1A2238" Offset="0"/>
-                <GradientStop Color="#231A2A" Offset="1"/>
-              </LinearGradientBrush>
-            </Border.Background>
+          <Border CornerRadius="8" BorderThickness="1" BorderBrush="#3D3D3D" Background="#262626" Padding="14,12" Margin="0,0,0,18">
             <StackPanel>
               <TextBlock Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold"><Run Text="Xuca "/><Run Text="OP" Foreground="#22D3EE" FontWeight="Bold"/><Run Text="timizer"/></TextBlock>
               <TextBlock Text="Optimizador para Windows" Foreground="#9AA6C4" FontSize="11.5" Margin="0,2,0,0"/>
@@ -1205,14 +1192,14 @@ $XamlTexto = @'
             </Button>
             <!-- Circulito verde en la esquina con cuantas configs hay subidas (no aparece si no hay ninguna) -->
             <Border x:Name="CfgInsignia" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-7,0,0" MinWidth="21" Height="21" CornerRadius="10.5" Padding="5,0"
-                    Background="#22C55E" BorderBrush="#0E1014" BorderThickness="2" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                    Background="#22C55E" BorderBrush="#191919" BorderThickness="2" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
               <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Border.RenderTransform>
               <TextBlock x:Name="CfgInsigniaTxt" Text="0" Foreground="White" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
           </Grid>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom">
-          <Border Height="1" Background="#1E232D" Margin="6,0,6,12"/>
+          <Border Height="1" Background="#262626" Margin="6,0,6,12"/>
           <Button x:Name="BtnTema" Style="{StaticResource Nav}">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/>
@@ -1264,30 +1251,10 @@ $XamlTexto = @'
           </DockPanel>
         </Border>
         <!-- Titulo de la pagina en un recuadro como el de la barra de la izquierda, con el icono de la categoria -->
-        <Border x:Name="TituloCaja" CornerRadius="16" BorderThickness="1" Padding="16,12" RenderTransformOrigin="0.5,0.5">
+        <Border x:Name="TituloCaja" CornerRadius="8" BorderThickness="1" BorderBrush="#3D3D3D" Background="#2B2B2B" Padding="16,12" RenderTransformOrigin="0.5,0.5">
           <Border.RenderTransform><TranslateTransform X="0" Y="0"/></Border.RenderTransform>
-          <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="0" Opacity="0.4" Color="#000000"/></Border.Effect>
-          <Border.BorderBrush>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-              <GradientStop Color="#3D6FD9" Offset="0"/>
-              <GradientStop Color="#F9A8D4" Offset="1"/>
-            </LinearGradientBrush>
-          </Border.BorderBrush>
-          <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-              <GradientStop Color="#1A2238" Offset="0"/>
-              <GradientStop Color="#1C1A26" Offset="0.6"/>
-              <GradientStop Color="#231A2A" Offset="1"/>
-            </LinearGradientBrush>
-          </Border.Background>
           <DockPanel>
-            <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="12" Margin="0,0,14,0" VerticalAlignment="Center">
-              <Border.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                  <GradientStop Color="#3D6FD9" Offset="0"/>
-                  <GradientStop Color="#C58AF9" Offset="1"/>
-                </LinearGradientBrush>
-              </Border.Background>
+            <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="8" Background="#0078D4" Margin="0,0,14,0" VerticalAlignment="Center">
               <TextBlock x:Name="TituloIcono" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
             <StackPanel VerticalAlignment="Center">
@@ -1297,7 +1264,7 @@ $XamlTexto = @'
           </DockPanel>
         </Border>
         <!-- Barra de busqueda: en Debloat y Gaming busca en las dos; en Apps y Configs, solo en esa seccion -->
-        <Border x:Name="BuscarCaja" Background="#1C2027" BorderBrush="#2E3440" BorderThickness="1" CornerRadius="10" Height="34" Margin="0,12,0,0" Padding="12,0" Cursor="IBeam" Visibility="Collapsed">
+        <Border x:Name="BuscarCaja" Background="#2B2B2B" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="10" Height="34" Margin="0,12,0,0" Padding="12,0" Cursor="IBeam" Visibility="Collapsed">
           <DockPanel>
             <TextBlock x:Name="BuscarLupa" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#FFFFFF" Opacity="0.5" VerticalAlignment="Center" Margin="0,0,10,0" DockPanel.Dock="Left"/>
             <TextBlock x:Name="BuscarBorrar" Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#9AA0A6" VerticalAlignment="Center" Margin="10,0,0,0" DockPanel.Dock="Right" Cursor="Hand" Visibility="Collapsed"/>
@@ -1316,20 +1283,20 @@ $XamlTexto = @'
           <Button x:Name="BtnTodo" Style="{StaticResource Accion}" Content="Marcar todo"/>
           <Button x:Name="BtnNada" Style="{StaticResource Accion}" Content="Desmarcar todo"/>
           <Button x:Name="BtnRestablecer" Style="{StaticResource Accion}" Background="#7A3326" Content="Restablecer seleccionadas" Visibility="Collapsed"/>
-          <Button x:Name="BtnAplicar" Style="{StaticResource Accion}" Background="#3D6FD9" Content="Aplicar seleccionadas" Visibility="Collapsed"/>
+          <Button x:Name="BtnAplicar" Style="{StaticResource Accion}" Background="#0078D4" Content="Aplicar seleccionadas" Visibility="Collapsed"/>
         </StackPanel>
         <TextBlock x:Name="Estado" Foreground="#9AA0A6" FontSize="12.5" VerticalAlignment="Center" TextWrapping="Wrap"/>
       </DockPanel>
     </Grid>
 
     <!-- Pantalla de carga: tapa todo mientras lee Windows o aplica cambios -->
-    <Grid x:Name="Carga" Grid.ColumnSpan="2" Background="#14161B" Panel.ZIndex="10">
+    <Grid x:Name="Carga" Grid.ColumnSpan="2" Background="#202020" Panel.ZIndex="10">
       <!-- Tarjeta con bordes redondos y borde celeste y magenta, como el recuadro del nombre -->
       <Border x:Name="CargaCaja" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="20" BorderThickness="1.5" Padding="32,28" RenderTransformOrigin="0.5,0.5" Opacity="0">
         <Border.RenderTransform><ScaleTransform ScaleX="0.6" ScaleY="0.6"/></Border.RenderTransform>
         <Border.BorderBrush>
           <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#3D6FD9" Offset="0"/>
+            <GradientStop Color="#0078D4" Offset="0"/>
             <GradientStop Color="#F9A8D4" Offset="1"/>
           </LinearGradientBrush>
         </Border.BorderBrush>
@@ -1347,11 +1314,11 @@ $XamlTexto = @'
           <TextBlock x:Name="CargaSplashPts" Foreground="#7D8590" FontSize="14" Width="18"/>
         </StackPanel>
         <Grid x:Name="CargaSplashZona" Width="240" Height="5" Margin="0,12,0,0" Visibility="Collapsed">
-          <Border Background="#232833" CornerRadius="2.5"/>
+          <Border Background="#2F2F2F" CornerRadius="2.5"/>
           <Border x:Name="CargaSplashBarra" HorizontalAlignment="Left" Width="0" CornerRadius="2.5">
             <Border.Background>
               <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                <GradientStop Color="#3D6FD9" Offset="0"/>
+                <GradientStop Color="#0078D4" Offset="0"/>
                 <GradientStop Color="#F9A8D4" Offset="1"/>
               </LinearGradientBrush>
             </Border.Background>
@@ -1359,11 +1326,11 @@ $XamlTexto = @'
         </Grid>
         <TextBlock x:Name="CargaTitulo" Text="Leyendo como esta tu Windows" Foreground="#C3C8D0" FontSize="15" HorizontalAlignment="Center" Margin="0,10,0,0"/>
         <Grid x:Name="CargaZona" Margin="0,24,0,0" Height="8">
-          <Border Background="#232833" CornerRadius="4"/>
+          <Border Background="#2F2F2F" CornerRadius="4"/>
           <Border x:Name="CargaBarra" HorizontalAlignment="Left" Width="0" CornerRadius="4">
             <Border.Background>
               <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                <GradientStop Color="#3D6FD9" Offset="0"/>
+                <GradientStop Color="#0078D4" Offset="0"/>
                 <GradientStop Color="#F9A8D4" Offset="1"/>
               </LinearGradientBrush>
             </Border.Background>
@@ -1374,7 +1341,7 @@ $XamlTexto = @'
           <TextBlock x:Name="CargaDetalle" Foreground="#7D8590" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
         </DockPanel>
         <!-- Prueba de DNS: cada DNS con su tiempo, mientras se aplica esa opcion -->
-        <Border x:Name="CargaDns" Margin="0,18,0,0" Padding="16,12" CornerRadius="10" Background="#1C2027" Visibility="Collapsed">
+        <Border x:Name="CargaDns" Margin="0,18,0,0" Padding="16,12" CornerRadius="10" Background="#2B2B2B" Visibility="Collapsed">
           <StackPanel>
             <TextBlock x:Name="CargaDnsTitulo" Foreground="#C3C8D0" FontSize="13" FontWeight="SemiBold" Text="Probando los DNS desde tu conexion"/>
             <StackPanel x:Name="CargaDnsLista" Margin="0,6,0,0"/>
@@ -1436,12 +1403,12 @@ $EstilosXaml = @'
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
             <Grid x:Name="caja" Width="18" Height="18" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RenderTransformOrigin="0.5,0.5">
               <Grid.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
-              <Border x:Name="fondo" CornerRadius="5" Background="#14161B" BorderBrush="#5C6370" BorderThickness="1.5"/>
+              <Border x:Name="fondo" CornerRadius="5" Background="#202020" BorderBrush="#5C6370" BorderThickness="1.5"/>
               <Border x:Name="lleno" CornerRadius="5" Opacity="0">
                 <Border.Background>
                   <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                     <GradientStop Color="#4F86F0" Offset="0"/>
-                    <GradientStop Color="#3D6FD9" Offset="1"/>
+                    <GradientStop Color="#0078D4" Offset="1"/>
                   </LinearGradientBrush>
                 </Border.Background>
               </Border>
@@ -1474,7 +1441,7 @@ $EstilosXaml = @'
               <Setter TargetName="fondo" Property="BorderBrush" Value="#8FD3F4"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="fondo" Property="Background" Value="#232833"/>
+              <Setter TargetName="fondo" Property="Background" Value="#2F2F2F"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.45"/>
@@ -1498,7 +1465,7 @@ $EstilosXaml = @'
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Thumb">
-          <Border x:Name="t" Background="#3A414E" CornerRadius="3" Width="6" HorizontalAlignment="Center"/>
+          <Border x:Name="t" Background="#4A4A4A" CornerRadius="3" Width="6" HorizontalAlignment="Center"/>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="t" Property="Background" Value="#5C6370"/>
@@ -1637,7 +1604,7 @@ function Escalar($st, [double]$desde, [double]$hasta, [int]$ms) {
 
 function Nueva-Caja {
     $card = New-Object Windows.Controls.Border
-    $card.CornerRadius = 10; $card.Background = (Pincel '#1C2027'); $card.Padding = '16,12'; $card.Margin = '0,0,0,10'
+    $card.CornerRadius = 8; $card.Background = (Pincel '#2B2B2B'); $card.Padding = '16,12'; $card.Margin = '0,0,0,10'
     # Borde invisible que se prende en celeste al pasar el mouse
     $card.BorderThickness = 1
     $card.BorderBrush = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(0, 0x8F, 0xD3, 0xF4))
@@ -1659,7 +1626,7 @@ function Caja-Borde($c, [string]$hex) {
     # Se cambia el color sin perder lo demas que guarda la caja (por ejemplo su casilla)
     if ($c.Tag -is [hashtable]) { $c.Tag.Color = $col; $c.Tag.Reposo = 120; $c.Tag.Encima = 255 }
     else { $c.Tag = @{ Color = $col; Reposo = 120; Encima = 255 } }
-    $c.BorderThickness = 2
+    $c.BorderThickness = 1
     $c.BorderBrush = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(120, $col.R, $col.G, $col.B))
 }
 
@@ -1888,7 +1855,7 @@ function Tipo-Dialogo([string]$titulo, [string]$colorSi, [bool]$pregunta) {
 # Pregunta Si/No. Devuelve $true si tocas el boton principal. Sin $textoNo es solo un aviso con un boton.
 function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]$colorSi, [string]$textoNo) {
     if (-not $textoSi) { $textoSi = 'Seguir' }
-    if (-not $colorSi) { $colorSi = '#3D6FD9' }
+    if (-not $colorSi) { $colorSi = '#0078D4' }
     $w = Nuevo-Dialogo 480
     $sp = New-Object Windows.Controls.StackPanel
     $tipo = Tipo-Dialogo $titulo $colorSi ([bool]$textoNo)
@@ -1916,7 +1883,7 @@ function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]
     $w.Content.Child = $sp
     return ($w.ShowDialog() -eq $true)
 }
-function Avisar([string]$titulo, [string]$mensaje) { Confirmar $titulo $mensaje 'Entendido' '#3D6FD9' '' | Out-Null }
+function Avisar([string]$titulo, [string]$mensaje) { Confirmar $titulo $mensaje 'Entendido' '#0078D4' '' | Out-Null }
 
 # Cartel de "Limpieza terminada": tilde verde grande y los GB liberados bien a la vista
 function Resultado-Limpieza([string]$liberado, [string]$winOld) {
@@ -1992,20 +1959,20 @@ function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaE
     $filaAg.Children.Add($bAg) | Out-Null
     $tx = New-Object Windows.Controls.TextBox
     $tx.Padding = '6,6'; $tx.FontSize = 13.5; $tx.VerticalContentAlignment = 'Center'
-    $tx.Background = (Pincel '#0E1014'); $tx.Foreground = (Pincel '#FFFFFF'); $tx.BorderBrush = (Pincel '#3A404C'); $tx.CaretBrush = (Pincel '#FFFFFF')
+    $tx.Background = (Pincel '#191919'); $tx.Foreground = (Pincel '#FFFFFF'); $tx.BorderBrush = (Pincel '#454545'); $tx.CaretBrush = (Pincel '#FFFFFF')
     $filaAg.Children.Add($tx) | Out-Null
     $abajo.Children.Add($filaAg) | Out-Null
     $bTodo = Nuevo-Boton 'Marcar todo'; $bNada = Nuevo-Boton 'Desmarcar todo'; $bDef = Nuevo-Boton 'Lista por defecto'
     $bDef.ToolTip = (Con-Enie 'Vuelve a la lista de fabrica: todos los del catalogo marcados y sin los que agregaste vos.')
     $bc1 = Nuevo-Boton 'Cancelar'; $bc1.IsCancel = $true
-    $bok = Nuevo-Boton 'Guardar' '#3D6FD9'
+    $bok = Nuevo-Boton 'Guardar' '#0078D4'
     $abajo.Children.Add((Fila-Botones @($bTodo, $bNada, $bDef) @($bc1, $bok))) | Out-Null
     $dock.Children.Add($abajo) | Out-Null
 
     $grilla = New-Object Windows.Controls.Primitives.UniformGrid
     $grilla.Columns = 2; $grilla.VerticalAlignment = 'Top'
     $caja = New-Object Windows.Controls.Border
-    $caja.CornerRadius = 10; $caja.Background = (Pincel '#14161B'); $caja.Padding = '12,8'
+    $caja.CornerRadius = 10; $caja.Background = (Pincel '#202020'); $caja.Padding = '12,8'
     $sv = New-Object Windows.Controls.ScrollViewer
     $sv.VerticalScrollBarVisibility = 'Auto'
     Scroll-Suave $sv
@@ -2133,7 +2100,7 @@ function Poner-Pill($pb, $estado) {
     if ($null -eq $estado) { $pb.Visibility = 'Collapsed'; return }
     $pb.Visibility = 'Visible'
     if ($estado) { $pb.Background = (Pincel '#1E3A2B'); $pb.Child.Foreground = (Pincel '#81C995'); $pb.Child.Text = (Con-Enie 'Ya aplicado') }
-    else { $pb.Background = (Pincel '#262B34'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'Sin aplicar') }
+    else { $pb.Background = (Pincel '#333333'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'Sin aplicar') }
 }
 
 # "Desactualizada" en amarillo: la opcion la puso una version vieja del script
@@ -2147,7 +2114,7 @@ function Poner-Vieja($pb) {
 function Poner-Conteo($pb, $c) {
     $todo = ([int]$c.Quedan -eq 0)
     $pb.Visibility = 'Visible'
-    $pb.Background = (Pincel $(if ($todo) { '#1E3A2B' } else { '#262B34' }))
+    $pb.Background = (Pincel $(if ($todo) { '#1E3A2B' } else { '#333333' }))
     $pb.Child.Foreground = (Pincel $(if ($todo) { '#81C995' } else { '#9AA0A6' }))
     $pb.Child.Text = ([string]$c.Hechas + '/' + [string]$c.Total + ' ' + (Con-Enie ([string]$c.Que)))
     $pb.ToolTip = $(if ($todo) { (Con-Enie 'No queda ninguna.') } elseif (@($c.Nombres).Count -gt 0) { (Con-Enie 'Todavia quedan:') + ' ' + (@($c.Nombres) -join ', ') } else { (Con-Enie 'Todavia quedan:') + ' ' + $c.Quedan })
@@ -2417,7 +2384,7 @@ function Actualizar-Bloqueos {
             $t.Cb.IsChecked = $false; $t.Cb.IsEnabled = $false
             $c.Opacity = 1
             $c.Child.Opacity = 0.45
-            $c.Background = (Pincel '#181A1F')
+            $c.Background = (Pincel '#1C1C1C')
             $rojo = Color-Tema '#F28B82'
             $c.Tag.Color = $rojo; $c.Tag.Reposo = 150; $c.Tag.Encima = 255; $c.Tag.Bloq = $true
             $c.BorderThickness = 2
@@ -2431,7 +2398,7 @@ function Actualizar-Bloqueos {
             $t.Cb.IsEnabled = $true
             $c.Opacity = 1
             $c.Child.Opacity = 1
-            $c.Background = (Pincel '#1C2027')
+            $c.Background = (Pincel '#2B2B2B')
             if ($c.Tag.Bloq) {
                 $bo = $t.Borde
                 $c.Tag.Color = $bo.Color; $c.Tag.Reposo = $bo.Reposo; $c.Tag.Encima = $bo.Encima; $c.Tag.Bloq = $false
@@ -2505,7 +2472,7 @@ function Nueva-Herramienta([string]$titulo, [string]$hace, [string]$favor, [stri
     return $card
 }
 
-$script:BtnVer = Nuevo-Boton 'Actualizar a 26H2' '#3D6FD9'
+$script:BtnVer = Nuevo-Boton 'Actualizar a 26H2' '#0078D4'
 $script:BtnVer.Tag = 'ver=S'
 $script:VerTexto = Nuevo-Texto '' 12 '#81C995' $false
 $script:VerTexto.Margin = '0,8,0,0'
@@ -2513,7 +2480,7 @@ $cardVer = Nueva-Herramienta 'Actualizar Windows 11' 'si tenes 24H2 o 25H2, pide
 $cardVer.Child.Children.Add($script:VerTexto) | Out-Null
 $spH.Children.Add($cardVer) | Out-Null
 
-$bDrv = Nuevo-Boton 'Buscar drivers' '#3D6FD9'; $bDrv.Tag = 'drv=S'
+$bDrv = Nuevo-Boton 'Buscar drivers' '#0078D4'; $bDrv.Tag = 'drv=S'
 $bDrv.Add_Click({ $this.Effect = $null })
 $script:BtnDrv = $bDrv
 $spH.Children.Add(($script:CardDrv = Nueva-Herramienta 'Drivers recomendados' 'revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD, el programa de tu mouse, teclado o auriculares de marca, de tu SSD y de otros aparatos (impresora, tableta grafica, volante, microfono, Stream Deck, capturadora, webcam, joystick, antena USB), y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.' 'tenes lo que hace falta, en su ultima version, y nada de programas de mas.' 'la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.' @($bDrv))) | Out-Null
@@ -3069,7 +3036,7 @@ function Resultado-Bios($rb, $cu) {
     $izq = @()
     # /fw reinicia directo a la BIOS: solo anda en modo UEFI
     if ($pl.Firmware -eq 'UEFI') {
-        $bFw = Nuevo-Boton 'Reiniciar y entrar a la BIOS' '#3D6FD9'
+        $bFw = Nuevo-Boton 'Reiniciar y entrar a la BIOS' '#0078D4'
         $bFw.Add_Click({
             if (-not (Confirmar 'Entrar a la BIOS' 'La PC se reinicia ya y entra directo a la BIOS. Guarda todo lo que tengas abierto antes de seguir.' 'Reiniciar' '#B3412F' 'Cancelar')) { return }
             try {
@@ -3103,7 +3070,7 @@ function Abrir-Bios {
     Resultado-Bios $rb $cu
 }
 
-$bBios = Nuevo-Boton 'Revisar la BIOS' '#3D6FD9'
+$bBios = Nuevo-Boton 'Revisar la BIOS' '#0078D4'
 $bBios.Add_Click({ Abrir-Bios })
 $script:BiosEstado = Nuevo-Texto '' 12 '#81C995' $false
 $script:BiosEstado.Margin = '0,8,0,0'; $script:BiosEstado.Visibility = 'Collapsed'
@@ -3288,7 +3255,7 @@ function Recomendar-Gpu($gi, [string]$obj) {
 function Empezar-MedicionGpu {
     if ($script:GpuMidiendo) { return }
     if (-not (Ruta-Smi)) { Avisar 'Medir jugando' 'La medicion en juego solo anda con placas NVIDIA: usa nvidia-smi, que viene con su driver.'; return }
-    if (-not (Confirmar 'Medir jugando' 'Toca Empezar, abri un juego y juga normal 1 minuto. La app mide temperatura, consumo, reloj y uso de la placa, y despues te dice que te conviene. Cuando termina suena un aviso.' 'Empezar' '#3D6FD9' 'Cancelar')) { return }
+    if (-not (Confirmar 'Medir jugando' 'Toca Empezar, abri un juego y juga normal 1 minuto. La app mide temperatura, consumo, reloj y uso de la placa, y despues te dice que te conviene. Cuando termina suena un aviso.' 'Empezar' '#0078D4' 'Cancelar')) { return }
     $script:GpuMidiendo = @{ Fin = (Get-Date).AddSeconds(60); Muestras = New-Object Collections.ArrayList; Timer = (New-Object Windows.Threading.DispatcherTimer) }
     $script:GpuMidiendo.Timer.Interval = [TimeSpan]::FromSeconds(2)
     $script:GpuMidiendo.Timer.Add_Tick({ Paso-MedicionGpu })
@@ -3463,8 +3430,8 @@ function Elegir-ObjetivoGpu($gi) {
         $rec = ($med -and $med.Ok -and ($med.Obj -eq $o[0]))
         $card = New-Object Windows.Controls.Border
         $card.CornerRadius = 12; $card.Padding = '14,10'; $card.Margin = '0,8,0,0'
-        $card.Background = (Pincel $(if ($rec) { '#1F2D4A' } else { '#232833' }))
-        $card.BorderBrush = (Pincel $(if ($rec) { '#3D6FD9' } else { '#2E3440' })); $card.BorderThickness = $(if ($rec) { 2 } else { 1 })
+        $card.Background = (Pincel $(if ($rec) { '#273445' } else { '#2F2F2F' }))
+        $card.BorderBrush = (Pincel $(if ($rec) { '#0078D4' } else { '#3D3D3D' })); $card.BorderThickness = $(if ($rec) { 2 } else { 1 })
         $card.Cursor = [Windows.Input.Cursors]::Hand
         $card.Tag = $o[0]
         $g = New-Object Windows.Controls.Grid
@@ -3490,7 +3457,7 @@ function Elegir-ObjetivoGpu($gi) {
         $g.Children.Add($t2) | Out-Null
         $card.Child = $g
         $card.Add_MouseEnter({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#8AB4F8') } })
-        $card.Add_MouseLeave({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#2E3440') } })
+        $card.Add_MouseLeave({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#3D3D3D') } })
         # MouseLeftButtonDown con Handled: el borde del cartel tiene DragMove y se come el ButtonUp
         $card.Add_MouseLeftButtonDown({
             param($s, $e)
@@ -3597,7 +3564,7 @@ function Resultado-Gpu($gi, [string]$obj, $rec, $ap) {
     $bCer = Nuevo-Boton 'Cerrar'; $bCer.IsCancel = $true
     $der += $bCer
     if ($ap) {
-        $bAp = Nuevo-Boton 'Aplicar version lite' '#3D6FD9'
+        $bAp = Nuevo-Boton 'Aplicar version lite' '#0078D4'
         $bAp.Add_Click({ $ww = [Windows.Window]::GetWindow($this); $ww.Tag.Aplicar = $true; $ww.DialogResult = $true })
         $der += $bAp
     }
@@ -3629,7 +3596,7 @@ function Abrir-AjusteGpu {
     Avisar 'Placa de video: aplicado' $m
 }
 
-$bGpu = Nuevo-Boton 'Ver recomendacion' '#3D6FD9'
+$bGpu = Nuevo-Boton 'Ver recomendacion' '#0078D4'
 $bGpu.Add_Click({ Abrir-AjusteGpu })
 $script:BtnGpuMed = Nuevo-Boton 'Medir jugando (1 min)'
 $script:BtnGpuMed.Add_Click({ Empezar-MedicionGpu })
@@ -3930,12 +3897,12 @@ function Elegir-Bench([string]$etapa, $est) {
     if ($est -and $est['seg']) { $prevSeg = [int]$est['seg'] }
     $w.Tag.Seg = $prevSeg
     foreach ($s in 30, 60, 120) {
-        $b = Nuevo-Boton ([string]$s + ' s') $(if ($s -eq $prevSeg) { '#3D6FD9' } else { '' })
+        $b = Nuevo-Boton ([string]$s + ' s') $(if ($s -eq $prevSeg) { '#0078D4' } else { '' })
         $b.Tag = $s
         $b.Add_Click({
             $ww = [Windows.Window]::GetWindow($this)
             $ww.Tag.Seg = [int]$this.Tag
-            foreach ($o in $ww.Tag.Botones) { if ($o -eq $this) { $o.Background = (Pincel '#3D6FD9') } else { $o.ClearValue([Windows.Controls.Control]::BackgroundProperty) } }
+            foreach ($o in $ww.Tag.Botones) { if ($o -eq $this) { $o.Background = (Pincel '#0078D4') } else { $o.ClearValue([Windows.Controls.Control]::BackgroundProperty) } }
         })
         [void]$w.Tag.Botones.Add($b)
         $fila.Children.Add($b) | Out-Null
@@ -3947,7 +3914,7 @@ function Elegir-Bench([string]$etapa, $est) {
     $sp.Children.Add($l2) | Out-Null
     $t = New-Object Windows.Controls.TextBox
     $t.Padding = '6,6'; $t.FontSize = 13.5; $t.VerticalContentAlignment = 'Center'
-    $t.Background = (Pincel '#0E1014'); $t.Foreground = (Pincel '#FFFFFF'); $t.BorderBrush = (Pincel '#3A404C'); $t.CaretBrush = (Pincel '#FFFFFF')
+    $t.Background = (Pincel '#191919'); $t.Foreground = (Pincel '#FFFFFF'); $t.BorderBrush = (Pincel '#454545'); $t.CaretBrush = (Pincel '#FFFFFF')
     if ($est -and $est['proc']) { $t.Text = [string]$est['proc'] }
     $w.Tag.Texto = $t
     $sp.Children.Add($t) | Out-Null
@@ -3968,7 +3935,7 @@ function Elegir-Bench([string]$etapa, $est) {
     $sp.Children.Add($wp) | Out-Null
 
     $bNo = Nuevo-Boton 'Cancelar'; $bNo.IsCancel = $true
-    $bSi = Nuevo-Boton 'Empezar' '#3D6FD9'; $bSi.IsDefault = $true
+    $bSi = Nuevo-Boton 'Empezar' '#0078D4'; $bSi.IsDefault = $true
     $bSi.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
     $sp.Children.Add((Fila-Botones @() @($bNo, $bSi))) | Out-Null
     $w.Content.Child = $sp
@@ -3986,10 +3953,10 @@ function Empezar-Bench([string]$etapa) {
     if ($etapa -eq 'despues') {
         if ((-not $est) -or (-not $est['antes_fps'])) { Avisar 'Medir FPS' 'Primero toca "Medir antes", con el juego abierto, antes de aplicar los cambios.'; return }
         if (($est['pendiente'] -eq 'reinicio') -and ($est['arranque'] -eq (Bench-Arranque))) {
-            if (-not (Confirmar 'Todavia no reiniciaste' 'Algunos de los cambios que aplicaste se notan recien al reiniciar la PC. Si medis ahora, la comparacion puede no mostrar la diferencia.' 'Medir igual' '#3D6FD9' 'Cancelar')) { return }
+            if (-not (Confirmar 'Todavia no reiniciaste' 'Algunos de los cambios que aplicaste se notan recien al reiniciar la PC. Si medis ahora, la comparacion puede no mostrar la diferencia.' 'Medir igual' '#0078D4' 'Cancelar')) { return }
         }
     } elseif ($est -and $est['antes_fps']) {
-        if (-not (Confirmar 'Medir antes otra vez' 'Ya tenes una medicion de antes guardada. Si medis de nuevo, se reemplaza (los archivos de la carpeta de logs quedan).' 'Medir de nuevo' '#3D6FD9' 'Cancelar')) { return }
+        if (-not (Confirmar 'Medir antes otra vez' 'Ya tenes una medicion de antes guardada. Si medis de nuevo, se reemplaza (los archivos de la carpeta de logs quedan).' 'Medir de nuevo' '#0078D4' 'Cancelar')) { return }
     }
     $op = Elegir-Bench $etapa $(if ($etapa -eq 'despues') { $est } else { $null })
     if (-not $op) { return }
@@ -4001,7 +3968,7 @@ function Empezar-Bench([string]$etapa) {
     $bajar = -not (Test-Path -LiteralPath $BenchExe)
     if ($bajar) {
         $q = 'Para medir los FPS la app usa PresentMon, el medidor gratis y de codigo abierto de Intel: lee el tiempo de cada cuadro desde Windows, sin overlay y sin meterse en el juego.' + "`n`n" + 'No lo tenes: se baja ahora de su pagina oficial de GitHub (github.com/' + $BenchRepo + ', unos 2 MB), se verifica y se guarda en ProgramData\XucaScripts\PresentMon.'
-        if (-not (Confirmar 'Hace falta PresentMon' $q 'Bajar y medir' '#3D6FD9' 'Cancelar')) { return }
+        if (-not (Confirmar 'Hace falta PresentMon' $q 'Bajar y medir' '#0078D4' 'Cancelar')) { return }
     }
     $sync = [hashtable]::Synchronized(@{ Fase = 'inicio'; Falta = 0; Fin = $false; Error = ''; Detalle = ''; Res = $null; Bajado = $false; Version = ''; App = '' })
     $opc = @{ Exe = $BenchExe; Dir = $BenchDir; Repo = $BenchRepo; Bajar = $bajar; Proc = $op.Proc; Seg = $op.Seg; Espera = $BenchEspera; Logs = (Join-Path $Scripts 'logs'); Etapa = $etapa; Excluir = $BenchExcluir }
@@ -4130,7 +4097,7 @@ function Resultado-Bench($est, [string]$extra) {
         $nf++
     }
     $caja = New-Object Windows.Controls.Border
-    $caja.CornerRadius = 12; $caja.Padding = '14,6'; $caja.Margin = '0,12,0,0'; $caja.Background = (Pincel '#232833')
+    $caja.CornerRadius = 12; $caja.Padding = '14,6'; $caja.Margin = '0,12,0,0'; $caja.Background = (Pincel '#2F2F2F')
     $caja.Child = $g
     $sp.Children.Add($caja) | Out-Null
     $notas = @('Cuanto mas alto, mejor. El 1% y el 0.1% low muestran los tirones: si suben, el juego se siente mas parejo.', 'Diferencias de menos de 3 % pueden ser solo la variacion normal entre una partida y otra.')
@@ -4142,7 +4109,7 @@ function Resultado-Bench($est, [string]$extra) {
     }
     $bLog = Nuevo-Boton 'Abrir carpeta de logs'
     $bLog.Add_Click({ $d = Join-Path $Scripts 'logs'; if (Test-Path -LiteralPath $d) { Abrir-Normal $d } })
-    $bOk = Nuevo-Boton 'Entendido' '#3D6FD9'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
+    $bOk = Nuevo-Boton 'Entendido' '#0078D4'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
     $bOk.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
     $sp.Children.Add((Fila-Botones @($bLog) @($bOk))) | Out-Null
     $w.Content.Child = $sp
@@ -4195,9 +4162,9 @@ function Actualizar-BenchCard {
     $script:BenchTxt.Visibility = $(if ($lin.Count -gt 0) { 'Visible' } else { 'Collapsed' })
 }
 
-$script:BtnBenchAntes = Nuevo-Boton 'Medir antes' '#3D6FD9'
+$script:BtnBenchAntes = Nuevo-Boton 'Medir antes' '#0078D4'
 $script:BtnBenchAntes.Add_Click({ Empezar-Bench 'antes' })
-$script:BtnBenchDespues = Nuevo-Boton 'Medir despues' '#3D6FD9'
+$script:BtnBenchDespues = Nuevo-Boton 'Medir despues' '#0078D4'
 $script:BtnBenchDespues.Add_Click({ Empezar-Bench 'despues' })
 $script:BtnBenchVer = Nuevo-Boton 'Ver comparacion'
 $script:BtnBenchVer.Add_Click({ $e = Leer-BenchEstado; if ($e -and $e['despues_fps']) { Resultado-Bench $e '' } })
@@ -4213,12 +4180,12 @@ Actualizar-BenchCard
 $bAcc = Nuevo-Boton 'Elegir cuenta para borrar' '#B3412F'; $bAcc.Tag = 'ms_acc=S'
 $spH.Children.Add((Nueva-Herramienta 'Borrar una cuenta de esta PC' 'te muestra las otras cuentas de la PC (usuarios de Windows y cuentas de Microsoft vinculadas) y borras la que elijas. Tu cuenta actual no aparece.' 'limpia cuentas viejas que ya no usas.' 'si tambien borras su carpeta, se pierden sus archivos.' @($bAcc))) | Out-Null
 
-$bSin = Nuevo-Boton 'Quitar la contrasena' '#3D6FD9'; $bSin.Tag = 'al=S'
+$bSin = Nuevo-Boton 'Quitar la contrasena' '#0078D4'; $bSin.Tag = 'al=S'
 $bCon = Nuevo-Boton 'Volver a usar contrasena'; $bCon.Tag = 'al=R'
 $spH.Children.Add((Nueva-Herramienta 'Entrar a Windows sin contrasena' 'tu cuenta pasa a ser local y sin contrasena. Si es una cuenta de Microsoft, te guia para pasarla a local.' 'entras directo a Windows.' 'cualquiera que prenda la PC entra, y no anda el Escritorio remoto.' @($bSin, $bCon))) | Out-Null
-$bWin = Nuevo-Boton 'Activacion de Windows' '#3D6FD9'
+$bWin = Nuevo-Boton 'Activacion de Windows' '#0078D4'
 $bWin.Add_Click({
-    if (-not (Confirmar 'Activar Windows' ('Se abre PowerShell y corre el comando oficial de Massgrave:' + "`n`n" + 'irm https://get.activated.win | iex') 'Abrir' '#3D6FD9' 'Cancelar')) { return }
+    if (-not (Confirmar 'Activar Windows' ('Se abre PowerShell y corre el comando oficial de Massgrave:' + "`n`n" + 'irm https://get.activated.win | iex') 'Abrir' '#0078D4' 'Cancelar')) { return }
     Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command "irm https://get.activated.win | iex"'
 })
 $spH.Children.Add((Nueva-Herramienta 'Activar Windows' 'ejecuta el comando oficial de Massgrave para activar Windows de manera segura.' '' '' @($bWin))) | Out-Null
@@ -4905,7 +4872,7 @@ foreach ($pf in $Perfiles) {
     $script:PerfilTxt[$pf.Id] = $cuenta
     $sp.Children.Add($cuenta) | Out-Null
     $fila = New-Object Windows.Controls.WrapPanel
-    $bA = Nuevo-Boton 'Aplicar perfil' $(if ($pf.Id -like 'full*') { '#B3412F' } else { '#3D6FD9' })
+    $bA = Nuevo-Boton 'Aplicar perfil' $(if ($pf.Id -like 'full*') { '#B3412F' } else { '#0078D4' })
     $bA.Tag = $pf.Id
     $bA.Add_Click({ Aplicar-Perfil ([string]$this.Tag) })
     $bR = Nuevo-Boton 'Marcar y revisar'
@@ -5092,7 +5059,7 @@ function Ir-A([string]$p) {
             $Nav[$k].BorderBrush = (Pincel $cp[2])
             continue
         }
-        $Nav[$k].Background = (Pincel $(if ($k -eq $p) { '#1F2D4A' } else { '#00000000' }))
+        $Nav[$k].Background = (Pincel $(if ($k -eq $p) { '#273445' } else { '#00000000' }))
         $Nav[$k].Foreground = (Pincel $(if ($k -eq $p) { '#FFFFFF' } else { '#C9CDD4' }))
     }
     $ui.Titulo.Text = (Con-Enie $Textos[$p][0])
@@ -5265,7 +5232,7 @@ $ui.Buscar.Add_PreviewKeyDown({
 })
 # Borde celeste mientras estas escribiendo
 $ui.Buscar.Add_GotFocus({ $ui.BuscarCaja.BorderBrush = $script:bc.ConvertFromString((Tema-Letra '#8FD3F4')) })
-$ui.Buscar.Add_LostFocus({ $ui.BuscarCaja.BorderBrush = (Pincel '#2E3440') })
+$ui.Buscar.Add_LostFocus({ $ui.BuscarCaja.BorderBrush = (Pincel '#3D3D3D') })
 # Tocar en cualquier parte del recuadro pone el cursor para escribir
 $ui.BuscarCaja.Add_MouseLeftButtonDown({ if ($ui.Buscar.IsEnabled) { $ui.Buscar.Focus() | Out-Null } })
 $ui.BuscarBorrar.Add_MouseLeftButtonDown({
@@ -5627,7 +5594,7 @@ function Aplicar-Lectura($s) {
         elseif ($null -ne $est) { $porPag[$pg].T++; if ($est) { $porPag[$pg].A++ } }
         if ($script:NoDisp.ContainsKey($k)) {
             $pb = $script:Pills[$k]
-            $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#2A2D33'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'No compatible')
+            $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#363636'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'No compatible')
             continue
         }
         Poner-Pill $script:Pills[$k] $est
@@ -6169,7 +6136,7 @@ $timer.Add_Tick({
 
 # Cartel con el resultado de "Buscar drivers": una cajita de color con icono por cada cosa, separadas con espacio
 $CajaDrv = @{
-    'placa'     = @('#3D6FD9', 0xE896); 'gpu-nv' = @('#76B900', 0xE7F4); 'gpu-amd' = @('#ED1C24', 0xE7F4); 'gpu-intel' = @('#0071C5', 0xE7F4)
+    'placa'     = @('#0078D4', 0xE896); 'gpu-nv' = @('#76B900', 0xE7F4); 'gpu-amd' = @('#ED1C24', 0xE7F4); 'gpu-intel' = @('#0071C5', 0xE7F4)
     'red' = @('#22D3EE', 0xE839); 'impresora' = @('#FDBA74', 0xE749); 'tableta' = @('#A5B4FC', 0xE70F); 'volante' = @('#F87171', 0xE7FC); 'joystick' = @('#F87171', 0xE7FC); 'camara' = @('#FBBF24', 0xE722); 'stream' = @('#FBBF24', 0xE8A1); 'disco' = @('#94A3B8', 0xEDA2); 'wifi' = @('#22D3EE', 0xE701); 'bt' = @('#8AB4F8', 0xE702); 'chipset'   = @('#F28B82', 0xE945); 'mouse' = @('#C58AF9', 0xE962); 'teclado' = @('#C58AF9', 0xE765); 'audio' = @('#8FD3F4', 0xE7F6)
     'perif'     = @('#C58AF9', 0xE7FC); 'rgb' = @('#F9A8D4', 0xE790); 'bios' = @('#E5B567', 0xE7BA); 'wu' = @('#8AB4F8', 0xE895); 'ok' = @('#81C995', 0xE73E)
 }
@@ -6206,7 +6173,7 @@ function Resultado-Drivers($r) {
             $wp.Margin = '0,4,0,0'
             foreach ($x in $it.Sub) {
                 $chip = New-Object Windows.Controls.Border
-                $chip.CornerRadius = 8; $chip.Padding = '8,3'; $chip.Margin = '0,4,6,0'; $chip.Background = (Pincel '#262B34')
+                $chip.CornerRadius = 8; $chip.Padding = '8,3'; $chip.Margin = '0,4,6,0'; $chip.Background = (Pincel '#333333')
                 $chip.Child = (Nuevo-Texto $x 12 '#E6E8EB' $false)
                 $wp.Children.Add($chip) | Out-Null
             }
@@ -6236,7 +6203,7 @@ function Resultado-Drivers($r) {
         $pie.Margin = '0,14,0,0'
         $sp.Children.Add($pie) | Out-Null
     }
-    $bOk = Nuevo-Boton 'Entendido' '#3D6FD9'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
+    $bOk = Nuevo-Boton 'Entendido' '#0078D4'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
     $bOk.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
     $sp.Children.Add((Fila-Botones @() @($bOk))) | Out-Null
     $w.Content.Child = $sp
@@ -6279,7 +6246,7 @@ function Terminar-Corrida {
         if ($C.PideReinicio) {
             $pre = 'Algunos de estos cambios necesitan reiniciar la PC.'
             if ($bench) { $pre += ' Despues de reiniciar, abri la app y toca "Medir despues" en Herramientas para ver la diferencia de FPS.' }
-            if (Confirmar 'Listo' ($m + "`n`n" + $pre + ' Reiniciar ahora?') 'Reiniciar' '#3D6FD9' 'Despues') { & shutdown.exe /r /t 10 }
+            if (Confirmar 'Listo' ($m + "`n`n" + $pre + ' Reiniciar ahora?') 'Reiniciar' '#0078D4' 'Despues') { & shutdown.exe /r /t 10 }
         } elseif ($C.Fallos -gt 0) {
             Avisar 'Listo' ($m + "`n`n" + 'No hace falta reiniciar.' + $(if ($bench) { ' Ya podes tocar "Medir despues" en Herramientas.' } else { '' }))
         } else {
@@ -6377,14 +6344,14 @@ $accionHerr = {
     if ($par[1] -eq 'R') { $txt = 'Volver a usar contrasena' }
     if ($par[0] -eq 'drv') {
         # Drivers corre sin ventana negra: revisa, instala lo que falta desde Windows Update y abre las paginas solo
-        if (-not (Confirmar $txt 'Revisa tu PC (tarda un minuto) y te abre la pagina oficial de cada driver recomendado. No instala nada: lo bajas vos desde ahi.' 'Buscar' '#3D6FD9' 'Cancelar')) { return }
+        if (-not (Confirmar $txt 'Revisa tu PC (tarda un minuto) y te abre la pagina oficial de cada driver recomendado. No instala nada: lo bajas vos desde ahi.' 'Buscar' '#0078D4' 'Cancelar')) { return }
         $v = @{ XR_drv = 'S'; XUCA_DRVAPP = '1' }
         $n = 1
         if (Preguntar-Punto @()) { $v['XR_rp'] = 'S'; $n++ }
         Correr @([pscustomobject]@{ Nombre = $txt; Ruta = $Rutas.Debloat; Vars = $v; Cambios = $n; Visible = $false; Tipo = 'drivers' }) $false 'Buscando drivers'
         return
     }
-    if (-not (Confirmar $txt 'Se abre la ventana negra del script y ahi te va pidiendo lo que necesita.' 'Seguir' '#3D6FD9' 'Cancelar')) { return }
+    if (-not (Confirmar $txt 'Se abre la ventana negra del script y ahi te va pidiendo lo que necesita.' 'Seguir' '#0078D4' 'Cancelar')) { return }
     $v = @{}; $v['XR_' + $par[0]] = $par[1]
     if (Preguntar-Punto @()) { $v['XR_rp'] = 'S' }
     Correr @([pscustomobject]@{ Nombre = $txt; Ruta = $Rutas.Debloat; Vars = $v; Cambios = 1; Visible = $true; Tipo = 'herramienta' }) $false ''
@@ -6454,12 +6421,12 @@ function Aplicar-Seleccion {
     foreach ($id in $selD) { $vD['XR_' + $id] = 'S' }
     if ($selD -contains 'av') {
         Start-Process 'windowsdefender://threatsettings'
-        if (-not (Confirmar 'Antivirus' ('Para apagar el antivirus del todo, primero apaga vos la "Proteccion contra alteraciones" (Windows no deja que un programa la apague).' + "`n`n" + 'Se abrio Seguridad de Windows. Apagala y despues toca Listo.') 'Listo' '#3D6FD9' 'Cancelar')) { return }
+        if (-not (Confirmar 'Antivirus' ('Para apagar el antivirus del todo, primero apaga vos la "Proteccion contra alteraciones" (Windows no deja que un programa la apague).' + "`n`n" + 'Se abrio Seguridad de Windows. Apagala y despues toca Listo.') 'Listo' '#0078D4' 'Cancelar')) { return }
     }
 
     $n = $selD.Count + $selG.Count
     $txtN = $(if ($n -eq 1) { 'Se va a aplicar 1 cambio.' } else { 'Se van a aplicar ' + $n + ' cambios.' })
-    if (-not (Confirmar 'Aplicar cambios' ($txtN + ' Seguir?') 'Aplicar' '#3D6FD9' 'Cancelar')) { return }
+    if (-not (Confirmar 'Aplicar cambios' ($txtN + ' Seguir?') 'Aplicar' '#0078D4' 'Cancelar')) { return }
 
     $tareas = @()
     $nD = $selD.Count
@@ -6516,7 +6483,7 @@ $ui.BtnAplicar.Add_Click({
         $msj = (Con-Enie 'Cerra los juegos y programas abiertos antes de seguir.')
         # Windows.old siempre tarda mucho: se avisa antes
         if (Test-Path -LiteralPath (Join-Path $env:SystemDrive 'Windows.old')) { $msj += "`n`n" + (Con-Enie 'Tenes la carpeta Windows.old: borrarla siempre tarda mucho (de 5 a 20 minutos). Lo que la tenga abierto se cierra solo.') }
-        if (-not (Confirmar 'Limpiar cache' $msj 'Limpiar' '#3D6FD9' 'Cancelar')) { return }
+        if (-not (Confirmar 'Limpiar cache' $msj 'Limpiar' '#0078D4' 'Cancelar')) { return }
         Correr @([pscustomobject]@{ Nombre = 'Limpieza'; Ruta = $Rutas.Limpieza; Vars = $v; Cambios = 1; Visible = $false; Tipo = 'limpieza' }) $false 'Limpiando la cache'
         return
     }
@@ -6666,8 +6633,8 @@ function Elegir-Tema {
         $es = ($o[0] -eq $script:TemaCfg)
         $card = New-Object Windows.Controls.Border
         $card.CornerRadius = 12; $card.Padding = '14,10'; $card.Margin = $(if ($primera) { '0,16,0,0' } else { '0,8,0,0' }); $primera = $false
-        $card.Background = (Pincel $(if ($es) { '#1F2D4A' } else { '#232833' }))
-        $card.BorderBrush = (Pincel $(if ($es) { '#3D6FD9' } else { '#2E3440' })); $card.BorderThickness = $(if ($es) { 2 } else { 1 })
+        $card.Background = (Pincel $(if ($es) { '#273445' } else { '#2F2F2F' }))
+        $card.BorderBrush = (Pincel $(if ($es) { '#0078D4' } else { '#3D3D3D' })); $card.BorderThickness = $(if ($es) { 2 } else { 1 })
         $card.Cursor = [Windows.Input.Cursors]::Hand
         $card.Tag = $o[0]
         $g = New-Object Windows.Controls.Grid
@@ -6692,7 +6659,7 @@ function Elegir-Tema {
         }
         $card.Child = $g
         $card.Add_MouseEnter({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#8AB4F8') } })
-        $card.Add_MouseLeave({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#2E3440') } })
+        $card.Add_MouseLeave({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#3D3D3D') } })
         # Se elige al apretar (no al soltar): el cartel se puede arrastrar y el arrastre se comia el clic.
         # Handled corta el evento para que no llegue al borde del cartel y no empiece a arrastrarlo.
         $card.Add_MouseLeftButtonDown({

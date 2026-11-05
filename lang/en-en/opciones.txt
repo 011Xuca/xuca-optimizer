@@ -384,10 +384,16 @@ Favor: it doesn't delete anything by itself while you play.
 Contra: you do the cleaning yourself, for example with the app's Clean cache.
 
 [Gaming ext]
-Titulo: Show file extensions
-Hace: shows the end of file names, like .exe or .txt.
-Favor: you see what type of file it is and spot disguised viruses.
-Contra: none.
+Titulo: Show file extensions and hidden items
+Hace: shows the end of file names, like .exe or .txt, and hidden files and folders.
+Favor: you see what type of file it is, spot disguised viruses and find folders like AppData.
+Contra: you see hidden system files: don't delete them if you don't know what they are.
+
+[Gaming vfx]
+Titulo: Set Windows visual effects to performance
+Hace: sets Windows visual effects to performance mode: fewer animations, shadows and transparency.
+Favor: frees a bit of GPU and CPU on low-power PCs, especially if the game is borderline.
+Contra: Windows looks plainer. On a powerful PC it barely changes FPS; Restore undoes it.
 
 [Gaming md]
 Titulo: Remove the menu delay

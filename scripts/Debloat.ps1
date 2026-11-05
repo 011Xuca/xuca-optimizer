@@ -1126,7 +1126,7 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                  'Microsoft.WindowsFeedbackHub', 'Clipchamp.Clipchamp', 'Microsoft.People', 'Microsoft.MixedReality.Portal',
                  'Microsoft.SkypeApp', 'Microsoft.Copilot', 'MSTeams', 'Microsoft.PowerAutomateDesktop',
                  '*LinkedIn*', 'Microsoft.Todos', 'MicrosoftCorporationII.MicrosoftFamily',
-                 'SpotifyAB.SpotifyMusic', 'Microsoft.ZuneVideo', 'Microsoft.ZuneMusic', 'Microsoft.YourPhone', 'Microsoft.549981C3F5F10',
+                 'SpotifyAB.SpotifyMusic', 'Microsoft.YourPhone', 'Microsoft.549981C3F5F10',
                  'Microsoft.MicrosoftStickyNotes', 'Microsoft.OutlookForWindows', 'Microsoft.MSPaint', 'Microsoft.Paint', 'Microsoft.WindowsCamera',
                  'Microsoft.WindowsSoundRecorder', 'Microsoft.WindowsAlarms',
                  'Microsoft.Microsoft3DViewer', 'Microsoft.3DBuilder', 'Microsoft.Print3D', 'Microsoft.Appconnector',
@@ -2458,6 +2458,10 @@ $ListaOpciones = @(
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsMSACloudSearchEnabled' 'REG_DWORD' '0'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsAADCloudSearchEnabled' 'REG_DWORD' '0'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDynamicSearchBoxEnabled' 'REG_DWORD' '0'
+            # Recomendados de la Microsoft Store y "destacados" al buscar
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 'REG_DWORD' '1'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDeviceSearchHistoryEnabled' 'REG_DWORD' '0'
             Opt-Fin 'Anuncios, sugerencias y busqueda web quitados'
         }
         R = {
@@ -2476,6 +2480,9 @@ $ListaOpciones = @(
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsMSACloudSearchEnabled' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsAADCloudSearchEnabled' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDynamicSearchBoxEnabled' 'REG_DWORD' '1'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDeviceSearchHistoryEnabled' 'REG_DWORD' '1'
             Opt-Fin 'Anuncios, sugerencias y busqueda web restaurados'
         }
     },

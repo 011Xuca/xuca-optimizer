@@ -22,7 +22,7 @@ $dnsCand = [ordered]@{
 # Juegos: ya no hay lista fija. Se detectan los que tenes instalados (ver XUCA-JUEGOS) y se suman los que agregues vos.
 $afiJuegosCat = ''
 # Programas de fondo: catalogo predeterminado (proceso=Nombre; varios procesos del mismo programa van con |). La app tambien lo lee de aca.
-$afiFondoCat = 'discord=Discord; spotify=Spotify; chrome=Google Chrome; msedge=Microsoft Edge; firefox=Firefox; opera=Opera / Opera GX; brave=Brave; steamwebhelper=Steam (tienda y ventanas); epicwebhelper=Epic Games (ventanas); onedrive=OneDrive; whatsapp=WhatsApp; telegram=Telegram; wallpaper32|wallpaper64=Wallpaper Engine'
+$afiFondoCat = 'discord=Discord; spotify=Spotify; onedrive=OneDrive; whatsapp=WhatsApp; telegram=Telegram; wallpaper32|wallpaper64=Wallpaper Engine'
 # Juegos que usan pocos hilos y dependen de la latencia: en los Ryzen con bloques chicos van a un solo bloque.
 $afiLivianos = @('javaw', 'minecraft.windows', 'valorant-win64-shipping', 'league of legends', 'rocketleague', 'robloxplayerbeta')
 # Nunca se tocan: sistema, audio, antivirus y antitrampas, OBS, editores y compiladores.
@@ -1920,15 +1920,18 @@ public static class SpiNative {
     }
 
     'LL_OFF' {
-        # Igual que "vivetool /reset /id:58989092": se borra el cambio y Windows vuelve a decidir solo
+        # Igual que "vivetool /disable /id:58989092": se APAGA a la fuerza. Antes se borraba la clave y Windows decidia solo,
+        # pero en las builds nuevas Microsoft la trae prendida por defecto y el CPU seguia subiendo al 100%.
         $k = 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446'
-        if (-not (Test-Path -LiteralPath $k)) {
-            Log 'OK' 'ya estaba: Baja latencia sin cambios del script'
+        if ((Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).EnabledState -eq 1) {
+            Log 'OK' 'ya estaba: Baja latencia apagada'
             $code = 5
         } else {
-            Remove-Item -LiteralPath $k -Recurse -Force -ErrorAction SilentlyContinue
-            if (Test-Path -LiteralPath $k) { Log 'FALLO' 'no se pudo quitar Baja latencia'; $code = 1 }
-            else { Log 'OK' 'verificado: Baja latencia vuelve a como la maneja Windows' }
+            New-Item -Path $k -Force | Out-Null
+            New-ItemProperty -LiteralPath $k -Name 'EnabledState' -Value 1 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -LiteralPath $k -Name 'EnabledStateOptions' -Value 0 -PropertyType DWord -Force | Out-Null
+            if ((Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).EnabledState -eq 1) { Log 'OK' 'verificado: Baja latencia apagada (ID 58989092), se aplica al reiniciar' }
+            else { Log 'FALLO' 'no se pudo apagar Baja latencia'; $code = 1 }
         }
     }
 
@@ -2169,7 +2172,7 @@ $ListaOpciones = @(
         R = {
             Opt-Ini 'Baja latencia (restaurar)'
             Resps (Act 'LL_OFF')
-            Opt-Fin 'Baja latencia vuelve a como la maneja Windows (se aplica al reiniciar)'
+            Opt-Fin 'Baja latencia apagada a la fuerza (se aplica al reiniciar)'
         }
     },
     @{
@@ -2232,8 +2235,9 @@ $ListaOpciones = @(
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '0'
             Reg-Set 'HKCU\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '0'
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR' 'REG_DWORD' '0'
-            foreach ($p in $GameBarProtocolos) { Protocolo $p }
             Resps (Act 'GAMEBAR_OFF')
+            # Despues de borrar la app: al desinstalarla Windows saca sus protocolos y volvia el aviso "Get an app to open ms-gamingoverlay"
+            foreach ($p in $GameBarProtocolos) { Protocolo $p }
             Opt-Fin 'Xbox Game Bar borrada'
         }
         R = {
@@ -2712,19 +2716,23 @@ $ListaOpciones = @(
     },
     @{
         Id = 'ext'; Seccion = 'BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR'
-        Q = '- Desea mostrar las extensiones de los archivos? (Ves .exe, .bat, .txt al final del nombre)'
-        Hace = 'muestra el final del nombre de los archivos, como .exe o .txt.'
-        Favor = 'ves que tipo de archivo es y detectas virus disfrazados.'
-        Contra = 'ninguno.'
+        Q = '- Desea mostrar las extensiones de los archivos y los elementos ocultos? (Ves .exe, .bat, .txt al final del nombre y las carpetas ocultas)'
+        Hace = 'muestra el final del nombre de los archivos, como .exe o .txt, y las carpetas y archivos ocultos.'
+        Favor = 'ves que tipo de archivo es, detectas virus disfrazados y encontras carpetas como AppData.'
+        Contra = 'ves archivos de sistema ocultos: no los borres si no sabes que son.'
         S = {
-            Opt-Ini 'Extensiones de archivo'
+            Opt-Ini 'Extensiones y elementos ocultos'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt' 'REG_DWORD' '0'
-            Opt-Fin 'Extensiones de archivo visibles'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden' 'REG_DWORD' '1'
+            Refrescar-Explorer
+            Opt-Fin 'Extensiones y elementos ocultos visibles (si una ventana abierta no cambia, apreta F5)'
         }
         R = {
-            Opt-Ini 'Extensiones de archivo (restaurar)'
+            Opt-Ini 'Extensiones y elementos ocultos (restaurar)'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt' 'REG_DWORD' '1'
-            Opt-Fin 'Extensiones de archivo ocultas de nuevo'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden' 'REG_DWORD' '2'
+            Refrescar-Explorer
+            Opt-Fin 'Extensiones y elementos ocultos como los deja Windows'
         }
     },
     @{
