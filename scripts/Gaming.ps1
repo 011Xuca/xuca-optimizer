@@ -2255,7 +2255,7 @@ $ListaOpciones = @(
         Q = '- Desea desactivar las notificaciones de Windows? (Apaga los avisos emergentes y el Centro de notificaciones)'
         Hace = 'apaga los avisos emergentes y el Centro de notificaciones.'
         Favor = 'nada te tapa la pantalla en partida.'
-        Contra = 'no ves avisos de apps como Discord o el correo.'
+        Contra = 'no ves avisos de apps como Discord o el correo. No sirve si una app se pone al frente por su cuenta (una actualizacion o un cuadro de Discord, Brave o Spotify): eso no es un aviso y puede seguir pasando.'
         S = {
             Opt-Ini 'Notificaciones de Windows'
             Reg-Set 'HKCU\Software\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter' 'REG_DWORD' '1'

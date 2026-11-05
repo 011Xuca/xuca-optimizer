@@ -261,7 +261,7 @@ Contra: you lose Windows captures and clips; you can use NVIDIA, AMD or OBS.
 Titulo: Disable Windows notifications
 Hace: turns off pop-up notifications and the Notification Center.
 Favor: nothing covers your screen in a match.
-Contra: you don't see notifications from apps like Discord or email.
+Contra: you don't see notifications from apps like Discord or email. It doesn't help if an app comes to the front on its own (an update or a window from Discord, Brave or Spotify): that isn't a notification and can still happen.
 
 [Gaming xm]
 Titulo: Turn off Xbox mode

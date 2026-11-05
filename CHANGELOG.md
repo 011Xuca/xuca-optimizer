@@ -7,6 +7,9 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 ### Nuevo
 - **Pantalla completa y DPI en tus juegos** (en Optimización gaming, Gráficos): a cada juego detectado le marca "Deshabilitar optimizaciones de pantalla completa" e "Invalidar el escalado de DPI alto: Aplicación". Conserva las otras marcas de compatibilidad que ya tuviera y R deja cada juego como estaba.
 
+### Cambios
+- **Desactivar las notificaciones de Windows**: el "Contra" ahora aclara que no frena las ventanas que una app abre sola (una actualización o un cuadro de Discord, Brave o Spotify), porque eso no es un aviso. Traducido al inglés.
+
 ### Corregido
 - **Modo Nitro salía "Sin aplicar"**: ahora, si no hay copia de tus valores (porque ya estaban así), también se lee el plan de energía para marcarlo como aplicado.
 
