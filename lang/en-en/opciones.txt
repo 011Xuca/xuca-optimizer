@@ -275,6 +275,12 @@ Hace: uses the modern mode for windowed games and turns on hardware-accelerated 
 Favor: less latency in windowed and borderless, and it's needed for Frame Generation.
 Contra: it can cause problems on some old PCs.
 
+[Gaming fso]
+Titulo: Disable fullscreen optimizations and DPI scaling on your games
+Hace: for each installed game it ticks "Disable fullscreen optimizations" and "Override high DPI scaling behavior: Application" (Properties > Compatibility).
+Favor: less input latency in fullscreen, and the game handles its own scaling without Windows stretching it.
+Contra: it only touches games detected automatically (Steam, Epic, EA, etc.); if a game loses modern borderless mode, R undoes it. Close and reopen the game.
+
 [Gaming mpo]
 Titulo: Disable MPO
 Hace: disables MPO, a display feature that overlays images.

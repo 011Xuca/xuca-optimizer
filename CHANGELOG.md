@@ -2,6 +2,14 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## v1.0.9
+
+### Nuevo
+- **Pantalla completa y DPI en tus juegos** (en Optimización gaming, Gráficos): a cada juego detectado le marca "Deshabilitar optimizaciones de pantalla completa" e "Invalidar el escalado de DPI alto: Aplicación". Conserva las otras marcas de compatibilidad que ya tuviera y R deja cada juego como estaba.
+
+### Corregido
+- **Modo Nitro salía "Sin aplicar"**: ahora, si no hay copia de tus valores (porque ya estaban así), también se lee el plan de energía para marcarlo como aplicado.
+
 ## v1.0.8
 
 ### Nuevo

@@ -471,7 +471,7 @@ function Juegos-Detectados {
             }
             if ((-not $proc) -or ($proc -notmatch '^[^\\/:*?"<>|=;,]+$') -or ($proc -match $procNo) -or $ya.ContainsKey($proc)) { return }
             $ya[$proc] = $true
-            $res.Add([pscustomobject]@{ Proc = $proc; Nombre = $nombre; Plat = $plat })
+            $res.Add([pscustomobject]@{ Proc = $proc; Nombre = $nombre; Plat = $plat; Dir = $dir })
         } catch { }
     }
 
@@ -2304,6 +2304,56 @@ $ListaOpciones = @(
             Resps (Act 'DX' 'SwapEffectUpgradeEnable=DEL;')
             Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode'
             Opt-Fin 'Graficos restaurados (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'fso'; Seccion = 'GRAFICOS'
+        Q = '- Desea desactivar las optimizaciones de pantalla completa y el escalado DPI en tus juegos? (Se aplica a todos los juegos detectados)'
+        Hace = 'a cada juego instalado le marca "Deshabilitar optimizaciones de pantalla completa" y "Invalidar el escalado de DPI alto: lo hace la Aplicacion" (Propiedades > Compatibilidad).'
+        Favor = 'menos latencia de entrada en pantalla completa y el juego controla su propio escalado, sin que Windows lo estire.'
+        Contra = 'solo toca los juegos que se detectan solos (Steam, Epic, EA, etc.); si un juego pierde el modo ventana sin bordes moderno, R lo vuelve atras. Hay que cerrar y abrir el juego.'
+        S = {
+            Opt-Ini 'Compatibilidad de juegos (pantalla completa y DPI)'
+            $lay = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
+            $bak = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'fso.txt'
+            $guardado = @{}
+            if (Test-Path -LiteralPath $bak) { foreach ($l in (Get-Content -LiteralPath $bak)) { $c = $l -split "`t"; if ($c.Count -ge 1 -and $c[0]) { $guardado[$c[0]] = $(if ($c.Count -ge 2) { $c[1] } else { '' }) } } }
+            $hecho = 0
+            foreach ($j in @(Juegos-Detectados | Where-Object { $_.Dir -and (-not (Afi-Prohibido $_.Proc)) })) {
+                $exes = @(Get-ChildItem -LiteralPath $j.Dir -Filter ($j.Proc + '.exe') -File -Recurse -Depth 5 -Force -ErrorAction SilentlyContinue)
+                foreach ($f in $exes) {
+                    $ex = $f.FullName
+                    $l0 = Reg-Leer $lay $ex
+                    $prev = $(if ($l0) { [string]$l0.Valor } else { '' })
+                    if (-not $guardado.ContainsKey($ex)) { $guardado[$ex] = $prev }
+                    # Se conservan las otras marcas que ya tuviera (por ejemplo RUNASADMIN) y se sacan las de DPI que chocan
+                    $otras = @($prev -split '\s+' | Where-Object { $_ -and ($_ -ne '~') -and ($_ -notin 'DPIUNAWARE', 'GDIDPISCALING', 'HIGHDPIAWARE', 'DISABLEDXMAXIMIZEDWINDOWEDMODE') })
+                    Reg-Set $lay $ex 'REG_SZ' ((@('~') + $otras + @('DISABLEDXMAXIMIZEDWINDOWEDMODE', 'HIGHDPIAWARE')) -join ' ')
+                    $hecho++
+                }
+            }
+            if ($hecho -eq 0) { Log 'OMITIDO' 'no se encontro ningun juego instalado para tocar'; Say '  No se detecto ningun juego instalado: no se cambio nada.' 'Yellow' }
+            else {
+                $d = Split-Path -Parent $bak
+                if (-not (Test-Path -LiteralPath $d)) { New-Item -Path $d -ItemType Directory -Force | Out-Null; Proteger-Carpeta $d }
+                Set-Content -LiteralPath $bak -Value @($guardado.Keys | ForEach-Object { $_ + "`t" + $guardado[$_] }) -Encoding UTF8
+            }
+            Opt-Fin ('Pantalla completa y DPI ajustados en ' + $hecho + ' ejecutables de juegos (cerra y abri el juego)')
+        }
+        R = {
+            Opt-Ini 'Compatibilidad de juegos (restaurar)'
+            $lay = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
+            $bak = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'fso.txt'
+            if (-not (Test-Path -LiteralPath $bak)) { Log 'OK' 'ya estaba: no hay juegos tocados por este script' }
+            else {
+                foreach ($l in (Get-Content -LiteralPath $bak)) {
+                    $c = $l -split "`t"
+                    if (-not $c[0]) { continue }
+                    if ($c.Count -ge 2 -and $c[1]) { Reg-Set $lay $c[0] 'REG_SZ' $c[1] } else { Reg-Del $lay $c[0] }
+                }
+                Remove-Item -LiteralPath $bak -Force -ErrorAction SilentlyContinue
+            }
+            Opt-Fin 'Los juegos vuelven a sus ajustes de compatibilidad anteriores'
         }
     },
     @{

@@ -623,7 +623,14 @@ $Chequeos = @{
     'Gaming|pri'    = { (Prio-Actuales).Count -gt 0 }
     'Gaming|afi'    = { Prog-Estado 'XucaAfinidad' 'XucaAfinidad.exe' $CodAfi }
     'Gaming|pw'     = { $global:XPlan -eq '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' }
-    'Gaming|cpu'    = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt')) }
+    # Con la copia de tus valores, o (si ya estaban asi y no se guardo copia) con los 4 ajustes principales leidos del plan
+    'Gaming|cpu'    = {
+        if (-not $global:XPlan) { return $null }
+        if (Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt'))) { return $true }
+        $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\54533251-82be-4824-96c1-47b60b740d00\'
+        ((Leer-Reg ($rk + '0cc5b647-c1df-4637-891a-dec35c318583') 'ACSettingIndex') -eq 100) -and ((Leer-Reg ($rk + '893dee8e-2bef-41e0-89c6-b55d0929964c') 'ACSettingIndex') -eq 0) -and ((Leer-Reg ($rk + '45bcc044-d885-43e2-8605-ee0ec6e96b59') 'ACSettingIndex') -eq 100) -and ((Leer-Reg ($rk + '36687f9e-e3a5-4dbf-b1dc-15eb381c6863') 'ACSettingIndex') -eq 0)
+    }
+    'Gaming|fso'    = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\fso.txt') }
     'Gaming|nb'     = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\nb_' + $global:XPlan + '.txt')) }
     'Gaming|ll'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446' 'EnabledState') -eq 2 }
     'Gaming|idle'   = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\54533251-82be-4824-96c1-47b60b740d00\5d76a2ca-e8c0-402f-a133-2158492d58ad') 'ACSettingIndex') -eq 1 }
@@ -4771,7 +4778,7 @@ $Perfiles = @(
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps. Por las dudas tampoco apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle: en algunas PCs dan cortes o lag.'
         Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse.'
         D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4')
     },
     [pscustomobject]@{
         Id = 'compopt'; Nombre = 'Competitivo + Optimizado'; Color = '#C58AF9'
@@ -4780,7 +4787,7 @@ $Perfiles = @(
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS. Igual que Competitivo, no apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle.'
         Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
         D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
     },
     [pscustomobject]@{
         Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#6EE7B7'
@@ -4798,7 +4805,7 @@ $Perfiles = @(
         NoToca = 'el antivirus ni la seguridad. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.'
         Adv = 'para jugar, enchufa la notebook: a bateria rinde menos a proposito. Con undervolt u overclock, el Modo Nitro puede volverla inestable.'
         D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'cpu', 'gm', 'xb', 'xm', 'notif', 'gf', 'pca', 'ram', 'sm', 'nag', 'dns', 'avl', 'md', 'v4', 'nb')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'cpu', 'gm', 'xb', 'xm', 'notif', 'gf', 'fso', 'pca', 'ram', 'sm', 'nag', 'dns', 'avl', 'md', 'v4', 'nb')
     },
     [pscustomobject]@{
         Id = 'full'; Nombre = 'Full Optimizado'; Color = '#F28B82'
@@ -4816,7 +4823,7 @@ $Perfiles = @(
         NoToca = 'Edge ni Chrome. No apaga los puntos de restauracion: crea uno antes de empezar.'
         Adv = 'suma los riesgos de Full Optimizado y de Competitivo: sin antivirus, Vanguard se borra (lo reinstalas abriendo el cliente de Riot), y con undervolt u overclock la PC puede colgarse por el plan de energia y el temporizador.'
         D = @('av', 'bl', 'hib', 'rc', 'sch', 'fx', 'et', 'apps', 'tel', 'wg', 'do', 'wud', 'wup', 'ad', 'sv', 'pv', 'ter', 'tp', 'hst', 'eb', 'su', 'ia', 'db', 'ini')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'mi', 'vbs', 'wsr', 'stg', 'ext', 'md', 'v4', 'xm')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'fso', 'mpo', 'msi', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'mi', 'vbs', 'wsr', 'stg', 'ext', 'md', 'v4', 'xm')
     }
 )
 
