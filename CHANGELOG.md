@@ -2,6 +2,15 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## v1.0.10
+
+### Nuevo
+- **Estado de la PC** (en Herramientas): un botón que muestra la RAM libre, el espacio libre del disco, cuántos programas arrancan con Windows, el plan de energía y hace cuánto está encendida la PC. Sirve para comparar antes y después de aplicar. Traducido al inglés (el resumen que muestra sale en español).
+
+### Cambios
+- **Menos falsas alarmas del antivirus**: `scripts\Edge.txt` ya no trae programas (`setup.exe` y `SQLite.dll`) escondidos en base64. "Quitar Edge" ahora los descarga de ShadowWhisperer/Remove-MS-Edge en el momento y verifica su huella SHA-256 antes de usarlos; si no coincide, los baja el propio `Edge.bat`.
+- **Abrir la app**: `XucaOP.bat` y `install.ps1` ya no quitan la marca de "descargado de internet" (`Unblock-File`), que es una técnica que los antivirus miran con desconfianza. Con `-ExecutionPolicy Bypass` no hacía falta. La ventana de PowerShell ahora queda minimizada en la barra de tareas en vez de oculta.
+
 ## v1.0.9
 
 ### Nuevo

@@ -2927,3 +2927,15 @@ en: You can now tap "Measure after" in Tools.
 
 es: "Ya podes tocar "Medir despues" en Herramientas. "
 en: "You can now tap "Measure after" in Tools. "
+
+es: Ver estado de la PC
+en: View PC status
+
+es: Estado de la PC
+en: PC status
+
+es: muestra RAM libre, espacio en disco, programas de inicio, plan de energia y tiempo encendida.
+en: shows free RAM, disk space, startup programs, power plan and uptime.
+
+es: sirve para comparar antes y despues de aplicar.
+en: useful to compare before and after applying.

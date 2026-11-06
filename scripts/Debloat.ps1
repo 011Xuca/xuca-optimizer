@@ -116,22 +116,15 @@ public static extern bool CloseHandle(IntPtr handle);
 '@
 }
 
-function Extraer-Bin($texto, $clave, $destino, $sha) {
+function Bajar-Bin($url, $destino, $sha) {
     try {
-        $sb = New-Object System.Text.StringBuilder
-        foreach ($m in [regex]::Matches($texto, '(?m)^::EDGEBIN:' + $clave + ':([A-Za-z0-9+/=]+)')) { [void]$sb.Append($m.Groups[1].Value) }
-        if ($sb.Length -eq 0) { return $false }
-        $gz = [Convert]::FromBase64String($sb.ToString())
-        $ent = New-Object System.IO.MemoryStream(, $gz)
-        $zip = New-Object System.IO.Compression.GZipStream($ent, [System.IO.Compression.CompressionMode]::Decompress)
-        $sal = [System.IO.File]::Create($destino)
-        try { $zip.CopyTo($sal) } finally { $sal.Close(); $zip.Close(); $ent.Close() }
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $url -OutFile $destino -UseBasicParsing -ErrorAction Stop
         $h = (Get-FileHash -LiteralPath $destino -Algorithm SHA256).Hash.ToLower()
         if ($h -ne $sha) { Remove-Item -LiteralPath $destino -Force -ErrorAction SilentlyContinue; return $false }
         return $true
-    } catch { return $false }
+    } catch { Remove-Item -LiteralPath $destino -Force -ErrorAction SilentlyContinue; return $false }
 }
-
 # Los nombres aceptan comodines (por ejemplo *LinkedIn*, porque el nombre del paquete cambia segun la version).
 # Lo que Windows marca como parte del sistema (NonRemovable) no se toca: borrarlo a la fuerza rompe el menu Inicio.
 function Quitar-Apps($lista) {
@@ -1267,16 +1260,16 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                 Log 'FALLO' 'No se encontro el Edge.bat en scripts\Edge.txt'
                 $code = 1
             } else {
-                # Archivos que el Edge.bat bajaba de GitHub: se extraen de Edge.txt a %TEMP% (sin descargar)
+                # Archivos que el Edge.bat bajaba de GitHub: se bajan a %TEMP% y se verifica el SHA-256 (si no coincide, lo baja el Edge.bat)
                 $binsTmp = @()
                 $arq = $env:PROCESSOR_ARCHITECTURE
                 if ($env:PROCESSOR_ARCHITEW6432) { $arq = $env:PROCESSOR_ARCHITEW6432 }
                 if ($arq -eq 'AMD64') {
                     $d1 = Join-Path $env:TEMP 'setup.x64.exe'
                     $d2 = Join-Path $env:TEMP 'System.Data.SQLite.x64.dll'
-                    if (Extraer-Bin $full 'setup' $d1 '0950336e0d633eb645e0cf66780d2102a182caa184264d4f62146fe229f636e7') { $binsTmp += $d1 }
-                    if (Extraer-Bin $full 'sqlite' $d2 '1b3742c5bd1b3051ae396c6e62d1037565ca0cbbedb35b460f7d10a70c30376f') { $binsTmp += $d2 }
-                    Log 'INFO' ('archivos del Edge.bat extraidos de Edge.txt: ' + $binsTmp.Count + ' de 2 (si falta alguno, el Edge.bat lo descarga)')
+                    if (Bajar-Bin ('https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/_Source/setup.x64.exe') $d1 '0950336e0d633eb645e0cf66780d2102a182caa184264d4f62146fe229f636e7') { $binsTmp += $d1 }
+                    if (Bajar-Bin ('https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/_Source/System.Data.SQLite.x64.dll') $d2 '1b3742c5bd1b3051ae396c6e62d1037565ca0cbbedb35b460f7d10a70c30376f') { $binsTmp += $d2 }
+                    Log 'INFO' ('archivos del Edge.bat descargados y verificados: ' + $binsTmp.Count + ' de 2 (si falta alguno, el Edge.bat lo descarga)')
                 }
                 $edgeBat = Join-Path $env:TEMP 'xuca_Edge.bat'
                 [IO.File]::WriteAllText($edgeBat, (($filas -join "`r`n") + "`r`n"), [Text.Encoding]::ASCII)

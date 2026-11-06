@@ -4190,6 +4190,22 @@ $spH.Children.Add((Nueva-Herramienta 'Borrar una cuenta de esta PC' 'te muestra 
 $bSin = Nuevo-Boton 'Quitar la contrasena' '#0078D4'; $bSin.Tag = 'al=S'
 $bCon = Nuevo-Boton 'Volver a usar contrasena'; $bCon.Tag = 'al=R'
 $spH.Children.Add((Nueva-Herramienta 'Entrar a Windows sin contrasena' 'tu cuenta pasa a ser local y sin contrasena. Si es una cuenta de Microsoft, te guia para pasarla a local.' 'entras directo a Windows.' 'cualquiera que prenda la PC entra, y no anda el Escritorio remoto.' @($bSin, $bCon))) | Out-Null
+$bEst = Nuevo-Boton 'Ver estado de la PC' '#0078D4'
+$bEst.Add_Click({
+    try {
+        $os = Get-CimInstance Win32_OperatingSystem
+        $up = (Get-Date) - $os.LastBootUpTime
+        $disco = Get-PSDrive -Name $env:SystemDrive.TrimEnd(':')
+        $plan = ((& powercfg.exe /getactivescheme | Out-String) -replace '(?s).*\((.*?)\).*', '$1').Trim()
+        $txt = ('RAM libre: {0} GB de {1} GB' -f [math]::Round($os.FreePhysicalMemory / 1MB, 1), [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)) + "`n" +
+            ('Disco {0} libre: {1} GB' -f $env:SystemDrive, [math]::Round($disco.Free / 1GB, 1)) + "`n" +
+            ('Programas que arrancan con Windows: {0}' -f @(Get-CimInstance Win32_StartupCommand).Count) + "`n" +
+            ('Plan de energia: {0}' -f $plan) + "`n" +
+            ('Encendida hace: {0} d {1} h' -f $up.Days, $up.Hours)
+        Avisar 'Estado de la PC' $txt
+    } catch { Avisar 'Estado de la PC' $_.Exception.Message }
+})
+$spH.Children.Add((Nueva-Herramienta 'Estado de la PC' 'muestra RAM libre, espacio en disco, programas de inicio, plan de energia y tiempo encendida.' 'sirve para comparar antes y despues de aplicar.' '' @($bEst))) | Out-Null
 $bWin = Nuevo-Boton 'Activacion de Windows' '#0078D4'
 $bWin.Add_Click({
     if (-not (Confirmar 'Activar Windows' ('Se abre PowerShell y corre el comando oficial de Massgrave:' + "`n`n" + 'irm https://get.activated.win | iex') 'Abrir' '#0078D4' 'Cancelar')) { return }

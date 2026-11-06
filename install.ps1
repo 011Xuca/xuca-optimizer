@@ -19,7 +19,6 @@ try {
 
     New-Item -ItemType Directory -Path $Destino -Force | Out-Null
     Copy-Item -Path (Join-Path $src '*') -Destination $Destino -Recurse -Force -ErrorAction Stop
-    Get-ChildItem -LiteralPath $Destino -File -Recurse | Unblock-File -ErrorAction SilentlyContinue
 
     $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Xuca OPtimizer.lnk'
     $ws = New-Object -ComObject WScript.Shell
