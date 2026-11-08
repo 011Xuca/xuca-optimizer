@@ -606,11 +606,14 @@ $Chequeos = @{
     'Debloat|wup'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'FlightSettingsMaxPauseDays') -eq 7300 }
     'Debloat|ad'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SystemPaneSuggestionsEnabled') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB') -eq 0) }
     'Debloat|sv'    = { ((Leer-Svc 'MapsBroker') -eq 4) -and ((Leer-Svc 'WerSvc') -eq 4) }
+    'Debloat|rsv'   = { ((Leer-Svc 'XblAuthManager') -eq 4) -and ((Leer-Svc 'TrkWks') -eq 4) }
+    'Debloat|svh'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control' 'SvcHostSplitThresholdInKB') -eq 67108864 }
     'Debloat|pv'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' 'DisableLocation') -eq 1) }
     'Debloat|ter'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\TCPIP\v6Transition' 'Teredo_State') -eq 'Disabled' }
     'Debloat|tp'    = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' 'POWERSHELL_TELEMETRY_OPTOUT') -eq '1' }
     'Debloat|hst'   = { [bool](Select-String -LiteralPath (Join-Path $env:SystemRoot 'System32\drivers\etc\hosts') -SimpleMatch -Pattern '# xuca-telemetria' -Quiet) }
     'Debloat|eb'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled') -eq 0 }
+    'Debloat|cam'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode') -eq 1 }
     'Debloat|su'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload') -eq 2 }
     'Debloat|ia'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\WindowsNotepad' 'DisableAIFeatures') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableClickToDo') -eq 1) }
     'Debloat|db'    = { Apps-Conteo }
@@ -4804,6 +4807,24 @@ $Perfiles = @(
         Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
         D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
         G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
+    },
+    [pscustomobject]@{
+        Id = 'ramlow'; Nombre = 'RAM liviana'; Color = '#FDE68A'
+        Hace = 'baja el uso de RAM de Windows sin tocar la seguridad: saca publicidad, telemetria, rastreo, Widgets y la IA de Windows, borra las apps basura, apaga las apps basura de inicio, las apps en segundo plano, los efectos visuales, SysMain, servicios que casi nadie usa (Xbox, Telefono, Billetera y mas) y junta los servicios de Windows en menos procesos.'
+        Ideal = 'una PC con poca RAM (4 a 8 GB) que queres que arranque con el menor consumo posible, sin perder el antivirus.'
+        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo.'
+        Adv = 'Xbox Game Pass y la zona wifi movil dejan de andar. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'rsv', 'svh', 'db', 'fx', 'sch', 'ini')
+        G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg')
+    },
+    [pscustomobject]@{
+        Id = 'rammin'; Nombre = 'RAM minima'; Color = '#FDA4AF'
+        Hace = 'todo lo de RAM liviana, y ademas apaga la hibernacion, Windows Search, el antivirus, BitLocker, la integridad de memoria y VBS, los drivers de Windows Update y el Teredo. Es lo mas cerca que se llega a un Windows recortado sin reinstalar.'
+        Ideal = 'una PC vieja o con 4 GB de RAM que necesita liberar todo lo posible, sabiendo lo que haces.'
+        NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
+        Adv = 'la PC queda sin antivirus y deja de andar WSL, Docker y las maquinas virtuales. Sin Windows Search, buscar archivos es mas lento. En reposo ronda los 2 a 2,5 GB; para 1 a 2 GB hace falta una ISO recortada (tiny11 o NTLite).'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'rsv', 'svh', 'db', 'hib', 'fx', 'sch', 'wud', 'av', 'bl', 'ter', 'ini')
+        G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg', 'mi', 'vbs', 'wsr')
     },
     [pscustomobject]@{
         Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#6EE7B7'

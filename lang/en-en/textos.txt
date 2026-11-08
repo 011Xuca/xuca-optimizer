@@ -2939,3 +2939,33 @@ en: shows free RAM, disk space, startup programs, power plan and uptime.
 
 es: sirve para comparar antes y despues de aplicar.
 en: useful to compare before and after applying.
+
+es: RAM liviana
+en: Light RAM
+
+es: RAM minima
+en: Minimum RAM
+
+es: baja el uso de RAM de Windows sin tocar la seguridad: saca publicidad, telemetria, rastreo, Widgets y la IA de Windows, borra las apps basura, apaga las apps basura de inicio, las apps en segundo plano, los efectos visuales, SysMain, servicios que casi nadie usa (Xbox, Telefono, Billetera y mas) y junta los servicios de Windows en menos procesos.
+en: lowers Windows RAM use without touching security: removes ads, telemetry, tracking, Widgets and Windows AI, deletes bloatware apps, turns off bloatware startup apps, background apps, visual effects, SysMain, services almost nobody uses (Xbox, Phone, Wallet and more) and merges Windows services into fewer processes.
+
+es: una PC con poca RAM (4 a 8 GB) que queres que arranque con el menor consumo posible, sin perder el antivirus.
+en: a PC with little RAM (4 to 8 GB) that you want to start with the lowest possible usage, keeping the antivirus.
+
+es: el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo.
+en: the antivirus, BitLocker, memory integrity or VBS, or the competitive gaming tweaks.
+
+es: Xbox Game Pass y la zona wifi movil dejan de andar. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.
+en: Xbox Game Pass and the mobile hotspot stop working. Deleting bloatware apps can't be reset. Merging services applies on restart. Idle use is around 2.5 to 3 GB: going lower needs a trimmed-down Windows image.
+
+es: todo lo de RAM liviana, y ademas apaga la hibernacion, Windows Search, el antivirus, BitLocker, la integridad de memoria y VBS, los drivers de Windows Update y el Teredo. Es lo mas cerca que se llega a un Windows recortado sin reinstalar.
+en: everything in Light RAM, and it also turns off hibernation, Windows Search, the antivirus, BitLocker, memory integrity and VBS, Windows Update drivers and Teredo. It's as close as you get to a trimmed-down Windows without reinstalling.
+
+es: una PC vieja o con 4 GB de RAM que necesita liberar todo lo posible, sabiendo lo que haces.
+en: an old PC or one with 4 GB of RAM that needs to free as much as possible, knowing what you're doing.
+
+es: los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.
+en: the competitive gaming tweaks, or Edge or Chrome. Creates a restore point before starting.
+
+es: la PC queda sin antivirus y deja de andar WSL, Docker y las maquinas virtuales. Sin Windows Search, buscar archivos es mas lento. En reposo ronda los 2 a 2,5 GB; para 1 a 2 GB hace falta una ISO recortada (tiny11 o NTLite).
+en: the PC is left without antivirus and WSL, Docker and virtual machines stop working. Without Windows Search, finding files is slower. Idle use is around 2 to 2.5 GB; for 1 to 2 GB you need a trimmed ISO (tiny11 or NTLite).

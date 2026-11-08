@@ -115,6 +115,18 @@ Hace: turns off Fax, Maps, demo mode, geolocation and error report services, and
 Favor: fewer services and features loaded in Windows.
 Contra: if you use the Windows scanner or the old Media Player, they're gone.
 
+[Debloat rsv]
+Titulo: Turn off more services to free RAM
+Hace: turns off the Xbox services (Game Pass and cloud saves), Phone, Wallet, NFC payments, mobile hotspot, parental controls, smart cards and Insider.
+Favor: fewer services loaded: frees some RAM and background processes.
+Contra: Xbox Game Pass, Store games with cloud saves and the mobile hotspot stop working.
+
+[Debloat svh]
+Titulo: Merge Windows services into fewer processes
+Hace: makes Windows group its services into a few svchost processes instead of one per service (SvcHostSplitThresholdInKB).
+Favor: saves several hundred MB of RAM and lowers the process count.
+Contra: if one service hangs it can take down the ones sharing its process. Applies on restart.
+
 [Debloat pv]
 Titulo: Turn off tracking and data collection
 Hace: turns off activity history, location, Wifi Sense, cloud clipboard and settings, typing learning and suggestions, cloud speech and apps listening for voice commands, maps, DRM and Homegroup.
@@ -156,6 +168,12 @@ Titulo: Turn off Windows AI features
 Hace: turns off Click to Do, the AI in Notepad and Paint (image creator, Cocreator, generative fill and erase, remove background), the AI agent in Settings, Copilot in search, app access to generative AI and Copilot in Word and Excel.
 Favor: fewer AI processes and more privacy.
 Contra: you lose those features.
+
+[Debloat cam]
+Titulo: Allow multiple apps to use the camera
+Hace: turns on "Allow multiple apps to use camera at the same time" (Frame Server).
+Favor: you can use the camera in OBS, Discord, Teams, etc. at once without one blocking the other.
+Contra: some camera controls can only be changed from the camera settings page.
 
 [Debloat db]
 Titulo: Delete bloatware apps

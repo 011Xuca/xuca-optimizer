@@ -2,6 +2,17 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## v1.0.11
+
+### Nuevo
+- **Perfiles RAM liviana y RAM mínima** (en Perfiles): bajan el uso de RAM de Windows. *RAM liviana* no toca la seguridad: saca publicidad, telemetría, Widgets e IA, borra las apps basura, apaga las apps de inicio y en segundo plano, los efectos visuales y SysMain, y suma las dos opciones nuevas de abajo. *RAM mínima* suma además apagar hibernación, Windows Search, antivirus, BitLocker, integridad de memoria y VBS. Rondan 2,5–3 GB y 2–2,5 GB en reposo (estimado, no medido); para 1–2 GB hace falta una ISO recortada (tiny11 o NTLite). Traducido al inglés.
+
+- **Servicios de Windows en menos procesos** (en Debloat): junta los servicios en pocos `svchost` (`SvcHostSplitThresholdInKB`) y ahorra varios cientos de MB de RAM. Se aplica al reiniciar. Traducido al inglés.
+
+- **Más servicios apagados para liberar RAM** (en Debloat): apaga los servicios de Xbox, Teléfono, Billetera, NFC, zona wifi móvil, control parental, tarjetas inteligentes e Insider. Xbox Game Pass y la zona wifi móvil dejan de andar. Traducido al inglés.
+
+- **Cámara en varias apps** (en Debloat): activa "Permitir que varias aplicaciones usen la cámara al mismo tiempo" de Windows, para usarla en OBS, Discord, Teams, etc. a la vez. Traducido al inglés.
+
 ## v1.0.10
 
 ### Nuevo

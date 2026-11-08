@@ -2513,6 +2513,46 @@ $ListaOpciones = @(
         }
     },
     @{
+        Id = 'rsv'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar mas servicios para liberar RAM? (Xbox, Telefono, Billetera, NFC, zona wifi, control parental, tarjetas inteligentes)'
+        Hace = 'apaga los servicios de Xbox (Game Pass y guardado en la nube), Telefono, Billetera, pagos NFC, zona wifi movil, control parental, tarjetas inteligentes e Insider.'
+        Favor = 'menos servicios cargados: libera algo de RAM y procesos en segundo plano.'
+        Contra = 'Xbox Game Pass, los juegos de la Store con guardado en la nube y la zona wifi movil dejan de andar.'
+        S = {
+            Opt-Ini 'Mas servicios apagados para liberar RAM'
+            foreach ($n in 'XblAuthManager', 'XblGameSave', 'XboxGipSvc', 'XboxNetApiSvc', 'PhoneSvc', 'WalletService', 'SEMgrSvc', 'icssvc', 'wisvc', 'WpcMonSvc', 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc', 'TrkWks') {
+                Svc $n 'disabled' '4'
+                Svc-Parar $n
+            }
+            Opt-Fin 'Servicios extra desactivados'
+        }
+        R = {
+            Opt-Ini 'Mas servicios apagados (restaurar)'
+            foreach ($n in 'XblAuthManager', 'XblGameSave', 'XboxGipSvc', 'XboxNetApiSvc', 'PhoneSvc', 'WalletService', 'SEMgrSvc', 'icssvc', 'wisvc', 'WpcMonSvc', 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc') {
+                Svc $n 'demand' '3'
+            }
+            Svc 'TrkWks' 'auto' '2'
+            Opt-Fin 'Servicios extra restaurados'
+        }
+    },
+    @{
+        Id = 'svh'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea juntar los servicios de Windows en menos procesos? (Ahorra RAM; se nota con 4 GB o mas)'
+        Hace = 'hace que Windows junte sus servicios en pocos procesos svchost en vez de uno por servicio (SvcHostSplitThresholdInKB).'
+        Favor = 'ahorra varios cientos de MB de RAM y baja la cantidad de procesos.'
+        Contra = 'si un servicio se cuelga puede arrastrar a los que comparten su proceso. Se aplica al reiniciar.'
+        S = {
+            Opt-Ini 'Servicios de Windows en menos procesos'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control' 'SvcHostSplitThresholdInKB' 'REG_DWORD' '67108864'
+            Opt-Fin 'Servicios juntados en menos procesos (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Servicios de Windows en menos procesos (restaurar)'
+            Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control' 'SvcHostSplitThresholdInKB'
+            Opt-Fin 'Servicios de Windows restaurados al valor por defecto (se aplica al reiniciar)'
+        }
+    },
+    @{
         Id = 'pv'; Seccion = 'SISTEMA Y PRIVACIDAD'
         Q = '- Desea apagar el rastreo y la recopilacion de datos? (Actividad, ubicacion, Wifi Sense, sincronizacion, escritura y voz en la nube)'
         Hace = 'apaga historial de actividad, ubicacion, Wifi Sense, portapapeles y ajustes en la nube, aprendizaje y sugerencias de escritura, voz en la nube y apps escuchando comandos de voz, mapas, DRM y Homegroup.'
@@ -2775,6 +2815,25 @@ $ListaOpciones = @(
             Opt-Ini 'Actualizaciones de apps de la Store (restaurar)'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload'
             Opt-Fin 'Actualizaciones automaticas de la Store restauradas'
+        }
+    },
+    @{
+        Id = 'cam'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea permitir que varias apps usen la camara a la vez? (Opcion avanzada de la camara de Windows)'
+        Hace = 'activa "Permitir que varias aplicaciones usen la camara al mismo tiempo" (Frame Server).'
+        Favor = 'podes usar la camara en OBS, Discord, Teams, etc. a la vez sin que una bloquee a la otra.'
+        Contra = 'algunos controles de la camara solo se pueden cambiar desde la pagina de ajustes de la camara.'
+        S = {
+            Opt-Ini 'Camara en varias apps'
+            Reg-Set 'HKLM\SOFTWARE\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode' 'REG_DWORD' '1'
+            Reg-Set 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode' 'REG_DWORD' '1'
+            Opt-Fin 'Varias apps pueden usar la camara a la vez (reinicia las apps que usan la camara)'
+        }
+        R = {
+            Opt-Ini 'Camara en varias apps (restaurar)'
+            Reg-Del 'HKLM\SOFTWARE\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode'
+            Reg-Del 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode'
+            Opt-Fin 'Camara restaurada al valor de Windows'
         }
     },
     @{
