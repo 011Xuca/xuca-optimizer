@@ -4276,6 +4276,8 @@ $AppsRec = @(
         Texto = 'compila antes de jugar los shaders del juego que elijas, asi no da tirones ni bajones de FPS en las primeras partidas. Anda con NVIDIA y AMD.' },
     [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE839; Nombre = 'Xuca Monitor'; Critica = $false; Url = 'https://github.com/011Xuca/xuca-monitor/releases/latest/download/XucaMonitor.exe'
         Texto = 'vigila tu PC desde la bandeja: cortes de internet y lag, USB que se desconectan, que te baja los FPS mientras jugas y errores como pantalla negra o pantallazo azul. Te dice que fue y que probar. Se actualiza sola y casi no gasta nada.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE774; Nombre = 'Hiber'; Critica = $false; Url = 'https://github.com/011Xuca/hiber'
+        Texto = 'extension de navegador que duerme las pestañas que no usas, bloquea anuncios (incluido YouTube) y recorta RAM, CPU y red. Anda en Chrome, Edge, Brave, Opera y Firefox.' },
     [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE9D9; Nombre = 'HWiNFO'; Critica = $false; Url = 'https://www.hwinfo.com/download/'
         Texto = 'muestra en detalle temperaturas, voltajes y ventiladores. Esencial para saber si tu PC se esta calentando de mas.' },
     [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#E5B567'; Icono = 0xE946; Nombre = 'CPU-Z'; Critica = $false; Url = 'https://download.cpuid.com/cpu-z/cpu-z_3.01-en.exe'
