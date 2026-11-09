@@ -1298,13 +1298,13 @@ $XamlTexto = @'
       </StackPanel>
       <ScrollViewer x:Name="Scroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0"/>
       <DockPanel Grid.Row="2" Margin="0,14,0,0">
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+        <WrapPanel DockPanel.Dock="Bottom" HorizontalAlignment="Right" Margin="0,8,0,0">
           <Button x:Name="BtnSeguras" Style="{StaticResource Accion}" Background="#2E8B57" Content="Marcar solo seguras"/>
           <Button x:Name="BtnTodo" Style="{StaticResource Accion}" Content="Marcar todo"/>
           <Button x:Name="BtnNada" Style="{StaticResource Accion}" Content="Desmarcar todo"/>
           <Button x:Name="BtnRestablecer" Style="{StaticResource Accion}" Background="#7A3326" Content="Restablecer seleccionadas" Visibility="Collapsed"/>
           <Button x:Name="BtnAplicar" Style="{StaticResource Accion}" Background="#0078D4" Content="Aplicar seleccionadas" Visibility="Collapsed"/>
-        </StackPanel>
+        </WrapPanel>
         <TextBlock x:Name="Estado" Foreground="#9AA0A6" FontSize="12.5" VerticalAlignment="Center" TextWrapping="Wrap"/>
       </DockPanel>
     </Grid>
