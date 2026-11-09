@@ -1,4 +1,4 @@
-param([string]$Consola = '')
+﻿param([string]$Consola = '')
 # ============================================================
 #  DEBLOAT Y PRIVACIDAD (antes era windows_debloat.bat)
 #  Lo corre la app XucaOP.ps1 en un hilo aparte, con Comun.ps1 cargado: ya no se abre cmd
@@ -26,6 +26,26 @@ $TareasTelemetria = @(
     '\Microsoft\Windows\Application Experience\StartupAppTask',
     '\Microsoft\Windows\Maps\MapsUpdateTask',
     '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem'
+)
+
+# Tareas de mantenimiento y diagnostico extra (opcion "tsk"). Las que no existan en esta PC se anotan como omitidas.
+$TareasExtra = @(
+    '\Microsoft\Windows\Autochk\Proxy',
+    '\Microsoft\Windows\Device Information\Device',
+    '\Microsoft\Windows\Customer Experience Improvement Program\KernelCeipTask',
+    '\Microsoft\Windows\Application Experience\PcaPatchDbTask',
+    '\Microsoft\Windows\DiskFootprint\Diagnostics',
+    '\Microsoft\Windows\Flighting\FeatureConfig\ReconcileFeatures',
+    '\Microsoft\Windows\Flighting\OneSettings\RefreshCache',
+    '\Microsoft\Windows\Maps\MapsToastTask',
+    '\Microsoft\Windows\NetTrace\GatherNetworkInfo',
+    '\Microsoft\Windows\Shell\FamilySafetyMonitor',
+    '\Microsoft\Windows\Shell\FamilySafetyRefreshTask',
+    '\Microsoft\Windows\Windows Media Sharing\UpdateLibrary',
+    '\Microsoft\Windows\Location\Notifications',
+    '\Microsoft\Windows\Location\WindowsActionDialog',
+    '\Microsoft\Windows\Mobile Broadband Accounts\MNO Metadata Parser',
+    '\Microsoft\Windows\PI\Sqm-Tasks'
 )
 
 # Sugerencias y apps que Windows instala solo (opcion "Quitar anuncios")
@@ -89,8 +109,8 @@ function Av-RegsOff {
     Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableSmartScreen' 'REG_DWORD' '0'
     Reg-Set 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' 'SmartScreenEnabled' 'REG_SZ' 'Off'
     Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\AppHost' 'EnableWebContentEvaluation' 'REG_DWORD' '0'
-    Reg-Set 'HKCU\Software\Microsoft\Edge' 'SmartScreenEnabled' 'REG_DWORD' '0'
-    Reg-Set 'HKCU\Software\Microsoft\Edge' 'SmartScreenPuaEnabled' 'REG_DWORD' '0'
+    Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'SmartScreenEnabled' 'REG_DWORD' '0'
+    Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'SmartScreenPuaEnabled' 'REG_DWORD' '0'
     foreach ($n in 'ServiceEnabled', 'NotifyMalicious', 'NotifyPasswordReuse', 'NotifyUnsafeApp') { Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WTDS\Components' $n 'REG_DWORD' '0' }
     Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy' 'VerifiedAndReputablePolicyState' 'REG_DWORD' '0'
     Reg-Del 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' 'SecurityHealth'
@@ -1107,8 +1127,22 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
         Esperar-Cierre 'OneDrive', 'ms-teams', 'msteams' 2000
         $odExes = @(($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'))
         $odHabia = (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0)
+        # Si Escritorio/Documentos/Imagenes viven en OneDrive o hay archivos solo en la nube, no se desinstala (se perderia el acceso)
+        $odProtege = ''
+        if ($odHabia) {
+            try {
+                $usf = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction SilentlyContinue
+                foreach ($n in 'Desktop', 'Personal', 'My Pictures') { if ([string]$usf.$n -match 'OneDrive') { $odProtege = 'tus carpetas (Escritorio, Documentos o Imagenes) estan guardadas en OneDrive' } }
+                if ((-not $odProtege) -and $env:OneDrive -and (Test-Path -LiteralPath $env:OneDrive)) {
+                    $nube = Get-ChildItem -LiteralPath $env:OneDrive -Recurse -File -Force -ErrorAction SilentlyContinue | Select-Object -First 30000 | Where-Object { ([int]$_.Attributes -band 0x440000) -ne 0 } | Select-Object -First 1
+                    if ($nube) { $odProtege = 'hay archivos que estan solo en la nube' }
+                }
+            } catch { }
+        }
         if (-not $odHabia) {
             Log 'OMITIDO' 'OneDrive no estaba instalado'
+        } elseif ($odProtege) {
+            Log 'OMITIDO' ('OneDrive no se desinstalo: ' + $odProtege)
         } else {
             $odSetup = @(("$env:SystemRoot\System32\OneDriveSetup.exe"), ("$env:SystemRoot\SysWOW64\OneDriveSetup.exe")) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
             $odArgs = '/uninstall'
@@ -1139,13 +1173,12 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                  'Microsoft.SkypeApp', 'Microsoft.Copilot', 'MSTeams', 'Microsoft.PowerAutomateDesktop',
                  '*LinkedIn*', 'Microsoft.Todos', 'MicrosoftCorporationII.MicrosoftFamily',
                  'SpotifyAB.SpotifyMusic', 'Microsoft.YourPhone', 'Microsoft.549981C3F5F10',
-                 'Microsoft.MicrosoftStickyNotes', 'Microsoft.OutlookForWindows', 'Microsoft.MSPaint', 'Microsoft.Paint', 'Microsoft.WindowsCamera',
-                 'Microsoft.WindowsSoundRecorder', 'Microsoft.WindowsAlarms',
+                 'Microsoft.OutlookForWindows', 'Microsoft.MSPaint', 'Microsoft.WindowsSoundRecorder',
                  'Microsoft.Microsoft3DViewer', 'Microsoft.3DBuilder', 'Microsoft.Print3D', 'Microsoft.Appconnector',
                  'Microsoft.BingFoodAndDrink', 'Microsoft.BingHealthAndFitness', 'Microsoft.BingTranslator', 'Microsoft.BingTravel',
                  'Microsoft.BingFinance', 'Microsoft.BingSports', 'Microsoft.Office.Sway',
                  'Microsoft.Office.Lens', 'Microsoft.Messaging', 'Microsoft.Wallet', 'Microsoft.Whiteboard',
-                 'Microsoft.OneConnect', 'Microsoft.CommsPhone', 'Microsoft.WindowsPhone', 'MicrosoftCorporationII.QuickAssist',
+                 'Microsoft.OneConnect', 'Microsoft.CommsPhone', 'Microsoft.WindowsPhone',
                  'Microsoft.WindowsMaps', 'ShazamEntertainmentLtd.Shazam', 'Disney.37853FC22B2CE',
                  'MicrosoftWindows.CrossDevice',
                  '4DF9E0F8.Netflix',
@@ -2402,6 +2435,7 @@ $ListaOpciones = @(
         }
         R = {
             Opt-Ini 'Telemetria (restaurar)'
+            Reg-Del 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection' 'AllowTelemetry'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'AllowTelemetry'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'DoNotShowFeedbackNotifications'
             Svc 'DiagTrack' 'auto' '2'
@@ -2625,6 +2659,597 @@ $ListaOpciones = @(
         }
     },
     @{
+        Id = 'rmin'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea apagar la impresion, el compartir en red y el Escritorio remoto? (Extremo: menos procesos y RAM; no podras imprimir)'
+        Hace = 'apaga o pasa a manual los servicios de impresion, los que hacen que tu PC aparezca en la red local y se pueda transmitir a la tele, la carpeta web (WebClient), el compartir medios y archivos de trabajo, y el Escritorio remoto.'
+        Favor = 'hay menos programas cargados en segundo plano y se libera algo de RAM.'
+        Contra = 'no podes imprimir ni guardar en PDF desde Imprimir, tu PC no aparece en la red local, no podes transmitir a la tele y nadie puede entrar por Escritorio remoto, hasta que lo restablezcas.'
+        S = {
+            Opt-Ini 'Impresion, descubrimiento de red y Escritorio remoto'
+            Svc 'Spooler' 'disabled' '4'; Svc-Parar 'Spooler'
+            Svc 'PrintNotify' 'disabled' '4'; Svc-Parar 'PrintNotify'
+            foreach ($n in 'SSDPSRV', 'upnphost', 'lltdsvc', 'FDResPub', 'fdPHost', 'WMPNetworkSvc', 'workfolderssvc', 'WebClient', 'TermService', 'SessionEnv', 'UmRdpService') {
+                Svc $n 'disabled' '4'
+                Svc-Parar $n
+            }
+            Opt-Fin 'Impresion, red local y Escritorio remoto apagados'
+        }
+        R = {
+            Opt-Ini 'Impresion, descubrimiento de red y Escritorio remoto (restaurar)'
+            Svc 'Spooler' 'auto' '2'; Svc-Arrancar 'Spooler'
+            Svc 'PrintNotify' 'demand' '3'
+            foreach ($n in 'SSDPSRV', 'upnphost', 'lltdsvc', 'FDResPub', 'fdPHost', 'WMPNetworkSvc', 'workfolderssvc', 'WebClient', 'TermService', 'SessionEnv', 'UmRdpService') {
+                Svc $n 'demand' '3'
+            }
+            Opt-Fin 'Impresion, red local y Escritorio remoto restaurados'
+        }
+    },
+    @{
+        Id = 'nvl'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea apagar los servicios y tareas extra de NVIDIA? (NVIDIA App, overlay y ShadowPlay quedan sin contenedor; el driver y el Panel de control siguen)'
+        Hace = 'pasa a manual y detiene el servicio que usan la app de NVIDIA, el overlay y la grabacion ShadowPlay, y apaga el que manda datos de uso y las tareas que buscan drivers y actualizaciones. No toca el servicio de pantalla: sin ese no abre el Panel de control de NVIDIA ni se mantienen los colores y G-Sync.'
+        Favor = 'hay menos procesos de NVIDIA abiertos y se libera algo de RAM, sin perder el driver.'
+        Contra = 'el overlay, ShadowPlay y los filtros de la app de NVIDIA no andan hasta que el servicio corra. Si la app no abre bien, restablece la opcion. Los drivers los actualizas vos.'
+        S = {
+            Opt-Ini 'NVIDIA liviano'
+            Svc 'NvContainerLocalSystem' 'demand' '3'; Svc-Parar 'NvContainerLocalSystem'
+            Svc 'NvTelemetryContainer' 'disabled' '4'; Svc-Parar 'NvTelemetryContainer'
+            foreach ($t in @(Get-ScheduledTask -TaskPath '\' -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -match '^(NvDriverUpdateCheckDaily|NVIDIA App SelfUpdate|NvTmMon|NvTmRep|NvTmRepOnLogon|NvProfileUpdater)' })) { Tarea ('\' + $t.TaskName) 'disable' }
+            Opt-Fin 'NVIDIA liviano: contenedor en manual y tareas extra apagadas'
+        }
+        R = {
+            Opt-Ini 'NVIDIA liviano (restaurar)'
+            Svc 'NvContainerLocalSystem' 'auto' '2'; Svc-Arrancar 'NvContainerLocalSystem'
+            Svc 'NvTelemetryContainer' 'auto' '2'
+            foreach ($t in @(Get-ScheduledTask -TaskPath '\' -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -match '^(NvDriverUpdateCheckDaily|NVIDIA App SelfUpdate|NvTmMon|NvTmRep|NvTmRepOnLogon|NvProfileUpdater)' })) { Tarea ('\' + $t.TaskName) 'enable' }
+            Opt-Fin 'NVIDIA restaurado'
+        }
+    },
+    @{
+        Id = 'upd'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea poner en manual los actualizadores de Edge, Chrome y Brave? (Menos procesos fijos; los navegadores se siguen actualizando)'
+        Hace = 'hace que los programas que actualizan Edge, Chrome y Brave dejen de estar siempre abiertos: Windows los arranca solo cuando hace falta.'
+        Favor = 'hay menos procesos abiertos todo el tiempo y se libera algo de RAM.'
+        Contra = 'ninguna que notes: los navegadores se siguen actualizando solos. Si no tenes alguno de esos navegadores, no hace nada con ese.'
+        S = {
+            Opt-Ini 'Actualizadores de navegadores en manual'
+            foreach ($n in 'edgeupdate', 'gupdate', 'brave') { Svc $n 'demand' '3' }
+            Opt-Fin 'Actualizadores de navegadores en manual'
+        }
+        R = {
+            Opt-Ini 'Actualizadores de navegadores (restaurar)'
+            foreach ($n in 'edgeupdate', 'gupdate', 'brave') { Svc $n 'delayed-auto' '2' }
+            Opt-Fin 'Actualizadores de navegadores restaurados'
+        }
+    },
+    @{
+        Id = 'tsk'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar las tareas de mantenimiento y diagnostico en segundo plano? (Inventario, Seguridad familiar, Medios compartidos, Mapas y mas)'
+        Hace = 'apaga tareas automaticas de Windows que despiertan el procesador y el disco sin que lo notes: inventario de programas y dispositivos, Seguridad familiar, compartir medios, Mapas, diagnostico de red y envio de datos del disco y del sistema.'
+        Favor = 'hay menos picos de uso del procesador y del disco cuando no estas haciendo nada.'
+        Contra = 'Windows deja de hacer ese mantenimiento automatico. No toca Windows Update, los puntos de restauracion ni la optimizacion del SSD.'
+        S = {
+            Opt-Ini 'Tareas de mantenimiento en segundo plano'
+            foreach ($t in $TareasExtra) { Tarea $t 'disable' }
+            Opt-Fin 'Tareas de mantenimiento apagadas'
+        }
+        R = {
+            Opt-Ini 'Tareas de mantenimiento (restaurar)'
+            foreach ($t in $TareasExtra) { Tarea $t 'enable' }
+            Opt-Fin 'Tareas de mantenimiento restauradas'
+        }
+    },
+    @{
+        Id = 'cdp'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar la sincronizacion entre dispositivos y el historial del portapapeles? (Experiencias compartidas, Enviar cerca y Win+V)'
+        Hace = 'apaga la Plataforma de dispositivos conectados (experiencias compartidas y Enviar cerca) y el historial y la sincronizacion del portapapeles.'
+        Favor = 'menos procesos de sincronizacion y menos datos enviados.'
+        Contra = 'Win+V deja de guardar el historial del portapapeles, y no mandas archivos ni portapapeles entre tu PC y tu celular o otras PCs.'
+        S = {
+            Opt-Ini 'Dispositivos conectados y portapapeles'
+            $sys = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+            Reg-Set $sys 'EnableCdp' 'REG_DWORD' '0'
+            Reg-Set $sys 'AllowClipboardHistory' 'REG_DWORD' '0'
+            Reg-Set $sys 'AllowCrossDeviceClipboard' 'REG_DWORD' '0'
+            Opt-Fin 'Sincronizacion entre dispositivos y portapapeles apagados'
+        }
+        R = {
+            Opt-Ini 'Dispositivos conectados y portapapeles (restaurar)'
+            $sys = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+            Reg-Del $sys 'EnableCdp'
+            Reg-Del $sys 'AllowClipboardHistory'
+            Reg-Del $sys 'AllowCrossDeviceClipboard'
+            Opt-Fin 'Sincronizacion entre dispositivos y portapapeles restaurados'
+        }
+    },
+    @{
+        Id = 'fsb'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea que el disco no anote la ultima vez que abris cada archivo? (Menos escrituras al disco; no cambia nada visible)'
+        Hace = 'hace que Windows deje de anotar en el disco la fecha en que abriste cada archivo.'
+        Favor = 'se escribe menos en el disco y se hace un poco menos de trabajo en segundo plano, sobre todo en discos duros.'
+        Contra = 'el Explorador deja de mostrar la fecha real de ultimo acceso de los archivos. Algunos programas de backup viejos la usan.'
+        S = {
+            Opt-Ini 'Fecha de ultimo acceso de NTFS'
+            & fsutil.exe behavior set disablelastaccess 1 2>&1 | Out-Null
+            Res ($LASTEXITCODE -eq 0) 'fsutil disablelastaccess = 1'
+            Opt-Fin 'Ultimo acceso de archivos apagado'
+        }
+        R = {
+            Opt-Ini 'Fecha de ultimo acceso de NTFS (restaurar)'
+            & fsutil.exe behavior set disablelastaccess 2 2>&1 | Out-Null
+            Res ($LASTEXITCODE -eq 0) 'fsutil disablelastaccess = 2 (lo maneja Windows)'
+            Opt-Fin 'Ultimo acceso de archivos como lo deja Windows'
+        }
+    },
+    @{
+        Id = 'rap'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea acelerar el apagado y el arranque del escritorio? (Cierra programas colgados en 2 segundos y saca la espera al abrir el escritorio)'
+        Hace = 'baja a 2 segundos lo que Windows espera para cerrar servicios y programas al apagar, saca la demora de 10 segundos que Windows le pone a los programas de inicio.'
+        Favor = 'apagar y prender la PC mas rapido.'
+        Contra = 'los servicios y programas colgados se cierran a los 2 segundos; Windows igual te avisa si hay algo sin guardar.'
+        S = {
+            Opt-Ini 'Apagado y arranque rapidos'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control' 'WaitToKillServiceTimeout' 'REG_SZ' '2000'
+            Reg-Set 'HKCU\Control Panel\Desktop' 'WaitToKillAppTimeout' 'REG_SZ' '2000'
+            Reg-Set 'HKCU\Control Panel\Desktop' 'HungAppTimeout' 'REG_SZ' '2000'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize' 'StartupDelayInMSec' 'REG_DWORD' '0'
+            Opt-Fin 'Apagado y arranque rapidos aplicados'
+        }
+        R = {
+            Opt-Ini 'Apagado y arranque rapidos (restaurar)'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control' 'WaitToKillServiceTimeout' 'REG_SZ' '5000'
+            Reg-Set 'HKCU\Control Panel\Desktop' 'WaitToKillAppTimeout' 'REG_SZ' '20000'
+            Reg-Set 'HKCU\Control Panel\Desktop' 'HungAppTimeout' 'REG_SZ' '5000'
+            Reg-Del 'HKCU\Control Panel\Desktop' 'AutoEndTasks'
+            Reg-Del 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize' 'StartupDelayInMSec'
+            Opt-Fin 'Apagado y arranque como los deja Windows'
+        }
+    },
+    @{
+        Id = 'sx'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar todavia mas servicios que casi nadie usa? (Extremo: Biometria, Sensores, Wi-Fi Direct, Telefonia, iSCSI, Respaldo y mas)'
+        Hace = 'apaga servicios poco usados: Inicio de sesion biometrico (Windows Hello con huella o cara), Sensores, Wi-Fi Direct y Windows Connect Now, Telefonia (TAPI), iSCSI, Historial de archivos, Copias de seguridad de Windows, Eventos remotos, Instalador de ActiveX, Enterprise App Management, Solucion de problemas guiada, Localizador RPC y mas.'
+        Favor = 'hay menos servicios abiertos y menos procesos de Windows en segundo plano.'
+        Contra = 'dejan de andar Windows Hello (huella o cara), los sensores (brillo automatico o rotacion), Wi-Fi Direct y el Historial de archivos. Si algo falla, restablece la opcion.'
+        S = {
+            Opt-Ini 'Servicios extra apagados'
+            foreach ($n in 'WbioSrvc', 'SensorDataService', 'SensrSvc', 'SensorService', 'wcncsvc', 'WFDSConMgrSvc', 'TapiSrv', 'MSiSCSI', 'fhsvc', 'SDRSVC', 'Wecsvc', 'AxInstSV', 'EntAppSvc', 'TroubleshootingSvc', 'RpcLocator', 'ALG', 'CertPropSvc', 'SmsRouter', 'lmhosts') {
+                Svc $n 'disabled' '4'
+                Svc-Parar $n
+            }
+            Opt-Fin 'Servicios extra apagados'
+        }
+        R = {
+            Opt-Ini 'Servicios extra apagados (restaurar)'
+            foreach ($n in 'WbioSrvc', 'SensorDataService', 'SensrSvc', 'SensorService', 'wcncsvc', 'WFDSConMgrSvc', 'TapiSrv', 'MSiSCSI', 'fhsvc', 'SDRSVC', 'Wecsvc', 'AxInstSV', 'EntAppSvc', 'TroubleshootingSvc', 'RpcLocator', 'ALG', 'CertPropSvc', 'SmsRouter', 'lmhosts') {
+                Svc $n 'demand' '3'
+            }
+            Opt-Fin 'Servicios extra restaurados'
+        }
+    },
+    @{
+        Id = 'bt'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar Bluetooth? (SOLO si no usas auriculares, mouse, teclado ni joystick Bluetooth)'
+        Hace = 'apaga el servicio de soporte de Bluetooth, el de audio por Bluetooth y el de Perfiles de control remoto (AVCTP).'
+        Favor = 'menos servicios cargados.'
+        Contra = 'dejan de andar auriculares, mouse, teclado y joysticks Bluetooth hasta que lo restablezcas.'
+        S = {
+            Opt-Ini 'Bluetooth'
+            $conectados = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { ($_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_') -and ($_.Status -eq 'OK') } | ForEach-Object { $_.FriendlyName })
+            if ($conectados.Count -gt 0) { Opt-Fin ('Bluetooth NO apagado: hay dispositivos conectados (' + ($conectados -join ', ') + ')'); return }
+            foreach ($n in 'bthserv', 'BthAvctpSvc', 'BTAGService') {
+                Svc $n 'disabled' '4'
+                Svc-Parar $n
+            }
+            Opt-Fin 'Bluetooth apagado'
+        }
+        R = {
+            Opt-Ini 'Bluetooth (restaurar)'
+            foreach ($n in 'bthserv', 'BthAvctpSvc', 'BTAGService') {
+                Svc $n 'demand' '3'
+            }
+            Opt-Fin 'Bluetooth restaurado'
+        }
+    },
+    @{
+        Id = 'str'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar los servicios de instalacion de la Microsoft Store? (Extremo: no se instalan ni actualizan apps de la Store)'
+        Hace = 'apaga el servicio que instala apps de la Store, el que revisa sus licencias y el que las prepara.'
+        Favor = 'hay menos servicios abiertos y se libera algo de RAM.'
+        Contra = 'no podes instalar ni actualizar apps de la Microsoft Store (ni Xbox ni juegos de Game Pass). Algunas apps de la Store pueden dejar de abrir por no poder revisar su licencia.'
+        S = {
+            Opt-Ini 'Servicios de la Store'
+            foreach ($n in 'InstallService', 'LicenseManager', 'AppReadiness') {
+                Svc $n 'disabled' '4'
+                Svc-Parar $n
+            }
+            Opt-Fin 'Servicios de la Store apagados'
+        }
+        R = {
+            Opt-Ini 'Servicios de la Store (restaurar)'
+            foreach ($n in 'InstallService', 'LicenseManager', 'AppReadiness') {
+                Svc $n 'demand' '3'
+            }
+            Opt-Fin 'Servicios de la Store restaurados'
+        }
+    },
+    @{
+        Id = 'wus'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar Windows Update por completo? (PELIGRO: la PC deja de recibir parches de seguridad)'
+        Hace = 'apaga el servicio de Windows Update y el Orquestador de actualizaciones, y bloquea las actualizaciones automaticas por politica.'
+        Favor = 'sin descargas ni instalaciones en segundo plano, sin reinicios sorpresa y menos RAM, CPU y disco.'
+        Contra = 'la PC no recibe parches de seguridad ni de drivers: queda expuesta a fallas conocidas. Restablecelo cada tanto para actualizar.'
+        S = {
+            Opt-Ini 'Windows Update apagado'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'NoAutoUpdate' 'REG_DWORD' '1'
+            Svc 'wuauserv' 'disabled' '4'; Svc-Parar 'wuauserv'
+            Svc 'UsoSvc' 'disabled' '4'; Svc-Parar 'UsoSvc'
+            Opt-Fin 'Windows Update apagado (restablecelo para volver a actualizar)'
+        }
+        R = {
+            Opt-Ini 'Windows Update (restaurar)'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'NoAutoUpdate'
+            Svc 'wuauserv' 'demand' '3'
+            Svc 'UsoSvc' 'delayed-auto' '2'
+            Svc-Arrancar 'UsoSvc'
+            Opt-Fin 'Windows Update restaurado'
+        }
+    },
+    @{
+        Id = 'thm'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea mostrar iconos en vez de miniaturas en el Explorador? (Menos RAM y disco; sin vista previa de imagenes y videos)'
+        Hace = 'el Explorador muestra siempre iconos y no genera miniaturas, y no guarda la cache de miniaturas.'
+        Favor = 'el Explorador usa menos RAM y abre las carpetas de fotos y videos mas rapido.'
+        Contra = 'no ves la vista previa de las imagenes ni de los videos en las carpetas.'
+        S = {
+            Opt-Ini 'Sin miniaturas en el Explorador'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'IconsOnly' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Policies\Microsoft\Windows\Explorer' 'DisableThumbnailCache' 'REG_DWORD' '1'
+            Refrescar-Explorer
+            Opt-Fin 'Explorador sin miniaturas (si una ventana abierta no cambia, apreta F5)'
+        }
+        R = {
+            Opt-Ini 'Miniaturas del Explorador (restaurar)'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'IconsOnly' 'REG_DWORD' '0'
+            Reg-Del 'HKCU\Software\Policies\Microsoft\Windows\Explorer' 'DisableThumbnailCache'
+            Refrescar-Explorer
+            Opt-Fin 'Miniaturas del Explorador restauradas'
+        }
+    },
+    @{
+        Id = 'leg'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar funciones heredadas de Windows? (Asistencia remota, Reproduccion automatica y reporte de errores)'
+        Hace = 'apaga la Asistencia remota, la Reproduccion automatica de USB y discos, y el reporte de errores de Windows.'
+        Favor = 'menos servicios y funciones cargadas, y un USB desconocido ya no se abre solo.'
+        Contra = 'nadie puede conectarse a tu PC con la Asistencia remota, y al enchufar un USB no sale el menu de que hacer.'
+        S = {
+            Opt-Ini 'Funciones heredadas'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance' 'fAllowToGetHelp' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' 'DisableAutoplay' 'REG_DWORD' '1'
+            Reg-Set 'HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting' 'Disabled' 'REG_DWORD' '1'
+            Opt-Fin 'Funciones heredadas apagadas'
+        }
+        R = {
+            Opt-Ini 'Funciones heredadas (restaurar)'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance' 'fAllowToGetHelp' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' 'DisableAutoplay' 'REG_DWORD' '0'
+            Reg-Del 'HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting' 'Disabled'
+            Opt-Fin 'Funciones heredadas restauradas'
+        }
+    },
+    @{
+        Id = 'old'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea quitar todos los componentes viejos de Windows que ya nadie usa? (Internet Explorer, WordPad, SMBv1, PowerShell 2, Telnet, XPS, Fax, Media Player viejo y mas)'
+        Hace = 'desactiva Internet Explorer, Fax y Escaner, el Media Player viejo, SMBv1 (el protocolo de red viejo e inseguro), PowerShell 2.0, Telnet, TFTP, Work Folders, el visor y los servicios XPS, la Compresion diferencial remota, DirectPlay y los componentes heredados, y quita WordPad, el Grabador de pasos y el Reconocedor matematico.'
+        Favor = 'menos funciones cargadas y menos superficie de ataque (SMBv1 y PowerShell 2 son blancos clasicos), y libera espacio en disco.'
+        Contra = 'los juegos muy viejos que piden DirectPlay no andan, no podes compartir archivos con equipos muy viejos (SMBv1) ni usar Telnet. Para volver atras hace falta internet.'
+        S = {
+            Opt-Ini 'Componentes viejos de Windows'
+            Say '  Revisando las funciones de Windows, un momento...'
+            $feats = 'Internet-Explorer-Optional-amd64', 'FaxServicesClientPackage', 'WindowsMediaPlayer', 'SMB1Protocol-Server', 'SMB1Protocol-Client', 'SMB1Protocol', 'MicrosoftWindowsPowerShellV2', 'MicrosoftWindowsPowerShellV2Root', 'TelnetClient', 'TFTP', 'WorkFolders-Client', 'Printing-XPSServices-Features', 'MSRDC-Infrastructure', 'LegacyComponents', 'DirectPlay', 'SimpleTCP'
+            foreach ($f in $feats) {
+                $x = Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue
+                if (-not $x) { Log 'OMITIDO' ($f + ' no existe en esta version de Windows'); continue }
+                if ([string]$x.State -eq 'Disabled') { Ya-Estaba; Log 'OK' ('ya estaba desactivada ' + $f); continue }
+                Disable-WindowsOptionalFeature -Online -FeatureName $f -NoRestart -ErrorAction SilentlyContinue | Out-Null
+                $est = [string](Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue).State
+                Res (($est -eq 'Disabled') -or ($est -eq 'DisablePending')) ('funcion ' + $f + ' desactivada (' + $est + ')')
+            }
+            $caps = Get-WindowsCapability -Online -ErrorAction SilentlyContinue
+            foreach ($pat in 'Browser.InternetExplorer*', 'Microsoft.Windows.WordPad*', 'Media.WindowsMediaPlayer*', 'App.StepsRecorder*', 'MathRecognizer*', 'Print.Fax.Scan*', 'XPS.Viewer*') {
+                foreach ($c in @($caps | Where-Object { ($_.Name -like $pat) -and ([string]$_.State -eq 'Installed') })) {
+                    Remove-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue | Out-Null
+                    $q = [string](Get-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue).State
+                    Res ($q -ne 'Installed') ('componente ' + $c.Name + ' quitado')
+                }
+            }
+            $dirM = Join-Path $env:ProgramData 'XucaScripts'
+            if (-not (Test-Path $dirM)) { New-Item -Path $dirM -ItemType Directory -Force | Out-Null }
+            Set-Content -Path (Join-Path $dirM 'old_apagado.txt') -Value 'ok'
+            Opt-Fin 'Componentes viejos quitados (algunos se aplican al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Componentes viejos de Windows (restaurar)'
+            Say '  Reactivando las funciones de Windows, un momento (hace falta internet)...'
+            foreach ($f in 'Internet-Explorer-Optional-amd64', 'FaxServicesClientPackage', 'WindowsMediaPlayer', 'MicrosoftWindowsPowerShellV2Root', 'TelnetClient', 'TFTP', 'WorkFolders-Client', 'Printing-XPSServices-Features', 'MSRDC-Infrastructure', 'LegacyComponents', 'DirectPlay', 'SimpleTCP') {
+                $x = Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue
+                if ((-not $x) -or ([string]$x.State -eq 'Enabled')) { continue }
+                Enable-WindowsOptionalFeature -Online -FeatureName $f -All -NoRestart -ErrorAction SilentlyContinue | Out-Null
+                $est = [string](Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue).State
+                Res (($est -eq 'Enabled') -or ($est -eq 'EnablePending')) ('funcion ' + $f + ' activada (' + $est + ')')
+            }
+            Log 'INFO' 'SMBv1 no se vuelve a activar a proposito: es un protocolo inseguro. Si lo necesitas, activalo a mano en Caracteristicas de Windows.'
+            $caps = Get-WindowsCapability -Online -ErrorAction SilentlyContinue
+            foreach ($pat in 'Browser.InternetExplorer*', 'Microsoft.Windows.WordPad*', 'Media.WindowsMediaPlayer*', 'App.StepsRecorder*', 'MathRecognizer*', 'Print.Fax.Scan*', 'XPS.Viewer*') {
+                foreach ($c in @($caps | Where-Object { ($_.Name -like $pat) -and ([string]$_.State -ne 'Installed') })) {
+                    Add-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue | Out-Null
+                    $q = [string](Get-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue).State
+                    Res ($q -eq 'Installed') ('componente ' + $c.Name + ' instalado')
+                }
+            }
+            Remove-Item -Path (Join-Path $env:ProgramData 'XucaScripts\old_apagado.txt') -Force -ErrorAction SilentlyContinue
+            Opt-Fin 'Componentes viejos restaurados (SMBv1 no)'
+        }
+    },
+    @{
+        Id = 'msx'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea quitar la Microsoft Store? (PELIGRO: no vas a poder instalar ni actualizar apps de la Store, Xbox ni Minecraft)'
+        Hace = 'desinstala la Microsoft Store y la app de compras de la Store para todos los usuarios y la saca de las apps que se instalan en cuentas nuevas.'
+        Favor = 'menos procesos, menos RAM y nada de la Store actualizando apps en segundo plano.'
+        Contra = 'no se pueden instalar ni actualizar apps de la Store (ni Game Pass, Xbox o Minecraft Bedrock). Para volver a tenerla hace falta internet (se reinstala con wsreset -i).'
+        S = {
+            Opt-Ini 'Microsoft Store quitada'
+            foreach ($n in 'Microsoft.WindowsStore', 'Microsoft.StorePurchaseApp') {
+                Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+                Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq $n } | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
+            }
+            Res (@(Get-AppxPackage -AllUsers -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue).Count -eq 0) 'Microsoft Store quitada'
+            Opt-Fin 'Microsoft Store quitada'
+        }
+        R = {
+            Opt-Ini 'Microsoft Store (restaurar)'
+            Say '  Reinstalando la Microsoft Store, un momento (hace falta internet)...'
+            Start-Process -FilePath 'wsreset.exe' -ArgumentList '-i' -Wait -WindowStyle Hidden
+            # La Store se instala en segundo plano: se espera hasta 2 minutos a que aparezca
+            for ($w = 0; ($w -lt 24) -and (@(Get-AppxPackage -AllUsers -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue).Count -eq 0); $w++) { Start-Sleep -Seconds 5 }
+            Res (@(Get-AppxPackage -AllUsers -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue).Count -gt 0) 'Microsoft Store reinstalada'
+            Opt-Fin 'Microsoft Store restaurada (puede tardar unos minutos en aparecer)'
+        }
+    },
+    @{
+        Id = 'usv'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar los servicios de usuario de contactos, calendario, mensajes y sincronizacion? (Extremo: baja procesos por cada sesion)'
+        Hace = 'apaga los servicios que Windows levanta por cada usuario: contactos y calendario (UserDataSvc, Unistore, PimIndex), sincronizacion (OneSync), mensajes, Dispositivos conectados, portapapeles en la nube, impresion de usuario y Defensa web.'
+        Favor = 'menos procesos svchost por sesion y algo menos de RAM.'
+        Contra = 'las apps Correo, Calendario y Contactos no sincronizan, el portapapeles en la nube y "Compartir cerca" dejan de andar, y la proteccion web de Defender no corre.'
+        S = {
+            Opt-Ini 'Servicios de usuario'
+            foreach ($n in 'CDPUserSvc', 'cbdhsvc', 'DevicesFlowUserSvc', 'PimIndexMaintenanceSvc', 'UnistoreSvc', 'UserDataSvc', 'OneSyncSvc', 'MessagingService', 'PrintWorkflowUserSvc', 'webthreatdefsvc', 'webthreatdefusersvc') {
+                Svc $n 'disabled' '4'
+            }
+            Opt-Fin 'Servicios de usuario apagados (se aplica al reiniciar sesion)'
+        }
+        R = {
+            Opt-Ini 'Servicios de usuario (restaurar)'
+            Svc 'CDPUserSvc' 'auto' '2'
+            Svc 'webthreatdefusersvc' 'auto' '2'
+            Svc 'cbdhsvc' 'delayed-auto' '2'
+            foreach ($n in 'DevicesFlowUserSvc', 'PimIndexMaintenanceSvc', 'UnistoreSvc', 'UserDataSvc', 'OneSyncSvc', 'MessagingService', 'PrintWorkflowUserSvc', 'webthreatdefsvc', 'CaptureService', 'BcastDVRUserService') {
+                Svc $n 'demand' '3'
+            }
+            Opt-Fin 'Servicios de usuario restaurados (se aplica al reiniciar sesion)'
+        }
+    },
+    @{
+        Id = 'dold'; Seccion = 'BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)'
+        Q = '- Desea borrar las apps antiguas de Windows y quedarte solo con las modernas? (Bloc de notas y Paint clasicos, WordPad, Media Player viejo, Internet Explorer y mas)'
+        Hace = 'quita las versiones clasicas que Windows trae de siempre y que se instalan aparte de las modernas: el Bloc de notas de sistema (Windows trae dos), Paint clasico, WordPad, Windows Media Player clasico, el Grabador de pasos, PowerShell ISE, Internet Explorer, el visor XPS y Fax y Escaner. Las apps modernas (Bloc de notas y Fotos nuevos, Paint, Calculadora, Recortes) quedan, y si te falta alguna la instala con winget (hace falta internet). Despues recorta el espacio que ya no se usa. No se puede marcar junto con "Borrar las apps modernas".'
+        Favor = 'te quedas con una sola version de cada app, la nueva, y liberas espacio y componentes cargados.'
+        Contra = 'si ademas borras las modernas, te quedas sin Bloc de notas ni Paint. Para volver a tener las antiguas hace falta internet (el boton de restablecer las vuelve a bajar).'
+        S = {
+            Opt-Ini 'Apps antiguas (clasicas)'
+            # Primero se completa el set moderno: lo que falte se instala con winget (hace falta internet)
+            $wg = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'
+            foreach ($m in @(@('Microsoft.WindowsNotepad', '9MSMLRH6LZF3', 'Bloc de notas'), @('Microsoft.Windows.Photos', '9WZDNCRFJBH4', 'Fotos'), @('Microsoft.WindowsCalculator', '9WZDNCRFHVN5', 'Calculadora'), @('Microsoft.Paint', '9PCFS5B6T72H', 'Paint'), @('Microsoft.ScreenSketch', '9MZ95KL8MR0L', 'Recortes'))) {
+                if (Get-AppxPackage -AllUsers -Name $m[0] -ErrorAction SilentlyContinue) { continue }
+                if (-not [IO.File]::Exists($wg)) { Log 'AVISO' ('te falta ' + $m[2] + ' y no hay winget para instalarla'); continue }
+                Say ('  Instalando ' + $m[2] + '...')
+                & $wg install --id $m[1] --source msstore --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
+                Res ([bool](Get-AppxPackage -AllUsers -Name $m[0] -ErrorAction SilentlyContinue)) ($m[2] + ' instalada')
+            }
+            Say '  Revisando los componentes de Windows, un momento...'
+            foreach ($f in 'Internet-Explorer-Optional-amd64', 'WindowsMediaPlayer', 'FaxServicesClientPackage', 'Printing-XPSServices-Features') {
+                $x = Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue
+                if ((-not $x) -or ([string]$x.State -eq 'Disabled')) { continue }
+                Disable-WindowsOptionalFeature -Online -FeatureName $f -NoRestart -ErrorAction SilentlyContinue | Out-Null
+                $est = [string](Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue).State
+                Res (($est -eq 'Disabled') -or ($est -eq 'DisablePending')) ('funcion ' + $f + ' desactivada (' + $est + ')')
+            }
+            $caps = Get-WindowsCapability -Online -ErrorAction SilentlyContinue
+            foreach ($pat in 'Microsoft.Windows.Notepad.System*', 'Microsoft.Windows.MSPaint*', 'Microsoft.Windows.WordPad*', 'Media.WindowsMediaPlayer*', 'App.StepsRecorder*', 'Microsoft.Windows.PowerShell.ISE*', 'Browser.InternetExplorer*', 'XPS.Viewer*', 'Print.Fax.Scan*', 'MathRecognizer*') {
+                foreach ($c in @($caps | Where-Object { ($_.Name -like $pat) -and ([string]$_.State -eq 'Installed') })) {
+                    # Bloc de notas y Paint clasicos solo se quitan si ya esta el moderno
+                    if (($c.Name -like 'Microsoft.Windows.Notepad.System*') -and -not (Get-AppxPackage -AllUsers -Name 'Microsoft.WindowsNotepad' -ErrorAction SilentlyContinue)) { Log 'OMITIDO' 'Bloc de notas clasico se queda: falta el moderno'; continue }
+                    if (($c.Name -like 'Microsoft.Windows.MSPaint*') -and -not (Get-AppxPackage -AllUsers -Name 'Microsoft.Paint' -ErrorAction SilentlyContinue)) { Log 'OMITIDO' 'Paint clasico se queda: falta el moderno'; continue }
+                    Remove-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue | Out-Null
+                    Res ([string](Get-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue).State -ne 'Installed') ('app antigua quitada: ' + $c.Name)
+                }
+            }
+            $dm = Join-Path $env:ProgramData 'XucaScripts'; if (-not (Test-Path $dm)) { New-Item -Path $dm -ItemType Directory -Force | Out-Null }
+            Say '  Recortando el espacio que ya no se usa...'
+            & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1 | Out-Null
+            Set-Content -Path (Join-Path $dm 'sv_dold.txt') -Value 'ok'
+            Opt-Fin 'Apps antiguas quitadas (algunas se aplican al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Apps antiguas (restaurar)'
+            Say '  Reinstalando las apps antiguas (hace falta internet)...'
+            foreach ($f in 'Internet-Explorer-Optional-amd64', 'WindowsMediaPlayer', 'FaxServicesClientPackage', 'Printing-XPSServices-Features') {
+                $x = Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue
+                if ((-not $x) -or ([string]$x.State -eq 'Enabled')) { continue }
+                Enable-WindowsOptionalFeature -Online -FeatureName $f -All -NoRestart -ErrorAction SilentlyContinue | Out-Null
+                $est = [string](Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue).State
+                Res (($est -eq 'Enabled') -or ($est -eq 'EnablePending')) ('funcion ' + $f + ' activada (' + $est + ')')
+            }
+            $caps = Get-WindowsCapability -Online -ErrorAction SilentlyContinue
+            foreach ($pat in 'Microsoft.Windows.Notepad.System*', 'Microsoft.Windows.MSPaint*', 'Microsoft.Windows.WordPad*', 'Media.WindowsMediaPlayer*', 'App.StepsRecorder*', 'Microsoft.Windows.PowerShell.ISE*', 'Browser.InternetExplorer*', 'XPS.Viewer*', 'Print.Fax.Scan*', 'MathRecognizer*') {
+                foreach ($c in @($caps | Where-Object { ($_.Name -like $pat) -and ([string]$_.State -ne 'Installed') })) {
+                    Add-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue | Out-Null
+                    Res ([string](Get-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue).State -eq 'Installed') ('app antigua instalada: ' + $c.Name)
+                }
+            }
+            Remove-Item -Path (Join-Path $env:ProgramData 'XucaScripts\sv_dold.txt') -Force -ErrorAction SilentlyContinue
+            Opt-Fin 'Apps antiguas restauradas'
+        }
+    },
+    @{
+        Id = 'dball'; Seccion = 'BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)'
+        Q = '- Desea borrar las apps modernas de Windows y quedarte solo con las antiguas? (SIN VUELTA ATRAS: Bloc de notas, Fotos, Calculadora, Paint, Recortes, Reloj, Camara, Clima y mas)'
+        Hace = 'desinstala para todos los usuarios y saca de las cuentas nuevas todas las apps modernas de Windows que se pueden borrar, menos la Store, el instalador de apps (winget), Terminal, Xbox y Gaming Services, y lo que Windows necesita para funcionar. Si te falta alguna antigua (Bloc de notas de sistema, Paint clasico, WordPad, Media Player clasico) la instala antes, y despues recorta el espacio que ya no se usa. La Calculadora, la captura de pantalla (Win+Shift+S), los codecs de video e imagen y los paneles de audio y video de tu fabricante se quedan. Es la contraria de "Borrar las apps antiguas" y no se puede marcar junto con ella.'
+        Favor = 'menos procesos, menos RAM y mucho espacio libre en disco.'
+        Contra = 'NO TIENE RESTABLECIMIENTO: Fotos, Calculadora, Bloc de notas, Paint y las demas se van. Algunas se pueden reinstalar a mano desde la Store o con winget; si se rompe algo, hay que reinstalar Windows.'
+        S = {
+            Opt-Ini 'Todas las apps modernas'
+            # Primero se completa el set clasico: lo que falte se instala (hace falta internet)
+            Say '  Revisando las apps antiguas, un momento...'
+            $capsA = Get-WindowsCapability -Online -ErrorAction SilentlyContinue
+            foreach ($pat in 'Microsoft.Windows.Notepad.System*', 'Microsoft.Windows.MSPaint*', 'Microsoft.Windows.WordPad*', 'Media.WindowsMediaPlayer*', 'App.StepsRecorder*') {
+                foreach ($c in @($capsA | Where-Object { ($_.Name -like $pat) -and ([string]$_.State -ne 'Installed') })) {
+                    Add-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue | Out-Null
+                    Res ([string](Get-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue).State -eq 'Installed') ('app antigua instalada: ' + $c.Name)
+                }
+            }
+            Say '  Desinstalando las apps modernas, un momento...'
+            $keep = '^(Microsoft\.\w*(Video|Image|Media)Extension|Microsoft\.ScreenSketch|AppUp\.|AdvancedMicroDevices|RealtekSemiconductor|DolbyLaboratories|WavesAudio|B9ECED6F\.|Microsoft\.WindowsCalculator|Microsoft\.WindowsStore|Microsoft\.StorePurchaseApp|Microsoft\.DesktopAppInstaller|Microsoft\.SecHealthUI|Microsoft\.WindowsTerminal|Microsoft\.Xbox|Microsoft\.Gaming|Microsoft\.UI\.Xaml|Microsoft\.VCLibs|Microsoft\.NET\.|Microsoft\.WindowsAppRuntime|Microsoft\.Windows\.|MicrosoftWindows\.|Microsoft\.MicrosoftEdge|Microsoft\.LockApp|Microsoft\.AAD|Microsoft\.AccountsControl|Microsoft\.CredDialogHost|Microsoft\.BioEnrollment|Microsoft\.AsyncTextService|Microsoft\.Win32WebViewHost|Microsoft\.XboxIdentityProvider|NVIDIACorp|windows\.)'
+            $prov = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue)
+            foreach ($a in @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { (-not $_.IsFramework) -and (-not $_.NonRemovable) -and ($_.SignatureKind -ne 'System') -and ($_.Name -notmatch $keep) })) {
+                Remove-AppxPackage -Package $a.PackageFullName -AllUsers -ErrorAction SilentlyContinue
+                foreach ($pp in @($prov | Where-Object { $_.DisplayName -eq $a.Name })) { Remove-AppxProvisionedPackage -Online -PackageName $pp.PackageName -ErrorAction SilentlyContinue | Out-Null }
+                Res (-not (Get-AppxPackage -AllUsers -Name $a.Name -ErrorAction SilentlyContinue)) ('app ' + $a.Name + ' borrada')
+            }
+            $dm = Join-Path $env:ProgramData 'XucaScripts'; if (-not (Test-Path $dm)) { New-Item -Path $dm -ItemType Directory -Force | Out-Null }
+            Say '  Recortando el espacio que ya no se usa...'
+            & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1 | Out-Null
+            Set-Content -Path (Join-Path $dm 'sv_dball.txt') -Value 'ok'
+            Opt-Fin 'Apps modernas borradas'
+        }
+    },
+    @{
+        Id = 'rbs'; Seccion = 'BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)'
+        Q = '- Desea borrar las copias de seguridad de las actualizaciones de Windows? (SIN VUELTA ATRAS: libera varios GB; ya no se pueden desinstalar las actualizaciones)'
+        Hace = 'corre DISM con ResetBase: borra del almacen de componentes (WinSxS) las versiones viejas de cada componente que dejaron las actualizaciones.'
+        Favor = 'libera varios GB de disco.'
+        Contra = 'NO TIENE RESTABLECIMIENTO: ya no podes desinstalar las actualizaciones que tenes puestas ni volver a una version anterior de un componente. Si una actualizacion rompe algo, la unica salida es reinstalar Windows. Tarda varios minutos.'
+        S = {
+            Opt-Ini 'Almacen de componentes (ResetBase)'
+            Say '  Limpiando el almacen de componentes (DISM), puede tardar muchos minutos...'
+            & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 | Out-Null
+            $codD = $LASTEXITCODE
+            # 3010 = termino bien pero pide reiniciar
+            $okD = (($codD -eq 0) -or ($codD -eq 3010))
+            if ($codD -eq 3010) { Log 'INFO' 'DISM pide reiniciar para terminar'; $script:Reinicio = $true }
+            if ((-not $okD) -and ($codD -eq -2146498554)) {
+                # 0x800F0806: Windows tiene cambios pendientes de reiniciar (ej: despues de quitar componentes). No es un fallo real
+                $script:OptP++; $script:Reinicio = $true
+                Say '  Windows tiene cambios pendientes de reiniciar. Reinicia la PC y volve a aplicar esta opcion.' 'Yellow'
+                Log 'PENDIENTE' 'DISM no pudo empezar porque Windows espera un reinicio (0x800F0806)'
+            } else {
+                Res $okD ('DISM ResetBase (codigo ' + $codD + ')')
+            }
+            if ($okD) {
+            $dm = Join-Path $env:ProgramData 'XucaScripts'; if (-not (Test-Path $dm)) { New-Item -Path $dm -ItemType Directory -Force | Out-Null }
+            Set-Content -Path (Join-Path $dm 'sv_rbs.txt') -Value 'ok'
+            }
+            Opt-Fin 'Copias de las actualizaciones borradas'
+        }
+    },
+    @{
+        Id = 'drs'; Seccion = 'BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)'
+        Q = '- Desea borrar los drivers viejos y los de hardware que ya no usas? (SIN VUELTA ATRAS: impresoras, joysticks y dispositivos desconectados incluidos)'
+        Hace = 'borra del almacen de drivers todos los drivers de terceros que ningun dispositivo instalado esta usando: versiones viejas de drivers y los de hardware que ya no tenes. Los que estan en uso Windows no los deja borrar.'
+        Favor = 'libera de 1 a varios GB y saca drivers viejos que pueden dar conflictos.'
+        Contra = 'NO TIENE RESTABLECIMIENTO: si volves a enchufar una impresora, un joystick u otro dispositivo viejo, tenes que bajar su driver de nuevo (o Windows Update lo busca). El driver de tu placa de video en uso no se toca. No la uses junto con la busqueda de drivers apagada de Windows Update: un dispositivo nuevo se quedaria sin driver.'
+        S = {
+            Opt-Ini 'Drivers sin uso'
+            Say '  Revisando el almacen de drivers, un momento...'
+            $infs = @([regex]::Matches((& pnputil.exe /enum-drivers | Out-String), '(?i)\boem\d+\.inf\b') | ForEach-Object { $_.Value.ToLower() } | Sort-Object -Unique)
+            $borr = 0
+            foreach ($inf in $infs) {
+                & pnputil.exe /delete-driver $inf 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) { $borr++; Log 'OK' ('driver borrado: ' + $inf) } else { Log 'INFO' ('en uso, se deja: ' + $inf) }
+            }
+            Say ('  Drivers borrados: ' + $borr + ' de ' + $infs.Count)
+            $dm = Join-Path $env:ProgramData 'XucaScripts'; if (-not (Test-Path $dm)) { New-Item -Path $dm -ItemType Directory -Force | Out-Null }
+            Set-Content -Path (Join-Path $dm 'sv_drs.txt') -Value 'ok'
+            Opt-Fin 'Drivers sin uso borrados'
+        }
+    },
+    @{
+        Id = 'wre'; Seccion = 'BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)'
+        Q = '- Desea borrar el entorno de recuperacion de Windows? (SIN VUELTA ATRAS: ya no podes reparar el arranque ni usar Restablecer esta PC)'
+        Hace = 'desactiva el Entorno de recuperacion de Windows (WinRE) y borra su imagen (Winre.wim).'
+        Favor = 'libera unos 500 MB a 1 GB de disco.'
+        Contra = 'NO TIENE RESTABLECIMIENTO: si Windows no arranca, ya no tiene el menu de reparacion ni "Restablecer esta PC": la unica salida es reinstalar Windows desde un pendrive.'
+        S = {
+            Opt-Ini 'Entorno de recuperacion (WinRE)'
+            & reagentc.exe /disable 2>&1 | Out-Null
+            $okR = ($LASTEXITCODE -eq 0)
+            $wim = Join-Path $env:SystemRoot 'System32\Recovery\Winre.wim'
+            if (Test-Path -LiteralPath $wim) {
+                & takeown.exe /f $wim 2>&1 | Out-Null
+                & icacls.exe $wim /grant '*S-1-5-32-544:F' 2>&1 | Out-Null
+                Remove-Item -LiteralPath $wim -Force -ErrorAction SilentlyContinue
+            }
+            Res ($okR -and (-not (Test-Path -LiteralPath $wim))) 'WinRE desactivado y su imagen borrada'
+            $dm = Join-Path $env:ProgramData 'XucaScripts'; if (-not (Test-Path $dm)) { New-Item -Path $dm -ItemType Directory -Force | Out-Null }
+            Set-Content -Path (Join-Path $dm 'sv_wre.txt') -Value 'ok'
+            Opt-Fin 'Entorno de recuperacion borrado'
+        }
+    },
+    @{
+        Id = 'lang'; Seccion = 'BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)'
+        Q = '- Desea borrar los paquetes de idiomas que no usas? (SIN VUELTA ATRAS: escritura, voz y reconocimiento de otros idiomas)'
+        Hace = 'quita los componentes de idioma (escritura a mano, reconocimiento de texto, voz y lectura en voz alta) de todos los idiomas que no tenes en tu lista de idiomas ni son ingles.'
+        Favor = 'libera espacio y saca componentes que nunca usas.'
+        Contra = 'NO TIENE RESTABLECIMIENTO: si despues agregas otro idioma, Windows lo vuelve a bajar por internet, pero lo borrado no vuelve solo. Tu idioma y el ingles no se tocan.'
+        S = {
+            Opt-Ini 'Paquetes de idioma'
+            $usa = @(); try { $usa = @(Get-WinUserLanguageList | ForEach-Object { ($_.LanguageTag -split '-')[0].ToLower() }) } catch { }
+            $usa += 'en'
+            $usa = @($usa | Sort-Object -Unique)
+            foreach ($c in @(Get-WindowsCapability -Online -ErrorAction SilentlyContinue | Where-Object { ($_.Name -like 'Language.*') -and ([string]$_.State -eq 'Installed') })) {
+                $tag = ($c.Name -split '~~~')[1]
+                if (-not $tag) { continue }
+                if ($usa -contains (($tag -split '-')[0].ToLower())) { continue }
+                Remove-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue | Out-Null
+                Res ([string](Get-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue).State -ne 'Installed') ('idioma quitado: ' + $c.Name)
+            }
+            $dm = Join-Path $env:ProgramData 'XucaScripts'; if (-not (Test-Path $dm)) { New-Item -Path $dm -ItemType Directory -Force | Out-Null }
+            Set-Content -Path (Join-Path $dm 'sv_lang.txt') -Value 'ok'
+            Opt-Fin 'Paquetes de idioma borrados'
+        }
+    },
+    @{
+        Id = 'acc'; Seccion = 'BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)'
+        Q = '- Desea borrar las ayudas de accesibilidad y de voz? (SIN VUELTA ATRAS: lectura en voz alta, dictado, escritura a mano, OCR y Braille)'
+        Hace = 'desinstala de Windows los componentes de voz (lector de pantalla y dictado), reconocimiento de escritura a mano, lector de texto en imagenes (OCR) y soporte Braille, para todos los idiomas incluido el tuyo. Tambien apaga los carteles de Teclas especiales, Filtro y Alternar que aparecen al apretar Shift 5 veces.'
+        Favor = 'libera espacio y saca componentes que no usas si no necesitas esas ayudas.'
+        Contra = 'NO TIENE RESTABLECIMIENTO desde la app: si algun dia los necesitas (Narrador, dictado por voz, lapiz), hay que bajarlos de nuevo desde Configuracion > Accesibilidad / Idioma. No es para quien usa estas ayudas.'
+        S = {
+            Opt-Ini 'Accesibilidad y voz'
+            foreach ($c in @(Get-WindowsCapability -Online -ErrorAction SilentlyContinue | Where-Object { ($_.Name -match '^(Language\.(Speech|TextToSpeech|Handwriting|OCR)|Accessibility\.Braille)') -and ([string]$_.State -eq 'Installed') })) {
+                Remove-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue | Out-Null
+                Res ([string](Get-WindowsCapability -Online -Name $c.Name -ErrorAction SilentlyContinue).State -ne 'Installed') ('quitado: ' + $c.Name)
+            }
+            Reg-Set 'HKCU:\Control Panel\Accessibility\StickyKeys' 'Flags' 'REG_SZ' '506'
+            Reg-Set 'HKCU:\Control Panel\Accessibility\Keyboard Response' 'Flags' 'REG_SZ' '122'
+            Reg-Set 'HKCU:\Control Panel\Accessibility\ToggleKeys' 'Flags' 'REG_SZ' '58'
+            $dm = Join-Path $env:ProgramData 'XucaScripts'; if (-not (Test-Path $dm)) { New-Item -Path $dm -ItemType Directory -Force | Out-Null }
+            Set-Content -Path (Join-Path $dm 'sv_acc.txt') -Value 'ok'
+            Opt-Fin 'Accesibilidad y voz borradas'
+        }
+    },
+    @{
         # Antes (v1.0.11) iba dentro de "rsv". Ahora va aparte, nunca en un perfil, y la app avisa antes de aplicarla.
         Id = 'xbs'; Seccion = 'SISTEMA Y PRIVACIDAD'
         Q = '- Desea apagar los servicios de Xbox? (SOLO si no usas Xbox, Game Pass, Minecraft ni joysticks de Xbox)'
@@ -2667,7 +3292,7 @@ $ListaOpciones = @(
     @{
         Id = 'svh'; Seccion = 'SISTEMA Y PRIVACIDAD'
         Q = '- Desea juntar los servicios de Windows en menos procesos? (Ahorra RAM; se nota con 4 GB o mas)'
-        Hace = 'hace que Windows junte sus servicios en pocos procesos svchost en vez de uno por servicio (SvcHostSplitThresholdInKB).'
+        Hace = 'hace que Windows junte sus servicios en pocos procesos (svchost) en vez de uno por servicio.'
         Favor = 'ahorra varios cientos de MB de RAM y baja la cantidad de procesos.'
         Contra = 'si un servicio se cuelga puede arrastrar a los que comparten su proceso. Se aplica al reiniciar.'
         S = {
@@ -2792,10 +3417,12 @@ $ListaOpciones = @(
             Tarea '\Microsoft\Office\OfficeTelemetryAgentLogOn2016' 'disable'
             Svc 'NvTelemetryContainer' 'disabled' '4'
             Svc-Parar 'NvTelemetryContainer'
-            Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\Global\FTS' 'EnableRID44231' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\Global\FTS' 'EnableRID64640' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\Global\FTS' 'EnableRID66610' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\NvControlPanel2\Client' 'OptInOrOutPreference' 'REG_DWORD' '0'
+            if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\NVIDIA Corporation') {
+                Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\Global\FTS' 'EnableRID44231' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\Global\FTS' 'EnableRID64640' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\Global\FTS' 'EnableRID66610' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\NvControlPanel2\Client' 'OptInOrOutPreference' 'REG_DWORD' '0'
+            }
             Tarea '\NvTmMon_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}' 'disable'
             Tarea '\NvTmRep_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}' 'disable'
             Tarea '\NvTmRepOnLogon_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}' 'disable'

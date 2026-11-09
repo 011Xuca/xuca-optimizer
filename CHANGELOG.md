@@ -22,6 +22,16 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 
 - **Cámara en varias apps** (en Debloat): activa "Permitir que varias aplicaciones usen la cámara al mismo tiempo" de Windows, para usarla en OBS, Discord, Teams, etc. a la vez. Traducido al inglés.
 
+- **Nuevas opciones de RAM y servicios** (en Debloat) ⚠: impresión, red y Escritorio remoto; servicios y tareas extra de NVIDIA (sigue andando el Panel de control); actualizadores de Edge, Chrome y Brave en manual; tareas de mantenimiento y diagnóstico; sincronización entre dispositivos y portapapeles; disco sin anotar el último acceso; apagado y arranque rápidos; más servicios que casi nadie usa; Bluetooth (no deja aplicar si hay un dispositivo conectado); servicios de la Store; Windows Update; miniaturas; funciones heredadas; servicios de usuario; y quitar la Microsoft Store.
+- **Borrar partes de Windows (sin vuelta atrás)**: apps modernas, copias de seguridad de las actualizaciones (ResetBase), drivers sin usar, entorno de recuperación, paquetes de idioma y ayudas de accesibilidad y voz. Todas piden confirmación, y una vez aplicadas quedan en gris y bloqueadas; si el estado vuelve atrás (por ejemplo reinstalás un idioma) se habilitan de nuevo.
+- **Apps antiguas o modernas** (excluyentes, no se pueden marcar juntas): cada una instala lo que le falte de su lado y recorta el espacio que ya no se usa. Quitar componentes viejos (Internet Explorer, WordPad, SMBv1, PowerShell 2, Telnet, XPS y más).
+- **Optimización gaming**: grabación de juegos en segundo plano (Game DVR) y prioridad al programa en primer plano.
+- **Limpiar caché por categorías y en 2 columnas**, con opciones nuevas que explican qué borran: Windows.old, caché de Discord/Steam/Epic/Store, caché de navegadores, Visor de Eventos, componentes viejos (DISM), restos de apps desinstaladas (conserva carpetas con partidas guardadas) y la carpeta Descargas.
+- **Perfiles** ordenados en grupos y de a 2 por fila, con estimación de RAM; sin opciones de seguridad en los competitivos y sin las que solo sumaban calor. **Apps extras, Opciones y Configs recomendadas** también en 2 columnas, con categorías de colores ordenadas por importancia.
+- **Perfiles apilables**: si ya tenés opciones marcadas de otro perfil (o a mano) y elegís otro, la app pregunta si querés **Sumar** la lista del nuevo perfil a lo marcado o **Cambiar** lo marcado por ese perfil. Lo que ya está aplicado en Windows siempre se mantiene.
+- Todas las opciones muestran **Ya aplicado / Sin aplicar**, incluso cuando el programa a tocar no existe en tu PC (por ejemplo, sin Brave).
+- **Modo Nitro** dice "(aka. QuickCPU)" y el temporizador "(aka. Timer Resolution)".
+
 ### Perfiles sin Xbox
 - **Seguro, Optimizado, Competitivo + Optimizado, RAM liviana, RAM mínima y Debloat - Notebook** ya no frenan las actualizaciones de la Store (rompían las de Game Pass, Minecraft y Gaming Services).
 - **RAM mínima** ya no apaga Teredo (no ahorra RAM y rompe el chat de Xbox).
@@ -37,6 +47,10 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 - **Apps en segundo plano**: la excepción de Xbox suma Accesorios de Xbox (`Microsoft.XboxDevices`) y la transcripción del chat. **Apps de inicio** tampoco apaga el Launcher de Minecraft de la Store (`Microsoft.4297127D64EC6`).
 - **Borrar una cuenta** y **Entrar sin contraseña** avisan que se cierra la sesión de Xbox y de la Store (en el primero, solo si hay que limpiar todo el caché de cuentas). **Desactivar las notificaciones** avisa que no se ven las invitaciones de Xbox.
 - **Actualizaciones de la Store**: el "En contra" avisa que también frena las de Game Pass, Minecraft y Gaming Services.
+- **Auditoría de seguridad de datos**: "Borrar apps basura" ya no borra Paint, Cámara, Reloj, Notas adhesivas ni Asistencia rápida; "Desinstalar OneDrive" se saltea si tu Escritorio, Documentos o Imágenes están en OneDrive o hay archivos solo en la nube; "Borrar apps modernas" conserva códecs de video e imagen, la captura de pantalla y los paneles de audio y video del fabricante; el Bloc de notas y Paint clásicos solo se quitan si ya está el moderno.
+- **Modo MSI** no se fuerza en dispositivos cuyo driver lo apagó a propósito, y salió de los perfiles competitivos y de Full. **Velocidad del cable** no fuerza 1 Gbps si el cable hoy negocia menos. **Limpieza** ya no borra `$WINDOWS.~BT` y `$WINDOWS.~WS` salvo que marques borrar Windows.old y no haya una instalación en curso.
+- **Apagado rápido** ya no cierra programas a la fuerza. **Restaurar la Store** espera hasta 2 minutos. **Servicios protegidos**: si Windows rechaza el cambio, se prueba por el registro. Se quitó "Apagar el Centro de seguridad" porque Windows lo protege y nunca se podía aplicar.
+- **Textos de las opciones reescritos en lenguaje simple**, con su traducción al inglés.
 
 ## v1.0.10
 

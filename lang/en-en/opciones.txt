@@ -483,3 +483,194 @@ Hace: deletes saved restore points; system protection stays on.
 Favor: frees several GB of disk.
 Contra: if something goes wrong, you can't go back to how Windows was before.
 
+[Debloat rmin]
+Titulo: Turn off printing, network sharing and Remote Desktop
+Hace: turns off or sets to manual the printing services, the ones that make your PC show up on the local network and cast to the TV, the web folder service (WebClient), media sharing and work folders, and Remote Desktop.
+Favor: fewer programs running in the background and a bit of RAM freed.
+Contra: you can't print or save to PDF from Print, your PC doesn't show up on the local network, you can't cast to the TV and nobody can get in through Remote Desktop, until you restore it.
+
+[Debloat nvl]
+Titulo: Turn off the extra NVIDIA services and tasks
+Hace: sets to manual and stops the service used by the NVIDIA app, the overlay and ShadowPlay recording, and turns off the one that sends usage data plus the tasks that look for drivers and updates. It doesn't touch the display service: without it the NVIDIA Control Panel doesn't open and colors and G-Sync aren't kept.
+Favor: fewer NVIDIA processes open and a bit of RAM freed, without losing the driver.
+Contra: the overlay, ShadowPlay and the NVIDIA app filters don't work until the service runs. If the app doesn't open well, restore the option. You update the drivers yourself.
+
+[Debloat upd]
+Titulo: Set the Edge, Chrome and Brave updaters to manual
+Hace: makes the programs that update Edge, Chrome and Brave stop running all the time: Windows starts them only when needed.
+Favor: fewer processes open all the time and a bit of RAM freed.
+Contra: none you'd notice: the browsers still update on their own. If you don't have one of those browsers, it does nothing for it.
+
+[Debloat tsk]
+Titulo: Turn off background maintenance and diagnostic tasks
+Hace: turns off automatic Windows tasks that wake up the processor and disk without you noticing: program and device inventory, Family Safety, media sharing, Maps, network diagnostics and sending disk and system data.
+Favor: fewer processor and disk spikes when you're not doing anything.
+Contra: Windows stops doing that automatic maintenance. It doesn't touch Windows Update, restore points or SSD optimization.
+
+[Debloat cdp]
+Titulo: Turn off cross-device sync and clipboard history
+Hace: turns off the Connected Devices Platform (shared experiences and Nearby Sharing) and the clipboard history and sync.
+Favor: fewer sync processes and less data sent.
+Contra: Win+V stops saving the clipboard history, and you can't send files or clipboard between your PC and your phone or other PCs.
+
+[Debloat fsb]
+Titulo: Stop the disk from noting when you open each file
+Hace: makes Windows stop writing to the disk the date you opened each file.
+Favor: less is written to the disk and a bit less background work, mostly on hard drives.
+Contra: Explorer stops showing the real last-access date of files. Some old backup programs use it.
+
+[Debloat rap]
+Titulo: Speed up shutdown and desktop startup
+Hace: lowers to 2 seconds how long Windows waits to close services and programs when shutting down, and removes the 10-second delay Windows puts on startup programs.
+Favor: the PC turns off and on faster.
+Contra: frozen services and programs are closed after 2 seconds; Windows still warns you if something is unsaved.
+
+[Debloat sx]
+Titulo: Turn off even more services almost nobody uses
+Hace: turns off rarely used services: biometric sign-in (Windows Hello with fingerprint or face), Sensors, Wi-Fi Direct and Windows Connect Now, Telephony (TAPI), iSCSI, File History, Windows Backup, Remote events, the ActiveX installer, Enterprise App Management, guided troubleshooting, the RPC locator and more.
+Favor: fewer services open and fewer Windows processes in the background.
+Contra: Windows Hello (fingerprint or face), sensors (auto brightness or rotation), Wi-Fi Direct and File History stop working. If something fails, restore the option.
+
+[Debloat bt]
+Titulo: Turn off Bluetooth
+Hace: turns off the Bluetooth support service, the Bluetooth audio one and the remote control profiles one (AVCTP). It won't apply if a Bluetooth device is connected right now.
+Favor: fewer services loaded.
+Contra: Bluetooth headphones, mouse, keyboard and controllers stop working until you restore it.
+
+[Debloat str]
+Titulo: Turn off the Microsoft Store install services
+Hace: turns off the service that installs Store apps, the one that checks their licenses and the one that prepares them.
+Favor: fewer services open and a bit of RAM freed.
+Contra: you can't install or update Microsoft Store apps (nor Xbox or Game Pass games). Some Store apps may stop opening because they can't check their license.
+
+[Debloat wus]
+Titulo: Turn off Windows Update completely
+Hace: turns off the Windows Update service and the update orchestrator, and blocks automatic updates by policy.
+Favor: no background downloads or installs, no surprise restarts and less RAM, CPU and disk.
+Contra: the PC gets no security or driver patches and is exposed to known flaws. Restore it every so often to update.
+
+[Debloat thm]
+Titulo: Show icons instead of thumbnails in Explorer
+Hace: Explorer always shows icons, doesn't make thumbnails and doesn't keep the thumbnail cache.
+Favor: Explorer uses less RAM and opens photo and video folders faster.
+Contra: you don't see the preview of images or videos in folders.
+
+[Debloat leg]
+Titulo: Turn off legacy Windows features
+Hace: turns off Remote Assistance, AutoPlay for USBs and discs, and Windows error reporting.
+Favor: fewer services and features loaded, and an unknown USB no longer opens by itself.
+Contra: nobody can connect to your PC with Remote Assistance, and when you plug in a USB the what-to-do menu doesn't show up.
+
+[Debloat old]
+Titulo: Remove all the old Windows components nobody uses
+Hace: turns off Internet Explorer, Fax and Scan, the old Media Player, SMBv1 (the old, insecure network protocol), PowerShell 2.0, Telnet, TFTP, Work Folders, the XPS viewer and services, Remote Differential Compression, DirectPlay and the legacy components, and removes WordPad, Steps Recorder and the Math Recognizer.
+Favor: fewer features loaded and less attack surface (SMBv1 and PowerShell 2 are classic targets), and frees disk space.
+Contra: very old games that need DirectPlay don't work, and you can't share files with very old computers (SMBv1) or use Telnet. Going back needs internet.
+
+[Debloat msx]
+Titulo: Remove the Microsoft Store
+Hace: uninstalls the Microsoft Store and the Store purchase app for all users and removes them from the apps installed on new accounts.
+Favor: fewer processes, less RAM and nothing from the Store updating apps in the background.
+Contra: you can't install or update Store apps (nor Game Pass, Xbox or Minecraft Bedrock). Getting it back needs internet (it's reinstalled with wsreset -i).
+
+[Debloat usv]
+Titulo: Turn off the contacts, calendar, messages and sync user services
+Hace: turns off the services Windows starts for each user: contacts and calendar (UserDataSvc, Unistore, PimIndex), sync (OneSync), messages, Connected Devices, cloud clipboard, user printing and Web Defense.
+Favor: fewer svchost processes per session and a bit less RAM.
+Contra: the Mail, Calendar and People apps don't sync, the cloud clipboard and Nearby Sharing stop working, and Defender web protection doesn't run.
+
+[Debloat dold]
+Titulo: Delete the old Windows apps and keep only the modern ones
+Hace: removes the classic versions Windows has always shipped, installed apart from the modern ones: the system Notepad (Windows has two), classic Paint, WordPad, classic Windows Media Player, Steps Recorder, PowerShell ISE, Internet Explorer, the XPS viewer and Fax and Scan. The modern apps (new Notepad and Photos, Paint, Calculator, Snipping Tool) stay, and if one is missing it's installed with winget (needs internet). Then it trims the space that's no longer used. It can't be ticked together with "Delete the modern apps".
+Favor: you keep a single version of each app, the new one, and free space and loaded components.
+Contra: if you also delete the modern ones, you're left without Notepad or Paint. Getting the old ones back needs internet (the restore button downloads them again).
+
+[Debloat dball]
+Titulo: Delete the modern Windows apps and keep only the old ones
+Hace: uninstalls for all users and removes from new accounts every modern Windows app that can be deleted, except the Store, the app installer (winget), Terminal, Xbox and Gaming Services, and what Windows needs to work. If you're missing an old one (system Notepad, classic Paint, WordPad, classic Media Player) it installs it first, then trims the space that's no longer used. Calculator, screen capture (Win+Shift+S), video and image codecs and your manufacturer's audio and video panels stay. It's the opposite of "Delete the old apps" and can't be ticked together with it.
+Favor: fewer processes, less RAM and a lot of free disk space.
+Contra: IT CAN'T BE RESTORED: Photos, Notepad, Paint and the others go away. Some can be reinstalled by hand from the Store or with winget; if something breaks, you have to reinstall Windows.
+
+[Debloat rbs]
+Titulo: Delete the Windows update backups
+Hace: runs DISM with ResetBase: deletes from the component store (WinSxS) the old versions of each component that updates left behind.
+Favor: frees several GB of disk.
+Contra: IT CAN'T BE RESTORED: you can no longer uninstall the updates you have installed or go back to an earlier version of a component. If an update breaks something, the only way out is reinstalling Windows. It takes several minutes.
+
+[Debloat drs]
+Titulo: Delete old drivers and drivers for hardware you no longer use
+Hace: deletes from the driver store every third-party driver that no installed device is using: old driver versions and drivers for hardware you no longer have. Windows won't delete the ones in use.
+Favor: frees 1 to several GB and removes old drivers that can cause conflicts.
+Contra: IT CAN'T BE RESTORED: if you plug in an old printer, controller or other device again, you have to download its driver again (or Windows Update looks for it). The driver of the graphics card in use isn't touched. Don't use it together with Windows Update driver search turned off: a new device would be left without a driver.
+
+[Debloat wre]
+Titulo: Delete the Windows recovery environment
+Hace: turns off the Windows Recovery Environment (WinRE) and deletes its image (Winre.wim).
+Favor: frees about 500 MB to 1 GB of disk.
+Contra: IT CAN'T BE RESTORED: if Windows doesn't start, it no longer has the repair menu or "Reset this PC": the only way out is reinstalling Windows from a USB drive.
+
+[Debloat lang]
+Titulo: Delete language packs you don't use
+Hace: removes the language components (handwriting, text recognition, speech and read-aloud) of every language that isn't in your language list or English.
+Favor: frees space and removes components you never use.
+Contra: IT CAN'T BE RESTORED: if you later add another language, Windows downloads it again over the internet, but what was deleted doesn't come back by itself. Your language and English aren't touched.
+
+[Debloat acc]
+Titulo: Delete accessibility and speech aids
+Hace: uninstalls from Windows the speech components (screen reader and dictation), handwriting recognition, the text-in-image reader (OCR) and Braille support, for every language including yours. It also turns off the Sticky Keys, Filter Keys and Toggle Keys pop-ups that appear when you press Shift 5 times.
+Favor: frees space and removes components you don't use if you don't need those aids.
+Contra: IT CAN'T BE RESTORED from the app: if you ever need them (Narrator, voice dictation, pen), you have to download them again from Settings > Accessibility / Language. Not for people who use these aids.
+
+[Gaming dvr]
+Titulo: Turn off background game recording
+Hace: turns off the clip capture and recording of Xbox Game Bar (Game DVR), which records in the background while you play. It doesn't delete the Game Bar or touch Xbox.
+Favor: more FPS and less stutter, mostly if background recording was on.
+Contra: you can't record clips with Win+Alt+G or with the Game Bar.
+
+[Gaming fgb]
+Titulo: Give more processor time to the program you're using
+Hace: changes how Windows splits processor time (Win32PrioritySeparation = 38): the window you're in, such as the game, gets longer turns and goes ahead of background programs.
+Favor: the game responds more evenly when there are programs open in the background.
+Contra: background programs (downloads, browser) run a bit slower while you play.
+
+[Limpieza CLEAN_OLD]
+Titulo: Delete the Windows.old folder
+Hace: deletes C:\Windows.old, the copy of your previous Windows left after a big update. It takes 5 to 20 minutes.
+Favor: frees 10 to 30 GB.
+Contra: you can no longer go back to the previous version of Windows.
+
+[Limpieza CLEAN_LAUNCH]
+Titulo: Delete the Discord, Steam, Epic and Store cache
+Hace: deletes only the web cache of Discord, Steam and Epic Games Launcher, and the local cache of the Microsoft Store. It doesn't touch your games, your saved games or your accounts.
+Favor: frees space and fixes launchers that load badly.
+Contra: the first time you open those apps they take a bit longer to load.
+
+[Limpieza CLEAN_BRW]
+Titulo: Delete the browsers cache
+Hace: deletes only the cache of Chrome, Edge, Brave, Vivaldi, Opera and Firefox (images and files of pages already visited). It doesn't touch passwords, cookies, history, bookmarks or signed-in sessions.
+Favor: frees hundreds of MB to several GB and fixes pages that load badly.
+Contra: pages take a bit longer to load the first time.
+
+[Limpieza CLEAN_EVT]
+Titulo: Clear the Event Viewer
+Hace: deletes the history of Windows events and errors (all logs).
+Favor: removes junk and old logs.
+Contra: you lose the history used to find the cause of a blue screen or a weird error.
+
+[Limpieza CLEAN_DISM]
+Titulo: Clean up the old Windows components (DISM)
+Hace: runs the normal cleanup of the component store (WinSxS): removes old versions of components that are no longer needed. You can still uninstall updates.
+Favor: frees disk space.
+Contra: it takes several minutes.
+
+[Limpieza CLEAN_APPS]
+Titulo: Delete the leftovers of uninstalled apps
+Hace: looks for what uninstalled apps left behind: data of uninstalled Store apps, program entries without files (with their AppData and ProgramData folders and registry keys of the same name) and empty folders in Program Files.
+Favor: frees space and removes registry junk.
+Contra: a folder with saved games (Save, Saved, SaveGames) isn't touched, but be careful anyway: if you uninstalled a game that keeps its saves elsewhere, copy them first. What's deleted can't be recovered.
+
+[Limpieza CLEAN_DL]
+Titulo: Empty the Downloads folder
+Hace: deletes EVERYTHING in each user's Downloads folder: installers, documents, photos and whatever you downloaded.
+Favor: frees the space taken by old downloads.
+Contra: IT DOESN'T GO TO THE RECYCLE BIN: what's there can't be recovered. Check the folder first.

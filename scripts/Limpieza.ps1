@@ -3,7 +3,7 @@
 #  Lo corre la app XucaOP.ps1 en un hilo aparte, con Comun.ps1 cargado: ya no se abre cmd ni otro PowerShell.
 #  Se limpia sin preguntar: temporales, cache de Windows Update, Windows.old, volcados y logs de errores,
 #  restos de instalaciones, caches de apps, Visor de Eventos, Microsoft Store, DNS y componentes viejos (DISM).
-#  Lo que se decide en la app viene en CLEAN_BIN (papelera), CLEAN_GPU (shaders) y CLEAN_RP (puntos de restauracion).
+#  Lo que se decide en la app viene en CLEAN_BIN (papelera), CLEAN_GPU (shaders) y CLEAN_RP (puntos de restauracion) y CLEAN_APPS (restos de apps desinstaladas), CLEAN_OLD (Windows.old), CLEAN_LAUNCH (cache de Discord, Steam, Epic y Store), CLEAN_BRW (cache de navegadores), CLEAN_DL (carpeta Descargas), CLEAN_EVT (Visor de Eventos) y CLEAN_DISM (componentes viejos).
 #  La app sigue el progreso por las lineas que se escriben (ver $PasosLimpieza en XucaOP.ps1): si cambias un texto, cambialo alla tambien.
 # ============================================================
 
@@ -149,8 +149,6 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
         $restos = @(
             ($sysDrive + '\OneDriveTemp'),
             ($sysDrive + '\PerfLogs'),
-            ($sysDrive + '\$WINDOWS.~BT'),
-            ($sysDrive + '\$WINDOWS.~WS'),
             ($sysDrive + '\$GetCurrent'),
             ($sysDrive + '\$SysReset'),
             ($sysDrive + '\ESD\Download'),
@@ -159,6 +157,8 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
             ($sysDrive + '\AMD'),
             ($env:ProgramData + '\NVIDIA Corporation\Downloader')
         )
+        # Las carpetas de la actualizacion de Windows solo se borran si marcaste borrar Windows.old y no hay una instalacion en curso
+        if (($env:CLEAN_OLD -eq '1') -and -not (Get-Process -Name 'setuphost', 'SetupPrep', 'Windows10UpgraderApp' -ErrorAction SilentlyContinue)) { $restos += @(($sysDrive + '\$WINDOWS.~BT'), ($sysDrive + '\$WINDOWS.~WS')) }
         $r = Clear-Group 'Restos de instalaciones' $restos
         $totalFiles += $r.Deleted
         $totalBytes += $r.Bytes
@@ -191,6 +191,10 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
                 $oldOk = (($oi.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and $duenioOk
             } catch { }
             if (-not $oldOk) { Say 'Windows.old no parece la carpeta que deja Windows al actualizarse: no se toco.' 'Yellow' }
+        }
+        if ($oldOk -and ($env:CLEAN_OLD -ne '1')) {
+            Say 'Windows.old: no se toco (marcalo si queres borrarla).' 'Yellow'
+            $oldOk = $false
         }
         if ($oldOk) {
             Say ''
@@ -326,9 +330,36 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
           + (Per-User 'AppData\Local\Steam\htmlcache') `
           + (Per-User 'AppData\Local\EpicGamesLauncher\Saved\webcache*') `
           + (Per-User 'AppData\Local\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalCache')
-        $r = Clear-Group 'Apps (Discord/Steam/Epic/Store)' $appPaths
-        $totalFiles += $r.Deleted
-        $totalBytes += $r.Bytes
+        if ($env:CLEAN_LAUNCH -eq '1') {
+            $r = Clear-Group 'Apps (Discord/Steam/Epic/Store)' $appPaths
+            $totalFiles += $r.Deleted
+            $totalBytes += $r.Bytes
+        } else { Say 'Cache de Discord, Steam, Epic y Store: no se toco.' 'Yellow' }
+
+        # Cache de los navegadores (solo la cache: no se tocan contrasenas, cookies, historial ni sesiones)
+        if ($env:CLEAN_BRW -eq '1') {
+            $brw = @()
+            foreach ($rel in 'AppData\Local\Google\Chrome\User Data', 'AppData\Local\Microsoft\Edge\User Data', 'AppData\Local\BraveSoftware\Brave-Browser\User Data', 'AppData\Local\Vivaldi\User Data', 'AppData\Roaming\Opera Software\Opera Stable', 'AppData\Roaming\Opera Software\Opera GX Stable') {
+                foreach ($base in (Per-User $rel)) {
+                    if (-not (Test-Path -LiteralPath $base)) { continue }
+                    foreach ($c in 'Cache', 'Code Cache', 'GPUCache', 'GrShaderCache', 'ShaderCache', 'DawnCache') {
+                        $brw += @(Get-ChildItem -LiteralPath $base -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object { Join-Path $_.FullName $c })
+                        $brw += (Join-Path $base $c)
+                    }
+                }
+            }
+            $brw += (Per-User 'AppData\Local\Mozilla\Firefox\Profiles\*\cache2')
+            $r = Clear-Group 'Cache de navegadores' $brw
+            $totalFiles += $r.Deleted
+            $totalBytes += $r.Bytes
+        } else { Say 'Cache de navegadores: no se toco.' 'Yellow' }
+
+        # Carpeta Descargas: borra TODO lo que hay adentro (solo si se pidio)
+        if ($env:CLEAN_DL -eq '1') {
+            $r = Clear-Group 'Descargas (todo)' (Per-User 'Downloads')
+            $totalFiles += $r.Deleted
+            $totalBytes += $r.Bytes
+        } else { Say 'Carpeta Descargas: no se toco.' 'Yellow' }
 
         $gpuPaths = @(
             ($env:ProgramData + '\NVIDIA Corporation\NV_Cache')
@@ -354,13 +385,112 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
             Say 'Cache de shaders: no se toco (los juegos no van a tener tirones de mas).' 'Yellow'
         }
 
-        Say "Vaciando Visor de Eventos..." 'Cyan'
-        wevtutil.exe el | ForEach-Object { wevtutil.exe cl $_ 2>$null | Out-Null }
+        # ---------------------------------------------------------------
+        # RESTOS DE APPS DESINSTALADAS (solo si se pidio)
+        # ---------------------------------------------------------------
+        if ($env:CLEAN_APPS -eq '1') {
+            Say 'Buscando restos de apps desinstaladas...' 'Cyan'
+            $rpA = [IO.FileAttributes]::ReparsePoint
+            # Borra una carpeta entera sin entrar en enlaces (mismo cuidado que Archivos-Seguro) y despues las carpetas que quedaron vacias
+            function Borrar-Resto([string]$ruta, [string]$nombre) {
+                $di = New-Object IO.DirectoryInfo($ruta)
+                if ((-not $di.Exists) -or (($di.Attributes -band $rpA) -ne 0)) { return }
+                $r = Clear-Group $nombre @($ruta)
+                # Los totales viven en Correr-Limpieza (un nivel arriba): desde aca hay que escribirlos con Set-Variable
+                Set-Variable -Name totalFiles -Scope 1 -Value ($totalFiles + $r.Deleted)
+                Set-Variable -Name totalBytes -Scope 1 -Value ($totalBytes + $r.Bytes)
+                $dirs = New-Object System.Collections.Generic.List[IO.DirectoryInfo]
+                $pl = New-Object System.Collections.Generic.Stack[IO.DirectoryInfo]
+                $pl.Push($di)
+                while ($pl.Count -gt 0) {
+                    $d = $pl.Pop(); $dirs.Add($d)
+                    try { foreach ($h in $d.GetDirectories()) { if (($h.Attributes -band $rpA) -eq 0) { $pl.Push($h) } } } catch { }
+                }
+                for ($k = $dirs.Count - 1; $k -ge 0; $k--) { try { [IO.Directory]::Delete($dirs[$k].FullName, $false) } catch { } }
+            }
+            # 1) Datos de apps de la Store que ya no estan instaladas
+            $fams = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | ForEach-Object { $_.PackageFamilyName })
+            if ($fams.Count -ge 5) {
+                foreach ($u in $users) {
+                    $pk = Join-Path $u 'AppData\Local\Packages'
+                    if (-not (Test-Path -LiteralPath $pk)) { continue }
+                    foreach ($d in @(Get-ChildItem -LiteralPath $pk -Directory -Force -ErrorAction SilentlyContinue)) {
+                        if (($d.Attributes -band $rpA) -ne 0) { continue }
+                        if ($d.Name -notmatch '^[A-Za-z0-9.\-]+_[a-z0-9]{13}$') { continue }
+                        if ($fams -contains $d.Name) { continue }
+                        Borrar-Resto $d.FullName ('Datos de ' + $d.Name)
+                    }
+                }
+            } else { Say '  No pude leer las apps de la Store: se saltea ese paso.' 'Yellow' }
+            # 2) Programas que figuran instalados pero ya no estan (entradas de Programas y caracteristicas sin archivos)
+            $muertas = 0
+            $unin = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall')
+            $fijos = @([IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq 'Fixed' -and $_.IsReady } | ForEach-Object { $_.Name.Substring(0, 1).ToUpper() })
+            foreach ($ku in $unin) {
+                foreach ($k in @(Get-ChildItem -LiteralPath $ku -ErrorAction SilentlyContinue)) {
+                    $v = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction SilentlyContinue
+                    if ((-not $v) -or (-not $v.DisplayName)) { continue }
+                    if (($v.SystemComponent -eq 1) -or $v.ParentKeyName -or ($v.WindowsInstaller -eq 1)) { continue }
+                    # Camino a comprobar: la carpeta de instalacion o, si no hay, el programa del desinstalador
+                    $ref = ([string]$v.InstallLocation).Trim().Trim('"').TrimEnd('\')
+                    if (-not $ref) {
+                        $us = [string]$v.UninstallString
+                        $m = [regex]::Match($us, '^\s*"?([A-Za-z]:\\[^"]*?\.exe)', 'IgnoreCase')
+                        if ($m.Success) { $ref = $m.Groups[1].Value }
+                    }
+                    if ($ref -notmatch '^[A-Za-z]:\\') { continue }
+                    if ($fijos -notcontains $ref.Substring(0, 1).ToUpper()) { continue }   # disco que no esta enchufado: no se toca
+                    if (Test-Path -LiteralPath $ref) { continue }
+                    $nom = ([string]$v.DisplayName).Trim()
+                    try { Remove-Item -LiteralPath $k.PSPath -Recurse -Force -ErrorAction Stop; $muertas++; Say ('  Entrada de programa que ya no existe: ' + $nom) } catch { continue }
+                    # Carpetas y claves con el nombre exacto del programa (solo nombres de 5 letras o mas, para no tocar cosas generales)
+                    if ($nom.Length -ge 5 -and $nom -notmatch '[\\/:*?"<>|]') {
+                        # Si la carpeta tiene partidas guardadas (Save, Saved, SaveGames...) no se toca
+                        $tienePart = { param($ruta) (Test-Path -LiteralPath $ruta) -and [bool](Get-ChildItem -LiteralPath $ruta -Directory -Recurse -Depth 4 -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^(Saves?|Saved|SaveGames|SaveData)$' } | Select-Object -First 1) }
+                        foreach ($u in $users) {
+                            foreach ($rel in 'AppData\Local', 'AppData\Roaming') {
+                                $rr = Join-Path (Join-Path $u $rel) $nom
+                                if (& $tienePart $rr) { Say ('  Se conserva ' + $rr + ' (tiene partidas guardadas)') 'Yellow'; continue }
+                                Borrar-Resto $rr ('Restos de ' + $nom)
+                            }
+                        }
+                        if (& $tienePart (Join-Path $env:ProgramData $nom)) { Say ('  Se conserva ProgramData\' + $nom + ' (tiene partidas guardadas)') 'Yellow' } else { Borrar-Resto (Join-Path $env:ProgramData $nom) ('Restos de ' + $nom) }
+                        foreach ($rk in ('HKCU:\SOFTWARE\' + $nom), ('HKLM:\SOFTWARE\' + $nom), ('HKLM:\SOFTWARE\WOW6432Node\' + $nom)) {
+                            if (Test-Path -LiteralPath $rk) { try { Remove-Item -LiteralPath $rk -Recurse -Force -ErrorAction Stop; Say ('  Clave de registro borrada: ' + $rk) } catch { } }
+                        }
+                    }
+                }
+            }
+            Say ('Entradas de programas que ya no existen: ' + $muertas) 'Cyan'
+            # 3) Carpetas vacias de programas en Archivos de programa
+            $vacias = 0
+            $sistema = '^(Common Files|Windows.*|Microsoft.*|WindowsApps|ModifiableWindowsApps|Internet Explorer|dotnet|Reference Assemblies|MSBuild|WindowsPowerShell|PackageManagement|UNP|Uninstall Information|Application Verifier|IIS.*)$'
+            foreach ($pf in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+                if ((-not $pf) -or (-not (Test-Path -LiteralPath $pf))) { continue }
+                foreach ($d in @(Get-ChildItem -LiteralPath $pf -Directory -Force -ErrorAction SilentlyContinue)) {
+                    if (($d.Attributes -band $rpA) -ne 0) { continue }
+                    if ($d.Name -match $sistema) { continue }
+                    if (@(Archivos-Seguro $d.FullName).Count -gt 0) { continue }
+                    Borrar-Resto $d.FullName ('Carpeta vacia ' + $d.Name)
+                    if (-not (Test-Path -LiteralPath $d.FullName)) { $vacias++ }
+                }
+            }
+            Say ('Carpetas vacias borradas: ' + $vacias) 'Cyan'
+        } else {
+            Say 'Restos de apps desinstaladas: no se tocaron.' 'Yellow'
+        }
 
-        Say "Restableciendo Microsoft Store (WSReset)..." 'Cyan'
-        Start-Process -FilePath 'WSReset.exe' -Wait -WindowStyle Hidden
-        Start-Sleep -Seconds 2
-        Get-Process -Name 'WinStore.App' -ErrorAction SilentlyContinue | Stop-Process -Force
+        if ($env:CLEAN_EVT -eq '1') {
+            Say "Vaciando Visor de Eventos..." 'Cyan'
+            wevtutil.exe el | ForEach-Object { wevtutil.exe cl $_ 2>$null | Out-Null }
+        } else { Say 'Visor de Eventos: no se toco.' 'Yellow' }
+
+        if (@(Get-AppxPackage -AllUsers -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue).Count -gt 0) {
+            Say "Restableciendo Microsoft Store (WSReset)..." 'Cyan'
+            Start-Process -FilePath 'WSReset.exe' -Wait -WindowStyle Hidden
+            Start-Sleep -Seconds 2
+            Get-Process -Name 'WinStore.App' -ErrorAction SilentlyContinue | Stop-Process -Force
+        }
 
         Say "Restableciendo cache de resolucion DNS..." 'Cyan'
         ipconfig /flushdns | Out-Null
@@ -368,8 +498,10 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
         # ---------------------------------------------------------------
         # COMPONENTES VIEJOS DE WINDOWS
         # ---------------------------------------------------------------
-        Say "Limpiando componentes viejos de Windows (DISM), puede tardar varios minutos..." 'Cyan'
-        Start-Process -FilePath 'DISM.exe' -ArgumentList '/Online', '/Cleanup-Image', '/StartComponentCleanup' -Wait -WindowStyle Hidden
+        if ($env:CLEAN_DISM -eq '1') {
+            Say "Limpiando componentes viejos de Windows (DISM), puede tardar varios minutos..." 'Cyan'
+            Start-Process -FilePath 'DISM.exe' -ArgumentList '/Online', '/Cleanup-Image', '/StartComponentCleanup' -Wait -WindowStyle Hidden
+        } else { Say 'Componentes viejos de Windows (DISM): no se tocaron.' 'Yellow' }
 
         # ---------------------------------------------------------------
         # PAPELERA (solo si se pidio)

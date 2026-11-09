@@ -629,12 +629,43 @@ $Chequeos = @{
     'Debloat|ad'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SystemPaneSuggestionsEnabled') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB') -eq 0) }
     'Debloat|sv'    = { ((Leer-Svc 'MapsBroker') -eq 4) -and ((Leer-Svc 'WerSvc') -eq 4) }
     'Debloat|rsv'   = { ((Leer-Svc 'WalletService') -eq 4) -and ((Leer-Svc 'TrkWks') -eq 4) }
+    'Debloat|rmin'  = { ((Leer-Svc 'Spooler') -eq 4) -and ((Leer-Svc 'SSDPSRV') -eq 4) }
+    'Debloat|sx'    = { ((Leer-Svc 'RpcLocator') -eq 4) -and ((Leer-Svc 'TapiSrv') -eq 4) }
+    'Debloat|bt'    = { $v = Leer-Svc 'bthserv'; if ($null -eq $v) { return $true }; $v -eq 4 }
+    'Debloat|str'   = { ((Leer-Svc 'InstallService') -eq 4) -and ((Leer-Svc 'LicenseManager') -eq 4) }
+    'Debloat|wus'   = { ((Leer-Svc 'wuauserv') -eq 4) -and ((Leer-Svc 'UsoSvc') -eq 4) }
+    'Debloat|thm'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'IconsOnly') -eq 1 }
+    'Debloat|leg'   = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance' 'fAllowToGetHelp') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting' 'Disabled') -eq 1) }
+    'Debloat|old'   = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\old_apagado.txt') }
+    'Debloat|msx'   = { -not (HasAppx 'Microsoft.WindowsStore') }
+    'Debloat|usv'   = { ((Leer-Svc 'UserDataSvc') -eq 4) -and ((Leer-Svc 'OneSyncSvc') -eq 4) }
+    'Debloat|dold' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_dold.txt') }
+    'Debloat|dball' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_dball.txt') }
+    'Debloat|rbs' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_rbs.txt') }
+    'Debloat|drs' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_drs.txt') }
+    'Debloat|wre' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_wre.txt') }
+    'Debloat|lang' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_lang.txt') }
+    'Debloat|acc'  = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_acc.txt') }
+    'Debloat|nvl'   = { $v = Leer-Svc 'NvContainerLocalSystem'; if ($null -eq $v) { return $true }; $v -ge 3 }
+    'Debloat|upd'   = {
+        $v = @('edgeupdate', 'gupdate', 'brave' | ForEach-Object { Leer-Svc $_ } | Where-Object { $null -ne $_ })
+        if ($v.Count -eq 0) { return $true }
+        @($v | Where-Object { $_ -lt 3 }).Count -eq 0
+    }
+    'Debloat|tsk'   = {
+        $t = @(Get-ScheduledTask -TaskPath '\Microsoft\Windows\Autochk\' -TaskName 'Proxy' -ErrorAction SilentlyContinue)
+        if ($t.Count -eq 0) { return $true }
+        [string]$t[0].State -eq 'Disabled'
+    }
+    'Debloat|cdp'   = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableCdp') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'AllowClipboardHistory') -eq 0) }
+    'Debloat|fsb'   = { $v = Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' 'NtfsDisableLastAccessUpdate'; if ($null -eq $v) { return $false }; (([int64]$v) -band 1) -eq 1 }
+    'Debloat|rap'   = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control' 'WaitToKillServiceTimeout') -eq '2000') }
     'Debloat|xbs'   = { ((Leer-Svc 'XblAuthManager') -eq 4) -and ((Leer-Svc 'XblGameSave') -eq 4) }
     'Debloat|dia'   = { (Leer-Svc 'DPS') -eq 3 }
     'Debloat|mc'    = { [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression }
     'Debloat|ofb'   = {
         $t = @(Get-ScheduledTask -TaskPath '\Microsoft\Office\' -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like 'Office Startup Boost*' })
-        if ($t.Count -eq 0) { return $null }
+        # Sin las tareas (no hay Office o ya no existen) el inicio rapido no corre: cuenta como apagado
         @($t | Where-Object { [string]$_.State -ne 'Disabled' }).Count -eq 0
     }
     'Debloat|svh'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control' 'SvcHostSplitThresholdInKB') -eq 67108864 }
@@ -659,14 +690,15 @@ $Chequeos = @{
     # Con la copia de tus valores, o (si ya estaban asi y no se guardo copia) con los 4 ajustes principales leidos del plan
     'Gaming|cpu'    = {
         if (-not $global:XPlan) { return $null }
-        if (Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt'))) { return $true }
-        $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\54533251-82be-4824-96c1-47b60b740d00\'
-        ((Leer-Reg ($rk + '0cc5b647-c1df-4637-891a-dec35c318583') 'ACSettingIndex') -eq 100) -and ((Leer-Reg ($rk + '893dee8e-2bef-41e0-89c6-b55d0929964c') 'ACSettingIndex') -eq 0) -and ((Leer-Reg ($rk + '45bcc044-d885-43e2-8605-ee0ec6e96b59') 'ACSettingIndex') -eq 100) -and ((Leer-Reg ($rk + '36687f9e-e3a5-4dbf-b1dc-15eb381c6863') 'ACSettingIndex') -eq 0)
+        # Solo la copia cuenta: leer los valores del plan marcaba "aplicado" aunque los de fabrica ya coincidan con Nitro
+        Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt'))
     }
     'Gaming|fso'    = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\fso.txt') }
     'Gaming|nb'     = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\nb_' + $global:XPlan + '.txt')) }
     'Gaming|ll'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446' 'EnabledState') -eq 2 }
     'Gaming|idle'   = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\54533251-82be-4824-96c1-47b60b740d00\5d76a2ca-e8c0-402f-a133-2158492d58ad') 'ACSettingIndex') -eq 1 }
+    'Gaming|fgb'    = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl' 'Win32PrioritySeparation') -eq 38 }
+    'Gaming|dvr'    = { ((Leer-Reg 'HKCU:\System\GameConfigStore' 'GameDVR_Enabled') -eq 0) -and ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled') -eq 0) }
     'Gaming|gm'     = { ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled') -eq 1) -and ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AllowAutoGameMode') -eq 1) }
     'Gaming|xb'     = { if ($global:XCpuClase -eq 'x3d') { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled') -eq 0 } else { -not (HasAppx 'Microsoft.XboxGamingOverlay') } }
     'Gaming|xbt'    = { (-not (HasAppx 'Microsoft.GamingApp')) -and (-not (HasAppx 'Microsoft.GamingServices')) -and ((Leer-Svc 'XblAuthManager') -eq 4) }
@@ -778,6 +810,10 @@ $Compat = {
         $i.Bateria = $false
         try { $i.Bateria = (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) } catch { }
         Lap 'Compat: bateria'
+        # Dispositivos Bluetooth conectados ahora (mouse, teclado, auriculares, joystick...)
+        $i.BtConectado = @()
+        try { $i.BtConectado = @(Get-PnpDevice -PresentOnly -ErrorAction Stop | Where-Object { ($_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_') -and ($_.Status -eq 'OK') } | ForEach-Object { $_.FriendlyName } | Where-Object { $_ } | Sort-Object -Unique) } catch { }
+        Lap 'Compat: bluetooth'
         # Placas de red fisicas: 9 = WiFi, 14 = cable (para "WiFi y cable a la vez")
         # Las placas apagadas en el Administrador de dispositivos no cuentan. WifiSinRed = la placa WiFi no ve ninguna red (sin antena, por ejemplo)
         $i.Wifi = 0; $i.Lan = 0; $i.WifiSinRed = $false
@@ -2188,6 +2224,18 @@ $Advertencias = @{
     'Debloat|hst'  = 'Defender a veces lo marca como amenaza porque toca el archivo hosts.'
     'Debloat|ter'  = 'Puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox en PC.'
     'Debloat|xbs'  = 'Game Pass, Minecraft y el guardado en la nube de los juegos de la Store dejan de andar hasta que la restablezcas.'
+    'Debloat|sx'   = 'Windows Hello (huella o cara), los sensores y el Historial de archivos dejan de andar hasta que lo restablezcas.'
+    'Debloat|bt'   = 'Auriculares, mouse, teclado y joysticks Bluetooth dejan de andar hasta que lo restablezcas.'
+    'Debloat|str'  = 'No se instalan ni actualizan apps de la Microsoft Store (ni de Game Pass) hasta que lo restablezcas.'
+    'Debloat|wus'  = 'PELIGRO: la PC deja de recibir parches de seguridad y de drivers. Restablecelo cada tanto para actualizar.'
+    'Debloat|thm'  = 'No ves la vista previa de imagenes ni videos en el Explorador.'
+    'Debloat|leg'  = 'La Asistencia remota y la Reproduccion automatica dejan de andar.'
+    'Debloat|dold' = 'Si ademas borras las apps modernas, te quedas sin Bloc de notas ni Paint. Para volver a tener las antiguas hace falta internet.'
+    'Debloat|old'  = 'Los juegos muy viejos que piden DirectPlay no andan y no podes compartir archivos con equipos que solo usan SMBv1. SMBv1 no se reactiva al restablecer.'
+    'Debloat|msx'  = 'PELIGRO: sin la Store no instalas ni actualizas apps de la Store, Game Pass ni Minecraft. Se reinstala con wsreset -i (hace falta internet).'
+    'Debloat|usv'  = 'Correo, Calendario y Contactos dejan de sincronizar, y el portapapeles en la nube y Compartir cerca no andan.'
+    'Debloat|rmin' = 'No vas a poder imprimir ni transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.'
+    'Debloat|nvl'  = 'El overlay, ShadowPlay y los filtros de la NVIDIA App dejan de andar. Si la NVIDIA App no abre bien, restablecelo.'
     'Gaming|xbt'   = 'BORRA XBOX ENTERO, Gaming Services incluido: Game Pass, Minecraft Bedrock y su Launcher y los juegos de la Microsoft Store dejan de funcionar y no podes jugar online con tu cuenta Xbox. Restablecer reinstala lo principal con winget, pero algunas cosas se reinstalan a mano.'
     'Gaming|afi'   = 'Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.'
     'Gaming|pw'    = 'Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos.'
@@ -2207,7 +2255,19 @@ $Advertencias = @{
 
 # Opciones que tocan Xbox, Game Bar, Game Pass o Minecraft: muestran el aviso en la tarjeta, "Marcar solo seguras" no las marca
 # y antes de aplicarlas (a mano o con un perfil) la app pregunta. Si no confirmas, se aplica todo lo demas sin ellas.
+# Opciones que BORRAN partes de Windows y no tienen restablecimiento: muestran el aviso en la tarjeta, "Marcar solo seguras" no las marca
+# y antes de aplicarlas la app pregunta. Si no confirmas, se aplica todo lo demas sin ellas.
+$SinVuelta = [ordered]@{
+    'Debloat|dball' = 'borra Bloc de notas, Paint, Fotos y las demas apps modernas (se quedan la Calculadora, la Store, Xbox, la captura de pantalla, los codecs de video/imagen y los paneles de audio y video de tu fabricante). No se pueden restablecer desde la app.'
+    'Debloat|rbs'   = 'ya no podes desinstalar las actualizaciones de Windows. Si una actualizacion rompe algo, hay que reinstalar Windows.'
+    'Debloat|drs'   = 'borra los drivers de dispositivos que no estan en uso (impresoras, joysticks desconectados). Hay que bajarlos de nuevo.'
+    'Debloat|wre'   = 'sin el entorno de recuperacion, si Windows no arranca la unica salida es reinstalar Windows.'
+    'Debloat|lang'  = 'quita los paquetes de idioma que no usas. Lo borrado no vuelve solo.'
+    'Debloat|acc'   = 'quita voz, dictado, escritura a mano, OCR y Braille de Windows. Lo borrado no vuelve solo.'
+}
+
 $AvisosXbox = [ordered]@{
+    'Debloat|msx' = 'quita la Microsoft Store: no se pueden instalar ni actualizar Xbox, Game Pass ni Minecraft hasta que la restablezcas.'
     'Debloat|xbs' = 'apaga los servicios de Xbox: Game Pass, Minecraft y el guardado en la nube dejan de andar.'
     'Debloat|ter' = 'puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox y Minecraft.'
     'Debloat|su'  = 'los juegos de Game Pass, Minecraft y Gaming Services dejan de actualizarse solos; algunos no dejan jugar online hasta actualizarlos.'
@@ -2295,6 +2355,7 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
         $d.Inlines.Add($ri); $d.Inlines.Add($r1); $d.Inlines.Add((New-Object Windows.Documents.Run((Con-Enie $drv))))
     }
     if ($adv) { Agregar-Linea $d ($Aviso + ' Puede dar problemas: ') '#E5B567' $adv }
+    if ($SinVuelta.Contains($clave)) { Agregar-Linea $d ($Aviso + ' SIN VUELTA ATRAS: ') '#F28B82' ($SinVuelta[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
     if ($AvisosXbox.Contains($clave)) { Agregar-Linea $d ($Aviso + ' Xbox, Game Pass y Minecraft: ') '#E5B567' ($AvisosXbox[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
     if ($d.Inlines.Count -gt 0) { $d.Inlines.Add((New-Object Windows.Documents.LineBreak)) }
     Agregar-Linea $d 'Que hace: ' '#8AB4F8' $it.Hace
@@ -2348,7 +2409,7 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     $casillas[$it.Id] = $cb
     if ($pagina) {
         $script:Pills[$clave] = $pb
-        $script:Tarjetas[$clave] = @{ Card = $card; Cb = $cb; Nota = $nb }
+        $script:Tarjetas[$clave] = @{ Card = $card; Cb = $cb; Nota = $nb; ConR = [bool]$it.ConR }
         [Windows.Controls.ToolTipService]::SetShowOnDisabled($cb, $true)
         [Windows.Controls.ToolTipService]::SetShowOnDisabled($card, $true)
     }
@@ -2362,9 +2423,9 @@ function Actualizar-Resumenes {
     if ($script:TxtFondo) { $script:TxtFondo.Text = (Con-Enie (Resumen-De $AfiFondoCat $L.fondo 'Programas de fondo')) }
 }
 
-function Nueva-Seccion([string]$t) {
-    $tb = Nuevo-Texto ((Con-Enie $t).ToUpper()) 12 '#7D8590' $true
-    $tb.Margin = '2,12,0,8'
+function Nueva-Seccion([string]$t, [string]$color) {
+    if ($color) { $tb = Nuevo-Texto (([string][char]0x258C) + ' ' + (Con-Enie $t).ToUpper()) 13 $color $true; $tb.Margin = '2,16,0,8' }
+    else { $tb = Nuevo-Texto ((Con-Enie $t).ToUpper()) 12 '#7D8590' $true; $tb.Margin = '2,12,0,8' }
     # La busqueda esconde los titulos de seccion que quedan sin resultados
     $tb.Tag = 'Seccion'
     return $tb
@@ -2374,15 +2435,40 @@ function Nueva-Seccion([string]$t) {
 $Casillas = @{ Debloat = @{}; Gaming = @{} }
 $Paginas = @{}
 $TitulosChequeo = @{}
+# Categorias de mas a menos importantes, cada una con su color (las que no estan aca van al final, en gris)
+$OrdenSec = @{
+    Debloat = @(
+        @('PUNTOS DE RESTAURACION', '#81C995'), @('SISTEMA Y PRIVACIDAD', '#8AB4F8'), @('ALMACENAMIENTO Y MEMORIA', '#FDE68A'),
+        @('DRIVERS', '#C58AF9'), @('SEGURIDAD', '#F6AD55'), @('VERSION DE WINDOWS', '#4FD1C5'), @('CUENTA', '#9AA0A6'),
+        @('CONFIRMAR CAMBIO DE CUENTA', '#9AA0A6'), @('BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)', '#F28B82'))
+    Gaming = @(
+        @('CPU Y PRIORIDAD', '#8AB4F8'), @('GRAFICOS', '#C58AF9'), @('TEMPORIZADOR Y LATENCIA', '#4FD1C5'), @('MODO JUEGO Y GAME BAR', '#81C995'),
+        @('ENERGIA Y RED', '#8FD3F4'), @('DNS', '#8FD3F4'), @('MOUSE', '#F9A8D4'), @('TECLADO', '#F9A8D4'), @('SONIDO', '#F9A8D4'),
+        @('LIMPIEZA DE RAM (STANDBY LIST)', '#FDE68A'), @('BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR', '#9AA0A6'), @('AJUSTES EXTRA', '#9AA0A6'),
+        @('PLAN DE ENERGIA', '#F6AD55'), @('PROCESADOR', '#F6AD55'), @('SEGURIDAD (MAS RENDIMIENTO)', '#F28B82'))
+}
 foreach ($k in 'Debloat', 'Gaming') {
     $sp = New-Object Windows.Controls.StackPanel
-    $secAct = ''
-    foreach ($it in $Opciones[$k]) {
-        if ($it.Seccion -ne $secAct) { $secAct = $it.Seccion; $sp.Children.Add((Nueva-Seccion $secAct)) | Out-Null }
-        $sp.Children.Add((Nueva-Tarjeta $it $Casillas[$k] $false $k)) | Out-Null
-        $TitulosChequeo[$k + '|' + $it.Id] = $it.Titulo
+    $orden = @($OrdenSec[$k])
+    $secs = @($Opciones[$k] | ForEach-Object { $_.Seccion } | Select-Object -Unique)
+    $secs = @($secs | ForEach-Object -Begin { $n = 0 } -Process { $pos = -1; for ($q = 0; $q -lt $orden.Count; $q++) { if ($orden[$q][0] -eq $_) { $pos = $q; break } }; [pscustomobject]@{ Nombre = $_; Pos = $(if ($pos -lt 0) { 1000 + $n } else { $pos }); Color = $(if ($pos -ge 0) { $orden[$pos][1] } else { '#7D8590' }) }; $n++ } | Sort-Object Pos)
+    foreach ($s in $secs) {
+        $sp.Children.Add((Nueva-Seccion $s.Nombre $s.Color)) | Out-Null
+        $ug = New-Object Windows.Controls.Primitives.UniformGrid; $ug.Columns = 2
+        foreach ($it in @($Opciones[$k] | Where-Object { $_.Seccion -eq $s.Nombre })) {
+            $tj = Nueva-Tarjeta $it $Casillas[$k] $false $k
+            $tj.Margin = '0,0,8,8'
+            $ug.Children.Add($tj) | Out-Null
+            $TitulosChequeo[$k + '|' + $it.Id] = $it.Titulo
+        }
+        $sp.Children.Add($ug) | Out-Null
     }
     $Paginas[$k] = $sp
+}
+# Las apps modernas y las antiguas son opuestas: marcar una desmarca la otra
+if ($Casillas.Debloat.ContainsKey('dold') -and $Casillas.Debloat.ContainsKey('dball')) {
+    $Casillas.Debloat['dold'].Add_Checked({ $script:Casillas.Debloat['dball'].IsChecked = $false })
+    $Casillas.Debloat['dball'].Add_Checked({ $script:Casillas.Debloat['dold'].IsChecked = $false })
 }
 
 # Que opciones no se pueden usar en esta PC. $i = datos de la PC que junta la lectura de fondo.
@@ -2415,6 +2501,7 @@ function Calcular-NoDisp($i, $cpu) {
         $r['Gaming|sm'] = ('Tu PC no cumple los requisitos: necesita 16 GB de RAM o mas y Windows en un SSD o NVMe (' + ($q -join ' y ') + ').')
     }
     if (-not $i.Bateria) { $r['Gaming|nb'] = 'No hace falta: es para notebooks y tu PC no tiene bateria.' }
+    if ($i.BtConectado -and @($i.BtConectado).Count -gt 0) { $r['Debloat|bt'] = 'No se puede ahora: tenes conectado por Bluetooth ' + (@($i.BtConectado) -join ', ') + '. Desconectalo (o usa otro) y volve a leer los ajustes.' }
     if ($i.AvOff) { $r['Gaming|avl'] = 'No hace falta: tu antivirus ya esta apagado.' }
     if ([int]$i.Lan -eq 0) { $r['Gaming|dup'] = 'No hace falta: tu PC no tiene placa de cable.' }
     elseif (([int]$i.DupPlacas -eq 0) -and -not ($i.DrvFalta -and $i.DrvFalta.ContainsKey('Gaming|dup'))) { $r['Gaming|dup'] = 'No hace falta: tu placa de cable es de 1 Gbps o menos.' }
@@ -2431,6 +2518,8 @@ function Actualizar-Bloqueos {
         $motivo = $null
         $noComp = $script:NoDisp.ContainsKey($k)
         if ($noComp) { $motivo = $script:NoDisp[$k] }
+        # Sin vuelta atras y ya hecho: queda en gris; si el estado vuelve atras (ej: reinstalas las apps) se habilita de nuevo
+        elseif ((-not $t.ConR) -and ($k -in 'Debloat|dball', 'Debloat|rbs', 'Debloat|drs', 'Debloat|wre', 'Debloat|lang', 'Debloat|acc') -and ($script:Estados[$k] -eq $true)) { $motivo = 'Ya esta hecho y no se puede volver atras desde la app.' }
         $c = $t.Card
         # Se guarda el borde que tenia (celeste, amarillo o magenta) para devolverselo si vuelve a ser compatible
         if (-not $t.ContainsKey('Borde')) { $t.Borde = @{ Color = $c.Tag.Color; Reposo = $c.Tag.Reposo; Encima = $c.Tag.Encima; Grosor = $c.BorderThickness } }
@@ -2446,7 +2535,7 @@ function Actualizar-Bloqueos {
             $c.BorderBrush = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(150, $rojo.R, $rojo.G, $rojo.B))
             $motivo = Con-Enie $motivo
             $t.Nota.Text = $motivo; $t.Nota.Foreground = (Pincel (Tema-Letra '#F28B82')); $t.Nota.Visibility = 'Visible'
-            $tip = (Con-Enie 'No es compatible con tu PC') + "`n" + $motivo
+            $tip = (Con-Enie $(if ($noComp) { 'No es compatible con tu PC' } else { 'Ya aplicada' })) + "`n" + $motivo
             $c.ToolTip = $tip; $t.Cb.ToolTip = $tip
             [Windows.Controls.ToolTipService]::SetInitialShowDelay($c, 150)
         } else {
@@ -2491,17 +2580,38 @@ function Actualizar-BotonesAccion {
 $Limp = @(
     [pscustomobject]@{ Id = 'CLEAN_BIN'; Titulo = 'Vaciar la papelera de reciclaje'; Hace = 'vacia la papelera de todos los discos.'; Favor = 'libera el espacio de lo que ya borraste.'; Contra = 'lo que esta en la papelera ya no se puede recuperar.'; ConR = $true },
     [pscustomobject]@{ Id = 'CLEAN_GPU'; Titulo = 'Borrar la cache de shaders'; Hace = 'borra los shaders que los juegos ya compilaron para tu placa de video.'; Favor = 'arregla tirones o graficos raros despues de actualizar el driver de video.'; Contra = 'la primera partida de cada juego va a tener tirones mientras los vuelve a armar.'; ConR = $true },
-    [pscustomobject]@{ Id = 'CLEAN_RP'; Titulo = 'Borrar los puntos de restauracion'; Hace = 'borra los puntos de restauracion guardados; la proteccion del sistema sigue encendida.'; Favor = 'libera varios GB del disco.'; Contra = 'si algo sale mal, ya no podes volver a como estaba Windows antes.'; ConR = $true }
+    [pscustomobject]@{ Id = 'CLEAN_RP'; Titulo = 'Borrar los puntos de restauracion'; Hace = 'borra los puntos de restauracion guardados; la proteccion del sistema sigue encendida.'; Favor = 'libera varios GB del disco.'; Contra = 'si algo sale mal, ya no podes volver a como estaba Windows antes.'; ConR = $true },
+    [pscustomobject]@{ Id = 'CLEAN_OLD'; Titulo = 'Borrar la carpeta Windows.old'; Hace = 'borra C:\Windows.old, la copia de tu Windows anterior que queda despues de una actualizacion grande. Tarda de 5 a 20 minutos.'; Favor = 'libera de 10 a 30 GB.'; Contra = 'ya no podes volver a la version anterior de Windows.'; ConR = $false },
+    [pscustomobject]@{ Id = 'CLEAN_LAUNCH'; Titulo = 'Borrar la cache de Discord, Steam, Epic y la Store'; Hace = 'borra solo la cache web de Discord, Steam y Epic Games Launcher, y la cache local de la Microsoft Store. No toca tus juegos, tus partidas guardadas ni tus cuentas.'; Favor = 'libera espacio y arregla launchers que cargan mal.'; Contra = 'la primera vez que abras esas apps tardan un poco mas en cargar.'; ConR = $true },
+    [pscustomobject]@{ Id = 'CLEAN_BRW'; Titulo = 'Borrar la cache de los navegadores'; Hace = 'borra solo la cache de Chrome, Edge, Brave, Vivaldi, Opera y Firefox (imagenes y archivos de paginas ya visitadas). No toca contrasenas, cookies, historial, marcadores ni sesiones iniciadas.'; Favor = 'libera de cientos de MB a varios GB y arregla paginas que cargan mal.'; Contra = 'las paginas tardan un poco mas en cargar la primera vez.'; ConR = $true },
+    [pscustomobject]@{ Id = 'CLEAN_EVT'; Titulo = 'Vaciar el Visor de Eventos'; Hace = 'borra el historial de eventos y errores de Windows (todos los registros).'; Favor = 'saca basura y registros viejos.'; Contra = 'perdes el historial que sirve para encontrar la causa de un pantallazo azul o un error raro.'; ConR = $false },
+    [pscustomobject]@{ Id = 'CLEAN_DISM'; Titulo = 'Limpiar los componentes viejos de Windows (DISM)'; Hace = 'corre la limpieza normal del almacen de componentes (WinSxS): saca versiones viejas de componentes que ya no hacen falta. Sigue pudiendo desinstalar actualizaciones.'; Favor = 'libera espacio en disco.'; Contra = 'tarda varios minutos.'; ConR = $false },
+    [pscustomobject]@{ Id = 'CLEAN_APPS'; Titulo = 'Borrar los restos de apps desinstaladas'; Hace = 'busca lo que dejaron las apps que ya no estan: datos de apps de la Store desinstaladas, entradas de programas sin archivos (con sus carpetas de AppData y ProgramData y claves de registro del mismo nombre) y carpetas vacias en Archivos de programa.'; Favor = 'libera espacio y saca basura del registro.'; Contra = 'si una carpeta tiene partidas guardadas (Save, Saved, SaveGames) no se toca, pero igual OJO: si desinstalaste un juego y guarda sus partidas en otro lado, copialas antes. Lo borrado no se recupera.'; ConR = $false },
+    [pscustomobject]@{ Id = 'CLEAN_DL'; Titulo = 'Vaciar la carpeta Descargas'; Hace = 'borra TODO lo que hay en la carpeta Descargas de cada usuario: instaladores, documentos, fotos y lo que hayas bajado.'; Favor = 'libera el espacio que ocupan las descargas viejas.'; Contra = 'NO VA A LA PAPELERA: lo que haya ahi no se puede recuperar. Mira la carpeta antes.'; ConR = $false }
 )
 foreach ($it in $Limp) { Traducir-Opcion 'Limpieza' $it }
 $Casillas.Limpieza = @{}
 $spL = New-Object Windows.Controls.StackPanel
 $spL.Children.Add((Nueva-Seccion 'Siempre se limpia')) | Out-Null
 $fijo = Nueva-Caja
-$fijo.Child = (Nuevo-Texto 'Temporales, cache de Windows Update, Windows.old, volcados y logs de errores, restos de instalaciones (drivers de video ya instalados, OneDrive, actualizaciones de Windows), cache de Discord, Steam, Epic y Store, Visor de Eventos, DNS y componentes viejos de Windows (DISM). Los navegadores no se tocan.' 13 '#C3C8D0' $false)
+$fijo.Child = (Nuevo-Texto 'Archivos temporales de Windows y de tus usuarios, cache de Windows Update, volcados y logs de errores, cache de miniaturas, restos de instalaciones (carpetas C:\NVIDIA y C:\AMD de drivers ya instalados, instaladores de actualizaciones y OneDrive), cache de DNS y la cache de la Microsoft Store. Todo lo demas es opcional y esta abajo: lo que no marques no se toca. Nunca se borran documentos, fotos, juegos ni partidas guardadas, salvo que marques Descargas o los restos de apps.' 13 '#C3C8D0' $false)
 $spL.Children.Add($fijo) | Out-Null
-$spL.Children.Add((Nueva-Seccion 'Opcional')) | Out-Null
-foreach ($it in $Limp) { $spL.Children.Add((Nueva-Tarjeta $it $Casillas.Limpieza $false '')) | Out-Null }
+$catLimp = @(
+    @{ T = 'ESPACIO RAPIDO (SIN RIESGO)'; C = '#81C995'; Ids = 'CLEAN_BIN', 'CLEAN_GPU' },
+    @{ T = 'CACHE DE PROGRAMAS'; C = '#8AB4F8'; Ids = 'CLEAN_LAUNCH', 'CLEAN_BRW' },
+    @{ T = 'SISTEMA DE WINDOWS'; C = '#FDE68A'; Ids = 'CLEAN_RP', 'CLEAN_OLD', 'CLEAN_EVT', 'CLEAN_DISM' },
+    @{ T = 'RESTOS Y ARCHIVOS TUYOS (CUIDADO CON LAS PARTIDAS GUARDADAS)'; C = '#F28B82'; Ids = 'CLEAN_APPS', 'CLEAN_DL' }
+)
+foreach ($cat in $catLimp) {
+    $spL.Children.Add((Nueva-Seccion $cat.T $cat.C)) | Out-Null
+    $gL = New-Object Windows.Controls.Primitives.UniformGrid; $gL.Columns = 2
+    foreach ($it in @($Limp | Where-Object { $_.Id -in $cat.Ids })) {
+        $tl = Nueva-Tarjeta $it $Casillas.Limpieza $false ''
+        $tl.Margin = '0,0,8,8'
+        $gL.Children.Add($tl) | Out-Null
+    }
+    $spL.Children.Add($gL) | Out-Null
+}
 $Paginas.Limpieza = $spL
 
 # --- Pagina de herramientas (opciones que te piden datos) ---
@@ -4245,9 +4355,11 @@ $bEst.Add_Click({
         $up = (Get-Date) - $os.LastBootUpTime
         $disco = Get-PSDrive -Name $env:SystemDrive.TrimEnd(':')
         $plan = ((& powercfg.exe /getactivescheme | Out-String) -replace '(?s).*\((.*?)\).*', '$1').Trim()
+        # Misma lista que el Administrador de tareas: Run, carpetas de Inicio y apps de la Store
+        . ([scriptblock]::Create($script:FuncInicio)); $ini = @(Inicio-Lista)
         $txt = ('RAM libre: {0} GB de {1} GB' -f [math]::Round($os.FreePhysicalMemory / 1MB, 1), [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)) + "`n" +
             ('Disco {0} libre: {1} GB' -f $env:SystemDrive, [math]::Round($disco.Free / 1GB, 1)) + "`n" +
-            ('Programas que arrancan con Windows: {0}' -f @(Get-CimInstance Win32_StartupCommand).Count) + "`n" +
+            ('Programas que arrancan con Windows: {0}' -f $ini.Count) + $(if ($ini.Count) { ' ({0} activos)' -f @($ini | Where-Object { $_.Activo }).Count }) + "`n" +
             ('Plan de energia: {0}' -f $plan) + "`n" +
             ('Encendida hace: {0} d {1} h' -f $up.Days, $up.Hours)
         Avisar 'Estado de la PC' $txt
@@ -4286,6 +4398,15 @@ $script:CfgBoton = $null
 $Paginas.Adicional = $spA
 
 
+# Acorta un texto para las tarjetas chicas: corta en el ultimo espacio antes de $n y agrega "..."
+function Recortar([string]$s, [int]$n) {
+    if ((-not $s) -or ($s.Length -le $n)) { return $s }
+    $c = $s.Substring(0, $n)
+    $i = $c.LastIndexOf(' ')
+    if ($i -gt ($n / 2)) { $c = $c.Substring(0, $i) }
+    return ($c.TrimEnd(' ', ',', ';', '.', ':') + '...')
+}
+
 # --- Pagina Apps recomendadas: programas gratis que recomiendo, con su descarga oficial ---
 $ColorApps = '#BEF264'
 $AppsRec = @(
@@ -4317,12 +4438,17 @@ $AppsRec = @(
         Texto = 'te muestra todo lo que arranca con Windows y te deja apagarlo. Lo mejor para que la PC prenda mas rapido y para encontrar malware escondido.' },
     [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#F9A8D4'; Icono = 0xE785; Nombre = 'LockHunter'; Critica = $false; Url = 'https://lockhunter.com/startdownload.htm'
         Texto = 'desbloquea y borra los archivos que Windows no te deja borrar porque "estan siendo usados por otro programa".' },
+    [pscustomobject]@{ Sec = 'Windows liviano (ISO recortada)'; Color = '#F9A8D4'; Icono = 0xE7B8; Nombre = 'tiny11builder'; Critica = $false; Url = 'https://github.com/ntdevlabs/tiny11builder'
+        Texto = 'arma una ISO de Windows 11 recortada (sin Store, Edge ni otras apps) desde tu ISO oficial. Es lo que hace falta para pasar de 2 GB de RAM en reposo, porque saca componentes antes de instalar.' },
+    [pscustomobject]@{ Sec = 'Windows liviano (ISO recortada)'; Color = '#F9A8D4'; Icono = 0xE713; Nombre = 'NTLite'; Critica = $false; Url = 'https://www.ntlite.com/download/'
+        Texto = 'te deja sacar componentes de Windows de una ISO o de una instalacion (Defender, Store, idiomas, drivers) y armar tu propia ISO liviana. La version gratis alcanza para lo basico.' },
     [pscustomobject]@{ Sec = 'Otros'; Color = '#8AB4F8'; Icono = 0xE896; Nombre = 'LIII BitTorrent Client'; Critica = $false; Url = 'https://github.com/aliakseis/LIII/releases/download/0.1.1.20/LIII_setup.exe'
         Texto = 'cliente de torrent liviano, minimalista y de codigo abierto, sin publicidad ni programas de mas como uTorrent.' }
 )
 
 function Nueva-AppRec($a) {
     $card = Nueva-Caja
+    $card.Padding = '12,9'; $card.Margin = '0,0,8,8'
     $col = Color-Tema($a.Color)
     $card.Tag.Color = $col; $card.Tag.Reposo = 40
     $card.BorderBrush = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(40, $col.R, $col.G, $col.B))
@@ -4331,10 +4457,10 @@ function Nueva-AppRec($a) {
     $g.ColumnDefinitions.Add($c0); $g.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
     # Cuadradito de color con el icono
     $badge = New-Object Windows.Controls.Border
-    $badge.Width = 40; $badge.Height = 40; $badge.CornerRadius = 10; $badge.VerticalAlignment = 'Top'; $badge.Margin = '0,2,14,0'
+    $badge.Width = 32; $badge.Height = 32; $badge.CornerRadius = 8; $badge.VerticalAlignment = 'Top'; $badge.Margin = '0,2,10,0'
     $badge.Background = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(46, $col.R, $col.G, $col.B))
     $ic = New-Object Windows.Controls.TextBlock
-    $ic.Text = [string][char]$a.Icono; $ic.FontFamily = 'Segoe MDL2 Assets'; $ic.FontSize = 18; $ic.Foreground = (Pincel $a.Color)
+    $ic.Text = [string][char]$a.Icono; $ic.FontFamily = 'Segoe MDL2 Assets'; $ic.FontSize = 15; $ic.Foreground = (Pincel $a.Color)
     $ic.HorizontalAlignment = 'Center'; $ic.VerticalAlignment = 'Center'
     $badge.Child = $ic
     $g.Children.Add($badge) | Out-Null
@@ -4342,7 +4468,7 @@ function Nueva-AppRec($a) {
     [Windows.Controls.Grid]::SetColumn($sp, 1)
     # Nombre con sus etiquetas (Gratis y, si hace falta, Prioridad critica)
     $tit = New-Object Windows.Controls.WrapPanel
-    $nom = Nuevo-Texto '' 15 '#FFFFFF' $true; $nom.Text = $a.Nombre; $nom.VerticalAlignment = 'Center'
+    $nom = Nuevo-Texto '' 14 '#FFFFFF' $true; $nom.Text = $a.Nombre; $nom.VerticalAlignment = 'Center'
     $tit.Children.Add($nom) | Out-Null
     $etiquetas = New-Object Collections.ArrayList
     [void]$etiquetas.Add(@('Gratis', '#1E3A2C', '#81C995'))
@@ -4354,8 +4480,10 @@ function Nueva-AppRec($a) {
         $tit.Children.Add($pl) | Out-Null
     }
     $sp.Children.Add($tit) | Out-Null
-    $d = Nuevo-Texto ($a.Texto.Substring(0, 1).ToUpper() + $a.Texto.Substring(1)) 12.5 '#C3C8D0' $false
-    $d.Margin = '0,4,0,0'; $d.LineHeight = 19
+    $corto = Recortar $a.Texto 115
+    $d = Nuevo-Texto ($corto.Substring(0, 1).ToUpper() + $corto.Substring(1)) 12 '#C3C8D0' $false
+    $d.Margin = '0,3,0,0'; $d.LineHeight = 17
+    $card.ToolTip = (New-Object Windows.Controls.TextBlock -Property @{ Text = (Con-Enie ($a.Texto.Substring(0, 1).ToUpper() + $a.Texto.Substring(1))); TextWrapping = 'Wrap'; MaxWidth = 420 })
     $sp.Children.Add($d) | Out-Null
     $fila = New-Object Windows.Controls.WrapPanel
     $b = Nuevo-Boton 'Descargar' '#4D7C0F'
@@ -4385,10 +4513,15 @@ $spApps = New-Object Windows.Controls.StackPanel
 $avisoApps = Nuevo-Texto 'Toca Descargar y se abre la descarga oficial en tu navegador. Despues lo instalas como cualquier programa.' 13 '#9AA0A6' $false
 $avisoApps.Margin = '2,0,0,4'
 $spApps.Children.Add($avisoApps) | Out-Null
-$secApp = ''
+# Dos columnas por seccion (la busqueda entra a cada grupo, ver Filtrar-Panel)
+$secApp = ''; $gridApp = $null
 foreach ($ap in $AppsRec) {
-    if ($ap.Sec -ne $secApp) { $secApp = $ap.Sec; $spApps.Children.Add((Nueva-Seccion $secApp)) | Out-Null }
-    $spApps.Children.Add((Nueva-AppRec $ap)) | Out-Null
+    if ($ap.Sec -ne $secApp) {
+        $secApp = $ap.Sec; $spApps.Children.Add((Nueva-Seccion $secApp $ap.Color)) | Out-Null
+        $gridApp = New-Object Windows.Controls.Primitives.UniformGrid; $gridApp.Columns = 2
+        $spApps.Children.Add($gridApp) | Out-Null
+    }
+    $gridApp.Children.Add((Nueva-AppRec $ap)) | Out-Null
 }
 $Paginas.Apps = $spApps
 
@@ -4716,7 +4849,9 @@ function Mostrar-Configs($lista) {
     if (@($lista).Count -eq 0) {
         Cfg-Mensaje 0xE8F1 'Vacio por ahora...' 'Todavia no subi ninguna config. Estoy armando las primeras: volve pronto que van a aparecer aca.' $ColorAdic
     } else {
-        foreach ($c in @($lista)) { $spA.Children.Add((Nueva-Config $c)) | Out-Null }
+        $gC = New-Object Windows.Controls.Primitives.UniformGrid; $gC.Columns = 2
+        foreach ($c in @($lista)) { $cc = Nueva-Config $c; $cc.Margin = '0,0,8,8'; $gC.Children.Add($cc) | Out-Null }
+        $spA.Children.Add($gC) | Out-Null
     }
     # Si estabas buscando algo, se vuelve a filtrar con la lista nueva
     if (($script:Pagina -eq 'Adicional') -and $ui.Buscar.Text -and $script:BuscaTimer) { $script:BuscaTimer.Stop(); $script:BuscaTimer.Start() }
@@ -4834,26 +4969,26 @@ $Perfiles = @(
         Ideal = 'cualquier PC que queres que ande mas rapida y liviana, sin tocar la seguridad ni los ajustes de juego.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo (mouse, procesador, plan de energia, temporizador y red).'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Los drivers los actualizas vos (Herramientas > Buscar drivers, o la app de tu placa de video).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini', 'tsk', 'fsb', 'upd')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg')
     },
     [pscustomobject]@{
         Id = 'comp'; Nombre = 'Competitivo'; Color = '#8AB4F8'
-        Hace = 'lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro y baja latencia del procesador, temporizador al minimo, juegos en ventana y GPU por hardware, DNS mas rapido, sin Game Bar y sin notificaciones en partida. Antes de borrar la Game Bar la app te pregunta.'
+        Hace = 'lo que mas FPS da por cada grado de mas, sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, temporizador al minimo, modo MSI, juegos en ventana y GPU por hardware, efectos visuales en rendimiento, sin grabacion de juegos ni Game Bar, DNS mas rapido y sin notificaciones en partida. Antes de borrar la Game Bar la app te pregunta.'
         Ideal = 'jugar competitivo (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL y Deadlock) con la PC protegida. Los antitrampas de esos juegos siguen andando.'
-        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps. Por las dudas tampoco apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle: en algunas PCs dan cortes o lag.'
-        Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse.'
+        NoToca = 'el antivirus (ni sus analisis), BitLocker, la integridad de memoria ni VBS, ni el plan de energia ni el procesador (nada de Alto rendimiento, Modo Nitro ni Baja latencia); tampoco borra apps.'
+        Adv = 'el Modo Nitro, el plan Alto rendimiento y la Baja latencia no estan incluidos a proposito: suben mucho la temperatura, incluso en reposo. Si los queres, activalos a mano en Gaming y mira las temperaturas.'
         D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'md', 'vfx', 'fgb', 'dvr')
     },
     [pscustomobject]@{
         Id = 'compopt'; Nombre = 'Competitivo + Optimizado'; Color = '#C58AF9'
         Hace = 'todo lo de Competitivo y todo lo de Optimizado juntos: lo maximo para jugar y Windows liviano (sin apps basura, hibernacion, efectos visuales, sonidos, apps de inicio ni servicios que casi nadie usa), y Windows Update deja de instalar drivers.'
         Ideal = 'la PC de juego de todos los dias: el mayor rendimiento con la PC todavia protegida.'
-        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS. Igual que Competitivo, no apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle.'
-        Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
+        NoToca = 'el antivirus (ni sus analisis), BitLocker, la integridad de memoria ni VBS, ni el plan de energia ni el procesador (nada de Alto rendimiento, Modo Nitro ni Baja latencia).'
+        Adv = 'el Modo Nitro, el plan Alto rendimiento y la Baja latencia no estan incluidos a proposito: suben mucho la temperatura, incluso en reposo. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini', 'tsk', 'fsb', 'upd')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'md', 'ext', 'stg', 'fgb', 'dvr')
     },
     [pscustomobject]@{
         Id = 'ramlow'; Nombre = 'RAM liviana'; Color = '#FDE68A'
@@ -4861,17 +4996,19 @@ $Perfiles = @(
         Ideal = 'una PC con poca RAM (4 a 8 GB) que queres que arranque con el menor consumo posible, sin perder el antivirus.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo. Tampoco apaga los servicios de Xbox ni Gaming Services: Game Pass y Minecraft siguen andando.'
         Adv = 'la zona wifi movil deja de andar y Windows deja de buscar problemas solo. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'fx', 'sch', 'ini')
-        G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg')
+        Estima = '2,5 a 3,5 GB de RAM y 0 a 2 % de CPU, sin nada abierto en Windows 11 (estimado, no medido; depende del hardware y los drivers).'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'fx', 'sch', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd')
+        G = @('tk', 'du', 'gm', 'ext', 'md', 'pca', 'stg')
     },
     [pscustomobject]@{
-        Id = 'rammin'; Nombre = 'RAM minima'; Color = '#FDA4AF'
-        Hace = 'todo lo de RAM liviana, y ademas apaga la hibernacion, Windows Search, el antivirus, BitLocker, la integridad de memoria y VBS, y los drivers de Windows Update. Es lo mas cerca que se llega a un Windows recortado sin reinstalar.'
-        Ideal = 'una PC vieja o con 4 GB de RAM que necesita liberar todo lo posible, sabiendo lo que haces.'
-        NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome, ni Xbox, Game Pass o Minecraft. Crea un punto de restauracion antes de empezar.'
-        Adv = 'la PC queda sin antivirus y deja de andar WSL, Docker y las maquinas virtuales. Sin Windows Search, buscar archivos es mas lento. En reposo ronda los 2 a 2,5 GB; para 1 a 2 GB hace falta una ISO recortada (tiny11 o NTLite).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'sch', 'wud', 'av', 'bl', 'ini')
-        G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg', 'mi', 'vbs', 'wsr')
+        Id = 'tiny'; Nombre = 'RAM minima (extremo)'; Color = '#F9A8D4'
+        Hace = 'lo mas cerca de un Windows recortado sin reinstalar: todo lo de RAM liviana y ademas apaga la hibernacion, el antivirus y BitLocker, Windows Update (y sus drivers), Bluetooth, la Store y el Centro de seguridad, quita la Microsoft Store y los componentes viejos (Internet Explorer, WordPad, SMBv1, PowerShell 2), baja los servicios de usuario y de red local, la grabacion de juegos y el NVIDIA extra, y desactiva la integridad de memoria y VBS.'
+        Ideal = 'una PC vieja o con poca RAM que solo tiene que abrir uno o dos programas con el menor consumo posible, sabiendo lo que haces.'
+        NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
+        Adv = 'la PC queda sin antivirus, sin parches de seguridad (Windows Update apagado), sin Store ni Bluetooth, y dejan de andar WSL, Docker y las maquinas virtuales. Para pasar de ahi hace falta una ISO recortada (tiny11 o NTLite): desde una Windows instalada no se llega a 0,5 GB.'
+        Estima = '1,3 a 1,8 GB de RAM y 0 a 1 % de CPU, sin nada abierto en Windows 11 (estimado, no medido). Para bajar de ahi hace falta una ISO recortada (tiny11 o NTLite).'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'sch', 'wud', 'av', 'bl', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd', 'rmin', 'nvl', 'sx', 'thm', 'leg', 'bt', 'str', 'msx', 'old', 'usv', 'wus')
+        G = @('tk', 'du', 'gm', 'ext', 'md', 'pca', 'stg', 'mi', 'vbs', 'wsr', 'dvr')
     },
     [pscustomobject]@{
         Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#6EE7B7'
@@ -4879,35 +5016,26 @@ $Perfiles = @(
         Ideal = 'una notebook para estudiar, trabajar o usar todos los dias: la bateria dura mas y anda mas liviana.'
         NoToca = 'la seguridad, la hibernacion (la notebook la usa cuando se queda sin bateria), los drivers de Windows Update, tus programas ni el rendimiento enchufada.'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'fx', 'ini')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'fx', 'ini', 'tsk', 'upd')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'nb')
     },
     [pscustomobject]@{
         Id = 'nbcomp'; Nombre = 'Competitivo - Notebook'; Color = '#8FD3F4'
-        Hace = 'lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. Antes de borrar la Game Bar la app te pregunta.'
+        Hace = 'lo de Competitivo que no gasta bateria ni calienta de mas: mouse sin aceleracion, prioridad y afinidad para tus juegos, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. Antes de borrar la Game Bar la app te pregunta.'
         Ideal = 'jugar competitivo en una notebook: enchufada rinde al maximo y a bateria dura mas.'
-        NoToca = 'el antivirus ni la seguridad. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.'
-        Adv = 'para jugar, enchufa la notebook: a bateria rinde menos a proposito. Con undervolt u overclock, el Modo Nitro puede volverla inestable.'
+        NoToca = 'el antivirus (ni sus analisis), la integridad de memoria ni VBS. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.'
+        Adv = 'para jugar, enchufa la notebook: a bateria rinde menos a proposito. El Modo Nitro y el plan Alto rendimiento no estan incluidos: en una notebook suben mucho la temperatura.'
         D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'cpu', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'ram', 'sm', 'nag', 'dns', 'avl', 'md', 'v4', 'nb')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'ram', 'sm', 'nag', 'dns', 'md', 'v4', 'nb')
     },
     [pscustomobject]@{
         Id = 'full'; Nombre = 'Full Optimizado'; Color = '#F28B82'
-        Hace = 'Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga la seguridad (antivirus, BitLocker, integridad de memoria y VBS), activa el modo MSI, bloquea la telemetria en hosts y apaga Teredo y Windows Search.'
+        Hace = 'Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga el antivirus y BitLocker, activa el modo MSI, bloquea la telemetria en hosts y apaga Teredo y Windows Search. No toca la integridad de memoria ni VBS.'
         Ideal = 'una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.'
-        NoToca = 'los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
+        NoToca = 'la integridad de memoria ni VBS, los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
         Adv = 'la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db', 'av', 'bl', 'hst', 'ter', 'ini')
-        G = @('tk', 'du', 'gm', 'ext', 'md', 'mm', 'll', 'xb', 'gf', 'pca', 'ram', 'sm', 'stg', 'msi', 'mi', 'vbs', 'wsr')
-    },
-    [pscustomobject]@{
-        Id = 'fullcomp'; Nombre = 'Full Optimizado + Competitivo'; Color = '#FF6B6B'
-        Hace = 'todo, todo: cada opcion de Debloat y de Gaming. Es Full Optimizado mas todos los ajustes competitivos (mouse, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro, temporizador al minimo, red, DNS y notificaciones).'
-        Ideal = 'una PC que es solo para jugar, donde queres el maximo absoluto y sabes lo que haces.'
-        NoToca = 'Edge ni Chrome. No apaga los puntos de restauracion: crea uno antes de empezar.'
-        Adv = 'suma los riesgos de Full Optimizado y de Competitivo: sin antivirus, Vanguard se borra (lo reinstalas abriendo el cliente de Riot), y con undervolt u overclock la PC puede colgarse por el plan de energia y el temporizador.'
-        D = @('av', 'bl', 'hib', 'rc', 'sch', 'fx', 'et', 'apps', 'tel', 'wg', 'do', 'wud', 'wup', 'ad', 'sv', 'pv', 'ter', 'tp', 'hst', 'eb', 'su', 'ia', 'db', 'ini')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'fso', 'mpo', 'msi', 'pca', 'tr', 'ram', 'sm', 'pe', 'nic', 'nag', 'dns', 'mi', 'vbs', 'wsr', 'stg', 'ext', 'md', 'v4', 'xm')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db', 'av', 'bl', 'hst', 'ter', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd', 'old')
+        G = @('tk', 'du', 'gm', 'ext', 'md', 'mm', 'xb', 'gf', 'pca', 'ram', 'sm', 'stg', 'wsr')
     }
 )
 
@@ -4919,27 +5047,24 @@ $script:PerfilTxt = @{}
 # Perfiles de notebook: icono y aviso amarillo si la PC es de escritorio (no tiene bateria)
 $script:PerfilEscr = @{}
 $script:SinBateria = $false
+# Perfiles agrupados por categoria, en dos columnas
+$GruposPerf = [ordered]@{ 'Debloat y optimizacion' = @('seguro', 'opt', 'full', 'nbdeb'); 'Competitivo' = @('comp', 'compopt', 'nbcomp'); 'RAM y CPU al minimo' = @('ramlow', 'tiny') }
+$GridPerf = @{}
+foreach ($gk in $GruposPerf.Keys) { $ug = New-Object Windows.Controls.Primitives.UniformGrid; $ug.Columns = 2; $GridPerf[$gk] = $ug }
 foreach ($pf in $Perfiles) {
     $card = Nueva-Caja
+    $card.Padding = '12,9'; $card.Margin = '0,0,8,8'
     $card.BorderBrush = (Pincel $pf.Color); $card.BorderThickness = '4,0,0,0'; $card.Tag = $null
     $sp = New-Object Windows.Controls.StackPanel
     $tit = New-Object Windows.Controls.StackPanel
     $tit.Orientation = 'Horizontal'
-    $tit.Children.Add((Nuevo-Texto $pf.Nombre 17 '#FFFFFF' $true)) | Out-Null
-    if ($pf.Id -like 'full*') {
+    $tit.Children.Add((Nuevo-Texto $pf.Nombre 15 '#FFFFFF' $true)) | Out-Null
+    if (($pf.Id -like 'full*' -or $pf.Id -eq 'tiny')) {
         $porque = ('Tiene la alerta porque apaga el antivirus (Defender, SmartScreen y Smart App Control): la PC queda sin proteccion contra virus.' + "`n" + 'Tambien apaga BitLocker, la integridad de memoria y VBS, y desinstala Riot Vanguard (lo reinstalas abriendo el cliente de Riot).')
         $ic = Nuevo-Texto $Aviso 17 '#E5B567' $true
         $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'
         $tit.Children.Add($ic) | Out-Null
         $card.ToolTip = (Con-Enie $porque)
-        [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
-    }
-    if ($pf.Id -in 'comp', 'compopt') {
-        $porqueC = ('Tiene la alerta por los ajustes del procesador: plan Alto rendimiento, Modo Nitro, Baja latencia y temporizador al minimo suben el consumo y el calor, y con undervolt u overclock la PC puede colgarse.' + "`n" + 'Ademas "Optimizar juegos en ventana y GPU por hardware" y la afinidad en Ryzen X3D necesitan los drivers al dia: si te faltan, el perfil no se aplica hasta que los instales.')
-        $icC = Nuevo-Texto $Aviso 17 '#E5B567' $true
-        $icC.FontFamily = 'Segoe UI Symbol'; $icC.Margin = '8,0,0,0'
-        $tit.Children.Add($icC) | Out-Null
-        $card.ToolTip = (Con-Enie $porqueC)
         [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
     }
     $sp.Children.Add($tit) | Out-Null
@@ -4953,17 +5078,22 @@ foreach ($pf in $Perfiles) {
         $script:PerfilEscr[$pf.Id] = @($icN, $avN)
     }
     $d = New-Object Windows.Controls.TextBlock
-    $d.TextWrapping = 'Wrap'; $d.FontSize = 12.5; $d.Foreground = (Pincel '#C3C8D0'); $d.Margin = '0,6,0,0'; $d.LineHeight = 19
-    Agregar-Linea $d 'Que hace: ' '#8AB4F8' $pf.Hace
-    Agregar-Linea $d 'Ideal para: ' '#81C995' $pf.Ideal
-    Agregar-Linea $d 'No toca: ' '#9AA0A6' $pf.NoToca
-    if ($pf.Adv) { Agregar-Linea $d ($Aviso + ' Ojo: ') '#E5B567' $pf.Adv }
+    $d.TextWrapping = 'Wrap'; $d.FontSize = 12; $d.Foreground = (Pincel '#C3C8D0'); $d.Margin = '0,4,0,0'; $d.LineHeight = 17
+    # Tarjeta corta: lo importante a la vista y el texto completo al pasar el mouse
+    Agregar-Linea $d 'Que hace: ' '#8AB4F8' (Recortar $pf.Hace 420)
+    Agregar-Linea $d 'Ideal para: ' '#81C995' (Recortar $pf.Ideal 200)
+    if ($pf.Adv) { Agregar-Linea $d ($Aviso + ' Ojo: ') '#E5B567' (Recortar $pf.Adv 320) }
+    if ($pf.Estima) { Agregar-Linea $d 'Consumo estimado en reposo: ' '#FDE68A' $pf.Estima }
+    $tipPf = $(if ($pf.Estima) { 'Consumo estimado en reposo: ' + $pf.Estima + "`n`n" } else { '' }) + ('Que hace: ' + $pf.Hace + "`n`n" + 'Ideal para: ' + $pf.Ideal + "`n`n" + 'No toca: ' + $pf.NoToca) + $(if ($pf.Adv) { "`n`n" + 'Ojo: ' + $pf.Adv } else { '' })
+    if ($card.ToolTip) { $tipPf = ([string]$card.ToolTip) + "`n`n" + (Con-Enie $tipPf) } else { $tipPf = (Con-Enie $tipPf) }
+    $card.ToolTip = (New-Object Windows.Controls.TextBlock -Property @{ Text = $tipPf; TextWrapping = 'Wrap'; MaxWidth = 460 })
+    [Windows.Controls.ToolTipService]::SetShowDuration($card, 40000)
     $sp.Children.Add($d) | Out-Null
     $cuenta = Nota '' '#7D8590' '0,8,0,0'
     $script:PerfilTxt[$pf.Id] = $cuenta
     $sp.Children.Add($cuenta) | Out-Null
     $fila = New-Object Windows.Controls.WrapPanel
-    $bA = Nuevo-Boton 'Aplicar perfil' $(if ($pf.Id -like 'full*') { '#B3412F' } else { '#0078D4' })
+    $bA = Nuevo-Boton 'Aplicar perfil' $(if (($pf.Id -like 'full*' -or $pf.Id -eq 'tiny')) { '#B3412F' } else { '#0078D4' })
     $bA.Tag = $pf.Id
     $bA.Add_Click({ Aplicar-Perfil ([string]$this.Tag) })
     $bR = Nuevo-Boton 'Marcar y revisar'
@@ -4976,7 +5106,12 @@ foreach ($pf in $Perfiles) {
     $fila.Children.Add($bR) | Out-Null
     $sp.Children.Add($fila) | Out-Null
     $card.Child = $sp
-    $spP.Children.Add($card) | Out-Null
+    $gk = @($GruposPerf.Keys | Where-Object { $GruposPerf[$_] -contains $pf.Id })[0]
+    $GridPerf[$gk].Children.Add($card) | Out-Null
+}
+foreach ($gk in $GruposPerf.Keys) {
+    $spP.Children.Add((Nueva-Seccion $gk $(switch ($gk) { 'Competitivo' { '#8AB4F8' } 'RAM y CPU al minimo' { '#FDE68A' } default { '#81C995' } }))) | Out-Null
+    $spP.Children.Add($GridPerf[$gk]) | Out-Null
 }
 $Paginas.Perfiles = $spP
 
@@ -5059,7 +5194,15 @@ function Perfil-ConDrivers($pf) {
 
 function Marcar-Perfil([string]$id) {
     $pf = Perfil-De $id
-    foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } }
+    # Si ya hay opciones marcadas (de otro perfil o a mano) se pregunta: sumar este perfil a lo marcado o cambiarlo por este
+    $propias = @(); foreach ($oid in $pf.D) { $propias += ('Debloat|' + $oid) }; foreach ($oid in $pf.G) { $propias += ('Gaming|' + $oid) }
+    $ajenas = 0
+    foreach ($p in 'Debloat', 'Gaming') { foreach ($oid in (Elegidas $p)) { if ($propias -notcontains ($p + '|' + $oid)) { $ajenas++ } } }
+    $sumar = $false
+    if ($ajenas -gt 0) {
+        $sumar = Confirmar 'Sumar perfiles' ('Ya tenes marcadas ' + $ajenas + ' opciones que no son de "' + $pf.Nombre + '" (de otro perfil o elegidas a mano).' + "`n`n" + 'Queres sumar la lista de este perfil a lo que ya marcaste, o cambiar lo marcado por este perfil?') 'Sumar' '#2E8B57' 'Cambiar'
+    }
+    if (-not $sumar) { foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } } }
     $n = 0
     foreach ($par in @(@('Debloat', $pf.D), @('Gaming', $pf.G))) {
         foreach ($oid in $par[1]) {
@@ -5080,7 +5223,7 @@ function Marcar-Perfil([string]$id) {
 function Aplicar-Perfil([string]$id) {
     $pf = Perfil-De $id
     if (-not (Perfil-ConDrivers $pf)) { return }
-    if ($id -like 'full*') {
+    if (($id -like 'full*' -or $id -eq 'tiny')) {
         if (-not (Confirmar ($Aviso + ' ' + $pf.Nombre) ('Este perfil apaga el antivirus, BitLocker, la integridad de memoria y VBS. La PC queda sin proteccion contra virus.' + "`n`n" + 'Seguir?') 'Si, aplicar' '#B3412F' 'Cancelar')) { return }
     }
     if ((Marcar-Perfil $id) -eq 0) { return }
@@ -5090,7 +5233,7 @@ function Aplicar-Perfil([string]$id) {
 $IconosPag = @{ Inicio = 0xE80F; Perfiles = 0xE77B; Debloat = 0xE72E; Gaming = 0xE7FC; Limpieza = 0xE74D; Herr = 0xE90F; Apps = 0xE7B8; Adicional = 0xE713 }
 $Textos = @{
     Inicio    = @('Bienvenido a Xuca OPtimizer', 'Que hace la app y como se usa. Cuando quieras, elegi una seccion a la izquierda.')
-    Perfiles  = @('Perfiles', 'Elegi un perfil armado: aplicalo con un toque, o marcalo para revisar y ajustar las opciones antes de aplicar. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.')
+    Perfiles  = @('Perfiles', 'Elegi un perfil armado: aplicalo con un toque, o marcalo para revisar y ajustar las opciones antes de aplicar. Si ya tenes otro perfil marcado, te pregunta si queres sumarlos. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.')
     Debloat   = @('Debloat y privacidad', 'Lo que se puede sacar o apagar de Windows. Lo que marques aca y en Gaming se aplica junto con un solo Aplicar.')
     Gaming    = @('Optimizacion gaming', 'Ajustes para mas FPS y menos latencia. Lo que marques aca y en Debloat se aplica junto con un solo Aplicar.')
     Limpieza  = @('Limpiar cache', 'Libera espacio. Lo de arriba se limpia siempre; lo de abajo solo si lo marcas.')
@@ -5222,24 +5365,33 @@ function Es-Seccion($h) { return (($h.Tag -is [string]) -and ($h.Tag -eq 'Seccio
 # Deja solo las tarjetas que tienen todas las palabras; devuelve cuantas quedaron
 function Filtrar-Panel($panel, $pal) {
     $n = 0; $cab = $null; $cabVis = $false
-    foreach ($h in @($panel.Children)) {
-        if (Es-Seccion $h) {
+    foreach ($h0 in @($panel.Children)) {
+        if (Es-Seccion $h0) {
             if ($cab) { $cab.Visibility = $(if ($cabVis) { 'Visible' } else { 'Collapsed' }) }
-            $cab = $h; $cabVis = $false
+            $cab = $h0; $cabVis = $false
             continue
         }
-        if (-not (Es-Buscable $h)) { continue }
-        $ok = $true
-        foreach ($w in $pal) { if (-not $h.Tag.Busca.Contains($w)) { $ok = $false; break } }
-        $h.Visibility = $(if ($ok) { 'Visible' } else { 'Collapsed' })
-        if ($ok) { $n++; $cabVis = $true }
+        # Un grupo de dos columnas (UniformGrid): se filtran sus tarjetas y el grupo se oculta si no queda ninguna
+        $grp = $(if ($h0 -is [Windows.Controls.Primitives.UniformGrid]) { @($h0.Children) } else { @($h0) })
+        $vis = 0
+        foreach ($h in $grp) {
+            if (-not (Es-Buscable $h)) { continue }
+            $ok = $true
+            foreach ($w in $pal) { if (-not $h.Tag.Busca.Contains($w)) { $ok = $false; break } }
+            $h.Visibility = $(if ($ok) { 'Visible' } else { 'Collapsed' })
+            if ($ok) { $n++; $vis++; $cabVis = $true }
+        }
+        if ($h0 -is [Windows.Controls.Primitives.UniformGrid]) { $h0.Visibility = $(if ($vis -gt 0) { 'Visible' } else { 'Collapsed' }) }
     }
     if ($cab) { $cab.Visibility = $(if ($cabVis) { 'Visible' } else { 'Collapsed' }) }
     return $n
 }
 
 function Mostrar-TodoPanel($panel) {
-    foreach ($h in @($panel.Children)) { if ((Es-Buscable $h) -or (Es-Seccion $h)) { $h.Visibility = 'Visible' } }
+    foreach ($h in @($panel.Children)) {
+        if ($h -is [Windows.Controls.Primitives.UniformGrid]) { $h.Visibility = 'Visible'; foreach ($x in @($h.Children)) { if (Es-Buscable $x) { $x.Visibility = 'Visible' } } }
+        elseif ((Es-Buscable $h) -or (Es-Seccion $h)) { $h.Visibility = 'Visible' }
+    }
     $panel.Visibility = 'Visible'
 }
 
@@ -6035,7 +6187,7 @@ function Mostrar-Dns($d) {
 
 function Limpiar-Variables {
     foreach ($v in @(Get-ChildItem Env: | Where-Object { $_.Name -like 'XR_*' })) { Remove-Item -LiteralPath ('Env:' + $v.Name) -ErrorAction SilentlyContinue }
-    foreach ($n in 'XUCA_AUTO', 'PRIOJ', 'PRIOSYNC', 'AFIAPP', 'AFIJ', 'AFIF', 'AFIJX', 'AFIFX', 'AFIJT', 'AFIFT', 'CLEAN_BIN', 'CLEAN_GPU', 'CLEAN_RP', 'XUCA_DRVAPP', 'XUCA_DRVPRUEBA', 'XUCA_INFO') { Remove-Item -LiteralPath ('Env:' + $n) -ErrorAction SilentlyContinue }
+    foreach ($n in 'XUCA_AUTO', 'PRIOJ', 'PRIOSYNC', 'AFIAPP', 'AFIJ', 'AFIF', 'AFIJX', 'AFIFX', 'AFIJT', 'AFIFT', 'CLEAN_BIN', 'CLEAN_GPU', 'CLEAN_RP', 'CLEAN_APPS', 'CLEAN_OLD', 'CLEAN_LAUNCH', 'CLEAN_BRW', 'CLEAN_EVT', 'CLEAN_DISM', 'CLEAN_DL', 'XUCA_DRVAPP', 'XUCA_DRVPRUEBA', 'XUCA_INFO') { Remove-Item -LiteralPath ('Env:' + $n) -ErrorAction SilentlyContinue }
 }
 
 function Correr($tareas, [bool]$reinicio, [string]$tituloCarga) {
@@ -6390,7 +6542,7 @@ $ui.BtnSeguras.Add_Click({
     foreach ($id in @($Casillas[$p].Keys)) {
         $k = $p + '|' + $id
         $cb = $Casillas[$p][$id]
-        $riesgo = $Advertencias.ContainsKey($k) -or $AvisosXbox.Contains($k) -or ($k -eq 'Debloat|chr') -or (($k -eq 'Gaming|xb') -and $script:XbIcono -and ($script:XbIcono.Visibility -eq 'Visible'))
+        $riesgo = $Advertencias.ContainsKey($k) -or $AvisosXbox.Contains($k) -or $SinVuelta.Contains($k) -or ($k -eq 'Debloat|chr') -or (($k -eq 'Gaming|xb') -and $script:XbIcono -and ($script:XbIcono.Visibility -eq 'Visible'))
         $cb.IsChecked = ($cb.IsEnabled -and -not $riesgo)
     }
     Actualizar-Contador
@@ -6496,6 +6648,19 @@ function Aplicar-Seleccion {
             if (($selD.Count + $selG.Count) -eq 0) { return }
         }
     }
+    # Lo que borra partes de Windows sin vuelta atras: se pregunta antes. Cancelar las desmarca y sigue sin ellas.
+    $svs = @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }) | Where-Object { $SinVuelta.Contains($_) })
+    if ($svs.Count -gt 0) {
+        $lin = @($svs | ForEach-Object { '- ' + (Titulo-De ($_ -split '\|')[0] ($_ -split '\|')[1]) + ': ' + (Con-Enie $SinVuelta[$_]) })
+        $q = (Con-Enie 'Marcaste opciones que BORRAN partes de Windows y NO SE PUEDEN RESTABLECER desde la app:') + "`n" + ($lin -join "`n") + "`n`n" + (Con-Enie 'Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Sin estas".')
+        if (-not (Confirmar ($Aviso + ' Sin vuelta atras') $q 'Borrar igual' '#B3412F' 'Sin estas')) {
+            foreach ($k in $svs) { $p0, $id0 = $k -split '\|'; $Casillas[$p0][$id0].IsChecked = $false }
+            Actualizar-Contador
+            $selD = Elegidas 'Debloat'
+            $selG = Elegidas 'Gaming'
+            if (($selD.Count + $selG.Count) -eq 0) { return }
+        }
+    }
     $faltan = @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }) | Where-Object { $script:DrvFalta.ContainsKey($_) })
     if ($faltan.Count -gt 0) { Pedir-Drivers $faltan; return }
 
@@ -6587,7 +6752,10 @@ $ui.BtnAplicar.Add_Click({
         foreach ($k in $Casillas.Limpieza.Keys) { $v[$k] = $(if ($Casillas.Limpieza[$k].IsChecked) { '1' } else { '0' }) }
         $msj = (Con-Enie 'Cerra los juegos y programas abiertos antes de seguir.')
         # Windows.old siempre tarda mucho: se avisa antes
-        if (Test-Path -LiteralPath (Join-Path $env:SystemDrive 'Windows.old')) { $msj += "`n`n" + (Con-Enie 'Tenes la carpeta Windows.old: borrarla siempre tarda mucho (de 5 a 20 minutos). Lo que la tenga abierto se cierra solo.') }
+        if (($v['CLEAN_OLD'] -eq '1') -and (Test-Path -LiteralPath (Join-Path $env:SystemDrive 'Windows.old'))) { $msj += "`n`n" + (Con-Enie 'Tenes la carpeta Windows.old: borrarla siempre tarda mucho (de 5 a 20 minutos). Lo que la tenga abierto se cierra solo.') }
+        if (($v['CLEAN_APPS'] -eq '1') -or ($v['CLEAN_DL'] -eq '1')) {
+            $msj += "`n`n" + (Con-Enie ($Aviso + ' OJO CON LAS PARTIDAS GUARDADAS: ')) + (Con-Enie $(if ($v['CLEAN_APPS'] -eq '1') { 'los restos de apps desinstaladas pueden incluir partidas y configuraciones de juegos que ya no tenes instalados. ' } else { '' })) + (Con-Enie $(if ($v['CLEAN_DL'] -eq '1') { 'Descargas se vacia por completo y no va a la papelera. ' } else { '' })) + (Con-Enie 'Si no copiaste lo que quieras conservar, se pierde para siempre.')
+        }
         if (-not (Confirmar 'Limpiar cache' $msj 'Limpiar' '#0078D4' 'Cancelar')) { return }
         Correr @([pscustomobject]@{ Nombre = 'Limpieza'; Ruta = $Rutas.Limpieza; Vars = $v; Cambios = 1; Visible = $false; Tipo = 'limpieza' }) $false 'Limpiando la cache'
         return

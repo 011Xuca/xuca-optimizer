@@ -275,6 +275,8 @@ function Svc([string]$nombre, [string]$modo, [string]$inicio) {
         try { Set-Service -Name $nombre -StartupType $(if ($modo -eq 'disabled') { 'Disabled' } else { 'Manual' }) -ErrorAction Stop; $hecho = $true } catch { }
     }
     if (-not $hecho) { & sc.exe config $nombre start= $modo 2>&1 | Out-Null }
+    # Algunos servicios rechazan el cambio por el administrador de servicios pero aceptan el registro directo
+    if (-not (Reg-Igual (Reg-Leer $rk 'Start') $inicio 'REG_DWORD')) { try { Set-ItemProperty -LiteralPath ('HKLM:\SYSTEM\CurrentControlSet\Services\' + $nombre) -Name 'Start' -Value ([int]$inicio) -ErrorAction Stop } catch { } }
     $script:OptT++
     Reg-Verif $rk 'Start' $inicio
 }

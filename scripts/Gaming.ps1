@@ -908,6 +908,8 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
             if ($a.Status -eq 'Up') { Log 'INFO' ($a.Name + ' conectado a ' + $a.LinkSpeed) }
             if ($XAct -eq 'DUP_ON') {
                 if ($antes -eq $uno) { Log 'OK' ('ya estaba: ' + $a.Name + ' a 1 Gbps'); continue }
+                # Si el cable hoy negocia menos de 1 Gbps (router o switch de 100 Mbps), forzar 1 Gbps dejaria la placa sin conexion
+                if (([string]$a.Status -eq 'Up') -and ([int64]$a.Speed -lt 1000000000)) { Log 'OMITIDO' ($a.Name + ': el cable negocia a ' + $a.LinkSpeed + ', forzar 1 Gbps te dejaria sin internet'); continue }
                 if (-not ($notas | Where-Object { $_ -like ('dup|' + $a.InterfaceGuid + '|*') })) { $notas += ('dup|' + $a.InterfaceGuid + '|' + $antes) }
                 $nuevo = $uno
             } else {
@@ -1399,6 +1401,11 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                 $faltan = @($cfg | Where-Object { (Actual $_.Cfg) -ne $_.Val })
                 if ($faltan.Count -eq 0) {
                     Log 'OK' ('ya estaba: Modo Nitro del procesador en el plan ' + $g)
+                    # Marca de "aplicado" para que la app lo muestre y Restaurar lo limpie
+                    if (-not (Test-Path $bak)) {
+                        if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null; Proteger-Carpeta $dir }
+                        Set-Content -Path $bak -Value @(foreach ($c in $cfg) { $c.Cfg + '=' + (Actual $c.Cfg) })
+                    }
                     $code = 5
                 } else {
                     $sinCopia = $false
@@ -1891,6 +1898,7 @@ public static class SpiNative {
                 $rk = 'HKLM:\SYSTEM\CurrentControlSet\Enum\' + $d.InstanceId + '\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties'
                 $prev = (Get-ItemProperty -LiteralPath $rk -ErrorAction SilentlyContinue).MSISupported
                 if ($prev -eq 1) { Log 'OK' ('ya estaba: ' + $d.FriendlyName + ' en modo MSI'); continue }
+                if (($null -ne $prev) -and ($prev -eq 0)) { Log 'OMITIDO' ('MSI ' + $d.FriendlyName + ': el driver lo tiene apagado a proposito'); continue }
                 if ($guardados -notcontains $d.InstanceId) {
                     $v = 'NONE'; if ($null -ne $prev) { $v = [string]$prev }
                     Add-Content -LiteralPath $bak -Value ($d.InstanceId + '|' + $v)
@@ -2058,9 +2066,47 @@ $ListaOpciones = @(
         }
     },
     @{
+        Id = 'fgb'; Seccion = 'CPU Y PRIORIDAD'
+        Q = '- Desea darle mas turno de procesador al programa que estas usando? (Prioridad en primer plano; efecto chico)'
+        Hace = 'cambia como Windows reparte el tiempo del procesador (Win32PrioritySeparation = 38): la ventana en la que estas, por ejemplo el juego, recibe turnos mas largos y pasa antes que los programas de fondo.'
+        Favor = 'el juego responde mas parejo cuando hay programas abiertos de fondo.'
+        Contra = 'los programas en segundo plano (descargas, navegador) van un poco mas lentos mientras jugas.'
+        S = {
+            Opt-Ini 'Prioridad en primer plano'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl' 'Win32PrioritySeparation' 'REG_DWORD' '38'
+            Opt-Fin 'Prioridad en primer plano aplicada'
+        }
+        R = {
+            Opt-Ini 'Prioridad en primer plano (restaurar)'
+            Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl' 'Win32PrioritySeparation' 'REG_DWORD' '2'
+            Opt-Fin 'Prioridad en primer plano como la deja Windows'
+        }
+    },
+    @{
+        Id = 'dvr'; Seccion = 'MODO JUEGO Y GAME BAR'
+        Q = '- Desea apagar la grabacion de juegos en segundo plano? (Game DVR: libera CPU, GPU y disco mientras jugas)'
+        Hace = 'apaga la captura y grabacion de clips de Xbox Game Bar (Game DVR), que graba en segundo plano mientras jugas. No borra la Game Bar ni toca Xbox.'
+        Favor = 'mas FPS y menos tirones, sobre todo si la grabacion en segundo plano estaba activa.'
+        Contra = 'no podes grabar clips con Win+Alt+G ni con la Game Bar.'
+        S = {
+            Opt-Ini 'Grabacion de juegos (Game DVR)'
+            Reg-Set 'HKCU\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR' 'REG_DWORD' '0'
+            Opt-Fin 'Grabacion de juegos apagada'
+        }
+        R = {
+            Opt-Ini 'Grabacion de juegos (restaurar)'
+            Reg-Set 'HKCU\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '1'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR'
+            Opt-Fin 'Grabacion de juegos restaurada'
+        }
+    },
+    @{
         Id = 'mm'; Seccion = 'CPU Y PRIORIDAD'
-        Q = '- Desea dar prioridad multimedia a los juegos? (Mas CPU para el juego; efecto chico)'
-        Hace = 'el programador multimedia de Windows le da mas prioridad a los juegos. El limite de red queda en 10, el valor de Windows, porque sacarlo puede empeorar la latencia.'
+        Q = '- Desea que el juego tenga prioridad sobre otros programas? (Programador multimedia MMCSS; efecto chico)'
+        Hace = 'le pide al programador multimedia de Windows (MMCSS) que le de mas CPU y prioridad a los juegos. El limite de red queda en 10, el valor de Windows, porque sacarlo puede empeorar la latencia.'
         Favor = 'un poco mas de CPU para el juego y menos tirones.'
         Contra = 'el efecto es chico.'
         S = {
@@ -2127,7 +2173,7 @@ $ListaOpciones = @(
         Q = '- Desea usar el plan Alto rendimiento? (Mas consumo y calor en notebook)'
         Hace = 'activa el plan de energia Alto rendimiento.'
         Favor = 'el CPU responde mas rapido y no baja tanto la frecuencia.'
-        Contra = 'mas consumo y calor, sobre todo en notebook.'
+        Contra = 'mas consumo y calor: el procesador no baja su velocidad ni en reposo. En procesadores potentes puede subir bastante la temperatura aunque no estes jugando.'
         S = {
             Opt-Ini 'Plan de energia'
             $alto = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
@@ -2172,10 +2218,10 @@ $ListaOpciones = @(
     },
     @{
         Id = 'cpu'; Seccion = 'PROCESADOR'
-        Q = '- Desea activar el Modo Nitro del procesador? (Nucleos siempre despiertos, turbo y rendimiento al maximo, solo con corriente)'
-        Hace = 'deja todos los nucleos activos, el turbo al maximo y en modo agresivo, la subida de velocidad rapida y los ventiladores antes que bajar la velocidad, con la PC enchufada; ademas Windows deja de frenar los programas de fondo.'
-        Favor = 'menos tirones cuando el juego pide mas CPU de golpe.'
-        Contra = 'mas consumo, calor y ruido de ventiladores.'
+        Q = '- Desea activar el Modo Nitro del procesador (aka. QuickCPU)? (El procesador siempre a maxima velocidad con la PC enchufada)'
+        Hace = 'mantiene el procesador a maxima velocidad cuando la PC esta enchufada: ningun nucleo se duerme, el turbo queda en agresivo y Windows no frena los programas de fondo. Antes guarda tus valores para poder volver atras.'
+        Favor = 'el juego responde mas parejo y con menos tirones cuando de golpe necesita mucho procesador.'
+        Contra = 'el procesador gasta y se calienta mas, y los ventiladores suenan mas, aunque no estes jugando: en procesadores que ya rinden bien puede subir muchos grados, incluso en reposo. Con undervolt u overclock puede volver inestable la PC. Activalo solo si lo necesitas y mira las temperaturas.'
         S = {
             Opt-Ini 'Modo Nitro del procesador'
             Resps (Act 'CPU_ON')
@@ -2192,9 +2238,9 @@ $ListaOpciones = @(
     @{
         Id = 'll'; Seccion = 'PROCESADOR'
         Q = '- Desea activar Baja latencia? (El CPU sube al maximo 1 a 3 segundos al abrir menus y apps; pide reiniciar)'
-        Hace = 'activa Baja latencia (Low Latency Profile), una funcion oculta de Windows 11 que tambien se activa con ViVeTool y el ID 58989092: al abrir el Inicio, menus, la busqueda o apps, el procesador sube al maximo por 1 a 3 segundos.'
+        Hace = 'activa "Baja latencia", una funcion oculta de Windows 11: al abrir el Inicio, los menus, la busqueda o una app, el procesador sube al maximo por 1 a 3 segundos para que todo responda al instante.'
         Favor = 'el Inicio, los menus y las apps abren mas rapido, sobre todo en PCs de gama baja.'
-        Contra = 'picos cortos de consumo y calor; Microsoft todavia la esta probando y en PCs potentes casi no se nota.'
+        Contra = 'picos cortos de consumo y calor; Microsoft todavia la prueba y en PCs potentes casi no se nota. No vale el calor si tu PC ya anda bien.'
         S = {
             Opt-Ini 'Baja latencia'
             Resps (Act 'LL_ON')
@@ -2208,8 +2254,8 @@ $ListaOpciones = @(
     },
     @{
         Id = 'idle'; Seccion = 'PROCESADOR'
-        Q = '- Desea desactivar los estados de reposo del procesador (C-states)? (Nucleos siempre despiertos: menos latencia, mucho mas consumo y calor)'
-        Hace = 'activa el ajuste oculto "Processor idle disable" del plan de energia activo, con corriente y a bateria: los nucleos dejan de dormirse (C-states) cuando no tienen trabajo. Antes guarda tus valores para poder volver atras.'
+        Q = '- Desea impedir que los nucleos del procesador se duerman? (C-states: menos latencia, mucho mas consumo y calor)'
+        Hace = 'los nucleos dejan de dormirse cuando no tienen trabajo (ajuste oculto "Processor idle disable" del plan de energia, con corriente y a bateria). Antes guarda tus valores para poder volver atras.'
         Favor = 'el procesador no tarda en despertarse: un poco menos de latencia y de microtirones en juegos competitivos.'
         Contra = 'el procesador nunca descansa: mucho mas consumo y calor aunque no estes jugando, los ventiladores suenan mas, en algunos procesadores baja el turbo por temperatura y en notebook la bateria dura mucho menos.'
         S = {
@@ -2380,9 +2426,9 @@ $ListaOpciones = @(
     },
     @{
         Id = 'gf'; Seccion = 'GRAFICOS'
-        Q = '- Desea optimizar juegos en ventana y GPU por hardware? (Menos latencia; pide reiniciar)'
-        Hace = 'usa el modo moderno para juegos en ventana y activa la GPU acelerada por hardware.'
-        Favor = 'menos latencia en ventana y sin bordes, y hace falta para Frame Generation.'
+        Q = '- Desea activar la GPU acelerada por hardware y el modo moderno para juegos en ventana? (Menos latencia; pide reiniciar)'
+        Hace = 'activa la "Programacion de GPU acelerada por hardware" (HAGS) y el modo moderno de presentacion para juegos en ventana o sin bordes.'
+        Favor = 'menos latencia en ventana y sin bordes, y hace falta para el Frame Generation (DLSS 3 y FSR 3).'
         Contra = 'en algunas PCs viejas puede dar problemas; R lo vuelve atras.'
         S = {
             Opt-Ini 'Graficos'
@@ -2400,7 +2446,7 @@ $ListaOpciones = @(
     },
     @{
         Id = 'fso'; Seccion = 'GRAFICOS'
-        Q = '- Desea desactivar las optimizaciones de pantalla completa y el escalado DPI en tus juegos? (Se aplica a todos los juegos detectados)'
+        Q = '- Desea que tus juegos no usen las optimizaciones de pantalla completa ni el escalado de Windows? (Se aplica a los juegos detectados)'
         Hace = 'a cada juego instalado le marca "Deshabilitar optimizaciones de pantalla completa" y "Invalidar el escalado de DPI alto: lo hace la Aplicacion" (Propiedades > Compatibilidad).'
         Favor = 'menos latencia de entrada en pantalla completa y el juego controla su propio escalado, sin que Windows lo estire.'
         Contra = 'solo toca los juegos que se detectan solos (Steam, Epic, EA, etc.); si un juego pierde el modo ventana sin bordes moderno, R lo vuelve atras. Hay que cerrar y abrir el juego.'
@@ -2468,7 +2514,7 @@ $ListaOpciones = @(
     @{
         Id = 'mpo'; Seccion = 'GRAFICOS'
         Q = '- Desea desactivar MPO? (Evita parpadeos y cursor invisible; pide reiniciar)'
-        Hace = 'desactiva MPO, una funcion de la pantalla que superpone imagenes.'
+        Hace = 'apaga MPO (Multiplane Overlay), una funcion de Windows que superpone capas de imagen en pantalla y en algunas PCs causa parpadeos.'
         Favor = 'arregla parpadeos, pantallas negras y cursor invisible en algunas PCs.'
         Contra = 'si no tenias esos problemas, puede subir un poco el uso de la GPU en ventana.'
         S = {
@@ -2485,7 +2531,7 @@ $ListaOpciones = @(
     @{
         Id = 'msi'; Seccion = 'GRAFICOS'
         Q = '- Desea activar el modo MSI en la placa de video y la de red? (Menos latencia; pide reiniciar)'
-        Hace = 'las placas le avisan al procesador con mensajes (MSI) en vez de usar la linea compartida vieja.'
+        Hace = 'la placa de video y la de red le avisan al procesador con mensajes directos (MSI) en vez de usar la linea compartida vieja: es una forma mas moderna de comunicarse con el procesador.'
         Favor = 'un poco menos de latencia y de microtirones. Muchas placas nuevas ya vienen asi, en ese caso no cambia nada.'
         Contra = 'si el driver no lo soporta bien, al reiniciar podes ver pantalla negra o quedarte sin internet.'
         S = {
@@ -2501,7 +2547,7 @@ $ListaOpciones = @(
     },
     @{
         Id = 'pca'; Seccion = 'GRAFICOS'
-        Q = '- Desea desactivar el Asistente de compatibilidad (PcaSvc)? (Evita ventanas que roban el foco en partida; pide reiniciar)'
+        Q = '- Desea apagar el Asistente de compatibilidad de programas? (PcaSvc: evita ventanas que roban el foco en partida; pide reiniciar)'
         Hace = 'apaga el Asistente de compatibilidad de programas.'
         Favor = 'evita ventanas que te roban el foco en partida.'
         Contra = 'no te avisa de problemas con programas viejos.'
@@ -2520,8 +2566,8 @@ $ListaOpciones = @(
     },
     @{
         Id = 'tr'; Seccion = 'TEMPORIZADOR Y LATENCIA'
-        Q = '- Desea fijar el temporizador del sistema en el minimo? (Siempre 0.5 ms; menos latencia y tirones)'
-        Hace = 'deja el temporizador de Windows fijo en 0.5 ms para todo el sistema.'
+        Q = '- Desea que el reloj interno de Windows trabaje al minimo (aka. Timer Resolution)? (Se actualiza cada 0.5 ms: menos tirones y latencia)'
+        Hace = 'deja el reloj interno de Windows (el que despierta a los programas) en 0.5 ms fijo para todo el sistema, en vez de los 15.6 ms de siempre: los juegos reciben el tiempo mas seguido y los frames salen mas parejos.'
         Favor = 'menos latencia y tiempos de frame mas parejos.'
         Contra = 'mas consumo y calor, sobre todo en notebook.'
         Saltar = {
@@ -2663,7 +2709,7 @@ $ListaOpciones = @(
     },
     @{
         Id = 'nag'; Seccion = 'ENERGIA Y RED'
-        Q = '- Desea desactivar el algoritmo de Nagle? (Paquetes de red sin espera; menos ping en juegos que usan TCP; pide reiniciar)'
+        Q = '- Desea mandar los paquetes de red sin esperar? (Algoritmo de Nagle: menos ping en juegos que usan TCP; pide reiniciar)'
         Hace = 'apaga el algoritmo de Nagle en tus conexiones de red: Windows manda cada paquete chico al instante en vez de juntarlos y esperar.'
         Favor = 'puede bajar unos milisegundos el ping en juegos que usan TCP, como Minecraft o juegos de MMO y estrategia.'
         Contra = 'la mayoria de los shooters modernos usan UDP y no notan cambio; con conexiones lentas puede subir un poco el uso de red.'
