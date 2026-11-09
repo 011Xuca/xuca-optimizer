@@ -2,7 +2,7 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
-## v1.0.12
+## v1.0.11
 
 ### Nuevo
 - **Aviso de Xbox antes de aplicar**: las opciones que tocan Xbox, la Game Bar, Game Pass o Minecraft (servicios de Xbox, Teredo, actualizaciones de la Store, borrar la Game Bar y Modo Xbox) muestran el aviso en su tarjeta, "Marcar solo seguras" ya no las marca y, antes de aplicarlas (a mano o con un perfil), la app pregunta. Con **Sin Xbox** (o Esc) se aplica todo lo demás sin ellas. Traducido al inglés.
