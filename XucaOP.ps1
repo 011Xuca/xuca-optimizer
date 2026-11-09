@@ -34,6 +34,27 @@ function Abrir-Normal([string]$que) {
     catch { try { Start-Process $que } catch { } }
 }
 
+# Hiber: devuelve el zip del ultimo release que corresponde al navegador predeterminado de Windows.
+# Chrome, Brave, Vivaldi y demas Chromium bajan el zip de Chrome. Si falla algo, abre la pagina del release.
+function Url-Hiber {
+    $pag = 'https://github.com/011Xuca/hiber/releases/latest'
+    $nav = 'chrome'
+    try {
+        $id = [string](Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice' -ErrorAction Stop).ProgId
+        if ($id -match 'Firefox') { $nav = 'firefox' } elseif ($id -match 'MSEdge') { $nav = 'edge' } elseif ($id -match 'Opera') { $nav = 'opera' }
+    } catch { }
+    try {
+        try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
+        $wc = New-Object Net.WebClient
+        $wc.Headers['User-Agent'] = 'XucaOP'
+        $rel = $wc.DownloadString('https://api.github.com/repos/011Xuca/hiber/releases/latest') | ConvertFrom-Json
+        $as = @($rel.assets | Where-Object { ([string]$_.name) -match ('^hiber-' + $nav + '-[\d.]+\.zip$') })[0]
+        $url = [string]$as.browser_download_url
+        if ($url.StartsWith('https://github.com/011Xuca/hiber/releases/download/')) { return $url }
+    } catch { }
+    return $pag
+}
+
 try {
 
 $AppPath = $PSCommandPath
@@ -4341,7 +4362,7 @@ function Nueva-AppRec($a) {
     $b.Tag = $a
     $b.Add_Click({
         $x = $this.Tag
-        try { Abrir-Normal $x.Url; $ui.Estado.Text = (Con-Enie ('Se abrio la descarga de ' + $x.Nombre + ' en tu navegador.')) }
+        try { Abrir-Normal $(if ($x.Nombre -eq 'Hiber') { Url-Hiber } else { $x.Url }); $ui.Estado.Text = (Con-Enie ('Se abrio la descarga de ' + $x.Nombre + ' en tu navegador.')) }
         catch { Avisar 'Descargar' 'No se pudo abrir el navegador.' }
     })
     $fila.Children.Add($b) | Out-Null
