@@ -648,7 +648,6 @@ $Chequeos = @{
     'Debloat|acc'  = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_acc.txt') }
     'Debloat|nvl'   = { $v = Leer-Svc 'NvContainerLocalSystem'; if ($null -eq $v) { return $true }; $v -ge 3 }
     'Debloat|nvt'   = { (Leer-Reg 'HKLM:\SOFTWARE\NVIDIA Corporation\NvTray' 'StartOnLogin') -eq 0 }
-    'Debloat|srh'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' 'SearchboxTaskbarMode') -eq 0 }
     'Debloat|upd'   = {
         $v = @('edgeupdate', 'gupdate', 'brave' | ForEach-Object { Leer-Svc $_ } | Where-Object { $null -ne $_ })
         if ($v.Count -eq 0) { return $true }
@@ -5009,7 +5008,7 @@ $Perfiles = @(
         NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
         Adv = 'la PC queda sin antivirus, sin parches de seguridad (Windows Update apagado), sin Store ni Bluetooth, y dejan de andar WSL, Docker y las maquinas virtuales. Para pasar de ahi hace falta una ISO recortada (tiny11 o NTLite): desde una Windows instalada no se llega a 0,5 GB.'
         Estima = '1,3 a 1,8 GB de RAM y 0 a 1 % de CPU, sin nada abierto en Windows 11 (estimado, no medido). Para bajar de ahi hace falta una ISO recortada (tiny11 o NTLite).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'sch', 'wud', 'av', 'bl', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd', 'rmin', 'nvl', 'nvt', 'srh', 'sx', 'thm', 'leg', 'bt', 'str', 'msx', 'old', 'usv', 'wus')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'sch', 'wud', 'av', 'bl', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd', 'rmin', 'nvl', 'nvt', 'sx', 'thm', 'leg', 'bt', 'str', 'msx', 'old', 'usv', 'wus')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'pca', 'stg', 'mi', 'vbs', 'wsr', 'dvr')
     },
     [pscustomobject]@{
