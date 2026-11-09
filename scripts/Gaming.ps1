@@ -8,8 +8,17 @@
 # ============================================================
 
 # Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
-$ReinGaming = @('tk', 'mm', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'mi', 'vbs', 'md', 'v4', 'll', 'nag', 'nic', 'dup', 'spc')
+$ReinGaming = @('tk', 'mm', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'mi', 'vbs', 'md', 'v4', 'll', 'nag', 'nic', 'dup', 'spc', 'xbt')
 $GameBarProtocolos = @('ms-gamingoverlay', 'ms-gamebar', 'ms-gamebarservices')
+
+# "Quitar Xbox completo" (xbt): servicios, apps (instaladas y provisionadas) y la tarea de guardado en la nube.
+# Las apps que R reinstala van con su Id de la Microsoft Store; las demas se avisan en el log para instalarlas a mano.
+$XbtServicios = @('XblAuthManager', 'XblGameSave', 'XboxGipSvc', 'XboxNetApiSvc', 'GamingServices', 'GamingServicesNet')
+$XbtApps = @('Microsoft.GamingApp*', 'Microsoft.XboxIdentityProvider*', 'Microsoft.Xbox.TCUI*', 'Microsoft.XboxApp*',
+    'Microsoft.XboxSpeechToTextOverlay*', 'Microsoft.GamingServices*')
+$XbtGameBar = @('Microsoft.XboxGamingOverlay*', 'Microsoft.XboxGameOverlay*')
+$XbtReinstalar = @('Microsoft.GamingServices=9MWPM2CQNLHN', 'Microsoft.GamingApp=9MV0B5HZVK9Z', 'Microsoft.XboxIdentityProvider=9WZDNCRD1HKW', 'Microsoft.XboxGamingOverlay=9NZKPSTSNW4P')
+$XbtTarea = '\Microsoft\XblGameSave\XblGameSaveTask'
 
 $dnsCand = [ordered]@{
     'Cloudflare' = @('1.1.1.1', '1.0.0.1')
@@ -660,6 +669,50 @@ public static class XucaSpec {
 # <<< XUCA-SPEC
 
 # ------------------------------------------------------------
+# Apps de la Store: se borran para todos los usuarios y se desprovisionan (asi no vuelven en usuarios nuevos ni con
+# actualizaciones de Windows). Devuelve 0 = borradas, 1 = alguna quedo, 5 = no habia ninguna.
+# ------------------------------------------------------------
+function Appx-Quitar([string[]]$nombres) {
+    $code = 5
+    $prov = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue)
+    foreach ($n in $nombres) {
+        $pk = @(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue | Where-Object { -not $_.NonRemovable })
+        $pv = @($prov | Where-Object { $_.DisplayName -like $n })
+        if (($pk.Count -eq 0) -and ($pv.Count -eq 0)) { Log 'OK' ('ya estaba: ' + $n + ' no esta instalada'); continue }
+        if ($code -eq 5) { $code = 0 }
+        foreach ($p in $pk) {
+            try { Remove-AppxPackage -Package $p.PackageFullName -AllUsers -ErrorAction Stop }
+            catch { try { Remove-AppxPackage -Package $p.PackageFullName -ErrorAction Stop } catch { } }
+        }
+        foreach ($p in $pv) { try { Remove-AppxProvisionedPackage -Online -PackageName $p.PackageName -ErrorAction Stop | Out-Null } catch { } }
+        $quedan = @(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue | Where-Object { -not $_.NonRemovable }).Count
+        $quedanP = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like $n }).Count
+        if (($quedan -eq 0) -and ($quedanP -eq 0)) { Log 'OK' ('verificado: ' + $n + ' borrada y desprovisionada') }
+        else { Log 'FALLO' ($n + ' sigue instalada (' + $quedan + ') o provisionada (' + $quedanP + ')'); $code = 1 }
+    }
+    return $code
+}
+
+# "Nombre=IdDeLaStore": instala con winget (fuente msstore) lo que falte y verifica. 0 = instaladas, 1 = alguna falta, 5 = ya estaban.
+function Appx-Poner([string[]]$pares) {
+    $code = 5
+    $wg = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+    foreach ($par in $pares) {
+        $n, $id = $par -split '='
+        if (@(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue).Count -gt 0) { Log 'OK' ('ya estaba: ' + $n + ' esta instalada'); continue }
+        if ($code -eq 5) { $code = 0 }
+        if ($wg) {
+            Say ('  Instalando ' + $n + ' con winget...')
+            & winget install --id $id --source msstore --accept-package-agreements --accept-source-agreements | Out-Null
+            Log 'INFO' ('winget install ' + $n + ' (' + $id + ') termino con codigo ' + $LASTEXITCODE)
+        } else { Log 'FALLO' 'winget no esta disponible en esta PC' }
+        if (@(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue).Count -gt 0) { Log 'OK' ('verificado: ' + $n + ' esta instalada') }
+        else { Log 'FALLO' ($n + ' no quedo instalada: instalala desde la Microsoft Store (id ' + $id + ')'); $code = 1 }
+    }
+    return $code
+}
+
+# ------------------------------------------------------------
 # Acciones: lo que antes hacia la parte de PowerShell del .bat (una por cada ACT).
 # Devuelven 0 = hecho, 1 = fallo, 2 = no aplica en esta PC, 5 = ya estaba, 6 = queda un paso para despues, 10 = caso especial.
 # $XDato: los valores para SPI (mouse) y DX (graficos).
@@ -683,37 +736,15 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
         }
     }
 
-    'GAMEBAR_OFF' {
-        $n = 'Microsoft.XboxGamingOverlay*'
-        $pk = @(Get-AppxPackage -AllUsers -Name $n)
-        if ($pk.Count -eq 0) {
-            Log 'OK' 'ya estaba: la app Xbox Game Bar no esta instalada'
-            $code = 5
-        } else {
-            foreach ($p in $pk) { try { Remove-AppxPackage -Package $p.PackageFullName -AllUsers -ErrorAction Stop } catch { } }
-            $quedan = @(Get-AppxPackage -AllUsers -Name $n).Count
-            if ($quedan -eq 0) { Log 'OK' 'verificado: la app Xbox Game Bar se borro' }
-            else { Log 'FALLO' 'la app Xbox Game Bar sigue instalada'; $code = 1 }
-        }
-    }
+    # Game Bar nueva y el paquete viejo (XboxGameOverlay), instalados y provisionados
+    'GAMEBAR_OFF' { $code = Appx-Quitar @('Microsoft.XboxGamingOverlay*', 'Microsoft.XboxGameOverlay*') }
 
-    'GAMEBAR_ON' {
-        $n = 'Microsoft.XboxGamingOverlay*'
-        if (@(Get-AppxPackage -AllUsers -Name $n).Count -gt 0) {
-            Log 'OK' 'ya estaba: la app Xbox Game Bar esta instalada'
-            $code = 5
-        } else {
-            if (Get-Command winget -ErrorAction SilentlyContinue) {
-                Say '  Instalando Xbox Game Bar con winget...'
-                & winget install --id 9NZKPSTSNW4P --source msstore --accept-package-agreements --accept-source-agreements | Out-Null
-                Log 'INFO' ('winget install Xbox Game Bar termino con codigo ' + $LASTEXITCODE)
-            } else {
-                Log 'FALLO' 'winget no esta disponible en esta PC'
-            }
-            if (@(Get-AppxPackage -AllUsers -Name $n).Count -gt 0) { Log 'OK' 'verificado: la app Xbox Game Bar esta instalada' }
-            else { Log 'FALLO' 'la app Xbox Game Bar no quedo instalada, instalala desde la Microsoft Store'; $code = 1 }
-        }
-    }
+    'GAMEBAR_ON' { $code = Appx-Poner @('Microsoft.XboxGamingOverlay=9NZKPSTSNW4P') }
+
+    # $XDato: nombres separados por coma (APPX_OFF) o "Nombre=IdDeLaStore" separados por coma (APPX_ON)
+    'APPX_OFF' { $code = Appx-Quitar @($XDato -split ',') }
+
+    'APPX_ON' { $code = Appx-Poner @($XDato -split ',') }
 
     'DX' {
         $k = 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences'
@@ -2194,19 +2225,19 @@ $ListaOpciones = @(
     },
     @{
         Id = 'gm'; Seccion = 'MODO JUEGO Y GAME BAR'
-        Q = '- Desea activar el Modo Juego? (Y evitar que el joystick abra la Game Bar)'
-        Hace = 'activa el Modo Juego y evita que el boton Xbox del joystick abra la Game Bar.'
+        Q = '- Desea activar el Modo Juego? (Viene asi en Windows; no toca la Game Bar ni Xbox)'
+        Hace = 'activa el Modo Juego.'
         Favor = 'Windows prioriza el juego y frena actualizaciones mientras jugas.'
         Contra = 'ninguno importante.'
         S = {
+            # El atajo del boton Xbox del joystick ahora lo apaga "Borrar la app Xbox Game Bar" (xb), que avisa antes
             Opt-Ini 'Modo Juego'
             Reg-Set 'HKCU\Software\Microsoft\GameBar' 'AutoGameModeEnabled' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\GameBar' 'AllowAutoGameMode' 'REG_DWORD' '1'
-            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'GamepadNexusChordEnabled' 'REG_DWORD' '0'
-            Opt-Fin 'Modo Juego activo y Game Bar sin atajo del joystick'
+            Opt-Fin 'Modo Juego activo'
         }
         R = {
+            # Tambien vuelve el atajo del joystick a como viene en Windows (versiones viejas de gm lo apagaban)
             Opt-Ini 'Modo Juego (restaurar)'
             Reg-Set 'HKCU\Software\Microsoft\GameBar' 'AutoGameModeEnabled' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\GameBar' 'AllowAutoGameMode' 'REG_DWORD' '1'
@@ -2218,11 +2249,13 @@ $ListaOpciones = @(
     @{
         Id = 'xb'; Seccion = 'MODO JUEGO Y GAME BAR'
         Q = '- Desea borrar la app Xbox Game Bar? (No toca los servicios de Xbox que usan los juegos)'
-        Hace = 'borra la app Xbox Game Bar y apaga sus grabaciones. En los Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D, 9950X3D) solo apaga las grabaciones: ahi la app hace falta.'
+        Hace = 'borra la app Xbox Game Bar y su paquete viejo (tambien para las cuentas nuevas y despues de actualizar Windows), apaga sus grabaciones y que el boton Xbox del joystick la abra. En los Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D, 9950X3D) solo apaga las grabaciones y el atajo del joystick: ahi la app hace falta.'
         Favor = 'menos procesos y nada grabando de fondo.'
-        Contra = 'perdes las capturas y clips de Windows; podes usar NVIDIA, AMD u OBS.'
+        Contra = 'perdes las capturas y clips de Windows (podes usar NVIDIA, AMD u OBS), el chat y los widgets de Xbox en partida y el atajo Win + G.'
         S = {
             Opt-Ini 'Xbox Game Bar'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'GamepadNexusChordEnabled' 'REG_DWORD' '0'
             if ((Act 'GB_CHECK') -ge 10) {
                 # Ryzen X3D de dos bloques: solo se apagan las grabaciones. Si una version anterior la habia bloqueado, se desbloquea.
                 Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '0'
@@ -2242,6 +2275,8 @@ $ListaOpciones = @(
         }
         R = {
             Opt-Ini 'Xbox Game Bar (restaurar)'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'GamepadNexusChordEnabled' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '1'
             Reg-Set 'HKCU\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '1'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR'
@@ -2255,7 +2290,7 @@ $ListaOpciones = @(
         Q = '- Desea desactivar las notificaciones de Windows? (Apaga los avisos emergentes y el Centro de notificaciones)'
         Hace = 'apaga los avisos emergentes y el Centro de notificaciones.'
         Favor = 'nada te tapa la pantalla en partida.'
-        Contra = 'no ves avisos de apps como Discord o el correo. No sirve si una app se pone al frente por su cuenta (una actualizacion o un cuadro de Discord, Brave o Spotify): eso no es un aviso y puede seguir pasando.'
+        Contra = 'no ves avisos de apps como Discord o el correo, ni las invitaciones de Xbox a partidas o grupos. No sirve si una app se pone al frente por su cuenta (una actualizacion o un cuadro de Discord, Brave o Spotify): eso no es un aviso y puede seguir pasando.'
         S = {
             Opt-Ini 'Notificaciones de Windows'
             Reg-Set 'HKCU\Software\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter' 'REG_DWORD' '1'
@@ -2284,6 +2319,63 @@ $ListaOpciones = @(
             Opt-Ini 'Modo Xbox (restaurar)'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration' 'GamingHomeApp' 'REG_SZ' 'Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App'
             Opt-Fin 'Modo Xbox restaurado'
+        }
+    },
+    @{
+        # Nunca va en un perfil: la app avisa antes de aplicarla (AvisosXbox y Advertencias en XucaOP.ps1)
+        Id = 'xbt'; Seccion = 'MODO JUEGO Y GAME BAR'
+        Q = '- Desea quitar Xbox completo? (SOLO si nunca usas Xbox, Game Pass, Minecraft ni juegos de la Microsoft Store)'
+        Hace = 'apaga y deshabilita los servicios de Xbox y de Gaming Services, borra y desprovisiona la app de Xbox, Gaming Services, Xbox Identity Provider, Xbox TCUI, la transcripcion del chat de Xbox y la Xbox Game Bar (tambien su paquete viejo), y apaga las grabaciones (GameDVR), el atajo del joystick, el Modo Xbox y la tarea de guardado en la nube. En los Ryzen X3D de dos bloques deja instalada la Game Bar (el driver de V-Cache la usa) y solo apaga sus grabaciones.'
+        Favor = 'lo maximo para sacar Xbox: ningun servicio, app ni tarea de Xbox queda cargado ni arranca con Windows.'
+        Contra = 'Game Pass, Minecraft Bedrock y el Launcher de Minecraft, y los juegos de la Microsoft Store y de la app de Xbox dejan de funcionar, y no podes jugar online con tu cuenta Xbox. Restablecer reinstala la app de Xbox, Gaming Services, Xbox Identity Provider y la Game Bar con winget (hace falta internet); lo demas lo instala la app de Xbox o la Store. Pide reiniciar.'
+        S = {
+            Opt-Ini 'Quitar Xbox completo'
+            $x3d = ((Act 'GB_CHECK') -ge 10)
+            foreach ($n in $XbtServicios) {
+                Svc $n 'disabled' '4'
+                Svc-Parar $n
+            }
+            Tarea $XbtTarea 'disable'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'HistoricalCaptureEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'GamepadNexusChordEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration' 'GamingHomeApp' 'REG_SZ' ''
+            $apps = $XbtApps
+            if ($x3d) {
+                # Igual que "Borrar la app Xbox Game Bar": en estos Ryzen la Game Bar queda y la politica no la bloquea
+                Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR'
+                Say '  Tu Ryzen X3D usa la Game Bar para mandar los juegos al bloque con V-Cache: se deja instalada.' 'Yellow'
+            } else {
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR' 'REG_DWORD' '0'
+                $apps = @($XbtApps) + @($XbtGameBar)
+            }
+            Say '  Borrando las apps de Xbox, un momento...'
+            Resps (Act 'APPX_OFF' ($apps -join ','))
+            # Despues de borrar: sin esto vuelve el aviso "Get an app to open ms-gamingoverlay"
+            if (-not $x3d) { foreach ($p in $GameBarProtocolos) { Protocolo $p } }
+            Opt-Fin 'Xbox quitado (se termina de aplicar al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Quitar Xbox completo (restaurar)'
+            foreach ($p in $GameBarProtocolos) { Proto-Del $p }
+            Say '  Reinstalando la app de Xbox, Gaming Services, Xbox Identity Provider y la Game Bar desde la Store...'
+            Resps (Act 'APPX_ON' ($XbtReinstalar -join ','))
+            # Inicio como viene en Windows. Si Gaming Services no se pudo reinstalar, sus servicios no existen y quedan OMITIDO.
+            foreach ($n in 'XblAuthManager', 'XblGameSave', 'XboxGipSvc', 'XboxNetApiSvc') { Svc $n 'demand' '3' }
+            foreach ($n in 'GamingServices', 'GamingServicesNet') { Svc $n 'auto' '2'; Svc-Arrancar $n }
+            Tarea $XbtTarea 'enable'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '1'
+            Reg-Del 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'HistoricalCaptureEnabled'
+            Reg-Set 'HKCU\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '1'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\GameBar' 'GamepadNexusChordEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration' 'GamingHomeApp' 'REG_SZ' 'Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App'
+            Log 'ATENCION' 'reinstalar a mano si hace falta: Xbox TCUI, la transcripcion del chat de Xbox (XboxSpeechToTextOverlay) y la app vieja Xbox Console Companion (XboxApp) no tienen instalador por winget. Xbox TCUI lo instala la app de Xbox o el primer juego que lo pida; los otros, desde la Microsoft Store si los usabas. Minecraft no se habia borrado.'
+            Say '  Xbox TCUI y la transcripcion del chat de Xbox no se reinstalan solos: los instala la app de Xbox o la Microsoft Store si hacen falta (mira el log).' 'Yellow'
+            Opt-Fin 'Xbox restaurado (reinicia la PC y abri la app de Xbox para terminar)'
         }
     },
     @{

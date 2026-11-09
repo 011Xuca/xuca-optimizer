@@ -597,7 +597,8 @@ $Chequeos = @{
     'Debloat|fx'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting') -eq 3) -and ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'EnableTransparency') -eq 0) }
     'Debloat|cal'   = { (Leer-Reg 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter') -eq 1 }
     'Debloat|et'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings' 'TaskbarEndTask') -eq 1 }
-    'Debloat|apps'  = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground') -eq 2 }
+    # Sin la excepcion de Xbox (versiones viejas) sale sin aplicar, para que al aplicarla de nuevo Xbox y Minecraft vuelvan a andar de fondo
+    'Debloat|apps'  = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground') -eq 2) -and ($null -ne (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground_ForceAllowTheseApps')) }
     'Debloat|ini'   = { Inicio-Conteo }
     'Debloat|tel'   = { (Leer-Svc 'DiagTrack') -eq 4 }
     'Debloat|wg'    = { if ([Environment]::OSVersion.Version.Build -lt 22000) { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds' 'EnableFeeds') -eq 0 } else { -not (HasAppx 'MicrosoftWindows.Client.WebExperience') } }
@@ -606,7 +607,15 @@ $Chequeos = @{
     'Debloat|wup'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'FlightSettingsMaxPauseDays') -eq 7300 }
     'Debloat|ad'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SystemPaneSuggestionsEnabled') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB') -eq 0) }
     'Debloat|sv'    = { ((Leer-Svc 'MapsBroker') -eq 4) -and ((Leer-Svc 'WerSvc') -eq 4) }
-    'Debloat|rsv'   = { ((Leer-Svc 'XblAuthManager') -eq 4) -and ((Leer-Svc 'TrkWks') -eq 4) }
+    'Debloat|rsv'   = { ((Leer-Svc 'WalletService') -eq 4) -and ((Leer-Svc 'TrkWks') -eq 4) }
+    'Debloat|xbs'   = { ((Leer-Svc 'XblAuthManager') -eq 4) -and ((Leer-Svc 'XblGameSave') -eq 4) }
+    'Debloat|dia'   = { (Leer-Svc 'DPS') -eq 3 }
+    'Debloat|mc'    = { [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression }
+    'Debloat|ofb'   = {
+        $t = @(Get-ScheduledTask -TaskPath '\Microsoft\Office\' -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like 'Office Startup Boost*' })
+        if ($t.Count -eq 0) { return $null }
+        @($t | Where-Object { [string]$_.State -ne 'Disabled' }).Count -eq 0
+    }
     'Debloat|svh'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control' 'SvcHostSplitThresholdInKB') -eq 67108864 }
     'Debloat|pv'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' 'DisableLocation') -eq 1) }
     'Debloat|ter'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\TCPIP\v6Transition' 'Teredo_State') -eq 'Disabled' }
@@ -637,8 +646,9 @@ $Chequeos = @{
     'Gaming|nb'     = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\nb_' + $global:XPlan + '.txt')) }
     'Gaming|ll'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446' 'EnabledState') -eq 2 }
     'Gaming|idle'   = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\54533251-82be-4824-96c1-47b60b740d00\5d76a2ca-e8c0-402f-a133-2158492d58ad') 'ACSettingIndex') -eq 1 }
-    'Gaming|gm'     = { ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled') -eq 1) -and ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'UseNexusForGameBarEnabled') -eq 0) }
+    'Gaming|gm'     = { ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled') -eq 1) -and ((Leer-Reg 'HKCU:\Software\Microsoft\GameBar' 'AllowAutoGameMode') -eq 1) }
     'Gaming|xb'     = { if ($global:XCpuClase -eq 'x3d') { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled') -eq 0 } else { -not (HasAppx 'Microsoft.XboxGamingOverlay') } }
+    'Gaming|xbt'    = { (-not (HasAppx 'Microsoft.GamingApp')) -and (-not (HasAppx 'Microsoft.GamingServices')) -and ((Leer-Svc 'XblAuthManager') -eq 4) }
     'Gaming|xm'     = { $v = Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration' 'GamingHomeApp'; ($null -ne $v) -and ([string]$v -eq '') }
     'Gaming|wf'     = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy' 'fMinimizeConnections') -eq 0 }
     'Gaming|notif'  = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0 }
@@ -2156,6 +2166,8 @@ $Advertencias = @{
     'Debloat|edge' = 'Si no tenes otro navegador, te quedas sin uno. Una actualizacion grande de Windows puede traerlo de vuelta.'
     'Debloat|hst'  = 'Defender a veces lo marca como amenaza porque toca el archivo hosts.'
     'Debloat|ter'  = 'Puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox en PC.'
+    'Debloat|xbs'  = 'Game Pass, Minecraft y el guardado en la nube de los juegos de la Store dejan de andar hasta que la restablezcas.'
+    'Gaming|xbt'   = 'BORRA XBOX ENTERO, Gaming Services incluido: Game Pass, Minecraft Bedrock y su Launcher y los juegos de la Microsoft Store dejan de funcionar y no podes jugar online con tu cuenta Xbox. Restablecer reinstala lo principal con winget, pero algunas cosas se reinstalan a mano.'
     'Gaming|afi'   = 'Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.'
     'Gaming|pw'    = 'Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos.'
     'Gaming|cpu'   = 'Mas consumo y calor; con undervolt u overclock puede volverse inestable.'
@@ -2170,6 +2182,17 @@ $Advertencias = @{
     'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
     'Gaming|vbs'   = 'Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.'
     'Gaming|spc'   = 'BAJA MUCHO LA SEGURIDAD: un programa o una pagina web maliciosa podria leer contrasenas y otros datos de la memoria. Usalo solo en una PC para jugar, sin datos importantes, y restablecelo si la vas a usar para otra cosa.'
+}
+
+# Opciones que tocan Xbox, Game Bar, Game Pass o Minecraft: muestran el aviso en la tarjeta, "Marcar solo seguras" no las marca
+# y antes de aplicarlas (a mano o con un perfil) la app pregunta. Si no confirmas, se aplica todo lo demas sin ellas.
+$AvisosXbox = [ordered]@{
+    'Debloat|xbs' = 'apaga los servicios de Xbox: Game Pass, Minecraft y el guardado en la nube dejan de andar.'
+    'Debloat|ter' = 'puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox y Minecraft.'
+    'Debloat|su'  = 'los juegos de Game Pass, Minecraft y Gaming Services dejan de actualizarse solos; algunos no dejan jugar online hasta actualizarlos.'
+    'Gaming|xb'   = 'borra la Xbox Game Bar (o en Ryzen X3D apaga sus grabaciones) y el boton Xbox del joystick deja de abrirla.'
+    'Gaming|xm'   = 'apaga el Modo Xbox (la pantalla completa tipo consola con la app de Xbox).'
+    'Gaming|xbt'  = 'borra la app de Xbox, Gaming Services y la Game Bar y apaga todos los servicios de Xbox: Game Pass, Minecraft y los juegos de la Store dejan de funcionar.'
 }
 
 # Opciones que necesitan un driver para funcionar bien: llevan un icono celeste de descarga y dicen cual bajar
@@ -2251,6 +2274,7 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
         $d.Inlines.Add($ri); $d.Inlines.Add($r1); $d.Inlines.Add((New-Object Windows.Documents.Run((Con-Enie $drv))))
     }
     if ($adv) { Agregar-Linea $d ($Aviso + ' Puede dar problemas: ') '#E5B567' $adv }
+    if ($AvisosXbox.Contains($clave)) { Agregar-Linea $d ($Aviso + ' Xbox, Game Pass y Minecraft: ') '#E5B567' ($AvisosXbox[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
     if ($d.Inlines.Count -gt 0) { $d.Inlines.Add((New-Object Windows.Documents.LineBreak)) }
     Agregar-Linea $d 'Que hace: ' '#8AB4F8' $it.Hace
     Agregar-Linea $d 'A favor: ' '#81C995' $it.Favor
@@ -4778,7 +4802,7 @@ $Perfiles = @(
         Ideal = 'cualquier PC, incluso la de alguien que no sabe de esto.'
         NoToca = 'la seguridad, el procesador ni tus programas: solo borra lo que viene de fabrica (WhatsApp, Xbox y la Store quedan).'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Sin los servicios que casi nadie usa, el escaner de Windows y el Media Player viejo dejan de estar.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db')
         G = @('tk', 'du', 'gm', 'ext', 'md')
     },
     [pscustomobject]@{
@@ -4787,17 +4811,17 @@ $Perfiles = @(
         Ideal = 'cualquier PC que queres que ande mas rapida y liviana, sin tocar la seguridad ni los ajustes de juego.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo (mouse, procesador, plan de energia, temporizador y red).'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Los drivers los actualizas vos (Herramientas > Buscar drivers, o la app de tu placa de video).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg')
     },
     [pscustomobject]@{
         Id = 'comp'; Nombre = 'Competitivo'; Color = '#8AB4F8'
-        Hace = 'lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro y baja latencia del procesador, temporizador al minimo, juegos en ventana y GPU por hardware, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida.'
+        Hace = 'lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro y baja latencia del procesador, temporizador al minimo, juegos en ventana y GPU por hardware, DNS mas rapido, sin Game Bar y sin notificaciones en partida. Antes de borrar la Game Bar la app te pregunta.'
         Ideal = 'jugar competitivo (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL y Deadlock) con la PC protegida. Los antitrampas de esos juegos siguen andando.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS; tampoco borra apps. Por las dudas tampoco apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle: en algunas PCs dan cortes o lag.'
         Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse.'
         D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4')
     },
     [pscustomobject]@{
         Id = 'compopt'; Nombre = 'Competitivo + Optimizado'; Color = '#C58AF9'
@@ -4805,25 +4829,25 @@ $Perfiles = @(
         Ideal = 'la PC de juego de todos los dias: el mayor rendimiento con la PC todavia protegida.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS. Igual que Competitivo, no apaga el ahorro de energia de USB, PCIe y red ni el algoritmo de Nagle.'
         Adv = 'el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'xm', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'pw', 'cpu', 'll', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'avl', 'md', 'v4', 'ext', 'stg')
     },
     [pscustomobject]@{
         Id = 'ramlow'; Nombre = 'RAM liviana'; Color = '#FDE68A'
-        Hace = 'baja el uso de RAM de Windows sin tocar la seguridad: saca publicidad, telemetria, rastreo, Widgets y la IA de Windows, borra las apps basura, apaga las apps basura de inicio, las apps en segundo plano, los efectos visuales, SysMain, servicios que casi nadie usa (Xbox, Telefono, Billetera y mas) y junta los servicios de Windows en menos procesos.'
+        Hace = 'baja el uso de RAM de Windows sin tocar la seguridad: saca publicidad, telemetria, rastreo, Widgets y la IA de Windows, borra las apps basura, apaga las apps basura de inicio, las apps en segundo plano, los efectos visuales, SysMain, el inicio rapido de Office, servicios que casi nadie usa (Telefono, Billetera, diagnostico y mas), activa la compresion de memoria y junta los servicios de Windows en menos procesos.'
         Ideal = 'una PC con poca RAM (4 a 8 GB) que queres que arranque con el menor consumo posible, sin perder el antivirus.'
-        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo.'
-        Adv = 'Xbox Game Pass y la zona wifi movil dejan de andar. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'rsv', 'svh', 'db', 'fx', 'sch', 'ini')
+        NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo. Tampoco apaga los servicios de Xbox ni Gaming Services: Game Pass y Minecraft siguen andando.'
+        Adv = 'la zona wifi movil deja de andar y Windows deja de buscar problemas solo. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'fx', 'sch', 'ini')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg')
     },
     [pscustomobject]@{
         Id = 'rammin'; Nombre = 'RAM minima'; Color = '#FDA4AF'
-        Hace = 'todo lo de RAM liviana, y ademas apaga la hibernacion, Windows Search, el antivirus, BitLocker, la integridad de memoria y VBS, los drivers de Windows Update y el Teredo. Es lo mas cerca que se llega a un Windows recortado sin reinstalar.'
+        Hace = 'todo lo de RAM liviana, y ademas apaga la hibernacion, Windows Search, el antivirus, BitLocker, la integridad de memoria y VBS, y los drivers de Windows Update. Es lo mas cerca que se llega a un Windows recortado sin reinstalar.'
         Ideal = 'una PC vieja o con 4 GB de RAM que necesita liberar todo lo posible, sabiendo lo que haces.'
-        NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
+        NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome, ni Xbox, Game Pass o Minecraft. Crea un punto de restauracion antes de empezar.'
         Adv = 'la PC queda sin antivirus y deja de andar WSL, Docker y las maquinas virtuales. Sin Windows Search, buscar archivos es mas lento. En reposo ronda los 2 a 2,5 GB; para 1 a 2 GB hace falta una ISO recortada (tiny11 o NTLite).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'rsv', 'svh', 'db', 'hib', 'fx', 'sch', 'wud', 'av', 'bl', 'ter', 'ini')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'sch', 'wud', 'av', 'bl', 'ini')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg', 'mi', 'vbs', 'wsr')
     },
     [pscustomobject]@{
@@ -4832,17 +4856,17 @@ $Perfiles = @(
         Ideal = 'una notebook para estudiar, trabajar o usar todos los dias: la bateria dura mas y anda mas liviana.'
         NoToca = 'la seguridad, la hibernacion (la notebook la usa cuando se queda sin bateria), los drivers de Windows Update, tus programas ni el rendimiento enchufada.'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'sv', 'db', 'fx', 'ini')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'fx', 'ini')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'nb')
     },
     [pscustomobject]@{
         Id = 'nbcomp'; Nombre = 'Competitivo - Notebook'; Color = '#8FD3F4'
-        Hace = 'lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida. A bateria prioriza la duracion.'
+        Hace = 'lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. Antes de borrar la Game Bar la app te pregunta.'
         Ideal = 'jugar competitivo en una notebook: enchufada rinde al maximo y a bateria dura mas.'
         NoToca = 'el antivirus ni la seguridad. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.'
         Adv = 'para jugar, enchufa la notebook: a bateria rinde menos a proposito. Con undervolt u overclock, el Modo Nitro puede volverla inestable.'
         D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'cpu', 'gm', 'xb', 'xm', 'notif', 'gf', 'fso', 'pca', 'ram', 'sm', 'nag', 'dns', 'avl', 'md', 'v4', 'nb')
+        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'cpu', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'ram', 'sm', 'nag', 'dns', 'avl', 'md', 'v4', 'nb')
     },
     [pscustomobject]@{
         Id = 'full'; Nombre = 'Full Optimizado'; Color = '#F28B82'
@@ -6337,13 +6361,13 @@ $ui.BtnTodo.Add_Click({ foreach ($cb in $Casillas[$script:Pagina].Values) { $cb.
 $ui.BtnNada.Add_Click({ foreach ($cb in $Casillas[$script:Pagina].Values) { $cb.IsChecked = $false }; Actualizar-Contador })
 
 # Boton verde: marca solo lo que no tiene el icono de advertencia, y nunca "Instalar Google Chrome". Lo demas de la pagina se desmarca.
-$ui.BtnSeguras.ToolTip = (Con-Enie 'Marca solo las opciones sin el icono de advertencia (no incluye instalar Google Chrome).')
+$ui.BtnSeguras.ToolTip = (Con-Enie 'Marca solo las opciones sin el icono de advertencia (no incluye instalar Google Chrome ni lo que toca Xbox).')
 $ui.BtnSeguras.Add_Click({
     $p = $script:Pagina
     foreach ($id in @($Casillas[$p].Keys)) {
         $k = $p + '|' + $id
         $cb = $Casillas[$p][$id]
-        $riesgo = $Advertencias.ContainsKey($k) -or ($k -eq 'Debloat|chr') -or (($k -eq 'Gaming|xb') -and $script:XbIcono -and ($script:XbIcono.Visibility -eq 'Visible'))
+        $riesgo = $Advertencias.ContainsKey($k) -or $AvisosXbox.Contains($k) -or ($k -eq 'Debloat|chr') -or (($k -eq 'Gaming|xb') -and $script:XbIcono -and ($script:XbIcono.Visibility -eq 'Visible'))
         $cb.IsChecked = ($cb.IsEnabled -and -not $riesgo)
     }
     Actualizar-Contador
@@ -6436,6 +6460,19 @@ function Aplicar-Seleccion {
     $selD = Elegidas 'Debloat'
     $selG = Elegidas 'Gaming'
     if (($selD.Count + $selG.Count) -eq 0) { Avisar 'Aplicar' 'No marcaste ninguna opcion.'; return }
+    # Lo que toca Xbox / Game Bar / Game Pass / Minecraft: se pregunta antes. Cancelar (o Esc) las desmarca y sigue sin ellas.
+    $xbx = @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }) | Where-Object { $AvisosXbox.Contains($_) })
+    if ($xbx.Count -gt 0) {
+        $lin = @($xbx | ForEach-Object { '- ' + (Titulo-De ($_ -split '\|')[0] ($_ -split '\|')[1]) + ': ' + (Con-Enie $AvisosXbox[$_]) })
+        $q = (Con-Enie 'Marcaste ajustes que tocan Xbox, la Game Bar, Game Pass o Minecraft:') + "`n" + ($lin -join "`n") + "`n`n" + (Con-Enie 'Si usas Xbox, Game Pass o Minecraft, toca "Sin Xbox": se aplica todo lo demas sin estos ajustes.')
+        if (-not (Confirmar ($Aviso + ' Xbox, Game Pass y Minecraft') $q 'Aplicarlos igual' '#B3412F' 'Sin Xbox')) {
+            foreach ($k in $xbx) { $p0, $id0 = $k -split '\|'; $Casillas[$p0][$id0].IsChecked = $false }
+            Actualizar-Contador
+            $selD = Elegidas 'Debloat'
+            $selG = Elegidas 'Gaming'
+            if (($selD.Count + $selG.Count) -eq 0) { return }
+        }
+    }
     $faltan = @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }) | Where-Object { $script:DrvFalta.ContainsKey($_) })
     if ($faltan.Count -gt 0) { Pedir-Drivers $faltan; return }
 
@@ -6500,6 +6537,7 @@ function Restablecer-Seleccion {
     if ($sel -contains 'Debloat|av') { $notas += 'El antivirus vuelve, pero la Proteccion contra alteraciones la encendes vos y Smart App Control no vuelve sin reinstalar Windows.' }
     if ($sel -contains 'Debloat|bl') { $notas += 'BitLocker solo deja de estar bloqueado: no vuelve a cifrar el disco.' }
     if (($sel -contains 'Debloat|edge') -or ($sel -contains 'Debloat|wg') -or ($sel -contains 'Gaming|xb')) { $notas += 'Edge, los Widgets y la Game Bar se reinstalan (tarda un poco mas).' }
+    if ($sel -contains 'Gaming|xbt') { $notas += 'Xbox se reinstala desde la Store con winget (hace falta internet). Xbox TCUI y la transcripcion del chat de Xbox los instala la app de Xbox o la Store cuando hagan falta. Despues reinicia la PC.' }
     if ($notas.Count -gt 0) { $m += ("`n`n" + 'Tene en cuenta: ' + ($notas -join ' ')) }
     if ($sinR.Count -gt 0) {
         # Marcaste alguna que no se puede restablecer: se avisa cuales y se pregunta si seguir con el resto

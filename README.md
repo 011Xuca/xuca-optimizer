@@ -46,6 +46,7 @@ También podés bajar el repo como ZIP y abrir `XucaOP.bat`.
 ## Antes de usarlo
 
 - **Las opciones con ⚠ (borde amarillo) pueden dar problemas en algunas PCs.** Si pasás el mouse por encima, te dice por qué.
+- **Xbox, Game Pass y Minecraft:** lo que toca Xbox o la Game Bar avisa en su tarjeta, no lo marca "Marcar solo seguras" y, antes de aplicarlo, la app te pregunta (con **Sin Xbox** se aplica todo lo demás sin eso). Gaming Services solo lo borra **Quitar Xbox completo**, que no está en ningún perfil. Los perfiles Seguro, Optimizado y RAM no tocan Xbox; los Competitivo solo borran la Game Bar (preguntando antes).
 - Casi todo se puede deshacer: marcalo y tocá **Restablecer seleccionadas**. Si una opción no se puede deshacer, te lo avisa.
 - Los perfiles **Full Optimizado** apagan el antivirus: la app te lo avisa antes de aplicarlos.
 

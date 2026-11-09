@@ -2,6 +2,34 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## v1.0.12
+
+### Nuevo
+- **Aviso de Xbox antes de aplicar**: las opciones que tocan Xbox, la Game Bar, Game Pass o Minecraft (servicios de Xbox, Teredo, actualizaciones de la Store, borrar la Game Bar y Modo Xbox) muestran el aviso en su tarjeta, "Marcar solo seguras" ya no las marca y, antes de aplicarlas (a mano o con un perfil), la app pregunta. Con **Sin Xbox** (o Esc) se aplica todo lo demás sin ellas. Traducido al inglés.
+- **Apagar los servicios de Xbox** (en Debloat) ⚠: los servicios de Xbox Live salieron de "Más servicios apagados para liberar RAM" y ahora son una opción aparte, que no está en ningún perfil. Esta opción no toca Gaming Services.
+- **Si aplicaste "Más servicios apagados para liberar RAM" con la v1.0.11** y Game Pass o Minecraft no andan: restablecé "Apagar los servicios de Xbox" (aparece como aplicada), o restablecé "Más servicios apagados": ahora también devuelve a Manual los servicios de Xbox que hayan quedado deshabilitados (si ya están bien, no los toca).
+- **Servicios de diagnóstico en manual** (en Debloat): pone en manual el servicio DPS. Ahorra algunas decenas de MB; Windows deja de buscar problemas solo y el uso de batería y de datos por app deja de actualizarse.
+- **Compresión de memoria** (en Debloat, Almacenamiento y memoria): la vuelve a prender si algún optimizador la apagó. Ayuda con 4 a 8 GB de RAM; necesita SysMain.
+- **Inicio rápido de Office** (en Debloat, Almacenamiento y memoria): apaga las tareas "Office Startup Boost", que precargan Word, Excel y PowerPoint en la RAM al iniciar sesión.
+- **Quitar Xbox completo** (en Optimización gaming, Modo Juego y Game Bar) ⚠: lo máximo para sacar Xbox. Apaga los servicios de Xbox y de Gaming Services, borra y desprovisiona la app de Xbox, Gaming Services, Xbox Identity Provider, Xbox TCUI, la transcripción del chat y la Game Bar, y apaga GameDVR, el atajo del joystick, el Modo Xbox y la tarea de guardado en la nube. Game Pass, Minecraft Bedrock y su Launcher y los juegos de la Store dejan de funcionar. No está en ningún perfil, "Marcar solo seguras" no la marca y la app pregunta antes. En los Ryzen X3D de dos bloques deja la Game Bar. Restablecer reinstala la app de Xbox, Gaming Services, Xbox Identity Provider y la Game Bar con winget; lo que no se puede reinstalar solo queda anotado en el log.
+- Los perfiles **RAM liviana** y **RAM mínima** suman estas tres opciones y ya no apagan los servicios de Xbox.
+
+### Perfiles sin Xbox
+- **Seguro, Optimizado, Competitivo + Optimizado, RAM liviana, RAM mínima y Debloat - Notebook** ya no frenan las actualizaciones de la Store (rompían las de Game Pass, Minecraft y Gaming Services).
+- **RAM mínima** ya no apaga Teredo (no ahorra RAM y rompe el chat de Xbox).
+- **Competitivo, Competitivo + Optimizado y Competitivo - Notebook** ya no apagan el Modo Xbox (no cambia los FPS). Siguen borrando la Game Bar, pero la app pregunta antes y con **Sin Xbox** la dejás.
+- Solo **Full Optimizado** y **Full Optimizado + Competitivo** (que son "todo") siguen incluyendo opciones que tocan Xbox, y la app también pregunta antes. Ningún perfil apaga los servicios de Xbox ni quita Xbox completo.
+
+### Cambios
+- **Apps en segundo plano**: la app de Xbox, la Game Bar, Gaming Services y Minecraft quedan como excepción y siguen pudiendo correr de fondo. Si ya la tenías aplicada, aparece como sin aplicar para que la apliques de nuevo.
+- **Apps de inicio**: ya no apaga la app de Xbox, la Game Bar, Gaming Services ni Minecraft.
+- **Borrar apps basura**: ya no borra `Microsoft.XboxSpeechToTextOverlay` (la transcripción del chat de Xbox).
+- **Borrar la app Xbox Game Bar**: ahora también borra el paquete viejo (`Microsoft.XboxGameOverlay`) y desprovisiona los dos, para que no vuelvan en cuentas nuevas ni con actualizaciones de Windows. En los Ryzen X3D de dos bloques sigue sin borrarla.
+- **Modo Juego** ya no toca la Game Bar: lo de que el botón Xbox del joystick no abra la Game Bar pasó a "Borrar la app Xbox Game Bar".
+- **Apps en segundo plano**: la excepción de Xbox suma Accesorios de Xbox (`Microsoft.XboxDevices`) y la transcripción del chat. **Apps de inicio** tampoco apaga el Launcher de Minecraft de la Store (`Microsoft.4297127D64EC6`).
+- **Borrar una cuenta** y **Entrar sin contraseña** avisan que se cierra la sesión de Xbox y de la Store (en el primero, solo si hay que limpiar todo el caché de cuentas). **Desactivar las notificaciones** avisa que no se ven las invitaciones de Xbox.
+- **Actualizaciones de la Store**: el "En contra" avisa que también frena las de Game Pass, Minecraft y Gaming Services.
+
 ## v1.0.11
 
 ### Nuevo

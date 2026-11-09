@@ -148,7 +148,8 @@ function Hacer([scriptblock]$accion, [string]$nombre) {
 }
 
 # ------------------------------------------------------------
-# Registro. Las rutas van como en reg.exe: "HKCU\Control Panel\Mouse". Los tipos son REG_DWORD o REG_SZ.
+# Registro. Las rutas van como en reg.exe: "HKCU\Control Panel\Mouse". Los tipos son REG_DWORD, REG_SZ o REG_MULTI_SZ
+# (este ultimo con los renglones separados por |).
 # ------------------------------------------------------------
 # $modo: 'leer', 'borrar' (abre con permiso de escritura) o 'crear' (la crea si no existe)
 function Reg-Abrir([string]$ruta, [string]$modo) {
@@ -183,6 +184,7 @@ function Reg-Leer([string]$ruta, [string]$nombre) {
         $tipo = $k.GetValueKind($nombre)
         $v = $k.GetValue($nombre, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
         if ($tipo -eq [Microsoft.Win32.RegistryValueKind]::DWord) { return @{ Tipo = 'REG_DWORD'; Valor = ([int64]$v -band 4294967295) } }
+        if ($tipo -eq [Microsoft.Win32.RegistryValueKind]::MultiString) { return @{ Tipo = 'REG_MULTI_SZ'; Valor = (@($v) -join '|') } }
         return @{ Tipo = 'REG_SZ'; Valor = [string]$v }
     } catch { return $null } finally { if ($k) { $k.Dispose() } }
 }
@@ -219,6 +221,7 @@ function Reg-Set([string]$ruta, [string]$nombre, [string]$tipo, [string]$valor) 
     try {
         $k = Reg-Abrir $ruta 'crear'
         if ($tipo -eq 'REG_DWORD') { $k.SetValue($nombre, [BitConverter]::ToInt32([BitConverter]::GetBytes([uint32]$valor), 0), [Microsoft.Win32.RegistryValueKind]::DWord) }
+        elseif ($tipo -eq 'REG_MULTI_SZ') { $k.SetValue($nombre, [string[]]($valor -split '\|'), [Microsoft.Win32.RegistryValueKind]::MultiString) }
         else { $k.SetValue($nombre, $valor, [Microsoft.Win32.RegistryValueKind]::String) }
     } catch {
         $script:OptF++

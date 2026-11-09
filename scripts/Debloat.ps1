@@ -38,6 +38,22 @@ $ClavesAnuncios = @(
     'SubscribedContent-353696Enabled', 'SubscribedContent-353698Enabled'
 )
 
+# Apps de Xbox que siguen pudiendo correr en segundo plano aunque se bloqueen las demas (opcion "apps"):
+# app de Xbox, Game Bar, inicio de sesion de Xbox, Accesorios de Xbox, transcripcion del chat, Gaming Services,
+# Minecraft Bedrock y el Launcher de Minecraft.
+$XboxFondo = @(
+    'Microsoft.GamingApp_8wekyb3d8bbwe', 'Microsoft.XboxGamingOverlay_8wekyb3d8bbwe', 'Microsoft.XboxGameOverlay_8wekyb3d8bbwe',
+    'Microsoft.XboxIdentityProvider_8wekyb3d8bbwe', 'Microsoft.Xbox.TCUI_8wekyb3d8bbwe', 'Microsoft.XboxApp_8wekyb3d8bbwe',
+    'Microsoft.XboxDevices_8wekyb3d8bbwe', 'Microsoft.XboxSpeechToTextOverlay_8wekyb3d8bbwe',
+    'Microsoft.GamingServices_8wekyb3d8bbwe', 'Microsoft.MinecraftUWP_8wekyb3d8bbwe', 'Microsoft.4297127D64EC6_8wekyb3d8bbwe'
+) -join '|'
+
+# Tareas que precargan Office al iniciar sesion (opcion "ofb"). Si no hay Office, Tarea las anota como que no existen.
+$TareasOffice = @('\Microsoft\Office\Office Startup Boost', '\Microsoft\Office\Office Startup Boost Logon')
+
+# Servicios de Xbox (opcion "xbs"). Gaming Services (GamingServices, GamingServicesNet) no se toca aca: sin el no anda Game Pass (solo lo quita "xbt" de Gaming).
+$ServiciosXbox = @('XblAuthManager', 'XblGameSave', 'XboxGipSvc', 'XboxNetApiSvc')
+
 # Servidores de telemetria que se bloquean en el archivo hosts
 $HostsTelemetria = @(
     'vortex.data.microsoft.com', 'vortex-win.data.microsoft.com', 'v10.vortex-win.data.microsoft.com',
@@ -242,9 +258,11 @@ function Quitar-Contrasena($name) {
 # Programas que se abren solos al prender la PC. Se apagan igual que desde el Administrador de tareas (StartupApproved),
 # asi se pueden volver a prender desde ahi, desde Configuracion o con R.
 # Nunca se apaga lo que esta en la carpeta de Windows (seguridad y drivers) ni lo que coincide con esta lista:
-# drivers y paneles de hardware, perifericos, RGB, Wallpaper Engine, antivirus, VPN, antitrampas y gestores de contrasenas.
+# drivers y paneles de hardware, perifericos, RGB, Wallpaper Engine, antivirus, VPN, antitrampas, gestores de contrasenas
+# y Xbox (app de Xbox, Game Bar, Gaming Services y Minecraft: hay gente que juega Game Pass o Minecraft).
 $InicioDejar = @(
     'SecurityHealth', 'Windows Defender', 'ctfmon', 'Xuca',
+    'Xbox', 'GamingApp', 'GamingServices', 'Minecraft', '4297127D64EC6',
     'Realtek', 'RtkAud', 'RtHDVCpl', 'Nahimic', 'Waves', 'MaxxAudio', 'Dolby', 'DTS', 'Sonic Studio', 'Sound Blaster', 'SBCommand',
     'NVIDIA', 'AMD', 'Radeon', 'Intel', 'igfx',
     'Synaptics', 'ELAN', 'ETD', 'Alps', 'Wacom', 'XP-Pen', 'Huion', 'Tobii',
@@ -872,7 +890,8 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                         if (@(Get-Mails) -contains $it.N) {
                             Log 'INFO' ('la cuenta ' + $it.N + ' sigue en el sistema tras el borrado puntual')
                             Say '  No se pudo sacar solo esa cuenta. Se puede limpiar TODO el cache de cuentas de Microsoft de este usuario:' 'Yellow'
-                            Say '  se cierra la sesion en apps como Teams u Office y la tuya se vuelve a pedir una vez.' 'Yellow'
+                            Say '  se cierra la sesion en apps como Teams, Office, Xbox y la Microsoft Store, y la tuya se vuelve a pedir una vez.' 'Yellow'
+                            Say '  Despues entra de nuevo en la app de Xbox y en la Store, o Game Pass y Minecraft no van a abrir.' 'Yellow'
                             $t = Read-Host '  Escribi SI para limpiar todo el cache de cuentas (Enter = no)'
                             if ($t -ceq 'SI') {
                                 Stop-Process -Name 'Microsoft.AAD.BrokerPlugin' -Force
@@ -1128,7 +1147,7 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                  'Microsoft.Office.Lens', 'Microsoft.Messaging', 'Microsoft.Wallet', 'Microsoft.Whiteboard',
                  'Microsoft.OneConnect', 'Microsoft.CommsPhone', 'Microsoft.WindowsPhone', 'MicrosoftCorporationII.QuickAssist',
                  'Microsoft.WindowsMaps', 'ShazamEntertainmentLtd.Shazam', 'Disney.37853FC22B2CE',
-                 'MicrosoftWindows.CrossDevice', 'Microsoft.XboxSpeechToTextOverlay',
+                 'MicrosoftWindows.CrossDevice',
                  '4DF9E0F8.Netflix',
                  'AmazonVideo.PrimeVideo', 'HULULLC.HULUPLUS', 'king.com.CandyCrushSaga',
                  'king.com.CandyCrushSodaSaga', 'king.com.CandyCrushFriends', 'king.com.BubbleWitch3Saga', 'Duolingo-LearnLanguagesforFree',
@@ -2143,6 +2162,55 @@ $ListaOpciones = @(
         }
     },
     @{
+        Id = 'mc'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea activar la compresion de memoria? (Windows la trae prendida; algunos optimizadores la apagan)'
+        Hace = 'activa la compresion de memoria: Windows comprime lo que esta en RAM y no se usa, en vez de mandarlo al disco.'
+        Favor = 'con 4 a 8 GB de RAM entran mas programas abiertos y hay menos tirones por usar el archivo de paginacion.'
+        Contra = 'usa un poco de CPU al comprimir. Con 16 GB o mas casi no cambia nada. Necesita el servicio SysMain prendido.'
+        S = {
+            Opt-Ini 'Compresion de memoria'
+            $mm = $false
+            try { $mm = [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression } catch { }
+            if ($mm) { Ya-Estaba; Log 'OK' 'ya estaba: compresion de memoria activa' }
+            else {
+                try { Enable-MMAgent -MemoryCompression -ErrorAction Stop } catch { Log 'FALLO' ('Enable-MMAgent: ' + $_.Exception.Message) }
+                $ok = $false
+                try { $ok = [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression } catch { }
+                Res $ok 'compresion de memoria activada'
+            }
+            # La compresion la maneja SysMain: si esta apagado (opcion SysMain y Prefetch de Gaming) no comprime nada
+            $sm = Reg-Leer 'HKLM\SYSTEM\CurrentControlSet\Services\SysMain' 'Start'
+            if ($sm -and ($sm.Valor -eq 4)) {
+                Log 'ATENCION' 'SysMain esta desactivado: la compresion de memoria no actua hasta que se restablezca SysMain'
+                Say '  Ojo: SysMain esta apagado, y sin el la compresion de memoria no actua. Restablece "SysMain y Prefetch" en Gaming si tenes poca RAM.' 'Yellow'
+            }
+            Opt-Fin 'Compresion de memoria activa'
+        }
+        R = {
+            # Windows la trae prendida: restablecer es dejarla como esta
+            Opt-Ini 'Compresion de memoria (restaurar)'
+            Ya-Estaba
+            Opt-Fin 'Compresion de memoria como viene en Windows (prendida)'
+        }
+    },
+    @{
+        Id = 'ofb'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea apagar el Inicio rapido de Office? (Office deja de precargarse en la RAM al prender la PC)'
+        Hace = 'apaga las tareas "Office Startup Boost" que precargan Word, Excel y PowerPoint al iniciar sesion. Si no tenes Office, no cambia nada.'
+        Favor = 'la RAM que Office ocupaba de fondo queda libre (decenas a cientos de MB, segun la version).'
+        Contra = 'la primera vez que abris Word, Excel o PowerPoint tarda un poco mas. Una actualizacion grande de Office puede volver a prenderlo.'
+        S = {
+            Opt-Ini 'Inicio rapido de Office'
+            foreach ($t in $TareasOffice) { Tarea $t 'disable' }
+            Opt-Fin 'Inicio rapido de Office apagado'
+        }
+        R = {
+            Opt-Ini 'Inicio rapido de Office (restaurar)'
+            foreach ($t in $TareasOffice) { Tarea $t 'enable' }
+            Opt-Fin 'Inicio rapido de Office restaurado'
+        }
+    },
+    @{
         Id = 'rc'; Seccion = 'SISTEMA Y PRIVACIDAD'
         Q = '- Desea desactivar Recall? (Capturas de pantalla con IA; solo en PCs Copilot+)'
         Hace = 'apaga Recall, que saca capturas de lo que haces para buscarlo con IA.'
@@ -2279,18 +2347,21 @@ $ListaOpciones = @(
     },
     @{
         Id = 'apps'; Seccion = 'SISTEMA Y PRIVACIDAD'
-        Q = '- Desea bloquear las apps de la Store en segundo plano? (Ahorra RAM)'
-        Hace = 'no deja que las apps de la Store sigan corriendo cuando no las usas.'
+        Q = '- Desea bloquear las apps de la Store en segundo plano? (Ahorra RAM; Xbox, Game Bar y Minecraft quedan afuera)'
+        Hace = 'no deja que las apps de la Store sigan corriendo cuando no las usas. La app de Xbox, la Game Bar, Gaming Services y Minecraft siguen pudiendo correr en segundo plano.'
         Favor = 'ahorra RAM y CPU.'
         Contra = 'algunas apps no te avisan de nada hasta que las abris.'
         S = {
             Opt-Ini 'Apps en segundo plano'
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground' 'REG_DWORD' '2'
-            Opt-Fin 'Apps de la Store bloqueadas en segundo plano'
+            # Excepcion por app: Game Pass, las invitaciones de Xbox y la Game Bar siguen andando
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground_ForceAllowTheseApps' 'REG_MULTI_SZ' $XboxFondo
+            Opt-Fin 'Apps de la Store bloqueadas en segundo plano (menos Xbox y Minecraft)'
         }
         R = {
             Opt-Ini 'Apps en segundo plano (restaurar)'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsRunInBackground_ForceAllowTheseApps'
             Opt-Fin 'Apps de la Store restauradas en segundo plano'
         }
     },
@@ -2514,13 +2585,13 @@ $ListaOpciones = @(
     },
     @{
         Id = 'rsv'; Seccion = 'SISTEMA Y PRIVACIDAD'
-        Q = '- Desea apagar mas servicios para liberar RAM? (Xbox, Telefono, Billetera, NFC, zona wifi, control parental, tarjetas inteligentes)'
-        Hace = 'apaga los servicios de Xbox (Game Pass y guardado en la nube), Telefono, Billetera, pagos NFC, zona wifi movil, control parental, tarjetas inteligentes e Insider.'
+        Q = '- Desea apagar mas servicios para liberar RAM? (Telefono, Billetera, NFC, zona wifi, control parental, tarjetas inteligentes; no toca Xbox)'
+        Hace = 'apaga los servicios de Telefono, Billetera, pagos NFC, zona wifi movil, control parental, tarjetas inteligentes, Insider y seguimiento de accesos directos. No toca los servicios de Xbox ni Gaming Services.'
         Favor = 'menos servicios cargados: libera algo de RAM y procesos en segundo plano.'
-        Contra = 'Xbox Game Pass, los juegos de la Store con guardado en la nube y la zona wifi movil dejan de andar.'
+        Contra = 'la zona wifi movil, los lectores de tarjetas inteligentes y el control parental de Microsoft dejan de andar.'
         S = {
             Opt-Ini 'Mas servicios apagados para liberar RAM'
-            foreach ($n in 'XblAuthManager', 'XblGameSave', 'XboxGipSvc', 'XboxNetApiSvc', 'PhoneSvc', 'WalletService', 'SEMgrSvc', 'icssvc', 'wisvc', 'WpcMonSvc', 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc', 'TrkWks') {
+            foreach ($n in 'PhoneSvc', 'WalletService', 'SEMgrSvc', 'icssvc', 'wisvc', 'WpcMonSvc', 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc', 'TrkWks') {
                 Svc $n 'disabled' '4'
                 Svc-Parar $n
             }
@@ -2528,11 +2599,57 @@ $ListaOpciones = @(
         }
         R = {
             Opt-Ini 'Mas servicios apagados (restaurar)'
-            foreach ($n in 'XblAuthManager', 'XblGameSave', 'XboxGipSvc', 'XboxNetApiSvc', 'PhoneSvc', 'WalletService', 'SEMgrSvc', 'icssvc', 'wisvc', 'WpcMonSvc', 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc') {
+            foreach ($n in 'PhoneSvc', 'WalletService', 'SEMgrSvc', 'icssvc', 'wisvc', 'WpcMonSvc', 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc') {
                 Svc $n 'demand' '3'
             }
             Svc 'TrkWks' 'auto' '2'
+            # La v1.0.11 apagaba aca los servicios de Xbox: si siguen deshabilitados vuelven a Manual (como vienen en Windows).
+            # Si estan bien, no se tocan. Para tenerlos apagados a proposito esta la opcion "xbs".
+            foreach ($n in $ServiciosXbox) {
+                $v = Reg-Leer ('HKLM\SYSTEM\CurrentControlSet\Services\' + $n) 'Start'
+                if ($v -and ($v.Valor -eq 4)) { Log 'INFO' ($n + ' estaba deshabilitado (v1.0.11): vuelve a Manual'); Svc $n 'demand' '3' }
+            }
             Opt-Fin 'Servicios extra restaurados'
+        }
+    },
+    @{
+        # Antes (v1.0.11) iba dentro de "rsv". Ahora va aparte, nunca en un perfil, y la app avisa antes de aplicarla.
+        Id = 'xbs'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar los servicios de Xbox? (SOLO si no usas Xbox, Game Pass, Minecraft ni joysticks de Xbox)'
+        Hace = 'apaga los servicios de Xbox Live: inicio de sesion, guardado en la nube, red de Xbox y accesorios de Xbox. No toca Gaming Services.'
+        Favor = 'unos pocos MB menos: estos servicios casi siempre estan parados si no usas Xbox.'
+        Contra = 'Game Pass, Minecraft (Bedrock y el Launcher), los juegos de la Store con guardado en la nube, el chat de Xbox y la configuracion de los joysticks de Xbox dejan de andar hasta que lo restablezcas.'
+        S = {
+            Opt-Ini 'Servicios de Xbox'
+            foreach ($n in $ServiciosXbox) {
+                Svc $n 'disabled' '4'
+                Svc-Parar $n
+            }
+            Opt-Fin 'Servicios de Xbox desactivados'
+        }
+        R = {
+            Opt-Ini 'Servicios de Xbox (restaurar)'
+            foreach ($n in $ServiciosXbox) { Svc $n 'demand' '3' }
+            Opt-Fin 'Servicios de Xbox restaurados (manual, como vienen en Windows)'
+        }
+    },
+    @{
+        Id = 'dia'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea poner en manual los servicios de diagnostico? (Ahorra RAM; Windows deja de buscar problemas solo)'
+        Hace = 'pone en manual el Servicio de directivas de diagnostico (DPS), que tambien arranca los hosts de diagnostico y el monitor de uso de recursos.'
+        Favor = 'uno a tres procesos menos en segundo plano: algunas decenas de MB de RAM (estimado, no medido).'
+        Contra = 'Windows deja de detectar problemas por su cuenta, y el historial de uso de apps, el uso de bateria por app y el uso de datos por app de Configuracion dejan de actualizarse. Si un solucionador de problemas dice que el servicio de diagnostico no esta corriendo, restablece esta opcion.'
+        S = {
+            Opt-Ini 'Servicios de diagnostico'
+            Svc 'DPS' 'demand' '3'
+            Svc-Parar 'DPS'
+            Opt-Fin 'Servicios de diagnostico en manual'
+        }
+        R = {
+            Opt-Ini 'Servicios de diagnostico (restaurar)'
+            Svc 'DPS' 'auto' '2'
+            Svc-Arrancar 'DPS'
+            Opt-Fin 'Servicios de diagnostico restaurados (automatico)'
         }
     },
     @{
@@ -2805,7 +2922,7 @@ $ListaOpciones = @(
         Q = '- Desea frenar las actualizaciones automaticas de las apps de la Store? (Se actualizan solo cuando vos lo pidas)'
         Hace = 'las apps de la Store se actualizan solo cuando vos lo pidas.'
         Favor = 'no descargan nada en medio de una partida.'
-        Contra = 'tenes que actualizarlas a mano cada tanto.'
+        Contra = 'tenes que actualizarlas a mano cada tanto. Tambien frena las actualizaciones de los juegos de Game Pass, de Minecraft y de Gaming Services: algunos juegos no dejan jugar online hasta que los actualices desde la app de Xbox o la Store.'
         S = {
             Opt-Ini 'Actualizaciones de apps de la Store'
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload' 'REG_DWORD' '2'
@@ -2959,9 +3076,10 @@ $ListaOpciones = @(
         Q = '- Desea borrar una cuenta de esta PC? (Elegis cual: usuario de Windows o cuenta de Microsoft vinculada; tu cuenta actual no se toca)'
         Hace = 'te deja elegir otra cuenta de la PC y borrarla.'
         Favor = 'limpia cuentas viejas que ya no usas.'
-        Contra = 'si tambien borras su carpeta, se pierden sus archivos.'
+        Contra = 'si tambien borras su carpeta, se pierden sus archivos. Si hay que limpiar todo el cache de cuentas de Microsoft, se cierra la sesion de Xbox y de la Store.'
         Antes = {
             'AVISO: despues de borrar una cuenta, reinicia la PC para que Configuracion deje de mostrarla.'
+            'AVISO: si quitar solo una cuenta de Microsoft falla y aceptas limpiar todo el cache de cuentas, se cierra la sesion de Xbox y de la Microsoft Store (y de Teams u Office): volve a entrar en la app de Xbox para usar Game Pass y Minecraft.'
         }
         S = {
             Opt-Ini 'Borrar cuentas'
@@ -2974,10 +3092,11 @@ $ListaOpciones = @(
         Q = '- Desea entrar a Windows sin contrasena? (Tu cuenta pasa a local sin contrasena: tocas Iniciar sesion y entras)'
         Hace = 'tu cuenta pasa a ser local y sin contrasena.'
         Favor = 'entras directo a Windows.'
-        Contra = 'cualquiera que prenda la PC entra, y no anda el Escritorio remoto.'
+        Contra = 'cualquiera que prenda la PC entra, y no anda el Escritorio remoto. Si tu cuenta era de Microsoft, la app de Xbox y la Store te piden entrar de nuevo (podes entrar solo en esas apps y Game Pass sigue andando).'
         Antes = {
             'AVISO: sin contrasena entra cualquiera que prenda la PC, y no anda el Escritorio remoto.'
             'AVISO: si tu cuenta es de Microsoft, Windows cierra la sesion al terminar y esto se abre solo al volver a entrar.'
+            'AVISO: con la cuenta local, la app de Xbox y la Microsoft Store te piden entrar con tu cuenta de Microsoft de nuevo (elegi entrar solo en esa app). Game Pass y Minecraft siguen andando.'
         }
         S = {
             Opt-Ini 'Entrar sin contrasena'

@@ -684,8 +684,8 @@ en: the antivirus, BitLocker, memory integrity or VBS, or the competitive gaming
 es: borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Los drivers los actualizas vos (Herramientas > Buscar drivers, o la app de tu placa de video).
 en: deleting bloatware apps can't be reset: if you want one back, reinstall it from the Store. You update drivers yourself (Tools > Find drivers, or your graphics card's app).
 
-es: lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro y baja latencia del procesador, temporizador al minimo, juegos en ventana y GPU por hardware, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida.
-en: the most for gaming without touching security: mouse without acceleration, priority and affinity for your games, High performance plan, processor Nitro Mode and low latency, minimum timer, windowed games and hardware GPU scheduling, faster DNS, no Game Bar, no Xbox Mode and no notifications while playing.
+es: lo maximo para jugar sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro y baja latencia del procesador, temporizador al minimo, juegos en ventana y GPU por hardware, DNS mas rapido, sin Game Bar y sin notificaciones en partida. Antes de borrar la Game Bar la app te pregunta.
+en: the most for gaming without touching security: mouse without acceleration, priority and affinity for your games, High performance plan, processor Nitro Mode and low latency, minimum timer, windowed games and hardware GPU scheduling, faster DNS, no Game Bar and no notifications while playing. The app asks you before deleting the Game Bar.
 
 es: jugar competitivo (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL y Deadlock) con la PC protegida. Los antitrampas de esos juegos siguen andando.
 en: competitive gaming (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL and Deadlock) with the PC protected. Those games' anti-cheats keep working.
@@ -1236,8 +1236,8 @@ en: Xbox mode restored
 es: Marcar solo seguras
 en: Select only safe
 
-es: Marca solo las opciones sin el icono de advertencia (no incluye instalar Google Chrome).
-en: Selects only the options without the warning icon (does not include installing Google Chrome).
+es: Marca solo las opciones sin el icono de advertencia (no incluye instalar Google Chrome ni lo que toca Xbox).
+en: Selects only the options without the warning icon (does not include installing Google Chrome or anything that touches Xbox).
 
 es: "Tu Windows todavia no trae el Modo Xbox: llega con Windows 11 24H2 o 25H2 actualizado (build .8328 o mas nueva). Tenes la build "
 en: "Your Windows doesn't have Xbox mode yet: it comes with an updated Windows 11 24H2 or 25H2 (build .8328 or newer). You have build "
@@ -1821,8 +1821,8 @@ en: deleting bloatware apps can't be reset: if you want one back, reinstall it f
 es: Competitivo - Notebook
 en: Competitive - Laptop
 
-es: lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar, sin Modo Xbox y sin notificaciones en partida. A bateria prioriza la duracion.
-en: the parts of Competitive that don't drain the battery: mouse without acceleration, priority and affinity for your games, Nitro Mode only when plugged in, hardware GPU, lower network latency, faster DNS, no Game Bar, no Xbox Mode and no notifications in game. On battery it prioritizes battery life.
+es: lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. Antes de borrar la Game Bar la app te pregunta.
+en: the parts of Competitive that don't drain the battery: mouse without acceleration, priority and affinity for your games, Nitro Mode only when plugged in, hardware GPU, lower network latency, faster DNS, no Game Bar and no notifications in game. On battery it prioritizes battery life. The app asks you before deleting the Game Bar.
 
 es: jugar competitivo en una notebook: enchufada rinde al maximo y a bateria dura mas.
 en: playing competitive on a laptop: plugged in it performs at its best and on battery it lasts longer.
@@ -2946,8 +2946,11 @@ en: Light RAM
 es: RAM minima
 en: Minimum RAM
 
-es: baja el uso de RAM de Windows sin tocar la seguridad: saca publicidad, telemetria, rastreo, Widgets y la IA de Windows, borra las apps basura, apaga las apps basura de inicio, las apps en segundo plano, los efectos visuales, SysMain, servicios que casi nadie usa (Xbox, Telefono, Billetera y mas) y junta los servicios de Windows en menos procesos.
-en: lowers Windows RAM use without touching security: removes ads, telemetry, tracking, Widgets and Windows AI, deletes bloatware apps, turns off bloatware startup apps, background apps, visual effects, SysMain, services almost nobody uses (Xbox, Phone, Wallet and more) and merges Windows services into fewer processes.
+es: baja el uso de RAM de Windows sin tocar la seguridad: saca publicidad, telemetria, rastreo, Widgets y la IA de Windows, borra las apps basura, apaga las apps basura de inicio, las apps en segundo plano, los efectos visuales, SysMain, el inicio rapido de Office, servicios que casi nadie usa (Telefono, Billetera, diagnostico y mas), activa la compresion de memoria y junta los servicios de Windows en menos procesos.
+en: lowers Windows RAM use without touching security: removes ads, telemetry, tracking, Widgets and Windows AI, deletes bloatware apps, turns off bloatware startup apps, background apps, visual effects, SysMain, Office Startup Boost, services almost nobody uses (Phone, Wallet, diagnostics and more), turns on memory compression and merges Windows services into fewer processes.
+
+es: el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo. Tampoco apaga los servicios de Xbox ni Gaming Services: Game Pass y Minecraft siguen andando.
+en: the antivirus, BitLocker, memory integrity or VBS, or the competitive gaming tweaks. It doesn't turn off the Xbox services or Gaming Services either: Game Pass and Minecraft keep working.
 
 es: una PC con poca RAM (4 a 8 GB) que queres que arranque con el menor consumo posible, sin perder el antivirus.
 en: a PC with little RAM (4 to 8 GB) that you want to start with the lowest possible usage, keeping the antivirus.
@@ -2955,17 +2958,66 @@ en: a PC with little RAM (4 to 8 GB) that you want to start with the lowest poss
 es: el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo.
 en: the antivirus, BitLocker, memory integrity or VBS, or the competitive gaming tweaks.
 
-es: Xbox Game Pass y la zona wifi movil dejan de andar. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.
-en: Xbox Game Pass and the mobile hotspot stop working. Deleting bloatware apps can't be reset. Merging services applies on restart. Idle use is around 2.5 to 3 GB: going lower needs a trimmed-down Windows image.
+es: la zona wifi movil deja de andar y Windows deja de buscar problemas solo. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.
+en: the mobile hotspot stops working and Windows stops looking for problems on its own. Deleting bloatware apps can't be reset. Merging services applies on restart. Idle use is around 2.5 to 3 GB: going lower needs a trimmed-down Windows image.
 
-es: todo lo de RAM liviana, y ademas apaga la hibernacion, Windows Search, el antivirus, BitLocker, la integridad de memoria y VBS, los drivers de Windows Update y el Teredo. Es lo mas cerca que se llega a un Windows recortado sin reinstalar.
-en: everything in Light RAM, and it also turns off hibernation, Windows Search, the antivirus, BitLocker, memory integrity and VBS, Windows Update drivers and Teredo. It's as close as you get to a trimmed-down Windows without reinstalling.
+es: todo lo de RAM liviana, y ademas apaga la hibernacion, Windows Search, el antivirus, BitLocker, la integridad de memoria y VBS, y los drivers de Windows Update. Es lo mas cerca que se llega a un Windows recortado sin reinstalar.
+en: everything in Light RAM, and it also turns off hibernation, Windows Search, the antivirus, BitLocker, memory integrity and VBS, and Windows Update drivers. It's as close as you get to a trimmed-down Windows without reinstalling.
 
 es: una PC vieja o con 4 GB de RAM que necesita liberar todo lo posible, sabiendo lo que haces.
 en: an old PC or one with 4 GB of RAM that needs to free as much as possible, knowing what you're doing.
 
-es: los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.
-en: the competitive gaming tweaks, or Edge or Chrome. Creates a restore point before starting.
+es: los ajustes de juego competitivo, ni Edge ni Chrome, ni Xbox, Game Pass o Minecraft. Crea un punto de restauracion antes de empezar.
+en: the competitive gaming tweaks, Edge or Chrome, or Xbox, Game Pass or Minecraft. Creates a restore point before starting.
 
 es: la PC queda sin antivirus y deja de andar WSL, Docker y las maquinas virtuales. Sin Windows Search, buscar archivos es mas lento. En reposo ronda los 2 a 2,5 GB; para 1 a 2 GB hace falta una ISO recortada (tiny11 o NTLite).
 en: the PC is left without antivirus and WSL, Docker and virtual machines stop working. Without Windows Search, finding files is slower. Idle use is around 2 to 2.5 GB; for 1 to 2 GB you need a trimmed ISO (tiny11 or NTLite).
+
+# Avisos de Xbox, Game Bar, Game Pass y Minecraft (tarjetas y confirmacion antes de aplicar)
+es: " Xbox, Game Pass y Minecraft: "
+en: " Xbox, Game Pass and Minecraft: "
+
+es: Xbox, Game Pass y Minecraft
+en: Xbox, Game Pass and Minecraft
+
+es: Antes de aplicarla, la app te pregunta.
+en: The app asks you before applying it.
+
+es: apaga los servicios de Xbox: Game Pass, Minecraft y el guardado en la nube dejan de andar.
+en: turns off the Xbox services: Game Pass, Minecraft and cloud saves stop working.
+
+es: puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox y Minecraft.
+en: it can break Xbox party chat and NAT in Xbox games and Minecraft.
+
+es: los juegos de Game Pass, Minecraft y Gaming Services dejan de actualizarse solos; algunos no dejan jugar online hasta actualizarlos.
+en: Game Pass games, Minecraft and Gaming Services stop updating on their own; some won't let you play online until you update them.
+
+es: borra la Xbox Game Bar (o en Ryzen X3D apaga sus grabaciones) y el boton Xbox del joystick deja de abrirla.
+en: deletes the Xbox Game Bar (or on Ryzen X3D turns off its recordings) and the controller's Xbox button stops opening it.
+
+es: apaga el Modo Xbox (la pantalla completa tipo consola con la app de Xbox).
+en: turns off Xbox mode (the console-style full screen with the Xbox app).
+
+es: Marcaste ajustes que tocan Xbox, la Game Bar, Game Pass o Minecraft:
+en: You selected settings that touch Xbox, the Game Bar, Game Pass or Minecraft:
+
+es: Si usas Xbox, Game Pass o Minecraft, toca "Sin Xbox": se aplica todo lo demas sin estos ajustes.
+en: If you use Xbox, Game Pass or Minecraft, press "Without Xbox": everything else is applied without these settings.
+
+es: Aplicarlos igual
+en: Apply them anyway
+
+es: Sin Xbox
+en: Without Xbox
+
+es: Game Pass, Minecraft y el guardado en la nube de los juegos de la Store dejan de andar hasta que la restablezcas.
+en: Game Pass, Minecraft and cloud saves for Store games stop working until you reset it.
+
+es: BORRA XBOX ENTERO, Gaming Services incluido: Game Pass, Minecraft Bedrock y su Launcher y los juegos de la Microsoft Store dejan de funcionar y no podes jugar online con tu cuenta Xbox. Restablecer reinstala lo principal con winget, pero algunas cosas se reinstalan a mano.
+en: IT DELETES ALL OF XBOX, Gaming Services included: Game Pass, Minecraft Bedrock and its Launcher and Microsoft Store games stop working and you can't play online with your Xbox account. Reset reinstalls the main parts with winget, but some things have to be reinstalled by hand.
+
+es: borra la app de Xbox, Gaming Services y la Game Bar y apaga todos los servicios de Xbox: Game Pass, Minecraft y los juegos de la Store dejan de funcionar.
+en: deletes the Xbox app, Gaming Services and the Game Bar and turns off all the Xbox services: Game Pass, Minecraft and Store games stop working.
+
+es: Xbox se reinstala desde la Store con winget (hace falta internet). Xbox TCUI y la transcripcion del chat de Xbox los instala la app de Xbox o la Store cuando hagan falta. Despues reinicia la PC.
+en: Xbox is reinstalled from the Store with winget (needs internet). Xbox TCUI and Xbox chat transcription are installed by the Xbox app or the Store when needed. Restart the PC afterwards.

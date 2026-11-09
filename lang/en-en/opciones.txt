@@ -31,6 +31,18 @@ Hace: turns off hibernation and Fast Startup, and turns on memory compression.
 Favor: frees several GB of disk and every shutdown is complete, with fewer weird errors.
 Contra: turning the PC on from off takes a few more seconds.
 
+[Debloat mc]
+Titulo: Turn on memory compression
+Hace: turns on memory compression: Windows compresses what is in RAM and not being used, instead of sending it to disk.
+Favor: with 4 to 8 GB of RAM more programs fit open and there is less stutter from using the page file.
+Contra: uses a bit of CPU to compress. With 16 GB or more it barely changes anything. It needs the SysMain service turned on.
+
+[Debloat ofb]
+Titulo: Turn off Office Startup Boost
+Hace: turns off the "Office Startup Boost" tasks that preload Word, Excel and PowerPoint when you sign in. If you don't have Office, nothing changes.
+Favor: the RAM Office was using in the background is freed (tens to hundreds of MB, depending on the version).
+Contra: the first time you open Word, Excel or PowerPoint it takes a bit longer. A big Office update can turn it back on.
+
 [Debloat rc]
 Titulo: Disable Recall
 Hace: turns off Recall, which takes screenshots of what you do to search it with AI.
@@ -63,7 +75,7 @@ Contra: you don't see the calendar or the notification history; Win + N doesn't 
 
 [Debloat apps]
 Titulo: Block Store apps in the background
-Hace: stops Store apps from running when you aren't using them.
+Hace: stops Store apps from running when you aren't using them. The Xbox app, the Game Bar, Gaming Services and Minecraft can still run in the background.
 Favor: saves RAM and CPU.
 Contra: some apps don't notify you of anything until you open them.
 
@@ -117,9 +129,21 @@ Contra: if you use the Windows scanner or the old Media Player, they're gone.
 
 [Debloat rsv]
 Titulo: Turn off more services to free RAM
-Hace: turns off the Xbox services (Game Pass and cloud saves), Phone, Wallet, NFC payments, mobile hotspot, parental controls, smart cards and Insider.
+Hace: turns off the Phone, Wallet, NFC payments, mobile hotspot, parental controls, smart cards, Insider and shortcut tracking services. It doesn't touch the Xbox services or Gaming Services.
 Favor: fewer services loaded: frees some RAM and background processes.
-Contra: Xbox Game Pass, Store games with cloud saves and the mobile hotspot stop working.
+Contra: the mobile hotspot, smart card readers and Microsoft parental controls stop working.
+
+[Debloat xbs]
+Titulo: Turn off the Xbox services
+Hace: turns off the Xbox Live services: sign-in, cloud saves, Xbox networking and Xbox accessories. It doesn't touch Gaming Services.
+Favor: a few MB less: these services are almost always stopped if you don't use Xbox.
+Contra: Game Pass, Minecraft (Bedrock and the Launcher), Store games with cloud saves, Xbox chat and Xbox controller settings stop working until you reset it.
+
+[Debloat dia]
+Titulo: Set the diagnostic services to manual
+Hace: sets the Diagnostic Policy Service (DPS) to manual; it also starts the diagnostic hosts and the resource usage monitor.
+Favor: one to three fewer background processes: a few tens of MB of RAM (estimated, not measured).
+Contra: Windows stops detecting problems on its own, and app history, battery usage per app and data usage per app in Settings stop updating. If a troubleshooter says the diagnostic service isn't running, reset this option.
 
 [Debloat svh]
 Titulo: Merge Windows services into fewer processes
@@ -161,7 +185,7 @@ Contra: you lose those features if you used them.
 Titulo: Stop automatic updates of Store apps
 Hace: Store apps only update when you ask for it.
 Favor: they don't download anything in the middle of a match.
-Contra: you have to update them manually now and then.
+Contra: you have to update them manually now and then. It also stops updates for Game Pass games, Minecraft and Gaming Services: some games won't let you play online until you update them from the Xbox app or the Store.
 
 [Debloat ia]
 Titulo: Turn off Windows AI features
@@ -265,27 +289,33 @@ Contra: the processor never rests: much more power use and heat even when you're
 
 [Gaming gm]
 Titulo: Turn on Game Mode
-Hace: turns on Game Mode and stops the controller's Xbox button from opening the Game Bar.
+Hace: turns on Game Mode.
 Favor: Windows prioritizes the game and holds back updates while you play.
 Contra: nothing important.
 
 [Gaming xb]
 Titulo: Delete the Xbox Game Bar app
-Hace: deletes the Xbox Game Bar app and turns off its recordings. On two-CCD Ryzen X3D (7900X3D, 7950X3D, 9900X3D, 9950X3D) it only turns off the recordings: there the app is needed.
+Hace: deletes the Xbox Game Bar app and its old package (also for new accounts and after Windows updates), turns off its recordings and stops the controller's Xbox button from opening it. On two-CCD Ryzen X3D (7900X3D, 7950X3D, 9900X3D, 9950X3D) it only turns off the recordings and the controller shortcut: there the app is needed.
 Favor: fewer processes and nothing recording in the background.
-Contra: you lose Windows captures and clips; you can use NVIDIA, AMD or OBS.
+Contra: you lose Windows captures and clips (you can use NVIDIA, AMD or OBS), Xbox chat and widgets in game, and the Win + G shortcut.
 
 [Gaming notif]
 Titulo: Disable Windows notifications
 Hace: turns off pop-up notifications and the Notification Center.
 Favor: nothing covers your screen in a match.
-Contra: you don't see notifications from apps like Discord or email. It doesn't help if an app comes to the front on its own (an update or a window from Discord, Brave or Spotify): that isn't a notification and can still happen.
+Contra: you don't see notifications from apps like Discord or email, or Xbox invites to games or parties. It doesn't help if an app comes to the front on its own (an update or a window from Discord, Brave or Spotify): that isn't a notification and can still happen.
 
 [Gaming xm]
 Titulo: Turn off Xbox mode
 Hace: turns off Windows 11 Xbox mode (the console-style full screen with the Xbox app).
 Favor: Windows won't open it or offer it if you don't use it. It doesn't change FPS: it's just for comfort.
 Contra: to use the PC as a console with a controller, you have to turn it back on.
+
+[Gaming xbt]
+Titulo: Remove Xbox completely
+Hace: turns off and disables the Xbox and Gaming Services services, deletes and deprovisions the Xbox app, Gaming Services, Xbox Identity Provider, Xbox TCUI, Xbox chat transcription and the Xbox Game Bar (also its old package), and turns off recordings (GameDVR), the controller shortcut, Xbox mode and the cloud save task. On two-CCD Ryzen X3D it keeps the Game Bar installed (the V-Cache driver uses it) and only turns off its recordings.
+Favor: the most you can do to get rid of Xbox: no Xbox service, app or task stays loaded or starts with Windows.
+Contra: Game Pass, Minecraft Bedrock and the Minecraft Launcher, and Microsoft Store and Xbox app games stop working, and you can't play online with your Xbox account. Reset reinstalls the Xbox app, Gaming Services, Xbox Identity Provider and the Game Bar with winget (needs internet); the rest is installed by the Xbox app or the Store. It asks for a restart.
 
 [Gaming gf]
 Titulo: Optimize windowed games and hardware GPU scheduling
