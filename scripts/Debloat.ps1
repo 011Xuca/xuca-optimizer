@@ -2528,6 +2528,13 @@ $ListaOpciones = @(
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 'REG_DWORD' '1'
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB' 'REG_DWORD' '0'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDeviceSearchHistoryEnabled' 'REG_DWORD' '0'
+            # Busqueda > "Mostrar resultados de busqueda sugeridos": Busquedas web y Microsoft Store
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsWebSuggestionsEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsStoreSuggestionsEnabled' 'REG_DWORD' '0'
+            # Privacidad > Recomendaciones y ofertas: ofertas personalizadas, lista de idiomas e "Mejorar Inicio y busqueda"
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Privacy' 'TailoredExperiencesWithDiagnosticDataEnabled' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Control Panel\International\User Profile' 'HttpAcceptLanguageOptOut' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Start_TrackProgs' 'REG_DWORD' '0'
             Opt-Fin 'Anuncios, sugerencias y busqueda web quitados'
         }
         R = {
@@ -2551,6 +2558,11 @@ $ListaOpciones = @(
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDeviceSearchHistoryEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsWebSuggestionsEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsStoreSuggestionsEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Privacy' 'TailoredExperiencesWithDiagnosticDataEnabled' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Control Panel\International\User Profile' 'HttpAcceptLanguageOptOut' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Start_TrackProgs' 'REG_DWORD' '1'
             Opt-Fin 'Anuncios, sugerencias y busqueda web restaurados'
         }
     },
@@ -2695,6 +2707,7 @@ $ListaOpciones = @(
             Reg-Set 'HKCU\Software\Microsoft\InputPersonalization' 'RestrictImplicitInkCollection' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\InputPersonalization' 'RestrictImplicitTextCollection' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\InputPersonalization\TrainedDataStore' 'HarvestContacts' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Input\TIPC' 'Enabled' 'REG_DWORD' '0'
             Reg-Set 'HKCU\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy' 'HasAccepted' 'REG_DWORD' '0'
             Reg-Set 'HKCU\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps' 'AgentActivationEnabled' 'REG_DWORD' '0'
             Reg-Set 'HKCU\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps' 'AgentActivationLastUsed' 'REG_DWORD' '0'
@@ -2727,6 +2740,7 @@ $ListaOpciones = @(
             Reg-Set 'HKCU\Software\Microsoft\InputPersonalization' 'RestrictImplicitInkCollection' 'REG_DWORD' '0'
             Reg-Set 'HKCU\Software\Microsoft\InputPersonalization' 'RestrictImplicitTextCollection' 'REG_DWORD' '0'
             Reg-Set 'HKCU\Software\Microsoft\InputPersonalization\TrainedDataStore' 'HarvestContacts' 'REG_DWORD' '1'
+            Reg-Set 'HKCU\Software\Microsoft\Input\TIPC' 'Enabled' 'REG_DWORD' '1'
             Reg-Del 'HKCU\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy' 'HasAccepted'
             Reg-Set 'HKCU\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps' 'AgentActivationEnabled' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps' 'AgentActivationLastUsed' 'REG_DWORD' '1'

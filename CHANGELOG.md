@@ -5,6 +5,7 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 ## v1.0.11
 
 ### Nuevo
+- **Quitar anuncios, sugerencias y Bing** ahora también apaga lo de Privacidad y seguridad > Recomendaciones y ofertas: los resultados sugeridos de la búsqueda (Búsquedas web y Microsoft Store), las ofertas personalizadas, que los sitios lean tu lista de idiomas y "Mejorar Inicio y resultados de búsqueda". **Apagar el rastreo y la recopilación de datos** suma "Mejorar escritura a mano y teclado" (diagnóstico).
 - **Aviso de Xbox antes de aplicar**: las opciones que tocan Xbox, la Game Bar, Game Pass o Minecraft (servicios de Xbox, Teredo, actualizaciones de la Store, borrar la Game Bar y Modo Xbox) muestran el aviso en su tarjeta, "Marcar solo seguras" ya no las marca y, antes de aplicarlas (a mano o con un perfil), la app pregunta. Con **Sin Xbox** (o Esc) se aplica todo lo demás sin ellas. Traducido al inglés.
 - **Apagar los servicios de Xbox** (en Debloat) ⚠: los servicios de Xbox Live salieron de "Más servicios apagados para liberar RAM" y ahora son una opción aparte, que no está en ningún perfil. Esta opción no toca Gaming Services.
 - **Si aplicaste "Más servicios apagados para liberar RAM" con la v1.0.11** y Game Pass o Minecraft no andan: restablecé "Apagar los servicios de Xbox" (aparece como aplicada), o restablecé "Más servicios apagados": ahora también devuelve a Manual los servicios de Xbox que hayan quedado deshabilitados (si ya están bien, no los toca).
@@ -13,6 +14,13 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 - **Inicio rápido de Office** (en Debloat, Almacenamiento y memoria): apaga las tareas "Office Startup Boost", que precargan Word, Excel y PowerPoint en la RAM al iniciar sesión.
 - **Quitar Xbox completo** (en Optimización gaming, Modo Juego y Game Bar) ⚠: lo máximo para sacar Xbox. Apaga los servicios de Xbox y de Gaming Services, borra y desprovisiona la app de Xbox, Gaming Services, Xbox Identity Provider, Xbox TCUI, la transcripción del chat y la Game Bar, y apaga GameDVR, el atajo del joystick, el Modo Xbox y la tarea de guardado en la nube. Game Pass, Minecraft Bedrock y su Launcher y los juegos de la Store dejan de funcionar. No está en ningún perfil, "Marcar solo seguras" no la marca y la app pregunta antes. En los Ryzen X3D de dos bloques deja la Game Bar. Restablecer reinstala la app de Xbox, Gaming Services, Xbox Identity Provider y la Game Bar con winget; lo que no se puede reinstalar solo queda anotado en el log.
 - Los perfiles **RAM liviana** y **RAM mínima** suman estas tres opciones y ya no apagan los servicios de Xbox.
+- **Perfiles RAM liviana y RAM mínima** (en Perfiles): bajan el uso de RAM de Windows. *RAM liviana* no toca la seguridad: saca publicidad, telemetría, Widgets e IA, borra las apps basura, apaga las apps de inicio y en segundo plano, los efectos visuales y SysMain, y suma las dos opciones nuevas de abajo. *RAM mínima* suma además apagar hibernación, Windows Search, antivirus, BitLocker, integridad de memoria y VBS. Rondan 2,5–3 GB y 2–2,5 GB en reposo (estimado, no medido); para 1–2 GB hace falta una ISO recortada (tiny11 o NTLite). Traducido al inglés.
+
+- **Servicios de Windows en menos procesos** (en Debloat): junta los servicios en pocos `svchost` (`SvcHostSplitThresholdInKB`) y ahorra varios cientos de MB de RAM. Se aplica al reiniciar. Traducido al inglés.
+
+- **Más servicios apagados para liberar RAM** (en Debloat): apaga los servicios de Xbox, Teléfono, Billetera, NFC, zona wifi móvil, control parental, tarjetas inteligentes e Insider. Xbox Game Pass y la zona wifi móvil dejan de andar. Traducido al inglés.
+
+- **Cámara en varias apps** (en Debloat): activa "Permitir que varias aplicaciones usen la cámara al mismo tiempo" de Windows, para usarla en OBS, Discord, Teams, etc. a la vez. Traducido al inglés.
 
 ### Perfiles sin Xbox
 - **Seguro, Optimizado, Competitivo + Optimizado, RAM liviana, RAM mínima y Debloat - Notebook** ya no frenan las actualizaciones de la Store (rompían las de Game Pass, Minecraft y Gaming Services).
@@ -29,17 +37,6 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 - **Apps en segundo plano**: la excepción de Xbox suma Accesorios de Xbox (`Microsoft.XboxDevices`) y la transcripción del chat. **Apps de inicio** tampoco apaga el Launcher de Minecraft de la Store (`Microsoft.4297127D64EC6`).
 - **Borrar una cuenta** y **Entrar sin contraseña** avisan que se cierra la sesión de Xbox y de la Store (en el primero, solo si hay que limpiar todo el caché de cuentas). **Desactivar las notificaciones** avisa que no se ven las invitaciones de Xbox.
 - **Actualizaciones de la Store**: el "En contra" avisa que también frena las de Game Pass, Minecraft y Gaming Services.
-
-## v1.0.11
-
-### Nuevo
-- **Perfiles RAM liviana y RAM mínima** (en Perfiles): bajan el uso de RAM de Windows. *RAM liviana* no toca la seguridad: saca publicidad, telemetría, Widgets e IA, borra las apps basura, apaga las apps de inicio y en segundo plano, los efectos visuales y SysMain, y suma las dos opciones nuevas de abajo. *RAM mínima* suma además apagar hibernación, Windows Search, antivirus, BitLocker, integridad de memoria y VBS. Rondan 2,5–3 GB y 2–2,5 GB en reposo (estimado, no medido); para 1–2 GB hace falta una ISO recortada (tiny11 o NTLite). Traducido al inglés.
-
-- **Servicios de Windows en menos procesos** (en Debloat): junta los servicios en pocos `svchost` (`SvcHostSplitThresholdInKB`) y ahorra varios cientos de MB de RAM. Se aplica al reiniciar. Traducido al inglés.
-
-- **Más servicios apagados para liberar RAM** (en Debloat): apaga los servicios de Xbox, Teléfono, Billetera, NFC, zona wifi móvil, control parental, tarjetas inteligentes e Insider. Xbox Game Pass y la zona wifi móvil dejan de andar. Traducido al inglés.
-
-- **Cámara en varias apps** (en Debloat): activa "Permitir que varias aplicaciones usen la cámara al mismo tiempo" de Windows, para usarla en OBS, Discord, Teams, etc. a la vez. Traducido al inglés.
 
 ## v1.0.10
 

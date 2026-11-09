@@ -1297,16 +1297,16 @@ $XamlTexto = @'
         <TextBlock x:Name="BuscarInfo" Foreground="#9AA0A6" FontSize="12" TextWrapping="Wrap" Margin="4,6,0,0" Visibility="Collapsed"/>
       </StackPanel>
       <ScrollViewer x:Name="Scroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0"/>
-      <DockPanel Grid.Row="2" Margin="0,14,0,0">
-        <WrapPanel DockPanel.Dock="Bottom" HorizontalAlignment="Right" Margin="0,8,0,0">
+      <StackPanel Grid.Row="2" Margin="0,14,0,0">
+        <TextBlock x:Name="Estado" Foreground="#9AA0A6" FontSize="12.5" TextWrapping="Wrap"/>
+        <WrapPanel HorizontalAlignment="Right" Margin="0,8,0,0">
           <Button x:Name="BtnSeguras" Style="{StaticResource Accion}" Background="#2E8B57" Content="Marcar solo seguras"/>
           <Button x:Name="BtnTodo" Style="{StaticResource Accion}" Content="Marcar todo"/>
           <Button x:Name="BtnNada" Style="{StaticResource Accion}" Content="Desmarcar todo"/>
           <Button x:Name="BtnRestablecer" Style="{StaticResource Accion}" Background="#7A3326" Content="Restablecer seleccionadas" Visibility="Collapsed"/>
           <Button x:Name="BtnAplicar" Style="{StaticResource Accion}" Background="#0078D4" Content="Aplicar seleccionadas" Visibility="Collapsed"/>
         </WrapPanel>
-        <TextBlock x:Name="Estado" Foreground="#9AA0A6" FontSize="12.5" VerticalAlignment="Center" TextWrapping="Wrap"/>
-      </DockPanel>
+      </StackPanel>
     </Grid>
 
     <!-- Pantalla de carga: tapa todo mientras lee Windows o aplica cambios -->
@@ -6839,16 +6839,23 @@ $win.Add_PreviewMouseWheel({
 })
 # F11: pantalla completa (sin barra de titulo y tapando la barra de tareas). F11 o Esc la sacan.
 $script:PantallaCompleta = $null
+$script:F11Ultimo = [DateTime]::MinValue
 function Alternar-PantallaCompleta {
+    # Cambiar el estilo de la ventana varias veces seguidas rompe el render (se duplica): se ignoran los toques rapidos
+    $ahora = [DateTime]::UtcNow
+    if (($ahora - $script:F11Ultimo).TotalMilliseconds -lt 700) { return }
+    $script:F11Ultimo = $ahora
     if ($script:PantallaCompleta) {
         $p = $script:PantallaCompleta; $script:PantallaCompleta = $null
         $win.WindowState = 'Normal'; $win.WindowStyle = $p.Estilo; $win.ResizeMode = $p.Resize
         $win.WindowState = $p.Estado
+        $script:F11Ultimo = [DateTime]::UtcNow
     } else {
         $script:PantallaCompleta = @{ Estilo = $win.WindowStyle; Resize = $win.ResizeMode; Estado = $win.WindowState }
         # Primero Normal: si ya estaba maximizada, WPF no recalcula el tamano y la barra de tareas queda visible
         $win.WindowState = 'Normal'; $win.WindowStyle = 'None'; $win.ResizeMode = 'NoResize'
         $win.WindowState = 'Maximized'
+        $script:F11Ultimo = [DateTime]::UtcNow
     }
 }
 $win.Add_PreviewKeyDown({
