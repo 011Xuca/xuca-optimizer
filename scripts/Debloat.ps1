@@ -2706,6 +2706,42 @@ $ListaOpciones = @(
         }
     },
     @{
+        Id = 'nvt'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea sacar el icono de NVIDIA de la bandeja del sistema? (el del click derecho con "Abrir NVIDIA App" y "Panel de control")'
+        Hace = 'evita que el icono de NVIDIA se abra solo al iniciar sesion (NvTray). El driver, el Panel de control y la app de NVIDIA siguen instalados y se abren desde el menu Inicio. Se nota despues de reiniciar.'
+        Favor = 'desaparece el icono molesto de la bandeja y se libera la RAM que usa el proceso del icono.'
+        Contra = 'ya no tenes el acceso rapido desde la bandeja; abris la app o el Panel de control desde Inicio o el escritorio.'
+        S = {
+            Opt-Ini 'Icono de NVIDIA fuera de la bandeja'
+            Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\NvTray' 'StartOnLogin' 'REG_DWORD' '0'
+            Opt-Fin 'Icono de NVIDIA fuera de la bandeja (se nota al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Icono de NVIDIA en la bandeja (restaurar)'
+            Reg-Set 'HKLM\SOFTWARE\NVIDIA Corporation\NvTray' 'StartOnLogin' 'REG_DWORD' '1'
+            Opt-Fin 'Icono de NVIDIA en la bandeja restaurado'
+        }
+    },
+    @{
+        Id = 'srh'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea sacar la caja de busqueda de la barra de tareas? (baja los procesos de "Search" y sus WebView2)'
+        Hace = 'oculta la caja de busqueda de la barra de tareas y apaga los destacados de busqueda. Sin la caja, Windows no deja abierto el proceso SearchHost con sus varios WebView2. Seguis buscando con la tecla Windows.'
+        Favor = 'desaparece el grupo "Search" con sus 5 a 7 procesos y se libera RAM.'
+        Contra = 'no ves la caja de busqueda en la barra; para buscar apretas la tecla Windows y escribis.'
+        S = {
+            Opt-Ini 'Caja de busqueda fuera de la barra'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Search' 'SearchboxTaskbarMode' 'REG_DWORD' '0'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDynamicSearchBoxEnabled' 'REG_DWORD' '0'
+            Opt-Fin 'Caja de busqueda fuera de la barra (se nota al reiniciar el Explorador)'
+        }
+        R = {
+            Opt-Ini 'Caja de busqueda en la barra (restaurar)'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Search' 'SearchboxTaskbarMode' 'REG_DWORD' '2'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDynamicSearchBoxEnabled' 'REG_DWORD' '1'
+            Opt-Fin 'Caja de busqueda restaurada'
+        }
+    },
+    @{
         Id = 'upd'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
         Q = '- Desea poner en manual los actualizadores de Edge, Chrome y Brave? (Menos procesos fijos; los navegadores se siguen actualizando)'
         Hace = 'hace que los programas que actualizan Edge, Chrome y Brave dejen de estar siempre abiertos: Windows los arranca solo cuando hace falta.'

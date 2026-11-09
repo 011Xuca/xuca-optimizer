@@ -495,6 +495,18 @@ Hace: sets to manual and stops the service used by the NVIDIA app, the overlay a
 Favor: fewer NVIDIA processes open and a bit of RAM freed, without losing the driver.
 Contra: the overlay, ShadowPlay and the NVIDIA app filters don't work until the service runs. If the app doesn't open well, restore the option. You update the drivers yourself.
 
+[Debloat nvt]
+Titulo: Remove the NVIDIA icon from the system tray
+Hace: stops the NVIDIA tray icon (NvTray) from opening by itself at sign-in. The driver, Control Panel and NVIDIA app stay installed and open from the Start menu. You'll notice it after a restart.
+Favor: the annoying tray icon goes away and the RAM its process uses is freed.
+Contra: you lose the quick access from the tray; open the app or Control Panel from Start or the desktop.
+
+[Debloat srh]
+Titulo: Remove the search box from the taskbar
+Hace: hides the taskbar search box and turns off search highlights. Without the box, Windows doesn't keep the SearchHost process and its several WebView2 processes open. You still search with the Windows key.
+Favor: the "Search" group with its 5 to 7 processes goes away and RAM is freed.
+Contra: you don't see the search box on the taskbar; to search, press the Windows key and type.
+
 [Debloat upd]
 Titulo: Set the Edge, Chrome and Brave updaters to manual
 Hace: makes the programs that update Edge, Chrome and Brave stop running all the time: Windows starts them only when needed.

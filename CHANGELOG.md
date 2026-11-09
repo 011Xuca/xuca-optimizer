@@ -5,6 +5,8 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 ## v1.0.11
 
 ### Nuevo
+- **Sacar el icono de NVIDIA de la bandeja** (en Debloat, Almacenamiento y memoria): evita que el icono de NVIDIA (el del click derecho con "Abrir NVIDIA App" y "Panel de control") se abra solo al iniciar sesión. El driver, el Panel de control y la NVIDIA App siguen andando desde Inicio. Se nota al reiniciar. Traducido al inglés.
+- **Sacar la caja de búsqueda de la barra de tareas** (en Debloat, Almacenamiento y memoria): oculta la caja y apaga los destacados de búsqueda, para que Windows no deje abierto el grupo "Search" con sus procesos WebView2. Seguís buscando con la tecla Windows. Traducido al inglés.
 - **Quitar anuncios, sugerencias y Bing** ahora también apaga lo de Privacidad y seguridad > Recomendaciones y ofertas: los resultados sugeridos de la búsqueda (Búsquedas web y Microsoft Store), las ofertas personalizadas, que los sitios lean tu lista de idiomas y "Mejorar Inicio y resultados de búsqueda". **Apagar el rastreo y la recopilación de datos** suma "Mejorar escritura a mano y teclado" (diagnóstico).
 - **Aviso de Xbox antes de aplicar**: las opciones que tocan Xbox, la Game Bar, Game Pass o Minecraft (servicios de Xbox, Teredo, actualizaciones de la Store, borrar la Game Bar y Modo Xbox) muestran el aviso en su tarjeta, "Marcar solo seguras" ya no las marca y, antes de aplicarlas (a mano o con un perfil), la app pregunta. Con **Sin Xbox** (o Esc) se aplica todo lo demás sin ellas. Traducido al inglés.
 - **Apagar los servicios de Xbox** (en Debloat) ⚠: los servicios de Xbox Live salieron de "Más servicios apagados para liberar RAM" y ahora son una opción aparte, que no está en ningún perfil. Esta opción no toca Gaming Services.
