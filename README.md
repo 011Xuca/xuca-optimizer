@@ -60,5 +60,5 @@ También podés bajar el repo como ZIP y abrir `XucaOP.bat`.
 
 ## Créditos
 
-Hecho por **011Xuca**. Redes: https://linktr.ee/011xuca
+Hecho por **011Xuca**. Redes: https://011xuca.github.io/links/
 Si te sirvió, podés apoyarme en Ko-fi: https://ko-fi.com/011xuca

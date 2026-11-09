@@ -583,7 +583,7 @@ Contra: you can't install or update Store apps (nor Game Pass, Xbox or Minecraft
 Titulo: Turn off the contacts, calendar, messages and sync user services
 Hace: turns off the services Windows starts for each user: contacts and calendar (UserDataSvc, Unistore, PimIndex), sync (OneSync), messages, Connected Devices, cloud clipboard, user printing and Web Defense.
 Favor: fewer svchost processes per session and a bit less RAM.
-Contra: the Mail, Calendar and People apps don't sync, the cloud clipboard and Nearby Sharing stop working, and Defender web protection doesn't run.
+Contra: the Mail, Calendar and People apps don't sync, the cloud clipboard and Nearby Sharing stop working, and Defender web protection doesn't run. WARNING: it also turns off the clipboard service that Snipping Tool and Win+Shift+S need, so screenshots stop working. To get them back, restore this option and sign out and in again.
 
 [Debloat dold]
 Titulo: Delete the old Windows apps and keep only the modern ones

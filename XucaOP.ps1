@@ -59,7 +59,7 @@ try {
 
 $AppPath = $PSCommandPath
 $Root = Split-Path -Parent $AppPath
-$Redes = 'https://linktr.ee/011xuca'
+$Redes = 'https://011xuca.github.io/links/'
 $Scripts = Join-Path $Root 'scripts'
 $Rutas = [ordered]@{
     Debloat  = Join-Path $Scripts 'Debloat.ps1'
@@ -2234,7 +2234,7 @@ $Advertencias = @{
     'Debloat|dold' = 'Si ademas borras las apps modernas, te quedas sin Bloc de notas ni Paint. Para volver a tener las antiguas hace falta internet.'
     'Debloat|old'  = 'Los juegos muy viejos que piden DirectPlay no andan y no podes compartir archivos con equipos que solo usan SMBv1. SMBv1 no se reactiva al restablecer.'
     'Debloat|msx'  = 'PELIGRO: sin la Store no instalas ni actualizas apps de la Store, Game Pass ni Minecraft. Se reinstala con wsreset -i (hace falta internet).'
-    'Debloat|usv'  = 'Correo, Calendario y Contactos dejan de sincronizar, y el portapapeles en la nube y Compartir cerca no andan.'
+    'Debloat|usv'  = 'Correo, Calendario y Contactos dejan de sincronizar, y el portapapeles en la nube y Compartir cerca no andan. Tambien se rompe la captura de pantalla (Recortes y Win+Shift+S).'
     'Debloat|rmin' = 'No vas a poder imprimir ni transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.'
     'Debloat|nvl'  = 'El overlay, ShadowPlay y los filtros de la NVIDIA App dejan de andar. Si la NVIDIA App no abre bien, restablecelo.'
     'Gaming|xbt'   = 'BORRA XBOX ENTERO, Gaming Services incluido: Game Pass, Minecraft Bedrock y su Launcher y los juegos de la Microsoft Store dejan de funcionar y no podes jugar online con tu cuenta Xbox. Restablecer reinstala lo principal con winget, pero algunas cosas se reinstalan a mano.'
@@ -4358,11 +4358,11 @@ $bEst.Add_Click({
         $plan = ((& powercfg.exe /getactivescheme | Out-String) -replace '(?s).*\((.*?)\).*', '$1').Trim()
         # Misma lista que el Administrador de tareas: Run, carpetas de Inicio y apps de la Store
         . ([scriptblock]::Create($script:FuncInicio)); $ini = @(Inicio-Lista)
-        $txt = ('RAM libre: {0} GB de {1} GB' -f [math]::Round($os.FreePhysicalMemory / 1MB, 1), [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)) + "`n" +
-            ('Disco {0} libre: {1} GB' -f $env:SystemDrive, [math]::Round($disco.Free / 1GB, 1)) + "`n" +
-            ('Programas que arrancan con Windows: {0}' -f $ini.Count) + $(if ($ini.Count) { ' ({0} activos)' -f @($ini | Where-Object { $_.Activo }).Count }) + "`n" +
-            ('Plan de energia: {0}' -f $plan) + "`n" +
-            ('Encendida hace: {0} d {1} h' -f $up.Days, $up.Hours)
+        $txt = ((Traducir 'RAM libre: {0} GB de {1} GB') -f [math]::Round($os.FreePhysicalMemory / 1MB, 1), [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)) + "`n" +
+            ((Traducir 'Disco {0} libre: {1} GB') -f $env:SystemDrive, [math]::Round($disco.Free / 1GB, 1)) + "`n" +
+            ((Traducir 'Programas que arrancan con Windows: {0}') -f $ini.Count) + $(if ($ini.Count) { (Traducir ' ({0} activos)') -f @($ini | Where-Object { $_.Activo }).Count }) + "`n" +
+            ((Traducir 'Plan de energia: {0}') -f $plan) + "`n" +
+            ((Traducir 'Encendida hace: {0} d {1} h') -f $up.Days, $up.Hours)
         Avisar 'Estado de la PC' $txt
     } catch { Avisar 'Estado de la PC' $_.Exception.Message }
 })
@@ -5576,6 +5576,7 @@ $puntosTimer.Add_Tick({
 })
 
 function Mostrar-Carga([string]$titulo, [bool]$conFade) {
+    $script:DnsUlt = $null; $script:DnsFinHora = $null
     Mostrar-Dns $null
     Modo-Splash $false
     $c = $script:Carga
@@ -6322,7 +6323,9 @@ function Actualizar-Progreso {
         $u = $ms[$ms.Count - 1]
         if (($u.Groups[2].Value -eq 'S') -and ($u.Groups[1].Value -like 'cambiar el DNS*')) { $dns = Leer-Dns $txt.Substring($u.Index) }
     }
-    Mostrar-Dns $dns
+    # Al terminar la prueba el resultado queda a la vista unos segundos aunque ya siga el paso siguiente
+    if ($dns -and $dns.Fin) { if (-not $script:DnsFinHora) { $script:DnsFinHora = Get-Date }; $script:DnsUlt = $dns }
+    if ((-not $dns) -and $script:DnsUlt -and (((Get-Date) - $script:DnsFinHora).TotalSeconds -lt 8)) { Mostrar-Dns $script:DnsUlt } else { Mostrar-Dns $dns }
     if ($dns) { $sub = $(if ($dns.Fin) { 0.95 } else { 0.95 * ($dns.Hechos + $(if ($dns.Probando) { 0.5 } else { 0 })) / $DnsNombres.Count }) }
     $base = $C.Hechos + [math]::Max($n - 1, 0) + $sub
     Poner-Progreso (($base / $C.Total) * 0.97) (Con-Enie ((Con-Enie 'Cambio') + ' ' + $num + ' ' + (Con-Enie 'de') + ' ' + $C.Total + '  -  ' + $act))

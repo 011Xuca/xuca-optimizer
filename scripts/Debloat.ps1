@@ -3038,7 +3038,7 @@ $ListaOpciones = @(
         Q = '- Desea apagar los servicios de usuario de contactos, calendario, mensajes y sincronizacion? (Extremo: baja procesos por cada sesion)'
         Hace = 'apaga los servicios que Windows levanta por cada usuario: contactos y calendario (UserDataSvc, Unistore, PimIndex), sincronizacion (OneSync), mensajes, Dispositivos conectados, portapapeles en la nube, impresion de usuario y Defensa web.'
         Favor = 'menos procesos svchost por sesion y algo menos de RAM.'
-        Contra = 'las apps Correo, Calendario y Contactos no sincronizan, el portapapeles en la nube y "Compartir cerca" dejan de andar, y la proteccion web de Defender no corre.'
+        Contra = 'las apps Correo, Calendario y Contactos no sincronizan, el portapapeles en la nube y "Compartir cerca" dejan de andar, y la proteccion web de Defender no corre. ATENCION: tambien apaga el servicio del portapapeles, que Recortes y Win+Shift+S necesitan: la captura de pantalla deja de funcionar. Para volver a usarla hay que restablecer esta opcion y reiniciar sesion.'
         S = {
             Opt-Ini 'Servicios de usuario'
             foreach ($n in 'CDPUserSvc', 'cbdhsvc', 'DevicesFlowUserSvc', 'PimIndexMaintenanceSvc', 'UnistoreSvc', 'UserDataSvc', 'OneSyncSvc', 'MessagingService', 'PrintWorkflowUserSvc', 'webthreatdefsvc', 'webthreatdefusersvc') {

@@ -3021,3 +3021,24 @@ en: deletes the Xbox app, Gaming Services and the Game Bar and turns off all the
 
 es: Xbox se reinstala desde la Store con winget (hace falta internet). Xbox TCUI y la transcripcion del chat de Xbox los instala la app de Xbox o la Store cuando hagan falta. Despues reinicia la PC.
 en: Xbox is reinstalled from the Store with winget (needs internet). Xbox TCUI and Xbox chat transcription are installed by the Xbox app or the Store when needed. Restart the PC afterwards.
+
+es: RAM libre: {0} GB de {1} GB
+en: Free RAM: {0} GB of {1} GB
+
+es: Disco {0} libre: {1} GB
+en: Disk {0} free: {1} GB
+
+es: Programas que arrancan con Windows: {0}
+en: Programs that start with Windows: {0}
+
+es: " ({0} activos)"
+en: " ({0} enabled)"
+
+es: Plan de energia: {0}
+en: Power plan: {0}
+
+es: Encendida hace: {0} d {1} h
+en: Uptime: {0} d {1} h
+
+es: Correo, Calendario y Contactos dejan de sincronizar, y el portapapeles en la nube y Compartir cerca no andan. Tambien se rompe la captura de pantalla (Recortes y Win+Shift+S).
+en: Mail, Calendar and People stop syncing, and the cloud clipboard and Nearby Sharing do not work. Screenshots (Snipping Tool and Win+Shift+S) also break.
