@@ -3042,3 +3042,66 @@ en: Uptime: {0} d {1} h
 
 es: Correo, Calendario y Contactos dejan de sincronizar, y el portapapeles en la nube y Compartir cerca no andan. Tambien se rompe la captura de pantalla (Recortes y Win+Shift+S).
 en: Mail, Calendar and People stop syncing, and the cloud clipboard and Nearby Sharing do not work. Screenshots (Snipping Tool and Win+Shift+S) also break.
+es: Windows Hello (huella o cara), los sensores y el Historial de archivos dejan de andar hasta que lo restablezcas.
+en: Windows Hello (fingerprint or face), sensors and File History stop working until you restore it.
+
+es: Auriculares, mouse, teclado y joysticks Bluetooth dejan de andar hasta que lo restablezcas.
+en: Bluetooth headphones, mice, keyboards and gamepads stop working until you restore it.
+
+es: No se instalan ni actualizan apps de la Microsoft Store (ni de Game Pass) hasta que lo restablezcas.
+en: Microsoft Store apps (and Game Pass) are not installed or updated until you restore it.
+
+es: PELIGRO: la PC deja de recibir parches de seguridad y de drivers. Restablecelo cada tanto para actualizar.
+en: DANGER: the PC stops receiving security and driver patches. Restore it from time to time to update.
+
+es: No ves la vista previa de imagenes ni videos en el Explorador.
+en: You don't see the preview of images or videos in Explorer.
+
+es: La Asistencia remota y la Reproduccion automatica dejan de andar.
+en: Remote Assistance and AutoPlay stop working.
+
+es: Si ademas borras las apps modernas, te quedas sin Bloc de notas ni Paint. Para volver a tener las antiguas hace falta internet.
+en: If you also delete the modern apps, you're left without Notepad or Paint. Getting the old ones back needs internet.
+
+es: Los juegos muy viejos que piden DirectPlay no andan y no podes compartir archivos con equipos que solo usan SMBv1. SMBv1 no se reactiva al restablecer.
+en: Very old games that need DirectPlay don't work, and you can't share files with computers that only use SMBv1. SMBv1 is not turned back on when you restore.
+
+es: PELIGRO: sin la Store no instalas ni actualizas apps de la Store, Game Pass ni Minecraft. Se reinstala con wsreset -i (hace falta internet).
+en: DANGER: without the Store you can't install or update Store apps, Game Pass or Minecraft. It's reinstalled with wsreset -i (needs internet).
+
+es: No vas a poder imprimir ni transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.
+en: You won't be able to print or cast to the TV, and the PC stops showing on the local network, until you restore it.
+
+es: El overlay, ShadowPlay y los filtros de la NVIDIA App dejan de andar. Si la NVIDIA App no abre bien, restablecelo.
+en: The overlay, ShadowPlay and the NVIDIA App filters stop working. If the NVIDIA App doesn't open properly, restore it.
+
+es: borra Bloc de notas, Paint, Fotos y las demas apps modernas (se quedan la Calculadora, la Store, Xbox, la captura de pantalla, los codecs de video/imagen y los paneles de audio y video de tu fabricante). No se pueden restablecer desde la app.
+en: deletes Notepad, Paint, Photos and the rest of the modern apps (Calculator, the Store, Xbox, screen capture, video/image codecs and your manufacturer's audio and video panels stay). They can't be restored from the app.
+
+es: ya no podes desinstalar las actualizaciones de Windows. Si una actualizacion rompe algo, hay que reinstalar Windows.
+en: you can no longer uninstall Windows updates. If an update breaks something, Windows has to be reinstalled.
+
+es: borra los drivers de dispositivos que no estan en uso (impresoras, joysticks desconectados). Hay que bajarlos de nuevo.
+en: deletes the drivers of devices that aren't in use (printers, unplugged gamepads). They have to be downloaded again.
+
+es: sin el entorno de recuperacion, si Windows no arranca la unica salida es reinstalar Windows.
+en: without the recovery environment, if Windows doesn't boot the only way out is reinstalling Windows.
+
+es: quita los paquetes de idioma que no usas. Lo borrado no vuelve solo.
+en: removes the language packs you don't use. What's deleted doesn't come back on its own.
+
+es: quita voz, dictado, escritura a mano, OCR y Braille de Windows. Lo borrado no vuelve solo.
+en: removes Windows speech, dictation, handwriting, OCR and Braille. What's deleted doesn't come back on its own.
+
+es: quita la Microsoft Store: no se pueden instalar ni actualizar Xbox, Game Pass ni Minecraft hasta que la restablezcas.
+en: removes the Microsoft Store: Xbox, Game Pass and Minecraft can't be installed or updated until you restore it.
+
+es: Seguis usando esta version. Podes probar de nuevo con el cartel amarillo de arriba, o bajarla a mano desde las Releases de GitHub.
+en: You keep using this version. You can try again with the yellow banner above, or download it by hand from the GitHub Releases.
+
+es: Bajarla a mano desde las Releases de GitHub
+en: Download it by hand from the GitHub Releases
+
+es: Abrir las Releases
+en: Open the Releases
+

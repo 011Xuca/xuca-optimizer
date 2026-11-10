@@ -1437,6 +1437,7 @@ $XamlTexto = @'
             </DockPanel>
           </Button>
           <Button x:Name="BtnUpdNo" Style="{StaticResource Nav}" HorizontalAlignment="Center" Margin="0,12,0,0" Foreground="#9AA0A6" FontSize="13" Content="No, seguir con esta version"/>
+          <Button x:Name="BtnUpdGit" Style="{StaticResource Nav}" HorizontalAlignment="Center" Margin="0,2,0,0" Foreground="#8AB4F8" FontSize="13" Content="Bajarla a mano desde las Releases de GitHub"/>
         </StackPanel>
       </StackPanel>
       </Border>
@@ -1615,7 +1616,7 @@ if ($quiero) {
 }
 
 $ui = @{}
-foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavApps', 'NavAdicional', 'CfgInsignia', 'CfgInsigniaTxt', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'TituloCaja', 'TituloIcono', 'Scroll', 'BtnSeguras', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'BtnTema', 'TemaTxt', 'Marco', 'Raiz', 'Barra', 'Contenido', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista', 'CargaCaja', 'CargaMarca', 'CargaSplash', 'CargaSplashTxt', 'CargaSplashPts', 'CargaSplashZona', 'CargaSplashBarra', 'BuscarCaja', 'BuscarLupa', 'BuscarBorrar', 'BuscarPista', 'Buscar', 'BuscarInfo') { $ui[$n] = $win.FindName($n) }
+foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavApps', 'NavAdicional', 'CfgInsignia', 'CfgInsigniaTxt', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'TituloCaja', 'TituloIcono', 'Scroll', 'BtnSeguras', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'BtnUpdGit','UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'BtnTema', 'TemaTxt', 'Marco', 'Raiz', 'Barra', 'Contenido', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista', 'CargaCaja', 'CargaMarca', 'CargaSplash', 'CargaSplashTxt', 'CargaSplashPts', 'CargaSplashZona', 'CargaSplashBarra', 'BuscarCaja', 'BuscarLupa', 'BuscarBorrar', 'BuscarPista', 'Buscar', 'BuscarInfo') { $ui[$n] = $win.FindName($n) }
 
 # Numero de version (sale del version.txt de tu PC)
 function Poner-Version([bool]$vieja, [bool]$distinta) {
@@ -6050,7 +6051,7 @@ function Fin-Descarga($s) {
         $script:UpdError = $s.Error
         Cerrar-Carga {
             $ui.BtnUpdBarra.Visibility = 'Visible'
-            Avisar 'No se pudo actualizar' ('No se pudo bajar la version nueva: ' + $script:UpdError + "`n`n" + 'Seguis usando esta version. Podes probar de nuevo con el cartel amarillo de arriba.')
+            if (Confirmar 'No se pudo actualizar' ('No se pudo bajar la version nueva: ' + $script:UpdError + "`n`n" + 'Seguis usando esta version. Podes probar de nuevo con el cartel amarillo de arriba, o bajarla a mano desde las Releases de GitHub.') 'Abrir las Releases' '#0078D4' 'Cerrar') { Abrir-Normal ('https://github.com/' + $XucaRepo + '/releases') }
             Bloquear $false
         }
         return
@@ -6084,6 +6085,7 @@ $updTimer.Add_Tick({
 
 $ui.BtnUpd.Add_Click({ Descargar-Actualizacion })
 $ui.BtnUpdBarra.Add_Click({ Descargar-Actualizacion })
+$ui.BtnUpdGit.Add_Click({ Abrir-Normal ('https://github.com/' + $XucaRepo + '/releases') })
 $ui.BtnUpdNo.Add_Click({
     # Sigue con esta version: el cartel queda chiquito arriba por si despues queres actualizar
     Upd-MostrarCartel $false
