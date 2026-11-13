@@ -27,15 +27,57 @@ Contra: if your PC is stolen, they can read your files.
 
 [Debloat hib]
 Titulo: Disable hibernation
-Hace: turns off hibernation and Fast Startup, and turns on memory compression.
+Hace: turns off hibernation and Fast Startup.
 Favor: frees several GB of disk and every shutdown is complete, with fewer weird errors.
-Contra: turning the PC on from off takes a few more seconds.
+Contra: turning the PC on from off takes a few more seconds. On a laptop, if the battery runs out the PC shuts down and you lose what you had open.
 
 [Debloat mc]
 Titulo: Turn on memory compression
-Hace: turns on memory compression: Windows compresses what is in RAM and not being used, instead of sending it to disk.
+Hace: turns on memory compression: Windows compresses what is in RAM and not being used, instead of sending it to disk. It also turns SysMain on if it was off.
 Favor: with 4 to 8 GB of RAM more programs fit open and there is less stutter from using the page file.
-Contra: uses a bit of CPU to compress. With 16 GB or more it barely changes anything. It needs the SysMain service turned on.
+Contra: uses a bit of CPU to compress. With 16 GB or more it barely changes anything. It needs SysMain turned on, so it cannot be used together with "Disable SysMain and Prefetch".
+
+[Debloat nvd]
+Titulo: Turn off the NVIDIA display container
+Hace: disables and stops the NVIDIA Display Container service (NVDisplay.ContainerLocalSystem), which keeps the NVDisplay.Container processes open.
+Favor: the NVDisplay.Container processes close and RAM is freed, without touching the driver.
+Contra: the NVIDIA Control Panel and its icon will not open until restored. Updating the driver may turn it back on.
+
+[Debloat inv]
+Titulo: Turn off Windows compatibility inventory and health
+Hace: disables the InventorySvc (inventory and compatibility assessment) and whesvc (Windows health and optimized experiences) services.
+Favor: two fewer processes always open and less background CPU use.
+Contra: Windows does not assess whether your PC is compatible with a new version until restored.
+
+[Debloat tem]
+Titulo: Turn off the Themes service
+Hace: disables and stops the Themes service.
+Favor: one service less; it saves little RAM.
+Contra: classic programs lose the Windows 11 visual style (flat, old-looking buttons and windows), and dynamic themes and backgrounds stop applying. Restoring fixes it.
+
+[Debloat tim]
+Titulo: Turn off modern text input
+Hace: disables and stops the Text Input Management Service (TextInputManagementService), which handles ctfmon and typing in modern apps.
+Favor: fewer text input processes in the background.
+Contra: you may not be able to type in Start search, Settings and Store apps, and the emoji panel, touch keyboard, dictation, clipboard history (Win+V), IME languages and switching the keyboard with Alt+Shift stop working. Classic programs, games and Discord keep working. Before restarting, lock with Win+L and check that you can type your password.
+
+[Debloat tkb]
+Titulo: Turn off the web account manager
+Hace: disables and stops the Token Broker service (TokenBroker).
+Favor: one service less in the background.
+Contra: you cannot sign in with your Microsoft account in the Store, Office, OneDrive, Xbox, Teams, the new Outlook or Settings > Accounts. Your Windows session and programs that do not use a Microsoft account keep working.
+
+[Debloat aif]
+Titulo: Turn off the Windows AI service (AI Fabric)
+Hace: disables and stops WSAIFabricSvc, the service that runs the local AI models of Windows.
+Favor: one service less always on.
+Contra: local AI features (Click to Do, semantic search, AI effects in Photos and Paint) do not work until restored.
+
+[Debloat cdps]
+Titulo: Turn off the connected devices service
+Hace: disables and stops the Connected Devices Platform Service (CDPSvc).
+Favor: one service less in the background.
+Contra: Phone Link, Nearby Share, Continue on PC and cross-device sync stop working.
 
 [Debloat ofb]
 Titulo: Turn off Office Startup Boost
@@ -363,7 +405,7 @@ Contra: what was cached is read from disk again.
 Titulo: Disable SysMain and Prefetch
 Hace: turns off SysMain and Prefetch, which preload programs into RAM.
 Favor: leaves more RAM free for the game.
-Contra: some programs open a bit slower the first time.
+Contra: some programs open a bit slower the first time. It also leaves memory compression without effect, since it depends on SysMain (with 16 GB or more you barely notice); so it cannot be used together with "Turn on memory compression".
 
 [Gaming pe]
 Titulo: Disable USB, PCIe and disk power saving
@@ -442,12 +484,6 @@ Titulo: Show file extensions and hidden items
 Hace: shows the end of file names, like .exe or .txt, and hidden files and folders.
 Favor: you see what type of file it is, spot disguised viruses and find folders like AppData.
 Contra: you see hidden system files: don't delete them if you don't know what they are.
-
-[Gaming vfx]
-Titulo: Set Windows visual effects to performance
-Hace: sets Windows visual effects to performance mode: fewer animations, shadows and transparency.
-Favor: frees a bit of GPU and CPU on low-power PCs, especially if the game is borderline.
-Contra: Windows looks plainer. On a powerful PC it barely changes FPS; Restore undoes it.
 
 [Gaming md]
 Titulo: Remove the menu delay

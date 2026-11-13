@@ -2,6 +2,28 @@
 
 Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
 
+## v1.0.12
+
+### Nuevo
+- **Cartel de opciones que chocan**: si marcás dos opciones que se pisan (compresión de memoria con SysMain, antivirus apagado con antivirus más liviano, plan Alto rendimiento o Modo Nitro con batería, Windows Update apagado con pausar actualizaciones o con sus drivers, Store quitada con sus servicios y actualizaciones, Xbox completo con sus servicios y Modo Xbox, grabación de juegos con borrar la Game Bar), la app explica el choque y pregunta cuál dejar. Cerrar el cartel deja la que ya tenías. En los pares que se contradicen también avisa si la otra opción ya está aplicada. Pasa al tocar la casilla, con "Todo" y al marcar o aplicar un perfil. Traducido al inglés.
+- **Ajustes extremos sueltos** (en Debloat, Sistema y privacidad y Almacenamiento y memoria) ⚠: no están en ningún perfil y cada uno avisa qué se rompe y se restablece desde la app. **Apagar el servicio de Temas**, **Entrada de texto moderna** (puede que no puedas escribir en el Inicio ni en Configuración: probá Win+L antes de reiniciar), **Administrador de cuentas web** (sin iniciar sesión con Microsoft en las apps), **Servicio de IA de Windows**, **Dispositivos conectados** (sin Vincular con el teléfono ni Compartir cerca), **Contenedor de pantalla de NVIDIA** (el Panel de control de NVIDIA no abre) e **Inventario de compatibilidad y Salud de Windows**. Si tu Windows no tiene el servicio, la opción aparece como "no hace falta". Traducidos al inglés.
+- **Los perfiles ya no se bloquean**: aplican lo que tu PC puede y saltean lo no compatible, lo ya aplicado y lo que necesita drivers. Si faltan drivers, antes de marcar o aplicar el perfil la app avisa y te lleva a Herramientas a instalarlos, o seguís sin esos ajustes (cerrar el cartel cancela). La lista de cada perfil cuenta cuántos ajustes necesitan drivers.
+- **Los perfiles se adaptan a tu PC**: la limpieza automática de RAM se saltea con menos de 12 GB; la hibernación no se marca en notebooks (se pierde lo abierto si se agota la batería) ni con Windows en un HDD (el arranque tarda mucho más), y Windows Search tampoco con un HDD. Siguen disponibles a mano.
+- **El perfil RAM mínima (extremo)** pide confirmación y lista todo lo que va a apagar o quitar (antivirus, BitLocker, Windows Update, la Store y más) y avisa que BitLocker deja la PC más lenta hasta terminar de descifrar.
+
+### Cambios
+- **Compresión de memoria** ahora prende SysMain antes de activarse (la compresión lo necesita) y deja de figurar como aplicada si SysMain está apagado. **Desactivar la hibernación** ya no toca la compresión de memoria. **Desactivar SysMain y Prefetch** avisa que deja sin efecto la compresión.
+- **Efectos visuales**: se sacó "Efectos visuales en rendimiento" de Gaming: solo cambiaba un valor que la otra opción ya cambia, y se pisaban. Queda "Reducir los efectos visuales" (Debloat), que ahora usa también el perfil Competitivo.
+- **Perfiles competitivos** (Competitivo y Competitivo - Notebook) ya no incluyen lo que puede afectar el stream en OBS o TikTok LIVE Studio: prioridad alta de juegos, limpieza de RAM, GPU acelerada por hardware ni optimizaciones de pantalla completa (se pueden marcar a mano). Para stream conviene NVENC o AMF. Se borró el perfil **Competitivo + Optimizado**: marcá Optimizado y Competitivo juntos con "Sumar".
+- **RAM mínima (extremo)**: ya no incluye Windows Update sin drivers ni los servicios de instalación de la Store. La estimación de RAM pasó a "alrededor de 3 GB" (medido en una PC real) en vez de 1,3 a 1,8 GB.
+- **Más rápido**: la lectura de ajustes pide solo el nombre del procesador (antes ~1 s por consulta) y lee las tareas programadas por COM (de ~860 ms a ~56 ms). Cada script también arranca más rápido.
+
+### Arreglado
+- "SysMain y Prefetch" y "Temporizador" aparecían como omitidos aunque no los hubieras marcado, y restablecer SysMain nunca corría en PCs con menos de 16 GB o con HDD.
+- El aviso del perfil Full decía que apaga la integridad de memoria y VBS; solo apaga el antivirus y BitLocker.
+- Restablecer la hibernación decidía "ya estaba" mirando otra cosa que el chequeo de estado.
+- Restablecer "Inventario y Salud de Windows" devuelve el inicio retrasado original.
+
 ## v1.0.11
 
 ### Nuevo

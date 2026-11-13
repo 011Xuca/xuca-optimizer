@@ -708,8 +708,8 @@ en: the antivirus, BitLocker, memory integrity or VBS. Like Competitive, it does
 es: el plan Alto rendimiento y el temporizador al minimo suben el consumo y el calor; con undervolt u overclock la PC puede colgarse. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.
 en: the High performance plan and the timer at minimum raise power use and heat; with undervolt or overclock the PC can freeze. Deleting bloatware apps has no reset: they're reinstalled manually from the Store.
 
-es: Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga la seguridad (antivirus, BitLocker, integridad de memoria y VBS), activa el modo MSI, bloquea la telemetria en hosts y apaga Teredo y Windows Search.
-en: Windows as light as possible: all the debloat and system optimization, and it also turns off security (antivirus, BitLocker, memory integrity and VBS), turns on MSI mode, blocks telemetry in hosts and turns off Teredo and Windows Search.
+es: Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga la seguridad (antivirus, BitLocker, integridad de memoria y VBS), bloquea la telemetria en hosts y apaga Teredo y Windows Search.
+en: Windows as light as possible: all the debloat and system optimization, and it also turns off security (antivirus, BitLocker, memory integrity and VBS), blocks telemetry in hosts and turns off Teredo and Windows Search.
 
 es: una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.
 en: a weak or old PC that needs all the system performance, knowing what you're doing.
@@ -3105,3 +3105,160 @@ en: Download it by hand from the GitHub Releases
 es: Abrir las Releases
 en: Open the Releases
 
+es: Estas dos opciones chocan:
+en: These two options clash:
+
+es: La compresion de memoria necesita SysMain prendido, y la otra opcion lo apaga.
+en: Memory compression needs SysMain turned on, and the other option turns it off.
+
+es: Desactivar la hibernacion activa la compresion de memoria, que necesita SysMain prendido, y la otra opcion lo apaga.
+en: Disabling hibernation turns on memory compression, which needs SysMain turned on, and the other option turns it off.
+
+es: Una crea un punto de restauracion y la otra apaga y borra todos.
+en: One creates a restore point and the other turns them off and deletes them all.
+
+es: Una apaga Defender del todo y la otra solo le baja el uso de CPU: con Defender apagado no sirve de nada.
+en: One turns Defender off completely and the other only lowers its CPU use: with Defender off it does nothing.
+
+es: Cual queres dejar marcada?
+en: Which one do you want to keep selected?
+
+es: Opciones que chocan
+en: Options that clash
+
+es: Dejar la 1
+en: Keep 1
+
+es: Dejar la 2
+en: Keep 2
+
+es: "Con poca RAM (tenes "
+en: "With low RAM (you have "
+
+es: " GB) vaciaria el cache todo el tiempo y causaria tirones: hace falta 12 GB o mas."
+en: " GB) it would empty the cache all the time and cause stutter: it needs 12 GB or more."
+
+es: Faltan drivers para este perfil
+en: Drivers missing for this profile
+
+es: Seguir sin esos ajustes
+en: Continue without those settings
+
+es: Podes instalarlos ahora (te llevo a Herramientas, a "Buscar drivers"; despues toca "Volver a leer los ajustes") o seguir con el perfil sin esos ajustes.
+en: You can install them now (I take you to Tools, "Find drivers"; then press "Re-read settings") or continue with the profile without those settings.
+
+es: necesitan drivers
+en: need drivers
+
+es: tiene ajustes que necesitan drivers que te faltan:
+en: has settings that need drivers you are missing:
+
+
+es: Una apaga Windows Update por completo, asi que no hay actualizaciones que pausar.
+en: One turns Windows Update off completely, so there are no updates to pause.
+
+
+es: Con Windows Update apagado no se instalan drivers, asi que la otra opcion no hace falta.
+en: With Windows Update off no drivers are installed, so the other option is not needed.
+
+
+es: Sin la Microsoft Store no hay nada que instalar, asi que la otra opcion no hace falta.
+en: Without the Microsoft Store there is nothing to install, so the other option is not needed.
+
+
+es: Sin la Microsoft Store no hay apps de la Store que actualizar, asi que la otra opcion no hace falta.
+en: Without the Microsoft Store there are no Store apps to update, so the other option is not needed.
+
+
+es: Quitar Xbox completo ya incluye apagar los servicios de Xbox.
+en: Removing Xbox completely already includes turning off the Xbox services.
+
+
+es: Quitar Xbox completo ya incluye apagar el Modo Xbox.
+en: Removing Xbox completely already includes turning off Xbox mode.
+
+
+es: Borrar la Game Bar ya apaga las grabaciones en segundo plano.
+en: Deleting the Game Bar already turns off background recording.
+
+
+es: Las dos ponen los efectos visuales de Windows en rendimiento: hacen lo mismo.
+en: Both set the Windows visual effects to performance: they do the same thing.
+
+
+es: Una prioriza la bateria y la otra impide que los nucleos duerman, tambien a bateria.
+en: One prioritizes battery and the other stops the cores from sleeping, also on battery.
+
+
+es: Una prioriza la bateria y la otra deja el reloj de Windows en 0.5 ms, lo que gasta mas bateria.
+en: One prioritizes battery and the other sets the Windows clock to 0.5 ms, which uses more battery.
+
+
+es: Una prioriza la bateria y la otra usa el plan Alto rendimiento: objetivos opuestos.
+en: One prioritizes battery and the other uses the High performance plan: opposite goals.
+
+es: Este perfil apaga el antivirus y BitLocker. La PC queda sin proteccion contra virus.
+en: This profile turns off the antivirus and BitLocker. The PC is left without virus protection.
+
+es: lo que mas FPS da por cada grado de mas, sin tocar la seguridad: mouse sin aceleracion, afinidad para tus juegos, temporizador al minimo, efectos visuales en rendimiento, sin grabacion de juegos ni Game Bar, DNS mas rapido y sin notificaciones en partida. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware); si haces stream con OBS o TikTok LIVE Studio, usa NVENC o AMF. Antes de borrar la Game Bar la app te pregunta.
+en: what gives the most FPS for every extra degree, without touching security: mouse without acceleration, affinity for your games, timer at the minimum, visual effects on performance, no game recording or Game Bar, faster DNS and no notifications in game. It does not include what can bother streaming (high priority, RAM cleaning, hardware GPU); if you stream with OBS or TikTok LIVE Studio, use NVENC or AMF. The app asks you before deleting the Game Bar.
+
+es: lo de Competitivo que no gasta bateria ni calienta de mas: mouse sin aceleracion, afinidad para tus juegos, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware). Antes de borrar la Game Bar la app te pregunta.
+en: the parts of Competitive that don't drain the battery: mouse without acceleration, affinity for your games, lower network latency, faster DNS, no Game Bar and no notifications in game. On battery it prioritizes battery life. It does not include what can bother streaming (high priority, RAM cleaning, hardware GPU). The app asks you before deleting the Game Bar.
+
+es: alrededor de 3 GB de RAM en uso, sin nada abierto en Windows 11 (medido en una PC real; varia con el hardware y los drivers). Para bajar de ahi hace falta una ISO recortada (tiny11 o NTLite).
+en: about 3 GB of RAM in use, with nothing open in Windows 11 (measured on a real PC; it varies with the hardware and drivers). To go lower you need a stripped ISO (tiny11 or NTLite).
+
+es: Ya tenes aplicada una opcion que choca con la que marcaste:
+en: You already have an option applied that clashes with the one you selected:
+
+es: Si la aplicas, deshace la que ya tenias.
+en: If you apply it, it undoes the one you already had.
+
+es: Aplicarla igual
+en: Apply it anyway
+
+es: No aplicarla
+en: Don't apply it
+
+es: Si el disco estaba cifrado con BitLocker, la PC va mas lenta hasta que termine de descifrarse.
+en: If the disk was encrypted with BitLocker, the PC is slower until decryption finishes.
+
+es: El Panel de control de NVIDIA no abre hasta restablecer esta opcion.
+en: The NVIDIA Control Panel will not open until you restore this option.
+
+es: No hace falta: tu PC no tiene el contenedor de pantalla de NVIDIA.
+en: Not needed: your PC doesn't have the NVIDIA display container.
+
+es: No hace falta: tu Windows no tiene estos servicios.
+en: Not needed: your Windows doesn't have these services.
+
+es: Sin Panel de control de NVIDIA hasta restablecer la opcion de NVIDIA.
+en: No NVIDIA Control Panel until you restore the NVIDIA option.
+
+es: Este perfil es EXTREMO y va a apagar o quitar: el antivirus, BitLocker, la integridad de memoria y VBS, Windows Update, la Microsoft Store, Bluetooth, los componentes viejos de Windows y servicios de usuario y de red local (impresion, compartir y Escritorio remoto). La PC queda sin proteccion contra virus ni parches de seguridad, y dejan de andar WSL, Docker y las maquinas virtuales. Casi todo se restablece desde la app; borrar apps (Store y apps basura) no tiene vuelta atras. Si tu antivirus avisa de algun cambio, no lo desactives por tu cuenta: la app te guia.
+en: This profile is EXTREME and will turn off or remove: the antivirus, BitLocker, memory integrity and VBS, Windows Update, the Microsoft Store, Bluetooth, the legacy Windows components and user and local network services (printing, sharing and Remote Desktop). The PC is left without virus protection or security patches, and WSL, Docker and virtual machines stop working. Almost everything is restored from the app; deleting apps (Store and bloatware) cannot be undone. If your antivirus warns about a change, do not turn it off on your own: the app guides you.
+
+es: "No hace falta: tu Windows no tiene el servicio "
+en: "Not needed: your Windows does not have the service "
+
+es: Apagar las notificaciones de Windows ya incluye apagar los avisos emergentes.
+en: Turning off Windows notifications already includes turning off pop-up notices.
+
+es: Los programas clasicos se ven con el estilo basico hasta restablecer.
+en: Classic programs look basic until restored.
+
+es: Puede que no puedas escribir en el Inicio, Configuracion ni apps de la Store, ni usar emojis, Win+V o IME. Proba Win+L antes de reiniciar.
+en: You may not be able to type in Start, Settings or Store apps, or use emojis, Win+V or IME. Try Win+L before restarting.
+
+es: No vas a ver ninguna notificacion de Windows ni de tus programas.
+en: You will not see any notification from Windows or your programs.
+
+es: No podes iniciar sesion con cuenta de Microsoft en Store, Office, OneDrive ni Xbox.
+en: You cannot sign in with a Microsoft account in the Store, Office, OneDrive or Xbox.
+
+es: Las funciones de IA local de Windows no andan.
+en: Local Windows AI features do not work.
+
+es: Sin Vincular con el telefono ni Compartir cerca.
+en: No Phone Link or Nearby Share.

@@ -78,8 +78,8 @@ function Leer-Info {
 }
 
 function Log-Cabecera {
-    $os = Get-CimInstance Win32_OperatingSystem
-    $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
+    $os = Get-CimInstance Win32_OperatingSystem -Property Caption,BuildNumber
+    $cpu = (Get-CimInstance Win32_Processor -Property Name | Select-Object -First 1).Name
     $gpu = (Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }) -join ' / '
     $ubr = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR
     Log 'INFO' ('{0} (build {1}.{2})' -f $os.Caption, $os.BuildNumber, $ubr)

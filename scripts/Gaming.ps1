@@ -98,7 +98,7 @@ function Afi-Plan {
         $nucleos = @([XucaTopo]::Leer(0))
         $l3 = @([XucaTopo]::Leer(2) | Where-Object { $_.Nivel -eq 3 })
     } catch { Log 'FALLO' ('Leer el procesador: ' + $_.Exception.Message) }
-    $r.Cpu = ([string](Get-CimInstance Win32_Processor | Select-Object -First 1).Name).Trim()
+    $r.Cpu = ([string](Get-CimInstance Win32_Processor -Property Name | Select-Object -First 1).Name).Trim()
     if ($nucleos.Count -eq 0) { $r.Motivo = 'no se pudo leer como son los nucleos del procesador'; return $r }
     if (@($nucleos | Where-Object { $_.Grupo -ne 0 }).Count -gt 0) { $r.Motivo = 'el procesador tiene mas de 64 hilos y esta opcion no lo soporta'; return $r }
     $n = $nucleos.Count
@@ -2495,23 +2495,6 @@ $ListaOpciones = @(
         }
     },
     @{
-        Id = 'vfx'; Seccion = 'GRAFICOS'
-        Q = '- Desea poner los efectos visuales de Windows en rendimiento? (Menos animaciones, sombras y transparencias; Windows se ve mas simple)'
-        Hace = 'pone los efectos visuales de Windows en modo rendimiento: menos animaciones, sombras y transparencias.'
-        Favor = 'libera un poco de GPU y CPU en PCs con poca potencia, sobre todo si el juego va justo.'
-        Contra = 'Windows se ve mas simple. En una PC potente casi no cambia los FPS; R lo vuelve atras.'
-        S = {
-            Opt-Ini 'Efectos visuales'
-            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting' 'REG_DWORD' '2'
-            Opt-Fin 'Efectos visuales en modo rendimiento (puede pedir cerrar sesion)'
-        }
-        R = {
-            Opt-Ini 'Efectos visuales (restaurar)'
-            Reg-Del 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting'
-            Opt-Fin 'Efectos visuales vuelven a los de Windows (puede pedir cerrar sesion)'
-        }
-    },
-    @{
         Id = 'mpo'; Seccion = 'GRAFICOS'
         Q = '- Desea desactivar MPO? (Evita parpadeos y cursor invisible; pide reiniciar)'
         Hace = 'apaga MPO (Multiplane Overlay), una funcion de Windows que superpone capas de imagen en pantalla y en algunas PCs causa parpadeos.'
@@ -2571,6 +2554,7 @@ $ListaOpciones = @(
         Favor = 'menos latencia y tiempos de frame mas parejos.'
         Contra = 'mas consumo y calor, sobre todo en notebook.'
         Saltar = {
+            if ((Respuesta 'tr') -ne 'S') { return $false }
             # En Windows 10 (2004 o mas nuevo) cada programa tiene su propio temporizador: uno fijo para todo el sistema no llega a los juegos.
             if (($Build -gt 0) -and ($Build -lt 22000)) { Log 'SALTADO' ('Temporizador: el temporizador global fijo necesita Windows 11 - build ' + $Build); return $true }
             return $false
@@ -2608,8 +2592,9 @@ $ListaOpciones = @(
         Q = '- Desea desactivar SysMain y Prefetch? (Deja la RAM libre; hace falta 16 GB y SSD)'
         Hace = 'apaga SysMain y Prefetch, que precargan programas en la RAM.'
         Favor = 'deja mas RAM libre para el juego.'
-        Contra = 'algunos programas abren un poco mas lento la primera vez.'
+        Contra = 'algunos programas abren un poco mas lento la primera vez. Tambien deja sin efecto la compresion de memoria, que depende de SysMain (con 16 GB o mas casi no se nota); por eso no se puede usar junto con "Activar la compresion de memoria".'
         Saltar = {
+            if ((Respuesta 'sm') -ne 'S') { return $false }
             if (($RamGB -ge 16) -and (-not $EsHdd)) { return $false }
             Say ''
             Say '  SysMain/Prefetch se omite: hace falta 16 GB de RAM o mas y Windows en SSD o NVMe.'

@@ -653,21 +653,29 @@ $Chequeos = @{
         if ($v.Count -eq 0) { return $true }
         @($v | Where-Object { $_ -lt 3 }).Count -eq 0
     }
+    # Las tareas se leen por COM (Schedule.Service): Get-ScheduledTask tarda 10 veces mas
     'Debloat|tsk'   = {
-        $t = @(Get-ScheduledTask -TaskPath '\Microsoft\Windows\Autochk\' -TaskName 'Proxy' -ErrorAction SilentlyContinue)
-        if ($t.Count -eq 0) { return $true }
-        [string]$t[0].State -eq 'Disabled'
+        $s = New-Object -ComObject Schedule.Service; $s.Connect()
+        try { -not $s.GetFolder('\Microsoft\Windows\Autochk').GetTask('Proxy').Enabled } catch { $true }
     }
     'Debloat|cdp'   = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableCdp') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'AllowClipboardHistory') -eq 0) }
     'Debloat|fsb'   = { $v = Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' 'NtfsDisableLastAccessUpdate'; if ($null -eq $v) { return $false }; (([int64]$v) -band 1) -eq 1 }
     'Debloat|rap'   = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control' 'WaitToKillServiceTimeout') -eq '2000') }
     'Debloat|xbs'   = { ((Leer-Svc 'XblAuthManager') -eq 4) -and ((Leer-Svc 'XblGameSave') -eq 4) }
     'Debloat|dia'   = { (Leer-Svc 'DPS') -eq 3 }
-    'Debloat|mc'    = { [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression }
+    'Debloat|mc'    = { [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression -and ((Leer-Svc 'SysMain') -ne 4) }
+    'Debloat|nvd'   = { (Leer-Svc 'NVDisplay.ContainerLocalSystem') -eq 4 }
+    'Debloat|inv'   = { @('InventorySvc', 'whesvc' | ForEach-Object { Leer-Svc $_ } | Where-Object { ($null -ne $_) -and ($_ -ne 4) }).Count -eq 0 }
+    'Debloat|tem'   = { (Leer-Svc 'Themes') -eq 4 }
+    'Debloat|tim'   = { (Leer-Svc 'TextInputManagementService') -eq 4 }
+    'Debloat|tkb'   = { (Leer-Svc 'TokenBroker') -eq 4 }
+    'Debloat|aif'   = { (Leer-Svc 'WSAIFabricSvc') -eq 4 }
+    'Debloat|cdps'  = { (Leer-Svc 'CDPSvc') -eq 4 }
     'Debloat|ofb'   = {
-        $t = @(Get-ScheduledTask -TaskPath '\Microsoft\Office\' -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like 'Office Startup Boost*' })
+        $s = New-Object -ComObject Schedule.Service; $s.Connect()
         # Sin las tareas (no hay Office o ya no existen) el inicio rapido no corre: cuenta como apagado
-        @($t | Where-Object { [string]$_.State -ne 'Disabled' }).Count -eq 0
+        try { $f = $s.GetFolder('\Microsoft\Office') } catch { return $true }
+        @($f.GetTasks(1) | Where-Object { ($_.Name -like 'Office Startup Boost*') -and $_.Enabled }).Count -eq 0
     }
     'Debloat|svh'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control' 'SvcHostSplitThresholdInKB') -eq 67108864 }
     'Debloat|pv'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' 'DisableLocation') -eq 1) }
@@ -708,7 +716,6 @@ $Chequeos = @{
     'Gaming|notif'  = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0 }
     'Gaming|gf'     = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode') -eq 2) -and (([Environment]::OSVersion.Version.Build -lt 22000) -or (([string](Leer-Reg 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences' 'DirectXUserGlobalSettings')) -like '*SwapEffectUpgradeEnable=1*')) }
     'Gaming|mpo'    = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Dwm' 'OverlayTestMode') -eq 5 }
-    'Gaming|vfx'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting') -eq 2 }
     'Gaming|msi'    = {
         # Las mismas placas que toca MSI_ON: video y red PCI que andan bien. Se leen por CIM (Get-PnpDevice a veces no
         # devuelve nada en la lectura en paralelo y la tarjeta quedaba sin etiqueta).
@@ -863,7 +870,7 @@ $Compat = {
         Lap 'Compat: drivers de red'
         try {
             # Ryzen X3D de dos bloques: sin el driver de chipset de AMD falta el "3D V-Cache Performance Optimizer"
-            $cpuN = [string](@(Get-CimInstance Win32_Processor -ErrorAction Stop)[0].Name)
+            $cpuN = [string](@(Get-CimInstance Win32_Processor -Property Name -ErrorAction Stop)[0].Name)
             if ($cpuN -match '(7900|7950|9900|9950)X3D') {
                 if (@(Get-CimInstance Win32_PnPEntity -Filter "Name LIKE '%3D V-Cache%'" -ErrorAction Stop).Count -eq 0) {
                     $i.DrvFalta['Gaming|afi'] = 'falta el driver de chipset de AMD (3D V-Cache Performance Optimizer)'
@@ -1059,7 +1066,7 @@ $XamlTexto = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Xuca OPtimizer" Width="1080" Height="740" MinWidth="420" MinHeight="320"
-        WindowStartupLocation="CenterScreen" Background="#202020" FontFamily="Segoe UI">
+        WindowStartupLocation="CenterScreen" Background="#202020" FontFamily="Segoe UI" RenderOptions.ClearTypeHint="Enabled">
   <Window.Resources>
     <Style x:Key="Nav" TargetType="Button">
       <Setter Property="Foreground" Value="#C9CDD4"/>
@@ -2218,6 +2225,12 @@ $Aviso = [string][char]0x26A0
 
 # Opciones que se sabe que en algunas PCs pueden dar problemas: llevan el icono de advertencia
 $Advertencias = @{
+    'Debloat|tem' = 'Los programas clasicos se ven con el estilo basico hasta restablecer.'
+    'Debloat|tim' = 'Puede que no puedas escribir en el Inicio, Configuracion ni apps de la Store, ni usar emojis, Win+V o IME. Proba Win+L antes de reiniciar.'
+    'Debloat|tkb' = 'No podes iniciar sesion con cuenta de Microsoft en Store, Office, OneDrive ni Xbox.'
+    'Debloat|aif' = 'Las funciones de IA local de Windows no andan.'
+    'Debloat|cdps' = 'Sin Vincular con el telefono ni Compartir cerca.'
+    'Debloat|nvd'  = 'El Panel de control de NVIDIA no abre hasta restablecer esta opcion.'
     'Debloat|rpo'  = 'Ya no vas a poder volver atras con un punto de restauracion.'
     'Debloat|av'   = 'Si la Proteccion contra alteraciones sigue encendida, falla. Smart App Control no vuelve sin reinstalar Windows. Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
     'Debloat|bl'   = 'Descifrar el disco puede tardar bastante en segundo plano. Si cambia algo, borra Riot Vanguard.'
@@ -2294,6 +2307,7 @@ function Casilla-Click($cb0) {
     if ($cb0.IsChecked -eq $true) {
         $k = @($script:Tarjetas.Keys | Where-Object { $script:Tarjetas[$_].Cb -eq $cb0 })[0]
         if ($k -and $script:DrvFalta.ContainsKey($k)) { $cb0.IsChecked = $false; Actualizar-Contador; Pedir-Drivers @($k); return }
+        if ($k) { Revisar-Conflictos $k }
     }
     Actualizar-Contador
 }
@@ -2473,6 +2487,44 @@ if ($Casillas.Debloat.ContainsKey('dold') -and $Casillas.Debloat.ContainsKey('db
     $Casillas.Debloat['dball'].Add_Checked({ $script:Casillas.Debloat['dold'].IsChecked = $false })
 }
 
+# Opciones que chocan: con las dos marcadas una anula o contradice a la otra, asi que se pregunta cual dejar
+$Conflictos = @(
+    @('Debloat|mc',  'Gaming|sm',   'La compresion de memoria necesita SysMain prendido, y la otra opcion lo apaga.', 'C'),
+    @('Debloat|av',  'Gaming|avl',  'Una apaga Defender del todo y la otra solo le baja el uso de CPU: con Defender apagado no sirve de nada.'),
+    @('Debloat|wus', 'Debloat|wup', 'Una apaga Windows Update por completo, asi que no hay actualizaciones que pausar.'),
+    @('Debloat|wus', 'Debloat|wud', 'Con Windows Update apagado no se instalan drivers, asi que la otra opcion no hace falta.'),
+    @('Debloat|msx', 'Debloat|str', 'Sin la Microsoft Store no hay nada que instalar, asi que la otra opcion no hace falta.'),
+    @('Debloat|msx', 'Debloat|su', 'Sin la Microsoft Store no hay apps de la Store que actualizar, asi que la otra opcion no hace falta.'),
+    @('Gaming|xbt', 'Debloat|xbs', 'Quitar Xbox completo ya incluye apagar los servicios de Xbox.'),
+    @('Gaming|xbt', 'Gaming|xm', 'Quitar Xbox completo ya incluye apagar el Modo Xbox.'),
+    @('Gaming|xb', 'Gaming|dvr', 'Borrar la Game Bar ya apaga las grabaciones en segundo plano.'),
+    @('Gaming|nb', 'Gaming|idle', 'Una prioriza la bateria y la otra impide que los nucleos duerman, tambien a bateria.', 'C'),
+    @('Gaming|nb', 'Gaming|tr', 'Una prioriza la bateria y la otra deja el reloj de Windows en 0.5 ms, lo que gasta mas bateria.', 'C'),
+    @('Gaming|nb', 'Gaming|pw', 'Una prioriza la bateria y la otra usa el plan Alto rendimiento: objetivos opuestos.', 'C')
+)
+# $nueva = la casilla que acabas de tocar (si hay). Esc o cerrar el cartel deja la que ya tenias marcada.
+function Revisar-Conflictos([string]$nueva) {
+    foreach ($c in $script:Conflictos) {
+        $a = $c[0]; $b = $c[1]
+        if ($nueva -eq $b) { $a, $b = $b, $a }
+        $pa, $ia = $a -split '\|'; $pb, $ib = $b -split '\|'
+        $ca = $script:Casillas[$pa][$ia]; $cb = $script:Casillas[$pb][$ib]
+        if ((-not $ca) -or (-not $cb)) { continue }
+        $ma = ($ca.IsChecked -eq $true); $mb = ($cb.IsChecked -eq $true)
+        if (-not ($ma -and $mb)) {
+            # Los pares que se contradicen ('C'): marcar una cuando la otra ya esta aplicada deshace la que tenias
+            if (($c.Count -lt 4) -or ($c[3] -ne 'C')) { continue }
+            if ($ma -and ($script:Estados[$b] -eq $true)) { $x = $ca; $o = $b } elseif ($mb -and ($script:Estados[$a] -eq $true)) { $x = $cb; $o = $a } else { continue }
+            $po, $io = $o -split '\|'
+            $q2 = (Con-Enie 'Ya tenes aplicada una opcion que choca con la que marcaste:') + "`n- " + (Titulo-De $po $io) + "`n`n" + (Con-Enie $c[2]) + "`n`n" + (Con-Enie 'Si la aplicas, deshace la que ya tenias.')
+            if (-not (Confirmar ($Aviso + ' Opciones que chocan') $q2 'Aplicarla igual' '#B3412F' 'No aplicarla')) { $x.IsChecked = $false }
+            continue
+        }
+        $q = (Con-Enie 'Estas dos opciones chocan:') + "`n1. " + (Titulo-De $pa $ia) + "`n2. " + (Titulo-De $pb $ib) + "`n`n" + (Con-Enie $c[2]) + "`n`n" + (Con-Enie 'Cual queres dejar marcada?')
+        if (Confirmar ($Aviso + ' Opciones que chocan') $q 'Dejar la 1' '#2E8B57' 'Dejar la 2') { $cb.IsChecked = $false } else { $ca.IsChecked = $false }
+    }
+}
+
 # Que opciones no se pueden usar en esta PC. $i = datos de la PC que junta la lectura de fondo.
 function Calcular-NoDisp($i, $cpu) {
     $r = @{}
@@ -2501,6 +2553,13 @@ function Calcular-NoDisp($i, $cpu) {
         if ([int]$i.RamGB -lt 16) { $q += ('tenes ' + $i.RamGB + ' GB de RAM') }
         if ($i.Hdd) { $q += 'Windows esta en un disco HDD' }
         $r['Gaming|sm'] = ('Tu PC no cumple los requisitos: necesita 16 GB de RAM o mas y Windows en un SSD o NVMe (' + ($q -join ' y ') + ').')
+    }
+    # Con poca RAM el limite de 1024 MB libres se alcanza todo el tiempo: vaciaria el cache sin parar y todo se relee del disco (tirones)
+    if (([int]$i.RamGB -gt 0) -and ([int]$i.RamGB -lt 12)) { $r['Gaming|ram'] = ('Con poca RAM (tenes ' + $i.RamGB + ' GB) vaciaria el cache todo el tiempo y causaria tirones: hace falta 12 GB o mas.') }
+    if ($null -eq (Leer-Svc 'NVDisplay.ContainerLocalSystem')) { $r['Debloat|nvd'] = 'No hace falta: tu PC no tiene el contenedor de pantalla de NVIDIA.' }
+    if (($null -eq (Leer-Svc 'InventorySvc')) -and ($null -eq (Leer-Svc 'whesvc'))) { $r['Debloat|inv'] = 'No hace falta: tu Windows no tiene estos servicios.' }
+    foreach ($p in @(@('tem', 'Themes'), @('tim', 'TextInputManagementService'), @('tkb', 'TokenBroker'), @('aif', 'WSAIFabricSvc'), @('cdps', 'CDPSvc'))) {
+        if ($null -eq (Leer-Svc $p[1])) { $r['Debloat|' + $p[0]] = ('No hace falta: tu Windows no tiene el servicio ' + $p[1] + '.') }
     }
     if (-not $i.Bateria) { $r['Gaming|nb'] = 'No hace falta: es para notebooks y tu PC no tiene bateria.' }
     if ($i.BtConectado -and @($i.BtConectado).Count -gt 0) { $r['Debloat|bt'] = 'No se puede ahora: tenes conectado por Bluetooth ' + (@($i.BtConectado) -join ', ') + '. Desconectalo (o usa otro) y volve a leer los ajustes.' }
@@ -4976,21 +5035,12 @@ $Perfiles = @(
     },
     [pscustomobject]@{
         Id = 'comp'; Nombre = 'Competitivo'; Color = '#8AB4F8'
-        Hace = 'lo que mas FPS da por cada grado de mas, sin tocar la seguridad: mouse sin aceleracion, prioridad y afinidad para tus juegos, temporizador al minimo, modo MSI, juegos en ventana y GPU por hardware, efectos visuales en rendimiento, sin grabacion de juegos ni Game Bar, DNS mas rapido y sin notificaciones en partida. Antes de borrar la Game Bar la app te pregunta.'
+        Hace = 'lo que mas FPS da por cada grado de mas, sin tocar la seguridad: mouse sin aceleracion, afinidad para tus juegos, temporizador al minimo, efectos visuales en rendimiento, sin grabacion de juegos ni Game Bar, DNS mas rapido y sin notificaciones en partida. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware); si haces stream con OBS o TikTok LIVE Studio, usa NVENC o AMF. Antes de borrar la Game Bar la app te pregunta.'
         Ideal = 'jugar competitivo (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL y Deadlock) con la PC protegida. Los antitrampas de esos juegos siguen andando.'
         NoToca = 'el antivirus (ni sus analisis), BitLocker, la integridad de memoria ni VBS, ni el plan de energia ni el procesador (nada de Alto rendimiento, Modo Nitro ni Baja latencia); tampoco borra apps.'
         Adv = 'el Modo Nitro, el plan Alto rendimiento y la Baja latencia no estan incluidos a proposito: suben mucho la temperatura, incluso en reposo. Si los queres, activalos a mano en Gaming y mira las temperaturas.'
-        D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'md', 'vfx', 'fgb', 'dvr')
-    },
-    [pscustomobject]@{
-        Id = 'compopt'; Nombre = 'Competitivo + Optimizado'; Color = '#C58AF9'
-        Hace = 'todo lo de Competitivo y todo lo de Optimizado juntos: lo maximo para jugar y Windows liviano (sin apps basura, hibernacion, efectos visuales, sonidos, apps de inicio ni servicios que casi nadie usa), y Windows Update deja de instalar drivers.'
-        Ideal = 'la PC de juego de todos los dias: el mayor rendimiento con la PC todavia protegida.'
-        NoToca = 'el antivirus (ni sus analisis), BitLocker, la integridad de memoria ni VBS, ni el plan de energia ni el procesador (nada de Alto rendimiento, Modo Nitro ni Baja latencia).'
-        Adv = 'el Modo Nitro, el plan Alto rendimiento y la Baja latencia no estan incluidos a proposito: suben mucho la temperatura, incluso en reposo. Borrar las apps basura no tiene restablecimiento: se reinstalan a mano desde la Store.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini', 'tsk', 'fsb', 'upd')
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'tr', 'ram', 'sm', 'dns', 'md', 'ext', 'stg', 'fgb', 'dvr')
+        D = @('fx')
+        G = @('ms', 'tk', 'du', 'mm', 'afi', 'gm', 'xb', 'notif', 'pca', 'tr', 'sm', 'dns', 'md', 'fgb')
     },
     [pscustomobject]@{
         Id = 'ramlow'; Nombre = 'RAM liviana'; Color = '#FDE68A'
@@ -5007,9 +5057,9 @@ $Perfiles = @(
         Hace = 'lo mas cerca de un Windows recortado sin reinstalar: todo lo de RAM liviana y ademas apaga la hibernacion, el antivirus y BitLocker, Windows Update (y sus drivers), Bluetooth, la Store y el Centro de seguridad, quita la Microsoft Store y los componentes viejos (Internet Explorer, WordPad, SMBv1, PowerShell 2), baja los servicios de usuario y de red local, la grabacion de juegos y el NVIDIA extra, y desactiva la integridad de memoria y VBS.'
         Ideal = 'una PC vieja o con poca RAM que solo tiene que abrir uno o dos programas con el menor consumo posible, sabiendo lo que haces.'
         NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
-        Adv = 'la PC queda sin antivirus, sin parches de seguridad (Windows Update apagado), sin Store ni Bluetooth, y dejan de andar WSL, Docker y las maquinas virtuales. Para pasar de ahi hace falta una ISO recortada (tiny11 o NTLite): desde una Windows instalada no se llega a 0,5 GB.'
-        Estima = '1,3 a 1,8 GB de RAM y 0 a 1 % de CPU, sin nada abierto en Windows 11 (estimado, no medido). Para bajar de ahi hace falta una ISO recortada (tiny11 o NTLite).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'sch', 'wud', 'av', 'bl', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd', 'rmin', 'nvl', 'nvt', 'sx', 'thm', 'leg', 'bt', 'str', 'msx', 'old', 'usv', 'wus')
+        Adv = 'la PC queda sin antivirus, sin parches de seguridad (Windows Update apagado), sin Store ni Bluetooth, y dejan de andar WSL, Docker y las maquinas virtuales. Si el disco estaba cifrado con BitLocker, la PC va mas lenta hasta que termine de descifrarse. Para pasar de ahi hace falta una ISO recortada (tiny11 o NTLite): desde una Windows instalada no se llega a 0,5 GB.'
+        Estima = 'alrededor de 3 GB de RAM en uso, sin nada abierto en Windows 11 (medido en una PC real; varia con el hardware y los drivers). Para bajar de ahi hace falta una ISO recortada (tiny11 o NTLite).'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'sch', 'av', 'bl', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd', 'rmin', 'nvl', 'nvt', 'sx', 'thm', 'leg', 'bt', 'msx', 'old', 'usv', 'wus')
         G = @('tk', 'du', 'gm', 'ext', 'md', 'pca', 'stg', 'mi', 'vbs', 'wsr', 'dvr')
     },
     [pscustomobject]@{
@@ -5023,16 +5073,16 @@ $Perfiles = @(
     },
     [pscustomobject]@{
         Id = 'nbcomp'; Nombre = 'Competitivo - Notebook'; Color = '#8FD3F4'
-        Hace = 'lo de Competitivo que no gasta bateria ni calienta de mas: mouse sin aceleracion, prioridad y afinidad para tus juegos, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. Antes de borrar la Game Bar la app te pregunta.'
+        Hace = 'lo de Competitivo que no gasta bateria ni calienta de mas: mouse sin aceleracion, afinidad para tus juegos, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware). Antes de borrar la Game Bar la app te pregunta.'
         Ideal = 'jugar competitivo en una notebook: enchufada rinde al maximo y a bateria dura mas.'
         NoToca = 'el antivirus (ni sus analisis), la integridad de memoria ni VBS. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.'
         Adv = 'para jugar, enchufa la notebook: a bateria rinde menos a proposito. El Modo Nitro y el plan Alto rendimiento no estan incluidos: en una notebook suben mucho la temperatura.'
         D = @()
-        G = @('ms', 'tk', 'du', 'mm', 'pri', 'afi', 'gm', 'xb', 'notif', 'gf', 'fso', 'pca', 'ram', 'sm', 'nag', 'dns', 'md', 'v4', 'nb')
+        G = @('ms', 'tk', 'du', 'mm', 'afi', 'gm', 'xb', 'notif', 'pca', 'sm', 'nag', 'dns', 'md', 'v4', 'nb')
     },
     [pscustomobject]@{
         Id = 'full'; Nombre = 'Full Optimizado'; Color = '#F28B82'
-        Hace = 'Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga el antivirus y BitLocker, activa el modo MSI, bloquea la telemetria en hosts y apaga Teredo y Windows Search. No toca la integridad de memoria ni VBS.'
+        Hace = 'Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga el antivirus y BitLocker, bloquea la telemetria en hosts y apaga Teredo y Windows Search. No toca la integridad de memoria ni VBS.'
         Ideal = 'una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.'
         NoToca = 'la integridad de memoria ni VBS, los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
         Adv = 'la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales.'
@@ -5049,8 +5099,9 @@ $script:PerfilTxt = @{}
 # Perfiles de notebook: icono y aviso amarillo si la PC es de escritorio (no tiene bateria)
 $script:PerfilEscr = @{}
 $script:SinBateria = $false
+$script:HddPC = $false
 # Perfiles agrupados por categoria, en dos columnas
-$GruposPerf = [ordered]@{ 'Debloat y optimizacion' = @('seguro', 'opt', 'full', 'nbdeb'); 'Competitivo' = @('comp', 'compopt', 'nbcomp'); 'RAM y CPU al minimo' = @('ramlow', 'tiny') }
+$GruposPerf = [ordered]@{ 'Debloat y optimizacion' = @('seguro', 'opt', 'full', 'nbdeb'); 'Competitivo' = @('comp', 'nbcomp'); 'RAM y CPU al minimo' = @('ramlow', 'tiny') }
 $GridPerf = @{}
 foreach ($gk in $GruposPerf.Keys) { $ug = New-Object Windows.Controls.Primitives.UniformGrid; $ug.Columns = 2; $GridPerf[$gk] = $ug }
 foreach ($pf in $Perfiles) {
@@ -5122,18 +5173,20 @@ function Perfil-De([string]$id) { return @($Perfiles | Where-Object { $_.Id -eq 
 # Cuenta que va a marcar cada perfil: lo que falta aplicar, lo que ya tenes y lo que no es compatible
 function Actualizar-Perfiles {
     foreach ($pf in $Perfiles) {
-        $falta = 0; $ya = 0; $nd = 0
+        $falta = 0; $ya = 0; $nd = 0; $dr = 0
         foreach ($par in @(@('Debloat', $pf.D), @('Gaming', $pf.G))) {
             foreach ($id in $par[1]) {
                 $k = $par[0] + '|' + $id
                 if (-not $script:Tarjetas.ContainsKey($k)) { continue }
-                if ($script:NoDisp.ContainsKey($k)) { $nd++ }
+                if ($script:NoDisp.ContainsKey($k) -or (Perfil-Omite $k)) { $nd++ }
                 elseif ($script:Estados[$k] -eq $true) { $ya++ }
+                elseif ($script:DrvFalta.ContainsKey($k)) { $dr++ }
                 else { $falta++ }
             }
         }
         $t = ([string]$falta + ' por aplicar')
         if ($ya -gt 0) { $t += (', ' + $ya + ' ya aplicadas') }
+        if ($dr -gt 0) { $t += (', ' + $dr + ' necesitan drivers') }
         if ($nd -gt 0) { $t += (', ' + $nd + ' no compatibles con tu PC') }
         $script:PerfilTxt[$pf.Id].Text = (Con-Enie ('Opciones: ' + $t + '.'))
         if ($script:PerfilEscr.ContainsKey($pf.Id)) {
@@ -5154,6 +5207,7 @@ function Actualizar-InfoPC($i) {
         $ui.OrigBarra.Visibility = 'Visible'
     } else { $ui.OrigBarra.Visibility = 'Collapsed' }
     $script:SinBateria = [bool]($i -and (-not $i.Bateria))
+    $script:HddPC = [bool]($i -and $i.Hdd)
     if (-not $i) { $script:InfoPC.Text = (Con-Enie 'Tu PC: no se pudo leer.'); return }
     $nombre = $(if ([int]$i.Build -ge 22000) { 'Windows 11' } else { 'Windows 10' })
     $ed = switch -Regex ([string]$i.Edicion) { '^Core' { 'Home' } '^Professional' { 'Pro' } '^Enterprise' { 'Enterprise' } '^Education' { 'Education' } default { [string]$i.Edicion } }
@@ -5169,12 +5223,20 @@ function Actualizar-InfoPC($i) {
 # Marca solo las opciones del perfil (desmarca el resto). Saltea lo no compatible y lo que ya esta aplicado.
 # Devuelve cuantas marco.
 # Opciones del perfil que se van a aplicar y necesitan un driver que te falta
+# Lo que los perfiles no marcan segun la PC (siguen disponibles a mano):
+# - hibernacion en notebook: evita perder lo abierto cuando se agota la bateria
+# - hibernacion y Windows Search en un disco HDD: sin el Inicio rapido el arranque tarda mucho mas, y sin el indice la busqueda recorre todo el disco
+function Perfil-Omite([string]$k) {
+    if (-not $script:Leido) { return $false }
+    if (($k -eq 'Debloat|hib') -and (-not $script:SinBateria)) { return $true }
+    return ((($k -eq 'Debloat|hib') -or ($k -eq 'Gaming|wsr')) -and $script:HddPC)
+}
 function Faltan-Perfil($pf) {
     $r = @()
     foreach ($par in @(@('Debloat', $pf.D), @('Gaming', $pf.G))) {
         foreach ($oid in $par[1]) {
             $k = $par[0] + '|' + $oid
-            if ($script:NoDisp.ContainsKey($k) -or ($script:Estados[$k] -eq $true)) { continue }
+            if ($script:NoDisp.ContainsKey($k) -or ($script:Estados[$k] -eq $true) -or (Perfil-Omite $k)) { continue }
             if ($script:DrvFalta.ContainsKey($k)) { $r += $k }
         }
     }
@@ -5190,7 +5252,12 @@ function Perfil-ConDrivers($pf) {
     }
     $f = @(Faltan-Perfil $pf)
     if ($f.Count -eq 0) { return $true }
-    Pedir-Drivers $f ('El perfil "' + $pf.Nombre + '" tiene ajustes que necesitan drivers que te faltan. Antes de seguir, instalalos:')
+    # El perfil no se bloquea: o instalas los drivers, o sigue con todo lo demas y esos ajustes quedan sin marcar (Marcar-Perfil los saltea)
+    $lineas = @(foreach ($k in $f) { $pp = $k -split '\|'; '- ' + (Titulo-De $pp[0] $pp[1]) + ': ' + $script:DrvFalta[$k] + '.' })
+    $m = (Con-Enie ('El perfil "' + $pf.Nombre + '" tiene ajustes que necesitan drivers que te faltan:')) + "`n" + ($lineas -join "`n") + "`n`n" + (Con-Enie 'Podes instalarlos ahora (te llevo a Herramientas, a "Buscar drivers"; despues toca "Volver a leer los ajustes") o seguir con el perfil sin esos ajustes.')
+    # Cerrar el cartel (Esc o la X) cancela: solo "Seguir sin esos ajustes" sigue con el perfil
+    if (Confirmar ('Faltan drivers para este perfil') $m 'Seguir sin esos ajustes' '#2E8B57' 'Ir a instalar drivers') { return $true }
+    Mostrar-Drivers
     return $false
 }
 
@@ -5211,10 +5278,11 @@ function Marcar-Perfil([string]$id) {
             $k = $par[0] + '|' + $oid
             $cb = $Casillas[$par[0]][$oid]
             if (-not $cb) { continue }
-            if ($script:NoDisp.ContainsKey($k) -or ($script:Estados[$k] -eq $true)) { continue }
+            if ($script:NoDisp.ContainsKey($k) -or ($script:Estados[$k] -eq $true) -or $script:DrvFalta.ContainsKey($k) -or (Perfil-Omite $k)) { continue }
             $cb.IsChecked = $true; $n++
         }
     }
+    Revisar-Conflictos ''
     Actualizar-Bloqueos
     $n = (Elegidas 'Debloat').Count + (Elegidas 'Gaming').Count
     Actualizar-Contador
@@ -5226,7 +5294,8 @@ function Aplicar-Perfil([string]$id) {
     $pf = Perfil-De $id
     if (-not (Perfil-ConDrivers $pf)) { return }
     if (($id -like 'full*' -or $id -eq 'tiny')) {
-        if (-not (Confirmar ($Aviso + ' ' + $pf.Nombre) ('Este perfil apaga el antivirus, BitLocker, la integridad de memoria y VBS. La PC queda sin proteccion contra virus.' + "`n`n" + 'Seguir?') 'Si, aplicar' '#B3412F' 'Cancelar')) { return }
+        $que = $(if ($id -eq 'tiny') { 'Este perfil es EXTREMO y va a apagar o quitar: el antivirus, BitLocker, la integridad de memoria y VBS, Windows Update, la Microsoft Store, Bluetooth, los componentes viejos de Windows y servicios de usuario y de red local (impresion, compartir y Escritorio remoto). La PC queda sin proteccion contra virus ni parches de seguridad, y dejan de andar WSL, Docker y las maquinas virtuales. Casi todo se restablece desde la app; borrar apps (Store y apps basura) no tiene vuelta atras. Si tu antivirus avisa de algun cambio, no lo desactives por tu cuenta: la app te guia.' } else { 'Este perfil apaga el antivirus y BitLocker. La PC queda sin proteccion contra virus.' })
+        if (-not (Confirmar ($Aviso + ' ' + $pf.Nombre) ($que + "`n`n" + 'Seguir?') 'Si, aplicar' '#B3412F' 'Cancelar')) { return }
     }
     if ((Marcar-Perfil $id) -eq 0) { return }
     Aplicar-Seleccion
@@ -6538,7 +6607,7 @@ $ui.BtnLogs.Add_Click({
     Start-Process -FilePath 'explorer.exe' -ArgumentList ('"' + $d + '"')
 })
 
-$ui.BtnTodo.Add_Click({ foreach ($cb in $Casillas[$script:Pagina].Values) { $cb.IsChecked = $true }; Actualizar-Contador })
+$ui.BtnTodo.Add_Click({ foreach ($cb in $Casillas[$script:Pagina].Values) { $cb.IsChecked = $true }; Revisar-Conflictos ''; Actualizar-Contador })
 $ui.BtnNada.Add_Click({ foreach ($cb in $Casillas[$script:Pagina].Values) { $cb.IsChecked = $false }; Actualizar-Contador })
 
 # Boton verde: marca solo lo que no tiene el icono de advertencia, y nunca "Instalar Google Chrome". Lo demas de la pagina se desmarca.
@@ -6638,6 +6707,7 @@ function Mostrar-Drivers {
 
 # Aplica lo marcado en Debloat y Gaming, en una sola pasada (lo usan Aplicar y los perfiles)
 function Aplicar-Seleccion {
+    Revisar-Conflictos ''
     $selD = Elegidas 'Debloat'
     $selG = Elegidas 'Gaming'
     if (($selD.Count + $selG.Count) -eq 0) { Avisar 'Aplicar' 'No marcaste ninguna opcion.'; return }

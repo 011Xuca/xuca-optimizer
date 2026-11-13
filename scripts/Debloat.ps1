@@ -541,32 +541,20 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
         } else {
             & powercfg /hibernate off
             if ($LASTEXITCODE -eq 0) { Log 'OK' 'powercfg /hibernate off' } else { Log 'FALLO' 'powercfg /hibernate off'; $code = 1 }
-            try { Enable-MMAgent -MemoryCompression -ErrorAction SilentlyContinue } catch { }
         }
     }
 
     'HIB_ON' {
-        $hibOn = [IO.File]::Exists($env:SystemDrive + '\hiberfil.sys')
-        $mm = [bool](Get-MMAgent).MemoryCompression
-        if ($hibOn -and $mm) {
-            Log 'OK' 'ya estaba: con hibernacion y con compresion de memoria'
+        $hp = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Power' -ErrorAction SilentlyContinue
+        $hibOn = (($null -eq $hp) -or ($hp.HibernateEnabled -ne 0)) -and [IO.File]::Exists($env:SystemDrive + '\hiberfil.sys')
+        if ($hibOn) {
+            Log 'OK' 'ya estaba: la hibernacion estaba activada'
             $code = 5
         } else {
-            if (-not $hibOn) {
-                & powercfg /hibernate on
-                if ($LASTEXITCODE -eq 0) { Log 'OK' 'powercfg /hibernate on' } else { Log 'FALLO' 'powercfg /hibernate on'; $code = 1 }
-                if ([IO.File]::Exists($env:SystemDrive + '\hiberfil.sys')) { Log 'OK' 'verificado: hiberfil.sys existe' }
-                else { Log 'FALLO' 'no aparecio hiberfil.sys'; $code = 1 }
-            } else {
-                Log 'OK' 'ya estaba: la hibernacion estaba activada'
-            }
-            if (-not $mm) {
-                try { Enable-MMAgent -MemoryCompression -ErrorAction Stop } catch { Log 'FALLO' ('Enable-MMAgent: ' + $_.Exception.Message); $code = 1 }
-                if ((Get-MMAgent).MemoryCompression) { Log 'OK' 'verificado: compresion de memoria activada (estaba apagada)' }
-                else { Log 'FALLO' 'la compresion de memoria no quedo activa'; $code = 1 }
-            } else {
-                Log 'OK' 'ya estaba: la compresion de memoria estaba activa'
-            }
+            & powercfg /hibernate on
+            if ($LASTEXITCODE -eq 0) { Log 'OK' 'powercfg /hibernate on' } else { Log 'FALLO' 'powercfg /hibernate on'; $code = 1 }
+            if ([IO.File]::Exists($env:SystemDrive + '\hiberfil.sys')) { Log 'OK' 'verificado: hiberfil.sys existe' }
+            else { Log 'FALLO' 'no aparecio hiberfil.sys'; $code = 1 }
         }
     }
 
@@ -2179,14 +2167,14 @@ $ListaOpciones = @(
     },
     @{
         Id = 'hib'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
-        Q = '- Desea desactivar la hibernacion? (Libera espacio, apaga el Inicio rapido y activa la compresion de memoria)'
-        Hace = 'apaga la hibernacion y el Inicio rapido, y activa la compresion de memoria.'
+        Q = '- Desea desactivar la hibernacion? (Libera espacio y apaga el Inicio rapido)'
+        Hace = 'apaga la hibernacion y el Inicio rapido.'
         Favor = 'libera varios GB del disco y cada apagado es completo, con menos errores raros.'
-        Contra = 'prender la PC desde apagada tarda unos segundos mas.'
+        Contra = 'prender la PC desde apagada tarda unos segundos mas. En una notebook, si la bateria se agota la PC se apaga y se pierde lo que tenias abierto.'
         S = {
             Opt-Ini 'Hibernacion'
             Resps (Act 'HIB_OFF')
-            Opt-Fin 'Hibernacion desactivada y compresion de memoria activa'
+            Opt-Fin 'Hibernacion desactivada'
         }
         R = {
             Opt-Ini 'Hibernacion (restaurar)'
@@ -2197,11 +2185,14 @@ $ListaOpciones = @(
     @{
         Id = 'mc'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
         Q = '- Desea activar la compresion de memoria? (Windows la trae prendida; algunos optimizadores la apagan)'
-        Hace = 'activa la compresion de memoria: Windows comprime lo que esta en RAM y no se usa, en vez de mandarlo al disco.'
+        Hace = 'activa la compresion de memoria: Windows comprime lo que esta en RAM y no se usa, en vez de mandarlo al disco. Tambien prende SysMain si estaba apagado.'
         Favor = 'con 4 a 8 GB de RAM entran mas programas abiertos y hay menos tirones por usar el archivo de paginacion.'
-        Contra = 'usa un poco de CPU al comprimir. Con 16 GB o mas casi no cambia nada. Necesita el servicio SysMain prendido.'
+        Contra = 'usa un poco de CPU al comprimir. Con 16 GB o mas casi no cambia nada. Necesita SysMain prendido, por eso no se puede usar junto con "Desactivar SysMain y Prefetch".'
         S = {
             Opt-Ini 'Compresion de memoria'
+            # La compresion necesita SysMain: se prende primero (si estaba apagado por la opcion SysMain y Prefetch de Gaming)
+            Svc 'SysMain' 'auto' '2'
+            Svc-Arrancar 'SysMain'
             $mm = $false
             try { $mm = [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression } catch { }
             if ($mm) { Ya-Estaba; Log 'OK' 'ya estaba: compresion de memoria activa' }
@@ -2211,12 +2202,6 @@ $ListaOpciones = @(
                 try { $ok = [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression } catch { }
                 Res $ok 'compresion de memoria activada'
             }
-            # La compresion la maneja SysMain: si esta apagado (opcion SysMain y Prefetch de Gaming) no comprime nada
-            $sm = Reg-Leer 'HKLM\SYSTEM\CurrentControlSet\Services\SysMain' 'Start'
-            if ($sm -and ($sm.Valor -eq 4)) {
-                Log 'ATENCION' 'SysMain esta desactivado: la compresion de memoria no actua hasta que se restablezca SysMain'
-                Say '  Ojo: SysMain esta apagado, y sin el la compresion de memoria no actua. Restablece "SysMain y Prefetch" en Gaming si tenes poca RAM.' 'Yellow'
-            }
             Opt-Fin 'Compresion de memoria activa'
         }
         R = {
@@ -2224,6 +2209,40 @@ $ListaOpciones = @(
             Opt-Ini 'Compresion de memoria (restaurar)'
             Ya-Estaba
             Opt-Fin 'Compresion de memoria como viene en Windows (prendida)'
+        }
+    },
+    @{
+        Id = 'nvd'; Seccion = 'ALMACENAMIENTO Y MEMORIA'
+        Q = '- Desea apagar el contenedor de pantalla de NVIDIA? (Libera RAM; el Panel de control de NVIDIA deja de abrir)'
+        Hace = 'deshabilita y detiene el servicio NVIDIA Display Container (NVDisplay.ContainerLocalSystem), que mantiene abiertos los procesos NVDisplay.Container.'
+        Favor = 'se cierran los procesos NVDisplay.Container y se libera RAM, sin tocar el driver.'
+        Contra = 'el Panel de control de NVIDIA y su icono no abren hasta restablecer. Al actualizar el driver puede volver a prenderse.'
+        S = {
+            Opt-Ini 'Contenedor de pantalla de NVIDIA'
+            Svc 'NVDisplay.ContainerLocalSystem' 'disabled' '4'; Svc-Parar 'NVDisplay.ContainerLocalSystem'
+            Opt-Fin 'Contenedor de pantalla de NVIDIA apagado'
+        }
+        R = {
+            Opt-Ini 'Contenedor de pantalla de NVIDIA (restaurar)'
+            Svc 'NVDisplay.ContainerLocalSystem' 'auto' '2'; Svc-Arrancar 'NVDisplay.ContainerLocalSystem'
+            Opt-Fin 'Contenedor de pantalla de NVIDIA restaurado'
+        }
+    },
+    @{
+        Id = 'inv'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar el Inventario de compatibilidad y Salud de Windows? (Libera algo de RAM y CPU)'
+        Hace = 'deshabilita los servicios InventorySvc (inventario y evaluacion de compatibilidad) y whesvc (Salud y experiencias optimizadas de Windows).'
+        Favor = 'dos procesos menos siempre abiertos y menos uso de CPU en segundo plano.'
+        Contra = 'Windows no evalua si tu PC es compatible con una version nueva hasta restablecer.'
+        S = {
+            Opt-Ini 'Inventario y Salud de Windows'
+            foreach ($s in 'InventorySvc', 'whesvc') { Svc $s 'disabled' '4'; Svc-Parar $s }
+            Opt-Fin 'Inventario y Salud de Windows apagados'
+        }
+        R = {
+            Opt-Ini 'Inventario y Salud de Windows (restaurar)'
+            foreach ($s in 'InventorySvc', 'whesvc') { Svc $s 'delayed-auto' '2'; Svc-Arrancar $s }
+            Opt-Fin 'Inventario y Salud de Windows restaurados'
         }
     },
     @{
@@ -3056,6 +3075,51 @@ $ListaOpciones = @(
             }
             Opt-Fin 'Servicios de usuario restaurados (se aplica al reiniciar sesion)'
         }
+    },
+    @{
+        Id = 'tem'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar el servicio de Temas? (EXTREMO: Windows se ve con el estilo basico)'
+        Hace = 'deshabilita y detiene el servicio Temas (Themes).'
+        Favor = 'un servicio menos; ahorra poca RAM.'
+        Contra = 'los programas clasicos pierden el estilo visual de Windows 11 (botones y ventanas planos y viejos), y los temas y fondos dinamicos dejan de aplicarse. Se arregla restableciendo.'
+        S = { Opt-Ini 'Temas'; Svc 'Themes' 'disabled' '4'; Svc-Parar 'Themes'; Opt-Fin 'Temas apagado' }
+        R = { Opt-Ini 'Temas (restaurar)'; Svc 'Themes' 'auto' '2'; Svc-Arrancar 'Themes'; Opt-Fin 'Temas restaurado' }
+    },
+    @{
+        Id = 'tim'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar la Entrada de texto moderna? (EXTREMO: puede que no puedas escribir en el Inicio ni en Configuracion)'
+        Hace = 'deshabilita y detiene el Servicio de administracion de entrada de texto (TextInputManagementService), que maneja ctfmon y la escritura en las apps modernas.'
+        Favor = 'menos procesos de entrada de texto en segundo plano.'
+        Contra = 'puede que no puedas escribir en la busqueda del Inicio, Configuracion y las apps de la Store, y dejan de andar el panel de emojis, el teclado tactil, el dictado, el historial del portapapeles (Win+V), los idiomas IME y cambiar el teclado con Alt+Shift. Los programas clasicos, los juegos y Discord siguen. Antes de reiniciar, bloquea con Win+L y fijate que puedas escribir tu contrasena.'
+        S = { Opt-Ini 'Entrada de texto moderna'; Svc 'TextInputManagementService' 'disabled' '4'; Svc-Parar 'TextInputManagementService'; Opt-Fin 'Entrada de texto moderna apagado' }
+        R = { Opt-Ini 'Entrada de texto moderna (restaurar)'; Svc 'TextInputManagementService' 'auto' '2'; Svc-Arrancar 'TextInputManagementService'; Opt-Fin 'Entrada de texto moderna restaurado' }
+    },
+    @{
+        Id = 'tkb'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar el Administrador de cuentas web? (EXTREMO: no se inicia sesion con Microsoft en las apps)'
+        Hace = 'deshabilita y detiene el servicio Agente de tokens (TokenBroker).'
+        Favor = 'un servicio menos en segundo plano.'
+        Contra = 'no podes iniciar sesion con tu cuenta de Microsoft en la Store, Office, OneDrive, Xbox, Teams, el Outlook nuevo ni en Configuracion > Cuentas. Tu sesion de Windows y los programas que no usan cuenta de Microsoft siguen.'
+        S = { Opt-Ini 'Cuentas web'; Svc 'TokenBroker' 'disabled' '4'; Svc-Parar 'TokenBroker'; Opt-Fin 'Cuentas web apagado' }
+        R = { Opt-Ini 'Cuentas web (restaurar)'; Svc 'TokenBroker' 'demand' '3'; Opt-Fin 'Cuentas web restaurado' }
+    },
+    @{
+        Id = 'aif'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar el servicio de IA de Windows (AI Fabric)? (Funciones de IA de Copilot+)'
+        Hace = 'deshabilita y detiene WSAIFabricSvc, el servicio que corre los modelos de IA locales de Windows.'
+        Favor = 'un servicio menos siempre prendido.'
+        Contra = 'las funciones de IA local (Click to Do, busqueda semantica, efectos de IA en Fotos y Paint) no andan hasta restablecer.'
+        S = { Opt-Ini 'IA de Windows (servicio)'; Svc 'WSAIFabricSvc' 'disabled' '4'; Svc-Parar 'WSAIFabricSvc'; Opt-Fin 'IA de Windows (servicio) apagado' }
+        R = { Opt-Ini 'IA de Windows (servicio) (restaurar)'; Svc 'WSAIFabricSvc' 'auto' '2'; Svc-Arrancar 'WSAIFabricSvc'; Opt-Fin 'IA de Windows (servicio) restaurado' }
+    },
+    @{
+        Id = 'cdps'; Seccion = 'SISTEMA Y PRIVACIDAD'
+        Q = '- Desea apagar el servicio de Dispositivos conectados? (EXTREMO: sin Vincular con el telefono ni Compartir cerca)'
+        Hace = 'deshabilita y detiene el Servicio de plataforma de dispositivos conectados (CDPSvc).'
+        Favor = 'un servicio menos en segundo plano.'
+        Contra = 'dejan de andar Vincular con el telefono, Compartir cerca (Nearby Share), Continuar en la PC y la sincronizacion entre dispositivos.'
+        S = { Opt-Ini 'Dispositivos conectados'; Svc 'CDPSvc' 'disabled' '4'; Svc-Parar 'CDPSvc'; Opt-Fin 'Dispositivos conectados apagado' }
+        R = { Opt-Ini 'Dispositivos conectados (restaurar)'; Svc 'CDPSvc' 'delayed-auto' '2'; Svc-Arrancar 'CDPSvc'; Opt-Fin 'Dispositivos conectados restaurado' }
     },
     @{
         Id = 'dold'; Seccion = 'BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)'
