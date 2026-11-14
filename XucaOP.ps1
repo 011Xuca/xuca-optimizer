@@ -6027,7 +6027,8 @@ try {
     [IO.File]::WriteAllText($tmp, ($sync.Remota + "`r`n"), $latin)
     $listos += [pscustomobject]@{ Tmp = $tmp; Local = $sync.VerLocal }
     $sync.Paso = 'reemplazando la version vieja'
-    foreach ($l in $listos) { Move-Item -LiteralPath $l.Tmp -Destination $l.Local -Force }
+    # Copy en vez de Move-Item: si el destino esta abierto por otro proceso (ej. el .bat en cmd), Move-Item falla con "Cannot create a file when that file already exists"
+    foreach ($l in $listos) { [IO.File]::Copy($l.Tmp, $l.Local, $true); Remove-Item -LiteralPath $l.Tmp -Force -ErrorAction SilentlyContinue }
 } catch {
     foreach ($l in $listos) { Remove-Item -LiteralPath $l.Tmp -Force -ErrorAction SilentlyContinue }
     $sync.Error = $_.Exception.Message
