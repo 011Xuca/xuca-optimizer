@@ -591,6 +591,21 @@ function Vanguard-Borrar {
 # ------------------------------------------------------------
 # Respuesta de la app para cada opcion: viene en la variable XR_<id> (S, N o R). Sin respuesta = N.
 # ------------------------------------------------------------
+# Nombres de las apps instaladas (Store y programas de escritorio): comparar antes y despues dice que se desinstalo
+function Snap-Apps {
+    $l = New-Object 'System.Collections.Generic.HashSet[string]'
+    foreach ($p in @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue)) {
+        if ((-not $p.IsFramework) -and ($p.SignatureKind -ne 'System')) { [void]$l.Add(([string]$p.Name -replace '^Microsoft\.', '')) }
+    }
+    foreach ($k in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*') {
+        foreach ($i in @(Get-ItemProperty -Path $k -ErrorAction SilentlyContinue)) {
+            # sin la version del final, para que una actualizacion durante la corrida no cuente como app borrada
+            if ($i.DisplayName -and (-not $i.SystemComponent)) { [void]$l.Add((([string]$i.DisplayName) -replace '\s+v?\d+(\.\d+)+.*$', '').Trim()) }
+        }
+    }
+    return , $l
+}
+
 function Respuesta([string]$id) {
     $l = ([string][Environment]::GetEnvironmentVariable('XR_' + $id)).Trim().ToUpper()
     if (($l -eq 'S') -or ($l -eq 'R')) { return $l }
@@ -627,6 +642,14 @@ function Correr-Opciones {
         if (($script:Build -gt 0) -and ($script:Build -lt 22000)) { Say 'Nota: esto esta pensado para Windows 11, en Windows 10 algunas opciones pueden no existir o fallar.' }
         Say ('Cada cambio se verifica y queda anotado en: ' + $script:XLog)
 
+        # Para el resumen final de la app: espacio libre y apps instaladas antes de tocar nada (solo cuando la app lee la salida)
+        $apps0 = $null; $libre0 = -1
+        # XR_XRES lo pone la app solo en Aplicar/Restablecer: las tareas de drivers o de la lista de juegos no necesitan el resumen
+        $conResumen = ($script:XSalida -and ($env:XR_XRES -eq '1'))
+        if ($conResumen) {
+            try { $libre0 = [int64]([IO.DriveInfo]::new($env:SystemDrive.Substring(0, 1)).AvailableFreeSpace) } catch { }
+            $apps0 = Snap-Apps
+        }
         $sec = ''
         foreach ($o in $Lista) {
             if ($o.Seccion -ne $sec) { $sec = $o.Seccion; Say ''; Say ''; Say ('=== ' + $sec + ' ===') }
@@ -652,8 +675,9 @@ function Correr-Opciones {
             if (($let -eq 'R') -and (-not $o.R)) { $let = 'N' }
             Say ''
             Say ($q + ' [' + $let + ']')
-            Log 'PREG' ($let + $de + ' - ' + $q.Substring(0, [math]::Min(80, $q.Length)))
+            # Las que contestaron N no se anotan en el log: solo lo que se activo y lo que dio error
             if ($let -eq 'N') { if ($o.N) { & $o.N | Out-Null }; continue }
+            Log 'PREG' ($let + $de + ' - ' + $q.Substring(0, [math]::Min(80, $q.Length)))
             try {
                 if ($let -eq 'S') { & $o.S | Out-Null } else { & $o.R | Out-Null }
             } catch {
@@ -665,6 +689,14 @@ function Correr-Opciones {
             if ($script:Parar) { return }
         }
 
+        # Lineas para la app (XRES|...): espacio que gano el disco y apps que ya no estan. Si algo cambia, sale en el cartel final.
+        if ($conResumen) {
+            try {
+                $libre1 = [int64]([IO.DriveInfo]::new($env:SystemDrive.Substring(0, 1)).AvailableFreeSpace)
+                if (($libre0 -ge 0) -and (($libre1 - $libre0) -ge 52428800)) { Say ('XRES|libre|' + ($libre1 - $libre0)) }
+            } catch { }
+            if ($apps0) { foreach ($n in @(Snap-Apps | ForEach-Object { $_ })) { [void]$apps0.Remove($n) } ; foreach ($n in ($apps0 | Sort-Object)) { Say ('XRES|app|' + $n) } }
+        }
         Say ''
         Say ''
         Say '=== RESUMEN ==='

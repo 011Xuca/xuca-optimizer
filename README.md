@@ -40,7 +40,7 @@ También podés bajar el repo como ZIP y abrir `XucaOP.bat`.
 
 ## Drivers
 
-- Las opciones con borde **violeta** necesitan un driver. Si te falta, la app no te deja marcarla: te avisa cuál falta y te lleva a **Herramientas > Buscar drivers**. Los perfiles también te avisan antes de seguir.
+- Las opciones con borde **celeste** necesitan un driver. Si te falta, la app no te deja marcarla: te avisa cuál falta y te lleva a **Herramientas > Buscar drivers**. Los perfiles también te avisan antes de seguir.
 - **Buscar drivers** revisa tu PC y te muestra qué conviene bajar (placa de video, chipset, lo que falta de tu placa madre, el programa de tu mouse, teclado o auriculares y si la BIOS está vieja). **No instala nada**: solo te abre la página oficial de lo que falta.
 
 ## Antes de usarlo

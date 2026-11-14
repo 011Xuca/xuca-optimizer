@@ -190,7 +190,7 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
                 if (-not $duenioOk) { try { $duenioOk = @(Get-LocalGroupMember -SID 'S-1-5-32-544' -ErrorAction Stop | Where-Object { $_.SID.Value -eq $dn }).Count -gt 0 } catch { } }
                 $oldOk = (($oi.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and $duenioOk
             } catch { }
-            if (-not $oldOk) { Say 'Windows.old no parece la carpeta que deja Windows al actualizarse: no se toco.' 'Yellow' }
+            if (-not $oldOk) { Say 'Windows.old no parece la carpeta que deja Windows al actualizarse, no se toco.' 'Yellow' }
         }
         if ($oldOk -and ($env:CLEAN_OLD -ne '1')) {
             Say 'Windows.old: no se toco (marcalo si queres borrarla).' 'Yellow'
@@ -246,16 +246,36 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
             if ($cerrados -gt 0) { Say ('  Se cerraron ' + $cerrados + ' programas o ventanas que tenian abierto algo de Windows.old.') 'Yellow' }
 
             # Vigilante: mientras se borra, cada segundo vuelve a cerrar lo que se abra desde Windows.old
+            # Para la barra de la app: cuanto pesa Windows.old y cuanto espacio libre habia. shortcut: si Windows.old tiene hardlinks libera menos de lo medido y el porcentaje no llega a 100, solo se muestra como avance
+            $woBytes = 0; $woLibre0 = 0
+            if ($salida) {
+                Say '  Midiendo el tamano de Windows.old para mostrar el avance...'
+                try {
+                    $woLibre0 = [int64]([IO.DriveInfo]::new($sysDrive.Substring(0, 1)).AvailableFreeSpace)
+                    $rc = & robocopy.exe $old (Join-Path $env:TEMP ('medir_' + [guid]::NewGuid().ToString('N'))) /L /E /XJ /NFL /NDL /NJH /NP /BYTES /MT:16 /R:0 /W:0 2>&1
+                    $mb = [regex]::Match(($rc -join "`n"), '(?m)^\s*Bytes\s*:\s*(\d+)')
+                    if ($mb.Success) { $woBytes = [int64]$mb.Groups[1].Value }
+                } catch { }
+            }
             $vig = [hashtable]::Synchronized(@{ Seguir = $true; Cerrados = 0 })
             $vps = [powershell]::Create()
             [void]$vps.AddScript({
-                param($old, $vig, $codigo)
+                param($old, $vig, $codigo, $archivoAvance, $woBytes, $woLibre0, $unidad)
                 $f = [scriptblock]::Create($codigo)
+                $maxP = 0.0
                 while ($vig.Seguir) {
                     try { $vig.Cerrados += [int](& $f $old) } catch { }
+                    # Avance real: espacio que gano el disco sobre lo que pesa Windows.old. Nunca baja ni llega a 100 hasta terminar.
+                    if ($archivoAvance -and ($woBytes -gt 0)) {
+                        try {
+                            $p = ([int64]([IO.DriveInfo]::new($unidad).AvailableFreeSpace) - $woLibre0) / $woBytes
+                            $maxP = [math]::Max($maxP, [math]::Min([math]::Max($p, 0.0), 0.99))
+                            [IO.File]::WriteAllText($archivoAvance, [string]([int][math]::Round($maxP * 100)))
+                        } catch { }
+                    }
                     Start-Sleep -Milliseconds 1000
                 }
-            }).AddArgument($old).AddArgument($vig).AddArgument($cerrarWo.ToString())
+            }).AddArgument($old).AddArgument($vig).AddArgument($cerrarWo.ToString()).AddArgument($(if ($salida) { $salida + '.wo' } else { '' })).AddArgument($woBytes).AddArgument($woLibre0).AddArgument($sysDrive.Substring(0, 1))
             $vh = $vps.BeginInvoke()
 
             # 2) Una pasada: tomar propiedad, dar permisos y borrar. Si queda algo, un solo reintento rapido (sin volver a

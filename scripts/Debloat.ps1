@@ -391,7 +391,11 @@ function Inicio-Lista {
     if ($fams) { $fams.Close() }
     $win = [string]$env:SystemRoot
     foreach ($e in $r) {
-        $e.Dejar = ($e.Texto -match $rx) -or ($win -and ($e.Ruta -like ('*' + $win + '\*')))
+        # Xuca Monitor y cualquier app "Xuca" nunca se apagan, aunque el nombre venga pegado a otra cosa (ej. 011XucaMonitor)
+        # La carpeta de tu usuario no cuenta: si tu usuario se llama "Xuca", "Intel", "HP"... todo lo que vive en tu carpeta quedaba protegido
+        $txt = $e.Texto
+        if ($env:USERPROFILE) { $txt = $txt.Replace($env:USERPROFILE, '') }
+        $e.Dejar = ($txt -match $rx) -or ($e.Nombre -match '(?i)xuca') -or ($e.Ruta -match '(?i)xuca[^\\/"]*\.(exe|lnk|bat|cmd)') -or ($win -and ($e.Ruta -like ('*' + $win + '\*')))
     }
     return $r
 }
