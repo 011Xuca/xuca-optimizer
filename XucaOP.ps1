@@ -1765,7 +1765,7 @@ function Nuevo-Boton([string]$texto, [string]$color) {
     $b = New-Object Windows.Controls.Button
     $b.Style = $win.FindResource('Accion'); $b.Content = (Con-Enie $texto); $b.Margin = '0,10,8,0'
     if ($color) { $b.Background = (Pincel $color) }
-    if ($color -eq '#9AD7FF') { $b.Foreground = (Pincel '#0B2533') }   # texto oscuro sobre el celeste
+    if (($color -eq '#9AD7FF') -or ($color -eq $ColorDrv)) { $b.Foreground = (Pincel '#0B2533') }   # texto oscuro sobre el celeste
     return $b
 }
 
@@ -2292,8 +2292,8 @@ $AvisosXbox = [ordered]@{
     'Gaming|xbt'  = 'borra la app de Xbox, Gaming Services y la Game Bar y apaga todos los servicios de Xbox: Game Pass, Minecraft y los juegos de la Store dejan de funcionar.'
 }
 
-# Opciones que necesitan un driver para funcionar bien: llevan un icono celeste de descarga y dicen cual bajar
-$ColorDrv = '#9AD7FF'
+# Opciones que necesitan un driver para funcionar bien: llevan un icono violeta de descarga y dicen cual bajar
+$ColorDrv = '#E879F9'
 $Drivers = @{
     'Gaming|wf'  = 'Para apagar "Disable Upon Wired Connect" hace falta el driver de WiFi de la marca (Intel, Realtek o MediaTek), bajado de la pagina de tu placa madre. Con el driver generico de Windows esa opcion no aparece; lo demas se aplica igual.'
     'Gaming|nic' = 'Necesita el driver de red de la pagina de tu placa madre (Realtek, Intel o Killer). Con el driver generico de Windows casi no aparecen estas opciones.'
@@ -4731,7 +4731,7 @@ $spI.Children.Add((Inicio-Caja 'Que hay en cada seccion' $secs)) | Out-Null
 # Antes de empezar
 $ojo = New-Object Windows.Controls.StackPanel
 $ojo.Children.Add((Inicio-Fila $Aviso $false '#E5B567' 'Las opciones en amarillo pueden dar problemas en algunas PCs.' 'Pasa el mouse por encima y te dice por que.')) | Out-Null
-$ojo.Children.Add((Inicio-Fila ([string][char]0xE896) $true $ColorDrv 'Las opciones en celeste necesitan drivers.' 'Si te faltan, la app te avisa y te lleva a Herramientas a buscarlos.')) | Out-Null
+$ojo.Children.Add((Inicio-Fila ([string][char]0xE896) $true $ColorDrv 'Las opciones en violeta necesitan drivers.' 'Si te faltan, la app te avisa y te lleva a Herramientas a buscarlos.')) | Out-Null
 $ojo.Children.Add((Inicio-Fila ([string][char]0xE838) $true '#9AA0A6' 'Todo lo que se cambia queda anotado.' 'Lo ves con "Abrir carpeta de logs", abajo a la izquierda.')) | Out-Null
 $spI.Children.Add((Inicio-Caja 'Antes de empezar' $ojo)) | Out-Null
 
@@ -5947,7 +5947,7 @@ function Aplicar-Lectura($s) {
         if ($vieja) { Poner-Vieja $script:Pills[$k] }
         if ($script:DrvFalta.ContainsKey($k)) {
             $pb = $script:Pills[$k]
-            $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#1F2D37'); $pb.Child.Foreground = (Pincel $ColorDrv); $pb.Child.Text = (Con-Enie 'Faltan drivers')
+            $pb.Visibility = 'Visible'; $pb.Background = (Pincel '#33213A'); $pb.Child.Foreground = (Pincel $ColorDrv); $pb.Child.Text = (Con-Enie 'Faltan drivers')
             $pb.ToolTip = (Con-Enie ($script:DrvFalta[$k] + '.'))
         }
         if ($null -ne $est) { $tot++; if ($est) { $apl++ } }
@@ -6750,7 +6750,7 @@ function Pedir-Drivers($claves, [string]$intro) {
     $lineas = @(foreach ($k in $claves) { $pp = $k -split '\|'; '- ' + (Titulo-De $pp[0] $pp[1]) + ': ' + $script:DrvFalta[$k] + '.' })
     if (-not $intro) { $intro = 'Antes de aplicar o seguir con lo que seleccionaste, tenes que instalar los drivers:' }
     $m = ($intro + "`n" + ($lineas -join "`n") + "`n`n" + 'Te llevo a Herramientas, a "Buscar drivers". Cuando los instales, toca "Volver a leer los ajustes".')
-    if (Confirmar 'Primero instala los drivers' $m 'Ir a instalar drivers' '#9AD7FF' 'Cancelar') { Mostrar-Drivers }
+    if (Confirmar 'Primero instala los drivers' $m 'Ir a instalar drivers' $ColorDrv 'Cancelar') { Mostrar-Drivers }
 }
 function Mostrar-Drivers {
     Ir-A 'Herr'

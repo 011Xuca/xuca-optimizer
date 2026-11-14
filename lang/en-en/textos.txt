@@ -1665,8 +1665,8 @@ en: Options in yellow can cause problems on some PCs.
 es: Pasa el mouse por encima y te dice por que.
 en: Hover over them and it tells you why.
 
-es: Las opciones en celeste necesitan drivers.
-en: Options in light blue need drivers.
+es: Las opciones en violeta necesitan drivers.
+en: Options in violet need drivers.
 
 es: Si te faltan, la app te avisa y te lleva a Herramientas a buscarlos.
 en: If you're missing them, the app tells you and takes you to Tools to find them.
