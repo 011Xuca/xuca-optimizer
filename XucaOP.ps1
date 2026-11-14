@@ -4805,7 +4805,26 @@ try {
             $sync.Carpeta = $dest
         } finally { Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue }
     }
-} catch { $sync.Error = $_.Exception.Message }
+} catch {
+    # Codigo de error segun el tipo de falla de red, para saber que paso sin adivinar
+    $e = $_.Exception; $cod = 'CFG-OTRO'
+    if ($e -is [Net.WebException]) {
+        $cod = switch ($e.Status.ToString()) {
+            'ProtocolError' {
+                $h = [int]$e.Response.StatusCode
+                if (($h -eq 403) -and ($e.Response.Headers['X-RateLimit-Remaining'] -eq '0')) { 'CFG-LIMITE' } else { 'CFG-HTTP' + $h }
+            }
+            'Timeout' { 'CFG-TIMEOUT' }
+            'NameResolutionFailure' { 'CFG-DNS' }
+            'ConnectFailure' { 'CFG-CONEXION' }
+            'TrustFailure' { 'CFG-TLS' }
+            'SecureChannelFailure' { 'CFG-TLS' }
+            'ProxyNameResolutionFailure' { 'CFG-PROXY' }
+            default { 'CFG-RED' }
+        }
+    }
+    $sync.Codigo = $cod; $sync.Error = $e.Message
+}
 $sync.Listo = $true
 '@
 
@@ -4937,18 +4956,26 @@ $cfgTimer.Add_Tick({
     try { $u.PS.Dispose() } catch { }
     $script:CfgRun = $null
     $bRecargar.IsEnabled = $true
+    if ($s.Error) {
+        # Queda en logs\app_errores.txt con el codigo, para poder pedirselo a quien tenga el problema
+        try {
+            $d = Join-Path $Scripts 'logs'
+            if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+            Add-Content -LiteralPath (Join-Path $d 'app_errores.txt') -Value ('[' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + '] configs (' + $s.Modo + ') ' + $s.Codigo + ': ' + $s.Error) -Encoding UTF8
+        } catch { }
+    }
     if ($s.Modo -eq 'lista') {
         if ($s.Error) {
             # Si fallo, al volver a entrar a la pagina se prueba de nuevo
             $script:CfgCargadas = $false
-            Cfg-Mensaje 0xE783 'No se pudo conectar con GitHub' 'Revisa tu internet y toca Recargar.' '#F28B82'
+            Cfg-Mensaje 0xE783 'No se pudo conectar con GitHub' ('Revisa tu internet y toca Recargar.' + "`n`n" + 'Codigo de error: ' + $s.Codigo + "`n" + $s.Error + "`n" + 'Quedo anotado en la carpeta de logs (app_errores.txt).') '#F28B82'
             if ($script:Pagina -eq 'Adicional') { Desplegar $spA }
         } else { Mostrar-Configs $s.Lista }
         return
     }
     $b = $script:CfgBoton; $script:CfgBoton = $null
     if ($b) { $b.IsEnabled = $true; $b.Content = (Con-Enie 'Descargar en el escritorio') }
-    if ($s.Error -or (-not $s.Carpeta)) { Avisar 'No se pudo descargar' 'No se pudo bajar la config. Revisa tu internet y proba de nuevo.'; return }
+    if ($s.Error -or (-not $s.Carpeta)) { Avisar 'No se pudo descargar' ('No se pudo bajar la config. Revisa tu internet y proba de nuevo.' + "`n`n" + 'Codigo de error: ' + $s.Codigo + "`n" + $s.Error + "`n" + 'Quedo anotado en la carpeta de logs (app_errores.txt).'); return }
     Avisar 'Config descargada' ('Se guardo en tu escritorio, en esta carpeta:' + "`n`n" + (Split-Path $s.Carpeta -Leaf) + "`n`n" + 'Adentro estan los archivos y las instrucciones para usarla.')
     # Al tocar OK se abre la carpeta de la config (las instrucciones estan adentro)
     try { Start-Process -FilePath 'explorer.exe' -ArgumentList ('"' + $s.Carpeta + '"') } catch { }
