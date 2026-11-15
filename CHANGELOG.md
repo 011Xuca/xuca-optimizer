@@ -23,6 +23,7 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 - El aviso del perfil Full decía que apaga la integridad de memoria y VBS; solo apaga el antivirus y BitLocker.
 - Restablecer la hibernación decidía "ya estaba" mirando otra cosa que el chequeo de estado.
 - Restablecer "Inventario y Salud de Windows" devuelve el inicio retrasado original.
+- Restablecer "Más servicios apagados" ahora arranca el servicio de Windows Hello (huella o cara), así vuelve a andar sin reiniciar.
 
 ## v1.0.11
 

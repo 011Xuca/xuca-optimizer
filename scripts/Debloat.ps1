@@ -2864,6 +2864,7 @@ $ListaOpciones = @(
             foreach ($n in 'WbioSrvc', 'SensorDataService', 'SensrSvc', 'SensorService', 'wcncsvc', 'WFDSConMgrSvc', 'TapiSrv', 'MSiSCSI', 'fhsvc', 'SDRSVC', 'Wecsvc', 'AxInstSV', 'EntAppSvc', 'TroubleshootingSvc', 'RpcLocator', 'ALG', 'CertPropSvc', 'SmsRouter', 'lmhosts') {
                 Svc $n 'demand' '3'
             }
+            Svc-Arrancar 'WbioSrvc'
             Opt-Fin 'Servicios extra restaurados'
         }
     },
