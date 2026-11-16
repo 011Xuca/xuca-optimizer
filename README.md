@@ -1,6 +1,6 @@
-<img src="XucaOP.ico" width="96" alt="Icono de Xuca OPtimizer">
+<img src="Brio.ico" width="96" alt="Icono de Brío">
 
-# Xuca OPtimizer
+# Brío
 
 Optimizador gratis para **Windows 10 y 11**. Es una app con casillas: marcás lo que querés y tocás **Aplicar**. Antes de tocar nada lee tu PC: te muestra lo que ya tenés aplicado y deja en gris lo que no es compatible. Cada opción te explica qué hace, qué ganás y qué perdés.
 
@@ -9,12 +9,20 @@ Optimizador gratis para **Windows 10 y 11**. Es una app con casillas: marcás lo
 Abrí **PowerShell** y pegá esto:
 
 ```powershell
-irm https://raw.githubusercontent.com/011Xuca/xuca-optimizer/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/011Xuca/brio/main/install.ps1 | iex
 ```
 
-Se instala en `%LOCALAPPDATA%\Xuca OPtimizer` y te deja el acceso directo **Xuca OPtimizer** en el escritorio. La app pide permisos de administrador al abrirse.
+Se instala en `%LOCALAPPDATA%\Brio` y te deja el acceso directo **Brío** en el escritorio. La app pide permisos de administrador al abrirse.
 
-También podés bajar el repo como ZIP y abrir `XucaOP.bat`.
+También podés bajar el repo como ZIP y abrir `Brio.bat`.
+
+**Windows 7 SP1 y 8.1:** primero instalá [WMF 5.1](https://aka.ms/wmf51download) (trae PowerShell 5.1) y usá este comando, que activa TLS 1.2 para poder bajar de GitHub:
+
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://raw.githubusercontent.com/011Xuca/brio/main/install.ps1 | iex
+```
+
+Ahí las opciones que necesitan Windows 10 u 11 aparecen en gris y no se aplican.
 
 ## Cómo se usa
 
@@ -32,8 +40,10 @@ También podés bajar el repo como ZIP y abrir `XucaOP.bat`.
 | **Limpiar caché** | Borra temporales, caché de Windows Update, shaders y otras cosas que ocupan espacio. |
 | **Herramientas** | Drivers recomendados, ajustes de la BIOS, medir FPS antes y después de aplicar (con PresentMon), actualizar Windows, entrar sin contraseña y otras opciones que te piden datos. |
 | **Apps recomendadas** | Programas gratis para revisar, cuidar y limpiar tu PC (CrystalDiskInfo, HWiNFO, DDU, WizTree y más). Cada uno se baja de su página oficial. |
-| **Configs recomendadas** | Configs de juegos y apps que subo a GitHub. Se bajan al escritorio con sus instrucciones. El circulito verde dice cuántas hay. |
+| **Configs recomendadas** | Configs de juegos y apps que subo a GitHub. Se bajan al escritorio con sus instrucciones. El circulito azul dice cuántas hay. |
 
+- En Debloat y Gaming las opciones van agrupadas en categorías ordenadas por impacto: arriba lo que más rendimiento da, abajo la comodidad y la privacidad. Cada categoría se **pliega** con un toque (o con el teclado), muestra cuántas opciones tiene y cuántas marcaste, y la app se acuerda de lo que dejaste plegado. Buscar despliega las categorías con resultados.
+- Las opciones que juntaban cosas distintas están separadas (por ejemplo, la ubicación y el historial de actividad son casillas aparte), así elegís exactamente qué tocar.
 - El botón verde **Marcar solo seguras** marca solo las opciones sin ⚠.
 - Cada opción dice si ya está aplicada en tu PC.
 - Lo que no es compatible con tu Windows aparece en gris.
@@ -52,7 +62,7 @@ También podés bajar el repo como ZIP y abrir `XucaOP.bat`.
 
 ## Más cosas
 
-- **Actualizaciones:** al abrirse, la app revisa si hay una versión nueva en GitHub y te avisa con un cartel amarillo.
+- **Actualizaciones:** al abrirse, la app revisa si hay una versión nueva en GitHub y te avisa con un cartel azul.
 - **Idioma:** español o inglés, con el botón de abajo a la izquierda.
 - **Logs:** con "Abrir carpeta de logs" ves todo lo que se cambió.
 - **Zoom:** Ctrl + rueda del mouse (o Ctrl + / Ctrl -) agranda o achica la app. Ctrl + 0 la vuelve al tamaño normal.

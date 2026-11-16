@@ -4,9 +4,11 @@
 #  Si el version.txt de GitHub es distinto al de tu PC (al lado de este archivo),
 #  al abrir la app sale el cartel celeste de actualizacion.
 # ============================================================
-$XucaRepo = '011Xuca/xuca-optimizer'
-$XucaRama = 'main'
-# Cuanto tarda en abrir (queda en ProgramData\XucaScripts\tiempos_inicio.txt)
+$BrioRepo = '011Xuca/brio'
+$BrioRama = 'main'
+# Nombre visible de la app. La i con tilde se arma con [char] para que el archivo siga en ASCII.
+$NombreApp = 'Br' + [string][char]0xED + 'o'
+# Cuanto tarda en abrir (queda en ProgramData\Brio\tiempos_inicio.txt)
 $TiempoInicio = [Diagnostics.Stopwatch]::StartNew()
 $TiemposInicio = New-Object System.Collections.Generic.List[string]
 function Marca-Inicio([string]$n) { $TiemposInicio.Add(('{0,7} ms  {1}' -f $TiempoInicio.ElapsedMilliseconds, $n)) }
@@ -16,14 +18,19 @@ $ErrorActionPreference = 'Stop'
 # --- Permisos de administrador ---
 $yo = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $yo.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList ('-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $PSCommandPath + '"')
+    # Si en el cartel de Windows tocas "No", se cierra sin mostrar un error
+    try { Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList ('-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $PSCommandPath + '"') } catch { }
     exit
 }
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
+# Si a la PC le falta System32 en el PATH, icacls, reg, sc y los demas no se encontrarian
+$s32 = Join-Path $env:SystemRoot 'System32'
+if ((';' + $env:Path + ';') -notlike ('*;' + $s32 + ';*')) { $env:Path = $s32 + ';' + $env:Path }
+
 function Mostrar-Error($msg) {
-    [Windows.MessageBox]::Show($msg, 'Xuca OPtimizer', 'OK', 'Error') | Out-Null
+    [Windows.MessageBox]::Show($msg, $NombreApp, 'OK', 'Error') | Out-Null
 }
 
 # La app corre como administrador: las paginas y los archivos se abren con explorer.exe para que el navegador
@@ -46,7 +53,7 @@ function Url-Hiber {
     try {
         try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
         $wc = New-Object Net.WebClient
-        $wc.Headers['User-Agent'] = 'XucaOP'
+        $wc.Headers['User-Agent'] = 'Brio'
         $rel = $wc.DownloadString('https://api.github.com/repos/011Xuca/hiber/releases/latest') | ConvertFrom-Json
         $as = @($rel.assets | Where-Object { ([string]$_.name) -match ('^hiber-' + $nav + '-[\d.]+\.zip$') })[0]
         $url = [string]$as.browser_download_url
@@ -70,13 +77,12 @@ $Rutas = [ordered]@{
 }
 # Archivos que se bajan al actualizar (Remoto = donde esta cada uno dentro del repo). El version.txt se baja ultimo.
 # Si agregas un archivo nuevo al repo que la app necesita, sumalo a esta lista para que les llegue a todos.
-# XucaOP.bat puede seguir abierto mientras se reemplaza y cmd sigue leyendo el archivo nuevo desde donde iba:
-# no cambies nada de XucaOP.bat antes de la linea "exit /b" (lo de despues se puede cambiar).
+# Brio.bat abre la app con "start" y termina enseguida: cuando se reemplaza, cmd ya no lo esta leyendo.
 $VersionLocal = Join-Path $Root 'version.txt'
 $ArchivosUpd = @(
-    [pscustomobject]@{ Nombre = 'XucaOP.ps1'; Local = $AppPath; Remoto = 'XucaOP.ps1' },
-    [pscustomobject]@{ Nombre = 'XucaOP.bat'; Local = (Join-Path $Root 'XucaOP.bat'); Remoto = 'XucaOP.bat' },
-    [pscustomobject]@{ Nombre = 'XucaOP.ico'; Local = (Join-Path $Root 'XucaOP.ico'); Remoto = 'XucaOP.ico'; Opc = $true },
+    [pscustomobject]@{ Nombre = 'Brio.ps1'; Local = $AppPath; Remoto = 'Brio.ps1' },
+    [pscustomobject]@{ Nombre = 'Brio.bat'; Local = (Join-Path $Root 'Brio.bat'); Remoto = 'Brio.bat' },
+    [pscustomobject]@{ Nombre = 'Brio.ico'; Local = (Join-Path $Root 'Brio.ico'); Remoto = 'Brio.ico'; Opc = $true },
     [pscustomobject]@{ Nombre = 'CHANGELOG.md'; Local = (Join-Path $Root 'CHANGELOG.md'); Remoto = 'CHANGELOG.md'; Opc = $true },
     [pscustomobject]@{ Nombre = 'LEEME.txt'; Local = (Join-Path $Root 'LEEME.txt'); Remoto = 'LEEME.txt'; Opc = $true },
     [pscustomobject]@{ Nombre = 'Debloat.ps1'; Local = $Rutas.Debloat; Remoto = 'scripts/Debloat.ps1' },
@@ -90,13 +96,106 @@ $ArchivosUpd = @(
 )
 
 # ------------------------------------------------------------
-# Preferencias de la app (idioma y mensaje de Ko-fi). Se guardan en ProgramData\XucaScripts\app_config.txt
+# Datos de la app: desde la 1.0.13 van en ProgramData\Brio (antes ProgramData\XucaScripts).
+# Se pasan una sola vez, la primera vez que abre Brio. Los programitas de Gaming que estaban andando (temporizador,
+# limpieza de RAM, afinidad) se apagan, se mueve todo, se compilan de nuevo con su nombre nuevo y se vuelven a prender
+# con la misma tarea (con el nombre nuevo). Lo mismo con la tarea de la placa NVIDIA y las marcas del registro.
+# Si algo queda trabado, la carpeta vieja no se borra y se vuelve a intentar la proxima vez que abras la app.
 # ------------------------------------------------------------
-$ConfigArchivo = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'app_config.txt'
+function Migrar-Datos([string]$viejo, [string]$nuevo) {
+    # Ya se hizo y no queda carpeta vieja: no se revisa nada (asi no tarda al abrir)
+    $marca = Join-Path $nuevo 'migrado.txt'
+    $vi = Get-Item -LiteralPath $viejo -Force -ErrorAction SilentlyContinue
+    if ((-not $vi) -and (Test-Path -LiteralPath $marca)) { return }
+    $raiz = $null
+    try { $sv = New-Object -ComObject Schedule.Service; $sv.Connect(); $raiz = $sv.GetFolder('\') } catch { }
+    # 1) Tareas viejas (aunque ya no este la carpeta): se guarda como estaban (XML), se borran y se cierran sus programas.
+    #    Son todas las que creo la app con el nombre viejo; la de otras apps (por ejemplo XucaMonitor_Inicio) no se toca.
+    $tareas = @(@('XucaTimer', 'BrioTimer', 'CodTimer'), @('XucaRAM', 'BrioRAM', 'CodRam'), @('XucaAfinidad', 'BrioAfinidad', 'CodAfi'), @('XucaGPU', 'BrioGPU', ''))
+    $xml = @{}
+    foreach ($t in $tareas) {
+        if ($raiz) {
+            $tk = $null
+            try { $tk = $raiz.GetTask($t[0]) } catch { }
+            if ($tk) { $xml[$t[0]] = [string]$tk.Xml; try { $tk.Stop(0) } catch { }; try { $raiz.DeleteTask($t[0], 0) } catch { } }
+        }
+        Get-Process -Name $t[0] -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    }
+    if ($xml.Count -gt 0) { Start-Sleep -Milliseconds 500 }
+    # 2) Mover los datos. Lo que ya este en la carpeta nueva no se pisa.
+    #    Solo una carpeta de verdad: un enlace nunca se borra de forma recursiva (se llevaria lo de adentro del destino).
+    #    Si esto falla, igual se sigue con el paso 3: las tareas ya se borraron y solo quedan guardadas en $xml.
+    try {
+        if (-not (Test-Path -LiteralPath $nuevo)) { New-Item -ItemType Directory -Path $nuevo -Force | Out-Null }
+        if ($vi -and (($vi.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0)) {
+            & robocopy.exe $viejo $nuevo /E /MOVE /XC /XN /XO /R:2 /W:1 /NFL /NDL /NJH /NJS /NP 2>&1 | Out-Null
+            # Lo que quede en la vieja tiene que estar repetido en la nueva para borrarla; si no, se reintenta la proxima vez
+            $quedan = @(Get-ChildItem -LiteralPath $viejo -Recurse -Force -File -ErrorAction SilentlyContinue | Where-Object { -not (Test-Path -LiteralPath (Join-Path $nuevo $_.FullName.Substring($viejo.Length).TrimStart('\'))) })
+            if ($quedan.Count -eq 0) { Remove-Item -LiteralPath $viejo -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+    } catch { }
+    # 3) Los programitas que estaban: el .exe nuevo se compila del codigo de esta version y la tarea es la misma con otro nombre
+    if ($raiz -and ($xml.Count -gt 0)) {
+        $prog = ''
+        try { $prog = [regex]::Match([IO.File]::ReadAllText($Rutas.Gaming), '(?s)# >>> XUCA-PROGRAMAS.*?# <<< XUCA-PROGRAMAS').Value } catch { }
+        if ($prog) { . ([scriptblock]::Create($prog)) }
+        foreach ($t in $tareas) {
+            if (-not $xml.ContainsKey($t[0])) { continue }
+            $x = $xml[$t[0]]
+            if ($t[2]) {
+                $exeV = Join-Path $nuevo ($t[0] + '.exe'); $exe = Join-Path $nuevo ($t[1] + '.exe')
+                Remove-Item -LiteralPath $exeV, ($exeV + '.ver') -Force -ErrorAction SilentlyContinue
+                $cod = Get-Variable -Name $t[2] -ValueOnly -ErrorAction SilentlyContinue
+                if (-not $cod) { continue }
+                try {
+                    if (-not (Test-Path -LiteralPath $exe)) { Add-Type -TypeDefinition $cod -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication -ErrorAction Stop }
+                    Ver-Guardar $exe $cod
+                } catch { continue }
+                $x = [regex]::Replace($x, '(?is)<Command>.*?</Command>', ('<Command>' + [Security.SecurityElement]::Escape($exe) + '</Command>'))
+            }
+            # Todas estas tareas corren como SYSTEM (5 = cuenta de servicio)
+            try { [void]$raiz.RegisterTask($t[1], $x, 6, 'SYSTEM', $null, 5); if ($t[2]) { [void]$raiz.GetTask($t[1]).Run($null) } } catch { }
+        }
+    }
+    # 4) Marcas del registro: la prioridad alta de cada juego y la cuenta que se reabre al volver a entrar
+    $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options'
+    foreach ($k in @(Get-ChildItem -LiteralPath $ifeo -ErrorAction SilentlyContinue)) {
+        $po = $k.PSPath + '\PerfOptions'
+        try {
+            if ((Get-ItemProperty -LiteralPath $po -Name 'XucaPrioridad' -ErrorAction Stop).XucaPrioridad -eq 1) {
+                New-ItemProperty -LiteralPath $po -Name 'BrioPrioridad' -Value 1 -PropertyType DWord -Force | Out-Null
+                Remove-ItemProperty -LiteralPath $po -Name 'XucaPrioridad' -ErrorAction SilentlyContinue
+            }
+        } catch { }
+    }
+    $ro = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce'
+    try {
+        $c = (Get-ItemProperty -LiteralPath $ro -Name 'XucaCuenta' -ErrorAction Stop).XucaCuenta
+        Set-ItemProperty -LiteralPath $ro -Name 'BrioCuenta' -Value $c
+        Remove-ItemProperty -LiteralPath $ro -Name 'XucaCuenta' -ErrorAction SilentlyContinue
+    } catch { }
+    # 5) Que no quede ninguna tarea con el nombre viejo (si alguna no se dejo borrar antes, se prueba de nuevo)
+    $quedanT = 0
+    if ($raiz) {
+        foreach ($t in $tareas) {
+            $tk = $null
+            try { $tk = $raiz.GetTask($t[0]) } catch { }
+            if ($tk) { try { $tk.Stop(0) } catch { }; try { $raiz.DeleteTask($t[0], 0) } catch { $quedanT++ } }
+        }
+    }
+    # Hecho: la proxima vez no se revisa (si quedo algo, se reintenta)
+    if ((-not (Test-Path -LiteralPath $viejo)) -and ($quedanT -eq 0)) { try { Set-Content -LiteralPath $marca -Value (Get-Date -Format 'yyyy-MM-dd HH:mm') -Encoding ASCII } catch { } }
+}
+try { Migrar-Datos (Join-Path $env:ProgramData 'XucaScripts') (Join-Path $env:ProgramData 'Brio') } catch { }
+
+# ------------------------------------------------------------
+# Preferencias de la app (idioma y mensaje de Ko-fi). Se guardan en ProgramData\Brio\app_config.txt
+# ------------------------------------------------------------
+$ConfigArchivo = Join-Path (Join-Path $env:ProgramData 'Brio') 'app_config.txt'
 # En esa carpeta quedan programas que Windows corre como SYSTEM: solo admins y SYSTEM pueden escribir ahi.
 # Si un usuario comun la habia creado antes (y era el duenio), se le saca ese control.
 try {
-    $dXuca = Join-Path $env:ProgramData 'XucaScripts'
+    $dXuca = Join-Path $env:ProgramData 'Brio'
     if (-not (Test-Path -LiteralPath $dXuca)) { New-Item -ItemType Directory -Path $dXuca -Force | Out-Null }
     $aclX = Get-Acl -LiteralPath $dXuca
     $malX = (@('S-1-5-32-544', 'S-1-5-18') -notcontains $aclX.GetOwner([Security.Principal.SecurityIdentifier]).Value) -or (-not $aclX.AreAccessRulesProtected)
@@ -137,15 +236,15 @@ function Windows-EnClaro {
 $script:Claro = ($script:TemaCfg -eq 'claro') -or (($script:TemaCfg -eq 'sistema') -and (Windows-EnClaro))
 # Fondos y sus tonos (oscuro -> claro)
 $MapaClaro = @{
-    '#202020' = '#F2F4F7'; '#191919' = '#FFFFFF'; '#2B2B31' = '#FFFFFF'; '#1C1C1C' = '#F6F7F9'; '#303037' = '#E3E6EC'
+    '#14161B' = '#F2F4F7'; '#111318' = '#FFFFFF'; '#2B2B31' = '#FFFFFF'; '#181B21' = '#F6F7F9'; '#303037' = '#E3E6EC'
     '#35353C' = '#E8EAEE'; '#3B3B43' = '#D5D9E0'; '#46464F' = '#C2C8D1'
-    '#262626' = '#E1E4EA'; '#26262C' = '#F6F7F9'; '#2A3F4D' = '#CFEAFB'; '#1F2D37' = '#E6F5FC'
+    '#1E2129' = '#E1E4EA'; '#26262C' = '#F6F7F9'; '#223454' = '#DBEAFE'; '#18243A' = '#EFF6FF'
     '#0F2119' = '#E3F7EF'; '#163A2B' = '#C9EFDD'
     '#1E3A2C' = '#DDF3E6'; '#1E3A2B' = '#DDF3E6'; '#3A1E1E' = '#FBE3E3'; '#3A1F1F' = '#FBE3E3'
     '#16291F' = '#E5F6EC'; '#2F5A40' = '#A9DCBC'
     '#14FFFFFF' = '#0F000000'; '#0AFFFFFF' = '#08000000'; '#30FFFFFF' = '#22000000'
-    # El celeste #9AD7FF de fondos/bordes queda igual en claro; '#9AD7FE' (casi igual) es solo el celeste de las LETRAS de los XAML (el "OP")
-    '#9AD7FE' = '#0B6FA8'
+    # El celeste #60A5FA de fondos/bordes queda igual en claro; '#60A5FB' (casi igual) es solo el celeste de las LETRAS de los XAML (el "OP")
+    '#60A5FB' = '#1D4ED8'
     # Letras
     '#FFFFFF' = '#15181E'; '#C3C8D0' = '#3E4451'; '#C9CDD4' = '#374151'; '#9AA0A6' = '#5F6672'; '#7D8590' = '#6B7280'
     '#5C6370' = '#8A919C'; '#A9B0BD' = '#4B5260'; '#9AA6C4' = '#5A6684'; '#E6E8EB' = '#1F2937'
@@ -153,7 +252,7 @@ $MapaClaro = @{
 }
 # Letras de color: en claro se oscurecen un poco para que se lean sobre el fondo blanco (solo en textos)
 $MapaLetraClara = @{
-    '#9AD7FF' = '#0B6FA8'; '#81C995' = '#1E7F45'; '#F28B82' = '#C5352A'; '#E5B567' = '#A86A12'
+    '#60A5FA' = '#1D4ED8'; '#81C995' = '#1E7F45'; '#F28B82' = '#C5352A'; '#E5B567' = '#A86A12'
 }
 function Tema-Hex([string]$hex) {
     if ((-not $script:Claro) -or (-not $hex) -or (-not $hex.StartsWith('#'))) { return $hex }
@@ -256,8 +355,10 @@ $ConEnie = @(
     @('\bcontrasena\b', ('contrase' + $Enie + 'a')),
     @('\bContrasena\b', ('Contrase' + $Enie + 'a')),
     @('\bpestana\b', ('pesta' + $Enie + 'a')),
+    @('\bpestanas\b', ('pesta' + $Enie + 'as')),
     @('\banos\b', ('a' + $Enie + 'os')),
-    @('\btamano\b', ('tama' + $Enie + 'o'))
+    @('\btamano\b', ('tama' + $Enie + 'o')),
+    @('\bBrio\b', ('Br' + [string][char]0xED + 'o'))
 )
 # Para buscar sin mayusculas ni acentos: "optimizacion" encuentra "Optimizacion"
 function Sin-Acentos([string]$t) {
@@ -282,8 +383,8 @@ function Bajar-Faltantes {
     $latinB = [Text.Encoding]::GetEncoding(28591)
     foreach ($a in $falta) {
         try {
-            $rq = [Net.HttpWebRequest]::Create('https://raw.githubusercontent.com/' + $XucaRepo + '/' + $XucaRama + '/' + $a.Remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
-            $rq.Timeout = 15000; $rq.ReadWriteTimeout = 15000; $rq.UserAgent = 'XucaOP'
+            $rq = [Net.HttpWebRequest]::Create('https://raw.githubusercontent.com/' + $BrioRepo + '/' + $BrioRama + '/' + $a.Remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
+            $rq.Timeout = 15000; $rq.ReadWriteTimeout = 15000; $rq.UserAgent = 'Brio'
             $rs = $rq.GetResponse()
             try {
                 $ms = New-Object IO.MemoryStream
@@ -308,7 +409,7 @@ Marca-Inicio 'archivos revisados'
 
 $faltan = @($Rutas.Values | Where-Object { -not (Test-Path -LiteralPath $_) })
 if ($faltan.Count -gt 0) {
-    Mostrar-Error ("Faltan estos archivos:`n`n" + ($faltan -join "`n") + "`n`nVan en la carpeta 'scripts', al lado de XucaOP.ps1. Si no tenes internet, bajalos de GitHub o reinstala la app.")
+    Mostrar-Error ("Faltan estos archivos:`n`n" + ($faltan -join "`n") + "`n`nVan en la carpeta 'scripts', al lado de Brio.ps1. Si no tenes internet, bajalos de GitHub o reinstala la app.")
     exit
 }
 # Los .bat viejos ya no se usan (ahora son Gaming.ps1, Debloat.ps1 y Limpieza.ps1): si quedaron de una version anterior, se borran.
@@ -350,10 +451,11 @@ function Leer-Opciones([string]$ruta, [string]$pag) {
     $errPs = $null
     [void][Management.Automation.Language.Parser]::ParseInput($txt, [ref]$null, [ref]$errPs)
     if (@($errPs).Count -gt 0) { throw ((Split-Path -Leaf $ruta) + ' tiene un error en la linea ' + $errPs[0].Extent.StartLineNumber + ': ' + $errPs[0].Message) }
-    $lista = & { . ([scriptblock]::Create($args[0])); $ListaOpciones } $txt
-    foreach ($o in @($lista)) {
+    $def = & { . ([scriptblock]::Create($args[0])); @{ Lista = $ListaOpciones; Win10 = @($SoloWin10) } } $txt
+    foreach ($o in @($def.Lista)) {
         if ((-not $o) -or ($SoloScript -contains $o.Id)) { continue }
-        $it = [pscustomobject]@{ Id = $o.Id; Titulo = (Titulo-Corto $o.Q); Hace = (Sin-R $o.Hace); Favor = (Sin-R $o.Favor); Contra = (Sin-R $o.Contra); ConR = [bool]$o.R; Seccion = $o.Seccion }
+        # Win10 = usa comandos que Windows 7 y 8 no tienen (lista $SoloWin10 del script)
+        $it = [pscustomobject]@{ Id = $o.Id; Titulo = (Titulo-Corto $o.Q); Hace = (Sin-R $o.Hace); Favor = (Sin-R $o.Favor); Contra = (Sin-R $o.Contra); ConR = [bool]$o.R; Seccion = $o.Seccion; Win10 = (@($def.Win10) -contains $o.Id) }
         Traducir-Opcion $pag $it
         $items.Add($it)
     }
@@ -378,7 +480,7 @@ function HasAppx([string]$n) { return ($global:XAppx -contains $n) }
 function Prio-Actuales {
     $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options'
     return @(Get-ChildItem -LiteralPath $ifeo -ErrorAction SilentlyContinue |
-        Where-Object { (Leer-Reg ($_.PSPath + '\PerfOptions') 'XucaPrioridad') -eq 1 } |
+        Where-Object { (Leer-Reg ($_.PSPath + '\PerfOptions') 'BrioPrioridad') -eq 1 } |
         ForEach-Object { $_.PSChildName -replace '(?i)\.exe$', '' })
 }
 # Ahorro de energia de la placa de red. Se busca cada opcion por nombre exacto: con -RegistryKeyword '*EEE'
@@ -428,7 +530,7 @@ function Apps-Conteo {
     $total = @($AppsBasura).Count + 1
     return @{ Hechas = ($total - $quedan); Total = $total; Que = 'borradas'; Quedan = $quedan; Nombres = $nom }
 }
-# Programitas de Gaming (tarea + .exe en ProgramData\XucaScripts): $false si no esta, $true si es el de esta version,
+# Programitas de Gaming (tarea + .exe en ProgramData\Brio): $false si no esta, $true si es el de esta version,
 # 'vieja' si lo instalo una version anterior del script (la app lo muestra como "Desactualizada").
 # Si existe una tarea en la raiz del Programador de tareas. Por COM: Get-ScheduledTask tarda mas de 1 s la primera vez (carga su modulo).
 function Hay-Tarea([string]$tn) {
@@ -439,7 +541,7 @@ function Hay-Tarea([string]$tn) {
 function Prog-Estado([string]$tarea, [string]$exe, [string]$cod) {
     if (-not (Hay-Tarea $tarea)) { return $false }
     if ((-not $cod) -or (-not (Get-Command Ver-Igual -ErrorAction SilentlyContinue))) { return $true }
-    if (Ver-Igual (Join-Path $env:ProgramData ('XucaScripts\' + $exe)) $cod) { return $true }
+    if (Ver-Igual (Join-Path $env:ProgramData ('Brio\' + $exe)) $cod) { return $true }
     return 'vieja'
 }
 function Inicio-Conteo {
@@ -483,8 +585,8 @@ try {
 try { if ($FuncJuegos) { . ([scriptblock]::Create($FuncJuegos)) } } catch { }
 if (-not (Get-Command Juego-Nombre -ErrorAction SilentlyContinue)) { function Juego-Nombre([string]$proc) { return $null } }
 
-$XucaDir = Join-Path $env:ProgramData 'XucaScripts'
-$ListasArchivo = Join-Path $XucaDir 'listas_app.txt'
+$BrioDir = Join-Path $env:ProgramData 'Brio'
+$ListasArchivo = Join-Path $BrioDir 'listas_app.txt'
 $script:JuegosDet = @()     # juegos instalados que se detectaron (los carga la lectura de fondo)
 $script:JuegosNuevos = 0    # cuantos juegos nuevos se sumaron solos a tu lista
 
@@ -498,7 +600,7 @@ function Cat-Juegos {
 # Lo que dejo guardado la afinidad (juegos, programas de fondo y nucleos elegidos)
 function Afi-Config {
     $c = @{}
-    $f = Join-Path $XucaDir 'afinidad.txt'
+    $f = Join-Path $BrioDir 'afinidad.txt'
     if (-not (Test-Path -LiteralPath $f)) { return $c }
     foreach ($l in @(Get-Content -LiteralPath $f -ErrorAction SilentlyContinue)) { $i = $l.IndexOf('='); if ($i -gt 0) { $c[$l.Substring(0, $i)] = $l.Substring($i + 1) } }
     return $c
@@ -556,7 +658,7 @@ function Leer-Listas {
 # $vistos = juegos instalados ya vistos ($null = deja los que habia)
 function Guardar-Listas($juegos, $fondo, $vistos) {
     if ($null -eq $vistos) { $vistos = Leer-Vistos }
-    if (-not (Test-Path -LiteralPath $XucaDir)) { New-Item -ItemType Directory -Path $XucaDir -Force | Out-Null }
+    if (-not (Test-Path -LiteralPath $BrioDir)) { New-Item -ItemType Directory -Path $BrioDir -Force | Out-Null }
     $l = @()
     if ($null -ne $juegos) { $l += ('juegos=' + (@($juegos) -join ',')) }
     if ($null -ne $fondo) { $l += ('fondo=' + (@($fondo) -join ',')) }
@@ -614,8 +716,11 @@ $Chequeos = @{
     'Debloat|bl'    = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\BitLocker' 'PreventDeviceEncryption') -eq 1 }
     'Debloat|hib'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Power' 'HibernateEnabled') -eq 0 }
     'Debloat|rc'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableAIDataAnalysis') -eq 1 }
-    'Debloat|sch'   = { ((Leer-Reg 'HKCU:\AppEvents\Schemes' '(default)') -eq '.None') -and ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation' 'DisableStartupSound') -eq 1) }
-    'Debloat|fx'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting') -eq 3) -and ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'EnableTransparency') -eq 0) }
+    # v1.0.13: las opciones que se dividieron leen cada una solo sus claves (si tenias aplicada la opcion grande, salen todas aplicadas)
+    'Debloat|sch'   = { (Leer-Reg 'HKCU:\AppEvents\Schemes' '(default)') -eq '.None' }
+    'Debloat|sns'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation' 'DisableStartupSound') -eq 1 }
+    'Debloat|fx'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting') -eq 3 }
+    'Debloat|trn'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'EnableTransparency') -eq 0 }
     'Debloat|cal'   = { (Leer-Reg 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter') -eq 1 }
     'Debloat|et'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings' 'TaskbarEndTask') -eq 1 }
     # Sin la excepcion de Xbox (versiones viejas) sale sin aplicar, para que al aplicarla de nuevo Xbox y Minecraft vuelvan a andar de fondo
@@ -623,29 +728,35 @@ $Chequeos = @{
     'Debloat|ini'   = { Inicio-Conteo }
     'Debloat|tel'   = { (Leer-Svc 'DiagTrack') -eq 4 }
     'Debloat|wg'    = { if ([Environment]::OSVersion.Version.Build -lt 22000) { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds' 'EnableFeeds') -eq 0 } else { -not (HasAppx 'MicrosoftWindows.Client.WebExperience') } }
+    'Debloat|tvb'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowTaskViewButton') -eq 0 }
     'Debloat|do'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' 'DODownloadMode') -eq 0 }
     'Debloat|wud'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate') -eq 1 }
     'Debloat|wup'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'FlightSettingsMaxPauseDays') -eq 7300 }
-    'Debloat|ad'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SystemPaneSuggestionsEnabled') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB') -eq 0) }
+    'Debloat|ad'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SystemPaneSuggestionsEnabled') -eq 0) -and ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo' 'Enabled') -eq 0) }
+    'Debloat|bng'   = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB') -eq 0) }
     'Debloat|sv'    = { ((Leer-Svc 'MapsBroker') -eq 4) -and ((Leer-Svc 'WerSvc') -eq 4) }
     'Debloat|rsv'   = { ((Leer-Svc 'WalletService') -eq 4) -and ((Leer-Svc 'TrkWks') -eq 4) }
-    'Debloat|rmin'  = { ((Leer-Svc 'Spooler') -eq 4) -and ((Leer-Svc 'SSDPSRV') -eq 4) }
+    'Debloat|rmin'  = { (Leer-Svc 'Spooler') -eq 4 }
+    'Debloat|rnet'  = { (Leer-Svc 'SSDPSRV') -eq 4 }
+    'Debloat|rdp'   = { (Leer-Svc 'TermService') -eq 4 }
     'Debloat|sx'    = { ((Leer-Svc 'RpcLocator') -eq 4) -and ((Leer-Svc 'TapiSrv') -eq 4) }
     'Debloat|bt'    = { $v = Leer-Svc 'bthserv'; if ($null -eq $v) { return $true }; $v -eq 4 }
     'Debloat|str'   = { ((Leer-Svc 'InstallService') -eq 4) -and ((Leer-Svc 'LicenseManager') -eq 4) }
     'Debloat|wus'   = { ((Leer-Svc 'wuauserv') -eq 4) -and ((Leer-Svc 'UsoSvc') -eq 4) }
     'Debloat|thm'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'IconsOnly') -eq 1 }
-    'Debloat|leg'   = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance' 'fAllowToGetHelp') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting' 'Disabled') -eq 1) }
-    'Debloat|old'   = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\old_apagado.txt') }
+    'Debloat|leg'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance' 'fAllowToGetHelp') -eq 0 }
+    'Debloat|apl'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' 'DisableAutoplay') -eq 1 }
+    'Debloat|wer'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting' 'Disabled') -eq 1 }
+    'Debloat|old'   = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\old_apagado.txt') }
     'Debloat|msx'   = { -not (HasAppx 'Microsoft.WindowsStore') }
     'Debloat|usv'   = { ((Leer-Svc 'UserDataSvc') -eq 4) -and ((Leer-Svc 'OneSyncSvc') -eq 4) }
-    'Debloat|dold' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_dold.txt') }
-    'Debloat|dball' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_dball.txt') }
-    'Debloat|rbs' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_rbs.txt') }
-    'Debloat|drs' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_drs.txt') }
-    'Debloat|wre' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_wre.txt') }
-    'Debloat|lang' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_lang.txt') }
-    'Debloat|acc'  = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\sv_acc.txt') }
+    'Debloat|dold' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\sv_dold.txt') }
+    'Debloat|dball' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\sv_dball.txt') }
+    'Debloat|rbs' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\sv_rbs.txt') }
+    'Debloat|drs' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\sv_drs.txt') }
+    'Debloat|wre' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\sv_wre.txt') }
+    'Debloat|lang' = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\sv_lang.txt') }
+    'Debloat|acc'  = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\sv_acc.txt') }
     'Debloat|nvl'   = { $v = Leer-Svc 'NvContainerLocalSystem'; if ($null -eq $v) { return $true }; $v -ge 3 }
     'Debloat|nvt'   = { (Leer-Reg 'HKLM:\SOFTWARE\NVIDIA Corporation\NvTray' 'StartOnLogin') -eq 0 }
     'Debloat|upd'   = {
@@ -658,9 +769,11 @@ $Chequeos = @{
         $s = New-Object -ComObject Schedule.Service; $s.Connect()
         try { -not $s.GetFolder('\Microsoft\Windows\Autochk').GetTask('Proxy').Enabled } catch { $true }
     }
-    'Debloat|cdp'   = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableCdp') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'AllowClipboardHistory') -eq 0) }
+    'Debloat|cdp'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableCdp') -eq 0 }
+    'Debloat|clh'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'AllowClipboardHistory') -eq 0 }
     'Debloat|fsb'   = { $v = Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' 'NtfsDisableLastAccessUpdate'; if ($null -eq $v) { return $false }; (([int64]$v) -band 1) -eq 1 }
     'Debloat|rap'   = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control' 'WaitToKillServiceTimeout') -eq '2000') }
+    'Debloat|sud'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize' 'StartupDelayInMSec') -eq 0 }
     'Debloat|xbs'   = { ((Leer-Svc 'XblAuthManager') -eq 4) -and ((Leer-Svc 'XblGameSave') -eq 4) }
     'Debloat|dia'   = { (Leer-Svc 'DPS') -eq 3 }
     'Debloat|mc'    = { [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression -and ((Leer-Svc 'SysMain') -ne 4) }
@@ -678,14 +791,27 @@ $Chequeos = @{
         @($f.GetTasks(1) | Where-Object { ($_.Name -like 'Office Startup Boost*') -and $_.Enabled }).Count -eq 0
     }
     'Debloat|svh'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control' 'SvcHostSplitThresholdInKB') -eq 67108864 }
-    'Debloat|pv'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed') -eq 0) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' 'DisableLocation') -eq 1) }
+    'Debloat|pv'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed') -eq 0 }
+    'Debloat|pvu'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' 'DisableLocation') -eq 1 }
+    'Debloat|pvw'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\WcmSvc\wifinetworksettings' 'AutoConnectAllowedOEM') -eq 0 }
+    'Debloat|pvs'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\SettingSync' 'DisableSettingSync') -eq 2 }
+    'Debloat|pve'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\InputPersonalization' 'AllowInputPersonalization') -eq 0 }
+    'Debloat|pvv'   = { ((Leer-Reg 'HKCU:\Software\Microsoft\Speech_OneCore\Settings\VoiceActivation\UserPreferenceForAllApps' 'AgentActivationEnabled') -eq 0) -and ((Leer-Reg 'HKCU:\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy' 'HasAccepted') -eq 0) }
+    'Debloat|pvm'   = { (Leer-Reg 'HKLM:\SYSTEM\Maps' 'AutoUpdateEnabled') -eq 0 }
+    'Debloat|pvl'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\WMDRM' 'DisableOnline') -eq 1 }
     'Debloat|ter'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\TCPIP\v6Transition' 'Teredo_State') -eq 'Disabled' }
-    'Debloat|tp'    = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' 'POWERSHELL_TELEMETRY_OPTOUT') -eq '1' }
+    'Debloat|tp'    = { (Leer-Reg 'HKCU:\Software\Policies\Microsoft\office\16.0\common\clienttelemetry' 'DisableTelemetry') -eq 1 }
+    # Sin NVIDIA no hay nada que apagar (igual que 'nvl')
+    'Debloat|tpn'   = { if (-not (Test-Path -LiteralPath 'HKLM:\SOFTWARE\NVIDIA Corporation')) { return $true }; (Leer-Reg 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\FTS' 'EnableRID44231') -eq 0 }
+    'Debloat|tps'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' 'POWERSHELL_TELEMETRY_OPTOUT') -eq '1' }
     'Debloat|hst'   = { [bool](Select-String -LiteralPath (Join-Path $env:SystemRoot 'System32\drivers\etc\hosts') -SimpleMatch -Pattern '# xuca-telemetria' -Quiet) }
     'Debloat|eb'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled') -eq 0 }
+    'Debloat|ebb'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled') -eq 1 }
     'Debloat|cam'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode') -eq 1 }
     'Debloat|su'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload') -eq 2 }
-    'Debloat|ia'    = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\WindowsNotepad' 'DisableAIFeatures') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableClickToDo') -eq 1) }
+    'Debloat|ia'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableClickToDo') -eq 1 }
+    'Debloat|iap'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\WindowsNotepad' 'DisableAIFeatures') -eq 1 }
+    'Debloat|iao'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Office\16.0\Word\Options' 'EnableCopilot') -eq 0 }
     'Debloat|db'    = { Apps-Conteo }
     'Debloat|edge'  = { @(@((${env:ProgramFiles(x86)} + '\Microsoft\Edge\Application\msedge.exe'), ($env:ProgramFiles + '\Microsoft\Edge\Application\msedge.exe')) | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0 }
     'Debloat|chr'   = { @(@(($env:ProgramFiles + '\Google\Chrome\Application\chrome.exe'), (${env:ProgramFiles(x86)} + '\Google\Chrome\Application\chrome.exe'), ($env:LOCALAPPDATA + '\Google\Chrome\Application\chrome.exe')) | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0 }
@@ -694,16 +820,16 @@ $Chequeos = @{
     'Gaming|du'     = { (Leer-Reg 'HKCU:\Software\Microsoft\Multimedia\Audio' 'UserDuckingPreference') -eq 3 }
     'Gaming|mm'     = { ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games' 'Scheduling Category') -eq 'High') -and ((Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile' 'SystemResponsiveness') -eq 10) }
     'Gaming|pri'    = { (Prio-Actuales).Count -gt 0 }
-    'Gaming|afi'    = { Prog-Estado 'XucaAfinidad' 'XucaAfinidad.exe' $CodAfi }
+    'Gaming|afi'    = { Prog-Estado 'BrioAfinidad' 'BrioAfinidad.exe' $CodAfi }
     'Gaming|pw'     = { $global:XPlan -eq '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' }
     # Con la copia de tus valores, o (si ya estaban asi y no se guardo copia) con los 4 ajustes principales leidos del plan
     'Gaming|cpu'    = {
         if (-not $global:XPlan) { return $null }
         # Solo la copia cuenta: leer los valores del plan marcaba "aplicado" aunque los de fabrica ya coincidan con Nitro
-        Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\cpu_' + $global:XPlan + '.txt'))
+        Test-Path -LiteralPath (Join-Path $env:ProgramData ('Brio\cpu_' + $global:XPlan + '.txt'))
     }
-    'Gaming|fso'    = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'XucaScripts\fso.txt') }
-    'Gaming|nb'     = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('XucaScripts\nb_' + $global:XPlan + '.txt')) }
+    'Gaming|fso'    = { Test-Path -LiteralPath (Join-Path $env:ProgramData 'Brio\fso.txt') }
+    'Gaming|nb'     = { if (-not $global:XPlan) { return $null }; Test-Path -LiteralPath (Join-Path $env:ProgramData ('Brio\nb_' + $global:XPlan + '.txt')) }
     'Gaming|ll'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1213986446' 'EnabledState') -eq 2 }
     'Gaming|idle'   = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\54533251-82be-4824-96c1-47b60b740d00\5d76a2ca-e8c0-402f-a133-2158492d58ad') 'ACSettingIndex') -eq 1 }
     'Gaming|fgb'    = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl' 'Win32PrioritySeparation') -eq 38 }
@@ -714,7 +840,8 @@ $Chequeos = @{
     'Gaming|xm'     = { $v = Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GamingConfiguration' 'GamingHomeApp'; ($null -ne $v) -and ([string]$v -eq '') }
     'Gaming|wf'     = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WcmSvc\GroupPolicy' 'fMinimizeConnections') -eq 0 }
     'Gaming|notif'  = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0 }
-    'Gaming|gf'     = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode') -eq 2) -and (([Environment]::OSVersion.Version.Build -lt 22000) -or (([string](Leer-Reg 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences' 'DirectXUserGlobalSettings')) -like '*SwapEffectUpgradeEnable=1*')) }
+    'Gaming|gf'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode') -eq 2 }
+    'Gaming|wgo'    = { ([string](Leer-Reg 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences' 'DirectXUserGlobalSettings')) -like '*SwapEffectUpgradeEnable=1*' }
     'Gaming|mpo'    = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\Dwm' 'OverlayTestMode') -eq 5 }
     'Gaming|msi'    = {
         # Las mismas placas que toca MSI_ON: video y red PCI que andan bien. Se leen por CIM (Get-PnpDevice a veces no
@@ -726,10 +853,12 @@ $Chequeos = @{
         @($ids | Where-Object { (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Enum\' + $_ + '\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties') 'MSISupported') -ne 1 }).Count -eq 0
     }
     'Gaming|pca'    = { (Leer-Svc 'PcaSvc') -eq 4 }
-    'Gaming|tr'     = { if ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel' 'GlobalTimerResolutionRequests') -ne 1) { $false } else { Prog-Estado 'XucaTimer' 'XucaTimer.exe' $CodTimer } }
-    'Gaming|ram'    = { Prog-Estado 'XucaRAM' 'XucaRAM.exe' $CodRam }
+    'Gaming|tr'     = { if ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel' 'GlobalTimerResolutionRequests') -ne 1) { $false } else { Prog-Estado 'BrioTimer' 'BrioTimer.exe' $CodTimer } }
+    'Gaming|ram'    = { Prog-Estado 'BrioRAM' 'BrioRAM.exe' $CodRam }
     'Gaming|sm'     = { (Leer-Svc 'SysMain') -eq 4 }
     'Gaming|pe'     = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\2a737441-1930-4402-8d77-b2bebba308a3\48e6b7a6-50f5-4782-a5d4-53bb8f07e226') 'ACSettingIndex') -eq 0 }
+    'Gaming|pci'    = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\501a4d13-42af-4429-9fd1-a8218c268e20\ee12f906-d277-404b-b6da-e5fa1a576df5') 'ACSettingIndex') -eq 0 }
+    'Gaming|dsk'    = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\0012ee47-9041-4b5d-9b77-535fba8b1442\6738e2c4-e8a5-4a42-b16a-e040e769756e') 'ACSettingIndex') -eq 0 }
     'Gaming|nic'    = {
         $n = Leer-Nic
         if (@($n.Vals).Count -eq 0) { return $null }
@@ -750,14 +879,15 @@ $Chequeos = @{
         if ($vals.Count -eq 0) { return $null }
         @($vals | Where-Object { -not $_ }).Count -eq 0
     }
-    'Gaming|dns'    = { @(Get-ChildItem -LiteralPath (Join-Path $env:ProgramData 'XucaScripts') -Filter 'dns_*.txt' -ErrorAction SilentlyContinue).Count -gt 0 }
+    'Gaming|dns'    = { @(Get-ChildItem -LiteralPath (Join-Path $env:ProgramData 'Brio') -Filter 'dns_*.txt' -ErrorAction SilentlyContinue).Count -gt 0 }
     'Gaming|mi'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' 'Enabled') -eq 0 }
     'Gaming|avl'    = { (Get-MpPreference -ErrorAction Stop).ScanAvgCPULoadFactor -eq 5 }
     'Gaming|vbs'    = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard' 'EnableVirtualizationBasedSecurity') -eq 0 }
     'Gaming|spc'    = { ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' 'FeatureSettingsOverride') -eq 3) -and ((Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' 'FeatureSettingsOverrideMask') -eq 3) }
     'Gaming|wsr'    = { (Leer-Svc 'WSearch') -eq 4 }
     'Gaming|stg'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\StorageSense' 'AllowStorageSenseGlobal') -eq 0 }
-    'Gaming|ext'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt') -eq 0 -and (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden') -eq 1 }
+    'Gaming|ext'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt') -eq 0 }
+    'Gaming|hid'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden') -eq 1 }
     'Gaming|md'     = { (Leer-Reg 'HKCU:\Control Panel\Desktop' 'MenuShowDelay') -eq '0' }
     'Gaming|v4'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters' 'DisabledComponents') -eq 32 }
 }
@@ -777,7 +907,7 @@ $Previo = {
     $ErrorActionPreference = 'Stop'
     . ([scriptblock]::Create($Funcs))
     $global:XPlan = $Plan; $global:XAppx = @(); $global:XAppxFijas = @(); $global:XCpuClase = ''
-    # Cuanto tarda cada parte (queda en ProgramData\XucaScripts\tiempos_lectura.txt para ver que conviene acelerar)
+    # Cuanto tarda cada parte (queda en ProgramData\Brio\tiempos_lectura.txt para ver que conviene acelerar)
     $global:LapSw = [Diagnostics.Stopwatch]::StartNew()
     function Lap([string]$n) { $Sync.Tiempos[$n] = $global:LapSw.ElapsedMilliseconds; $global:LapSw.Restart() }
     function Sumar { [Threading.Monitor]::Enter($Sync.Lock); try { $Sync.Hecho = $Sync.Hecho + 1 } finally { [Threading.Monitor]::Exit($Sync.Lock) } }
@@ -957,7 +1087,7 @@ $Procesador = {
     Lap 'Procesador'
     try { $Sync.Prio = @(Prio-Actuales) } catch { $Sync.Prio = @() }
     Lap 'Prioridad actual'
-    try { $Sync.TareaAfi = (Hay-Tarea 'XucaAfinidad') } catch { $Sync.TareaAfi = $false }
+    try { $Sync.TareaAfi = (Hay-Tarea 'BrioAfinidad') } catch { $Sync.TareaAfi = $false }
     Lap 'Tarea de afinidad'
     Sumar
     $clase
@@ -1052,7 +1182,7 @@ try {
     try {
         $lin = @('Lectura de Windows: ' + $swTotal.ElapsedMilliseconds + ' ms en total (' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + ')', '')
         $lin += @($Sync.Tiempos.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object { ('{0,7} ms  {1}' -f $_.Value, $_.Key) })
-        [IO.File]::WriteAllLines((Join-Path $env:ProgramData 'XucaScripts\tiempos_lectura.txt'), [string[]]$lin)
+        [IO.File]::WriteAllLines((Join-Path $env:ProgramData 'Brio\tiempos_lectura.txt'), [string[]]$lin)
     } catch { }
     $Sync.Resultados = $res
     $Sync.Listo = $true
@@ -1065,8 +1195,8 @@ try {
 $XamlTexto = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Xuca OPtimizer" Width="1080" Height="740" MinWidth="420" MinHeight="320"
-        WindowStartupLocation="CenterScreen" Background="#202020" FontFamily="Segoe UI" RenderOptions.ClearTypeHint="Enabled">
+        Title="Br&#237;o" Width="1080" Height="740" MinWidth="420" MinHeight="320"
+        WindowStartupLocation="CenterScreen" Background="#14161B" FontFamily="Segoe UI" RenderOptions.ClearTypeHint="Enabled">
   <Window.Resources>
     <Style x:Key="Nav" TargetType="Button">
       <Setter Property="Foreground" Value="#C9CDD4"/>
@@ -1196,7 +1326,7 @@ $XamlTexto = @'
           <ControlTemplate TargetType="Button">
             <Grid x:Name="g" RenderTransformOrigin="0.5,0.5">
               <Grid.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
-              <Border x:Name="b" Background="#9AD7FF" CornerRadius="10" Padding="{TemplateBinding Padding}">
+              <Border x:Name="b" Background="#60A5FA" CornerRadius="10" Padding="{TemplateBinding Padding}">
                 <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
               </Border>
               <!-- Relleno blanco que se abre desde el centro al tocar (como en Android) -->
@@ -1240,51 +1370,92 @@ $XamlTexto = @'
     </Grid.ColumnDefinitions>
 
     <!-- Barra de la izquierda: panel flotante con bordes redondos -->
-    <Border x:Name="Barra" Grid.Column="0" Background="#191919" BorderBrush="#262626" BorderThickness="1" CornerRadius="8" Margin="12,12,0,12" Padding="14,16">
+    <Border x:Name="Barra" Grid.Column="0" Background="#111318" BorderBrush="#1E2129" BorderThickness="1" CornerRadius="8" Margin="12,12,0,12" Padding="14,16">
       <Border.RenderTransform><TranslateTransform/></Border.RenderTransform>
       <DockPanel LastChildFill="False">
         <StackPanel DockPanel.Dock="Top">
           <!-- Recuadro del nombre -->
-          <Border CornerRadius="8" BorderThickness="1" BorderBrush="#3B3B43" Background="#262626" Padding="14,12" Margin="0,0,0,18">
+          <Border CornerRadius="8" BorderThickness="1" BorderBrush="#3B3B43" Background="#1E2129" Padding="14,12" Margin="0,0,0,18">
             <StackPanel>
-              <TextBlock Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold"><Run Text="Xuca "/><Run Text="OP" Foreground="#9AD7FE" FontWeight="Bold"/><Run Text="timizer"/></TextBlock>
+              <TextBlock Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold"><Run Text="Br&#237;o"/></TextBlock>
               <TextBlock Text="Optimizador para Windows" Foreground="#9AA6C4" FontSize="11.5" Margin="0,2,0,0"/>
             </StackPanel>
           </Border>
-          <Button x:Name="NavPerfiles" Style="{StaticResource Nav}">
-            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Perfiles" VerticalAlignment="Center"/></StackPanel>
-          </Button>
-          <Button x:Name="NavDebloat" Style="{StaticResource Nav}">
-            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Debloat y privacidad" VerticalAlignment="Center"/></StackPanel>
-          </Button>
-          <Button x:Name="NavGaming" Style="{StaticResource Nav}">
-            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Optimizacion gaming" VerticalAlignment="Center"/></StackPanel>
-          </Button>
-          <Button x:Name="NavLimpieza" Style="{StaticResource Nav}">
-            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Limpiar cache" VerticalAlignment="Center"/></StackPanel>
-          </Button>
-          <Button x:Name="NavHerr" Style="{StaticResource Nav}">
-            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Herramientas" VerticalAlignment="Center"/></StackPanel>
-          </Button>
+          <!-- Circulito en la esquina, igual que el de Configs: cuantos items tiene la pagina (lo calcula Actualizar-Insignias) -->
+          <Grid>
+            <Button x:Name="NavPerfiles" Style="{StaticResource Nav}">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Perfiles" VerticalAlignment="Center"/></StackPanel>
+            </Button>
+            <Border x:Name="InsPerfiles" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-5,0,0" MinWidth="21" Height="21" CornerRadius="10.5" Padding="5,0"
+                    Background="#60A5FA" BorderBrush="#111318" BorderThickness="2" IsHitTestVisible="False" Visibility="Collapsed">
+              <TextBlock x:Name="InsPerfilesTxt" Text="0" Foreground="#0B1B33" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+          </Grid>
+          <!-- Circulito en la esquina, igual que el de Configs: cuantos items tiene la pagina (lo calcula Actualizar-Insignias) -->
+          <Grid>
+            <Button x:Name="NavDebloat" Style="{StaticResource Nav}">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Debloat y privacidad" VerticalAlignment="Center"/></StackPanel>
+            </Button>
+            <Border x:Name="InsDebloat" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-5,0,0" MinWidth="21" Height="21" CornerRadius="10.5" Padding="5,0"
+                    Background="#60A5FA" BorderBrush="#111318" BorderThickness="2" IsHitTestVisible="False" Visibility="Collapsed">
+              <TextBlock x:Name="InsDebloatTxt" Text="0" Foreground="#0B1B33" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+          </Grid>
+          <!-- Circulito en la esquina, igual que el de Configs: cuantos items tiene la pagina (lo calcula Actualizar-Insignias) -->
+          <Grid>
+            <Button x:Name="NavGaming" Style="{StaticResource Nav}">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Optimizacion gaming" VerticalAlignment="Center"/></StackPanel>
+            </Button>
+            <Border x:Name="InsGaming" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-5,0,0" MinWidth="21" Height="21" CornerRadius="10.5" Padding="5,0"
+                    Background="#60A5FA" BorderBrush="#111318" BorderThickness="2" IsHitTestVisible="False" Visibility="Collapsed">
+              <TextBlock x:Name="InsGamingTxt" Text="0" Foreground="#0B1B33" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+          </Grid>
+          <!-- Circulito en la esquina, igual que el de Configs: cuantos items tiene la pagina (lo calcula Actualizar-Insignias) -->
+          <Grid>
+            <Button x:Name="NavLimpieza" Style="{StaticResource Nav}">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Limpiar cache" VerticalAlignment="Center"/></StackPanel>
+            </Button>
+            <Border x:Name="InsLimpieza" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-5,0,0" MinWidth="21" Height="21" CornerRadius="10.5" Padding="5,0"
+                    Background="#60A5FA" BorderBrush="#111318" BorderThickness="2" IsHitTestVisible="False" Visibility="Collapsed">
+              <TextBlock x:Name="InsLimpiezaTxt" Text="0" Foreground="#0B1B33" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+          </Grid>
+          <!-- Circulito en la esquina, igual que el de Configs: cuantos items tiene la pagina (lo calcula Actualizar-Insignias) -->
+          <Grid>
+            <Button x:Name="NavHerr" Style="{StaticResource Nav}">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Herramientas" VerticalAlignment="Center"/></StackPanel>
+            </Button>
+            <Border x:Name="InsHerr" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-5,0,0" MinWidth="21" Height="21" CornerRadius="10.5" Padding="5,0"
+                    Background="#60A5FA" BorderBrush="#111318" BorderThickness="2" IsHitTestVisible="False" Visibility="Collapsed">
+              <TextBlock x:Name="InsHerrTxt" Text="0" Foreground="#0B1B33" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+          </Grid>
           <!-- Apps recomendadas: programas gratis que se descargan de su pagina oficial -->
-          <Button x:Name="NavApps" Style="{StaticResource Nav}" Foreground="#9AD7FF" FontWeight="SemiBold" Background="#1F2D37" BorderBrush="#9AD7FF" BorderThickness="1" Margin="0,6,0,0">
-            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Apps recomendadas" VerticalAlignment="Center"/></StackPanel>
-          </Button>
+          <Grid Margin="0,6,0,0">
+            <Button x:Name="NavApps" Style="{StaticResource Nav}" Foreground="#60A5FA" FontWeight="SemiBold" Background="#18243A" BorderBrush="#60A5FA" BorderThickness="1">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Apps recomendadas" VerticalAlignment="Center"/></StackPanel>
+            </Button>
+            <Border x:Name="InsApps" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-7,0,0" MinWidth="21" Height="21" CornerRadius="10.5" Padding="5,0"
+                    Background="#60A5FA" BorderBrush="#111318" BorderThickness="2" IsHitTestVisible="False" Visibility="Collapsed">
+              <TextBlock x:Name="InsAppsTxt" Text="0" Foreground="#0B1B33" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+          </Grid>
           <!-- Configs: configs de juegos y apps que se bajan de GitHub -->
           <Grid Margin="0,6,0,0">
-            <Button x:Name="NavAdicional" Style="{StaticResource Nav}" Foreground="#9AD7FF" FontWeight="SemiBold" Background="#1F2D37" BorderBrush="#9AD7FF" BorderThickness="1">
+            <Button x:Name="NavAdicional" Style="{StaticResource Nav}" Foreground="#60A5FA" FontWeight="SemiBold" Background="#18243A" BorderBrush="#60A5FA" BorderThickness="1">
               <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Configs recomendadas" VerticalAlignment="Center"/></StackPanel>
             </Button>
             <!-- Circulito celeste en la esquina con cuantas configs hay subidas (no aparece si no hay ninguna) -->
             <Border x:Name="CfgInsignia" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-7,0,0" MinWidth="21" Height="21" CornerRadius="10.5" Padding="5,0"
-                    Background="#9AD7FF" BorderBrush="#191919" BorderThickness="2" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                    Background="#60A5FA" BorderBrush="#111318" BorderThickness="2" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
               <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Border.RenderTransform>
-              <TextBlock x:Name="CfgInsigniaTxt" Text="0" Foreground="#0B2533" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock x:Name="CfgInsigniaTxt" Text="0" Foreground="#0B1B33" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
           </Grid>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom">
-          <Border Height="1" Background="#262626" Margin="6,0,6,12"/>
+          <Border Height="1" Background="#1E2129" Margin="6,0,6,12"/>
           <Button x:Name="BtnTema" Style="{StaticResource Nav}">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/>
@@ -1304,7 +1475,7 @@ $XamlTexto = @'
             <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Abrir carpeta de logs" VerticalAlignment="Center"/></StackPanel>
           </Button>
           <!-- Redes en celeste clarito, con su borde -->
-          <Button x:Name="BtnRedes" Style="{StaticResource Nav}" Foreground="#9AD7FF" FontWeight="SemiBold" Background="#1F2D37" BorderBrush="#9AD7FF" BorderThickness="1" Margin="0,4,0,0">
+          <Button x:Name="BtnRedes" Style="{StaticResource Nav}" Foreground="#60A5FB" FontWeight="SemiBold" Background="#18243A" BorderBrush="#60A5FA" BorderThickness="1" Margin="0,4,0,0">
             <StackPanel Orientation="Horizontal"><TextBlock Text="&#xEB51;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Visita mis redes sociales!" VerticalAlignment="Center"/></StackPanel>
           </Button>
         </StackPanel>
@@ -1321,8 +1492,8 @@ $XamlTexto = @'
       <StackPanel Grid.Row="0" Margin="0,0,0,14">
         <Button x:Name="BtnUpdBarra" Style="{StaticResource Amarillo}" Padding="14,9" Margin="0,0,0,14" Visibility="Collapsed">
           <DockPanel>
-            <TextBlock Text="&#x26A0;" DockPanel.Dock="Left" FontSize="18" Foreground="#0B2533" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <TextBlock x:Name="UpdBarraTexto" Foreground="#0B2533" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            <TextBlock Text="&#x26A0;" DockPanel.Dock="Left" FontSize="18" Foreground="#0B1B33" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock x:Name="UpdBarraTexto" Foreground="#0B1B33" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
           </DockPanel>
         </Button>
         <!-- Aviso de Windows no original o modificado (Tiny11, AtlasOS, ReviOS...) -->
@@ -1339,8 +1510,8 @@ $XamlTexto = @'
         <Border x:Name="TituloCaja" CornerRadius="8" BorderThickness="1" BorderBrush="#3B3B43" Background="#2B2B31" Padding="16,12" RenderTransformOrigin="0.5,0.5">
           <Border.RenderTransform><TranslateTransform X="0" Y="0"/></Border.RenderTransform>
           <DockPanel>
-            <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="8" Background="#9AD7FF" Margin="0,0,14,0" VerticalAlignment="Center">
-              <TextBlock x:Name="TituloIcono" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#0B2533" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="8" Background="#60A5FA" Margin="0,0,14,0" VerticalAlignment="Center">
+              <TextBlock x:Name="TituloIcono" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#0B1B33" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
             <StackPanel VerticalAlignment="Center">
               <TextBlock x:Name="Titulo" Foreground="#FFFFFF" FontSize="22" FontWeight="SemiBold"/>
@@ -1369,20 +1540,20 @@ $XamlTexto = @'
           <Button x:Name="BtnTodo" Style="{StaticResource Accion}" Content="Marcar todo"/>
           <Button x:Name="BtnNada" Style="{StaticResource Accion}" Content="Desmarcar todo"/>
           <Button x:Name="BtnRestablecer" Style="{StaticResource Accion}" Background="#7A3326" Content="Restablecer seleccionadas" Visibility="Collapsed"/>
-          <Button x:Name="BtnAplicar" Style="{StaticResource Accion}" Background="#9AD7FF" Foreground="#0B2533" Content="Aplicar seleccionadas" Visibility="Collapsed"/>
+          <Button x:Name="BtnAplicar" Style="{StaticResource Accion}" Background="#60A5FA" Foreground="#0B1B33" Content="Aplicar seleccionadas" Visibility="Collapsed"/>
         </WrapPanel>
       </StackPanel>
     </Grid>
 
     <!-- Pantalla de carga: tapa todo mientras lee Windows o aplica cambios -->
-    <Grid x:Name="Carga" Grid.ColumnSpan="2" Background="#202020" Panel.ZIndex="10">
+    <Grid x:Name="Carga" Grid.ColumnSpan="2" Background="#14161B" Panel.ZIndex="10">
       <!-- Tarjeta con bordes redondos y borde celeste -->
       <Border x:Name="CargaCaja" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="20" BorderThickness="1.5" Padding="32,28" RenderTransformOrigin="0.5,0.5" Opacity="0">
         <Border.RenderTransform><ScaleTransform ScaleX="0.6" ScaleY="0.6"/></Border.RenderTransform>
         <Border.BorderBrush>
           <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#9AD7FF" Offset="0"/>
-            <GradientStop Color="#9AD7FF" Offset="1"/>
+            <GradientStop Color="#60A5FA" Offset="0"/>
+            <GradientStop Color="#60A5FA" Offset="1"/>
           </LinearGradientBrush>
         </Border.BorderBrush>
         <Border.Background>
@@ -1393,7 +1564,7 @@ $XamlTexto = @'
         </Border.Background>
         <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="0" Opacity="0.55" Color="#000000"/></Border.Effect>
       <StackPanel Width="440">
-        <TextBlock x:Name="CargaMarca" Foreground="#FFFFFF" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center"><Run Text="Xuca "/><Run Text="OP" Foreground="#9AD7FE" FontWeight="Bold"/><Run Text="timizer"/></TextBlock>
+        <TextBlock x:Name="CargaMarca" Foreground="#FFFFFF" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center"><Run Text="Br&#237;o"/></TextBlock>
         <StackPanel x:Name="CargaSplash" Orientation="Horizontal" HorizontalAlignment="Center" Margin="18,8,0,0" Visibility="Collapsed">
           <TextBlock x:Name="CargaSplashTxt" Text="Cargando" Foreground="#7D8590" FontSize="14"/>
           <TextBlock x:Name="CargaSplashPts" Foreground="#7D8590" FontSize="14" Width="18"/>
@@ -1403,8 +1574,8 @@ $XamlTexto = @'
           <Border x:Name="CargaSplashBarra" HorizontalAlignment="Left" Width="0" CornerRadius="2.5">
             <Border.Background>
               <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                <GradientStop Color="#9AD7FF" Offset="0"/>
-                <GradientStop Color="#9AD7FF" Offset="1"/>
+                <GradientStop Color="#60A5FA" Offset="0"/>
+                <GradientStop Color="#60A5FA" Offset="1"/>
               </LinearGradientBrush>
             </Border.Background>
           </Border>
@@ -1415,8 +1586,8 @@ $XamlTexto = @'
           <Border x:Name="CargaBarra" HorizontalAlignment="Left" Width="0" CornerRadius="4">
             <Border.Background>
               <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                <GradientStop Color="#9AD7FF" Offset="0"/>
-                <GradientStop Color="#9AD7FF" Offset="1"/>
+                <GradientStop Color="#60A5FA" Offset="0"/>
+                <GradientStop Color="#60A5FA" Offset="1"/>
               </LinearGradientBrush>
             </Border.Background>
           </Border>
@@ -1436,15 +1607,15 @@ $XamlTexto = @'
         <StackPanel x:Name="UpdCarga" Margin="0,24,0,0" Visibility="Collapsed">
           <Button x:Name="BtnUpd" Style="{StaticResource Amarillo}">
             <DockPanel>
-              <TextBlock Text="&#x26A0;" DockPanel.Dock="Left" FontSize="28" Foreground="#0B2533" VerticalAlignment="Center" Margin="0,0,14,0"/>
+              <TextBlock Text="&#x26A0;" DockPanel.Dock="Left" FontSize="28" Foreground="#0B1B33" VerticalAlignment="Center" Margin="0,0,14,0"/>
               <StackPanel VerticalAlignment="Center">
-                <TextBlock x:Name="UpdTitulo" FontSize="15" FontWeight="SemiBold" Foreground="#0B2533" TextWrapping="Wrap"/>
+                <TextBlock x:Name="UpdTitulo" FontSize="15" FontWeight="SemiBold" Foreground="#0B1B33" TextWrapping="Wrap"/>
                 <TextBlock x:Name="UpdTexto" FontSize="12.5" Foreground="#1C4257" TextWrapping="Wrap" Margin="0,4,0,0"/>
               </StackPanel>
             </DockPanel>
           </Button>
           <Button x:Name="BtnUpdNo" Style="{StaticResource Nav}" HorizontalAlignment="Center" Margin="0,12,0,0" Foreground="#9AA0A6" FontSize="13" Content="No, seguir con esta version"/>
-          <Button x:Name="BtnUpdGit" Style="{StaticResource Nav}" HorizontalAlignment="Center" Margin="0,2,0,0" Foreground="#9AD7FF" FontSize="13" Content="Bajarla a mano desde las Releases de GitHub"/>
+          <Button x:Name="BtnUpdGit" Style="{StaticResource Nav}" HorizontalAlignment="Center" Margin="0,2,0,0" Foreground="#60A5FB" FontSize="13" Content="Bajarla a mano desde las Releases de GitHub"/>
         </StackPanel>
       </StackPanel>
       </Border>
@@ -1468,7 +1639,7 @@ $XamlTexto = Tema-Texto $XamlTexto
 # Tiene que ir antes de crear la ventana.
 try {
     Add-Type -Namespace XucaWin -Name Barra -MemberDefinition '[DllImport("shell32.dll", CharSet = CharSet.Unicode)] public static extern int SetCurrentProcessExplicitAppUserModelID(string id);'
-    [void][XucaWin.Barra]::SetCurrentProcessExplicitAppUserModelID('011Xuca.XucaOPtimizer')
+    [void][XucaWin.Barra]::SetCurrentProcessExplicitAppUserModelID('011Xuca.Brio')
 } catch { }
 
 Marca-Inicio 'opciones leidas'
@@ -1489,17 +1660,17 @@ $EstilosXaml = @'
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
             <Grid x:Name="caja" Width="18" Height="18" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RenderTransformOrigin="0.5,0.5">
               <Grid.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
-              <Border x:Name="fondo" CornerRadius="5" Background="#202020" BorderBrush="#5C6370" BorderThickness="1.5"/>
+              <Border x:Name="fondo" CornerRadius="5" Background="#14161B" BorderBrush="#5C6370" BorderThickness="1.5"/>
               <Border x:Name="lleno" CornerRadius="5" Opacity="0">
                 <Border.Background>
                   <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#9AD7FF" Offset="0"/>
-                    <GradientStop Color="#9AD7FF" Offset="1"/>
+                    <GradientStop Color="#60A5FA" Offset="0"/>
+                    <GradientStop Color="#60A5FA" Offset="1"/>
                   </LinearGradientBrush>
                 </Border.Background>
               </Border>
               <!-- El tilde se "dibuja" solo cuando marcas -->
-              <Path x:Name="tilde" Data="M 4.5,9.3 L 7.6,12.4 L 13.5,5.9" Stroke="#0B2533" StrokeThickness="2"
+              <Path x:Name="tilde" Data="M 4.5,9.3 L 7.6,12.4 L 13.5,5.9" Stroke="#0B1B33" StrokeThickness="2"
                     StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                     StrokeDashArray="7 9" StrokeDashOffset="8" Opacity="0"/>
             </Grid>
@@ -1524,7 +1695,7 @@ $EstilosXaml = @'
               </Storyboard></BeginStoryboard></Trigger.ExitActions>
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="fondo" Property="BorderBrush" Value="#9AD7FF"/>
+              <Setter TargetName="fondo" Property="BorderBrush" Value="#60A5FA"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
               <Setter TargetName="fondo" Property="Background" Value="#303037"/>
@@ -1559,7 +1730,7 @@ $EstilosXaml = @'
               <Setter TargetName="t" Property="CornerRadius" Value="4"/>
             </Trigger>
             <Trigger Property="IsDragging" Value="True">
-              <Setter TargetName="t" Property="Background" Value="#9AD7FF"/>
+              <Setter TargetName="t" Property="Background" Value="#60A5FA"/>
               <Setter TargetName="t" Property="Width" Value="8"/>
               <Setter TargetName="t" Property="CornerRadius" Value="4"/>
             </Trigger>
@@ -1595,13 +1766,14 @@ $EstilosXaml = @'
 function Nuevos-Estilos { return [Windows.Markup.XamlReader]::Parse((Tema-Texto $EstilosXaml)) }
 $win.Resources.MergedDictionaries.Add((Nuevos-Estilos))
 
-# Icono propio (XucaOP.ico, al lado de la app) en la ventana, la barra de tareas y el acceso directo del escritorio.
+# Icono propio (Brio.ico, al lado de la app) en la ventana, la barra de tareas y el acceso directo del escritorio.
 # Si falta el archivo (por ejemplo, una version vieja que todavia no lo bajo) se usa el del Administrador de tareas.
-$IconoArchivo = Join-Path $Root 'XucaOP.ico'
+$IconoArchivo = Join-Path $Root 'Brio.ico'
 $IconoExe = Join-Path $env:SystemRoot 'System32\Taskmgr.exe'
 $quiero = $null
 if (Test-Path -LiteralPath $IconoArchivo) {
-    try { $win.Icon = [Windows.Media.Imaging.BitmapFrame]::Create((New-Object Uri($IconoArchivo))) } catch { }
+    # Se lee a memoria: abierto por Uri, WPF deja el .ico bloqueado y el actualizador no lo puede reemplazar
+    try { $win.Icon = [Windows.Media.Imaging.BitmapFrame]::Create((New-Object IO.MemoryStream(, [IO.File]::ReadAllBytes($IconoArchivo))), [Windows.Media.Imaging.BitmapCreateOptions]::None, [Windows.Media.Imaging.BitmapCacheOption]::OnLoad) } catch { }
     $quiero = $IconoArchivo + ',0'
 } elseif (Test-Path -LiteralPath $IconoExe) {
     try {
@@ -1611,19 +1783,20 @@ if (Test-Path -LiteralPath $IconoArchivo) {
     } catch { }
     $quiero = $IconoExe + ',0'
 }
-# Los que instalaron antes tienen el acceso directo con el icono viejo: se cambia solo
+# Si el acceso directo del escritorio quedo con otro icono, se le pone el de la app
 if ($quiero) {
     try {
-        $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Xuca OPtimizer.lnk'
-        if (Test-Path -LiteralPath $lnk) {
-            $acc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
-            if (($acc.TargetPath -like '*XucaOP.bat') -and ($acc.IconLocation -ne $quiero)) { $acc.IconLocation = $quiero; $acc.Save() }
+        $ws = New-Object -ComObject WScript.Shell
+        $lnkNuevo = Join-Path ([Environment]::GetFolderPath('Desktop')) ($NombreApp + '.lnk')
+        if (Test-Path -LiteralPath $lnkNuevo) {
+            $acc = $ws.CreateShortcut($lnkNuevo)
+            if (($acc.TargetPath -like '*Brio.bat') -and ($acc.IconLocation -ne $quiero)) { $acc.IconLocation = $quiero; $acc.Save() }
         }
     } catch { }
 }
 
 $ui = @{}
-foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavApps', 'NavAdicional', 'CfgInsignia', 'CfgInsigniaTxt', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'TituloCaja', 'TituloIcono', 'Scroll', 'BtnSeguras', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'BtnUpdGit','UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'BtnTema', 'TemaTxt', 'Marco', 'Raiz', 'Barra', 'Contenido', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista', 'CargaCaja', 'CargaMarca', 'CargaSplash', 'CargaSplashTxt', 'CargaSplashPts', 'CargaSplashZona', 'CargaSplashBarra', 'BuscarCaja', 'BuscarLupa', 'BuscarBorrar', 'BuscarPista', 'Buscar', 'BuscarInfo') { $ui[$n] = $win.FindName($n) }
+foreach ($n in 'NavPerfiles', 'NavDebloat', 'NavGaming', 'NavLimpieza', 'NavHerr', 'NavApps', 'NavAdicional', 'CfgInsignia', 'CfgInsigniaTxt', 'InsPerfiles', 'InsPerfilesTxt', 'InsDebloat', 'InsDebloatTxt', 'InsGaming', 'InsGamingTxt', 'InsLimpieza', 'InsLimpiezaTxt', 'InsHerr', 'InsHerrTxt', 'InsApps', 'InsAppsTxt', 'BtnRefrescar', 'BtnLogs', 'BtnRedes', 'Titulo', 'Descripcion', 'TituloCaja', 'TituloIcono', 'Scroll', 'BtnSeguras', 'BtnTodo', 'BtnNada', 'BtnRestablecer', 'BtnAplicar', 'Estado', 'Carga', 'CargaTitulo', 'CargaBarra', 'CargaPct', 'CargaDetalle', 'CargaZona', 'CargaInfo', 'UpdCarga', 'BtnUpd', 'BtnUpdNo', 'BtnUpdGit','UpdTitulo', 'UpdTexto', 'BtnUpdBarra', 'UpdBarraTexto', 'VersionTxt', 'OrigBarra', 'OrigTexto', 'BtnIdioma', 'IdiomaTxt', 'BtnTema', 'TemaTxt', 'Marco', 'Raiz', 'Barra', 'Contenido', 'CargaDns', 'CargaDnsTitulo', 'CargaDnsLista', 'CargaCaja', 'CargaMarca', 'CargaSplash', 'CargaSplashTxt', 'CargaSplashPts', 'CargaSplashZona', 'CargaSplashBarra', 'BuscarCaja', 'BuscarLupa', 'BuscarBorrar', 'BuscarPista', 'Buscar', 'BuscarInfo') { $ui[$n] = $win.FindName($n) }
 
 # Numero de version (sale del version.txt de tu PC)
 function Poner-Version([bool]$vieja, [bool]$distinta) {
@@ -1641,7 +1814,7 @@ foreach ($b in @($ui.BtnAplicar, $ui.BtnRestablecer)) { [Windows.Controls.ToolTi
 $bc = New-Object Windows.Media.BrushConverter
 function Pincel([string]$hex) { return $script:bc.ConvertFromString((Tema-Hex $hex)) }
 
-# El "OP" de Xuca OPtimizer va siempre en celeste brillante
+# Si un titulo tiene "OP" suelto, va en el color de la app
 function Marcar-OP($tb) {
     $txt = [string]$tb.Text
     if ($txt -cnotmatch 'OPtimiz') { return }
@@ -1649,7 +1822,7 @@ function Marcar-OP($tb) {
     foreach ($pz in ($txt -csplit '(OP)(?=timiz)')) {
         if (-not $pz) { continue }
         $r = New-Object Windows.Documents.Run($pz)
-        if ($pz -ceq 'OP') { $r.Foreground = (Pincel '#9AD7FE'); $r.FontWeight = 'Bold' }
+        if ($pz -ceq 'OP') { $r.Foreground = (Pincel '#60A5FB'); $r.FontWeight = 'Bold' }
         $tb.Inlines.Add($r)
     }
 }
@@ -1765,7 +1938,7 @@ function Nuevo-Boton([string]$texto, [string]$color) {
     $b = New-Object Windows.Controls.Button
     $b.Style = $win.FindResource('Accion'); $b.Content = (Con-Enie $texto); $b.Margin = '0,10,8,0'
     if ($color) { $b.Background = (Pincel $color) }
-    if (($color -eq '#9AD7FF') -or ($color -eq $ColorDrv)) { $b.Foreground = (Pincel '#0B2533') }   # texto oscuro sobre el celeste
+    if (($color -eq '#60A5FA') -or ($color -eq $ColorDrv)) { $b.Foreground = (Pincel '#0B1B33') }   # texto oscuro sobre el celeste
     return $b
 }
 
@@ -1832,7 +2005,7 @@ function Nuevo-Dialogo([double]$ancho) {
     $borde.CornerRadius = 16; $borde.BorderThickness = 1.5
     $fondo = New-Object Windows.Media.LinearGradientBrush (Color-Tema('#2B2B31')), (Color-Tema('#26262C')), 45
     $borde.Background = $fondo
-    $linea = New-Object Windows.Media.LinearGradientBrush (Color-Tema('#999AD7FF')), (Color-Tema('#999AD7FF')), 45
+    $linea = New-Object Windows.Media.LinearGradientBrush (Color-Tema('#9960A5FA')), (Color-Tema('#9960A5FA')), 45
     $borde.BorderBrush = $linea
     $borde.Padding = '24,20,24,18'; $borde.Margin = 12
     $sombra = New-Object Windows.Media.Effects.DropShadowEffect
@@ -1935,14 +2108,14 @@ function Tipo-Dialogo([string]$titulo, [string]$colorSi, [bool]$pregunta) {
     if ($titulo -match '(?i)^no se pudo|error|fallo') { return @(0xE783, '#F28B82') }
     if ($titulo -match '(?i)listo|terminad|descargad|aplicad') { return @(0xE73E, '#81C995') }
     if ($Aviso -and $titulo.StartsWith($Aviso)) { return @(0xE7BA, '#E5B567') }
-    if ($pregunta) { return @(0xE897, '#9AD7FF') }
-    return @(0xE946, '#9AD7FF')
+    if ($pregunta) { return @(0xE897, '#60A5FA') }
+    return @(0xE946, '#60A5FA')
 }
 
 # Pregunta Si/No. Devuelve $true si tocas el boton principal. Sin $textoNo es solo un aviso con un boton.
 function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]$colorSi, [string]$textoNo) {
     if (-not $textoSi) { $textoSi = 'Seguir' }
-    if (-not $colorSi) { $colorSi = '#9AD7FF' }
+    if (-not $colorSi) { $colorSi = '#60A5FA' }
     $w = Nuevo-Dialogo 480
     $sp = New-Object Windows.Controls.StackPanel
     $tipo = Tipo-Dialogo $titulo $colorSi ([bool]$textoNo)
@@ -1970,7 +2143,7 @@ function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]
     $w.Content.Child = $sp
     return ($w.ShowDialog() -eq $true)
 }
-function Avisar([string]$titulo, [string]$mensaje) { Confirmar $titulo $mensaje 'Entendido' '#9AD7FF' '' | Out-Null }
+function Avisar([string]$titulo, [string]$mensaje) { Confirmar $titulo $mensaje 'Entendido' '#60A5FA' '' | Out-Null }
 
 # Cartel de "Limpieza terminada": tilde verde grande y los GB liberados bien a la vista
 function Resultado-Limpieza([string]$liberado, [string]$winOld) {
@@ -2046,20 +2219,20 @@ function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaE
     $filaAg.Children.Add($bAg) | Out-Null
     $tx = New-Object Windows.Controls.TextBox
     $tx.Padding = '6,6'; $tx.FontSize = 13.5; $tx.VerticalContentAlignment = 'Center'
-    $tx.Background = (Pincel '#191919'); $tx.Foreground = (Pincel '#FFFFFF'); $tx.BorderBrush = (Pincel '#46464F'); $tx.CaretBrush = (Pincel '#FFFFFF')
+    $tx.Background = (Pincel '#111318'); $tx.Foreground = (Pincel '#FFFFFF'); $tx.BorderBrush = (Pincel '#46464F'); $tx.CaretBrush = (Pincel '#FFFFFF')
     $filaAg.Children.Add($tx) | Out-Null
     $abajo.Children.Add($filaAg) | Out-Null
     $bTodo = Nuevo-Boton 'Marcar todo'; $bNada = Nuevo-Boton 'Desmarcar todo'; $bDef = Nuevo-Boton 'Lista por defecto'
     $bDef.ToolTip = (Con-Enie 'Vuelve a la lista de fabrica: todos los del catalogo marcados y sin los que agregaste vos.')
     $bc1 = Nuevo-Boton 'Cancelar'; $bc1.IsCancel = $true
-    $bok = Nuevo-Boton 'Guardar' '#9AD7FF'
+    $bok = Nuevo-Boton 'Guardar' '#60A5FA'
     $abajo.Children.Add((Fila-Botones @($bTodo, $bNada, $bDef) @($bc1, $bok))) | Out-Null
     $dock.Children.Add($abajo) | Out-Null
 
     $grilla = New-Object Windows.Controls.Primitives.UniformGrid
     $grilla.Columns = 2; $grilla.VerticalAlignment = 'Top'
     $caja = New-Object Windows.Controls.Border
-    $caja.CornerRadius = 10; $caja.Background = (Pincel '#202020'); $caja.Padding = '12,8'
+    $caja.CornerRadius = 10; $caja.Background = (Pincel '#14161B'); $caja.Padding = '12,8'
     $sv = New-Object Windows.Controls.ScrollViewer
     $sv.VerticalScrollBarVisibility = 'Auto'
     Scroll-Suave $sv
@@ -2151,7 +2324,7 @@ function Editar-Fondo([bool]$aplicar) {
 # Si dejaste la lista de juegos vacia, se quitan (la lista manda).
 function Aplicar-ListaActiva([bool]$pri, [bool]$afi) {
     $pri = $pri -and (@(Prio-Actuales).Count -gt 0)
-    $afi = $afi -and (Hay-Tarea 'XucaAfinidad')
+    $afi = $afi -and (Hay-Tarea 'BrioAfinidad')
     if (-not ($pri -or $afi)) { $ui.Estado.Text = (Con-Enie 'Lista guardada. Se usa cuando apliques "Prioridad alta" o "Afinidad".'); return }
     $L = Leer-Listas
     $jug = @(Procesos-De (Cat-Juegos) $L.juegos)
@@ -2186,7 +2359,7 @@ function Poner-Pill($pb, $estado) {
     $pb.ToolTip = $null
     if ($null -eq $estado) { $pb.Visibility = 'Collapsed'; return }
     $pb.Visibility = 'Visible'
-    if ($estado) { $pb.Background = (Pincel '#1E3A2B'); $pb.Child.Foreground = (Pincel '#81C995'); $pb.Child.Text = (Con-Enie 'Ya aplicado') }
+    if ($estado) { $pb.Background = (Pincel '#1E3A2B'); $pb.Child.Foreground = (Pincel (Tema-Letra '#81C995')); $pb.Child.Text = (Con-Enie 'Ya aplicado') }
     else { $pb.Background = (Pincel '#35353C'); $pb.Child.Foreground = (Pincel '#9AA0A6'); $pb.Child.Text = (Con-Enie 'Sin aplicar') }
 }
 
@@ -2202,7 +2375,7 @@ function Poner-Conteo($pb, $c) {
     $todo = ([int]$c.Quedan -eq 0)
     $pb.Visibility = 'Visible'
     $pb.Background = (Pincel $(if ($todo) { '#1E3A2B' } else { '#35353C' }))
-    $pb.Child.Foreground = (Pincel $(if ($todo) { '#81C995' } else { '#9AA0A6' }))
+    $pb.Child.Foreground = (Pincel (Tema-Letra $(if ($todo) { '#81C995' } else { '#9AA0A6' })))
     $pb.Child.Text = ([string]$c.Hechas + '/' + [string]$c.Total + ' ' + (Con-Enie ([string]$c.Que)))
     $pb.ToolTip = $(if ($todo) { (Con-Enie 'No queda ninguna.') } elseif (@($c.Nombres).Count -gt 0) { (Con-Enie 'Todavia quedan:') + ' ' + (@($c.Nombres) -join ', ') } else { (Con-Enie 'Todavia quedan:') + ' ' + $c.Quedan })
 }
@@ -2245,23 +2418,31 @@ $Advertencias = @{
     'Debloat|str'  = 'No se instalan ni actualizan apps de la Microsoft Store (ni de Game Pass) hasta que lo restablezcas.'
     'Debloat|wus'  = 'PELIGRO: la PC deja de recibir parches de seguridad y de drivers. Restablecelo cada tanto para actualizar.'
     'Debloat|thm'  = 'No ves la vista previa de imagenes ni videos en el Explorador.'
-    'Debloat|leg'  = 'La Asistencia remota y la Reproduccion automatica dejan de andar.'
+    # leg, rmin, gf y pe se dividieron en v1.0.13: cada parte conserva su aviso (asi "Marcar solo seguras" sigue sin marcarlas)
+    'Debloat|leg'  = 'La Asistencia remota deja de andar.'
+    'Debloat|apl'  = 'La Reproduccion automatica deja de andar: al enchufar un USB no aparece el menu de que hacer.'
+    'Debloat|wer'  = 'Si un programa se cuelga seguido, no queda el informe que sirve para encontrar la causa.'
     'Debloat|dold' = 'Si ademas borras las apps modernas, te quedas sin Bloc de notas ni Paint. Para volver a tener las antiguas hace falta internet.'
     'Debloat|old'  = 'Los juegos muy viejos que piden DirectPlay no andan y no podes compartir archivos con equipos que solo usan SMBv1. SMBv1 no se reactiva al restablecer.'
     'Debloat|msx'  = 'PELIGRO: sin la Store no instalas ni actualizas apps de la Store, Game Pass ni Minecraft. Se reinstala con wsreset -i (hace falta internet).'
     'Debloat|usv'  = 'Correo, Calendario y Contactos dejan de sincronizar, y el portapapeles en la nube y Compartir cerca no andan. Tambien se rompe la captura de pantalla (Recortes y Win+Shift+S).'
-    'Debloat|rmin' = 'No vas a poder imprimir ni transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.'
+    'Debloat|rmin' = 'No vas a poder imprimir ni guardar en PDF desde Imprimir hasta que lo restablezcas.'
+    'Debloat|rnet' = 'No vas a poder transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.'
+    'Debloat|rdp'  = 'Nadie puede entrar a esta PC por Escritorio remoto hasta que lo restablezcas.'
     'Debloat|nvl'  = 'El overlay, ShadowPlay y los filtros de la NVIDIA App dejan de andar. Si la NVIDIA App no abre bien, restablecelo.'
     'Gaming|xbt'   = 'BORRA XBOX ENTERO, Gaming Services incluido: Game Pass, Minecraft Bedrock y su Launcher y los juegos de la Microsoft Store dejan de funcionar y no podes jugar online con tu cuenta Xbox. Restablecer reinstala lo principal con winget, pero algunas cosas se reinstalan a mano.'
     'Gaming|afi'   = 'Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.'
     'Gaming|pw'    = 'Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos.'
     'Gaming|cpu'   = 'Mas consumo y calor; con undervolt u overclock puede volverse inestable.'
     'Gaming|gf'    = 'En algunas PCs viejas puede dar problemas.'
+    'Gaming|wgo'   = 'En algun juego viejo puede cambiar como se ve la imagen en ventana.'
     'Gaming|ll'    = 'Es una funcion oculta que Microsoft todavia esta probando: si notas algo raro, restablecelo.'
     'Gaming|idle'  = 'Mucho mas consumo y calor todo el tiempo, no solo jugando. En notebooks o con mala refrigeracion el procesador puede bajar el turbo por temperatura y rendir menos. Si no notas mejora, restablecelo.'
     'Gaming|msi'   = 'Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro).'
     'Gaming|tr'    = 'Mas consumo y calor; con undervolt u overclock puede colgarse en juegos.'
     'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos. En notebooks la bateria baja mas rapido, incluso suspendida.'
+    'Gaming|pci'   = 'La placa de video y los SSD NVMe pueden calentar un poco mas en reposo. En notebooks la bateria baja mas rapido, incluso suspendida.'
+    'Gaming|dsk'   = 'Los discos HDD quedan girando mientras la PC esta prendida: un poco mas de ruido y consumo.'
     'Gaming|nic'   = 'En placas madre de baja calidad puede cortar el internet.'
     'Gaming|dup'   = 'Si tu internet es de mas de 1 Gbps vas a tener menos velocidad. Con 1 Gbps o menos (casi todos los planes) no cambia nada.'
     'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
@@ -2313,6 +2494,13 @@ function Casilla-Click($cb0) {
     Actualizar-Contador
 }
 
+# Un icono pegado al final de un titulo: si el titulo baja de renglon, el icono baja con el
+function Icono-EnTitulo($tb, $el) {
+    $c = New-Object Windows.Documents.InlineUIContainer($el)
+    $c.BaselineAlignment = 'Center'
+    $tb.Inlines.Add($c)
+}
+
 function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     $clave = $pagina + '|' + $it.Id
     $adv = $Advertencias[$clave]
@@ -2321,26 +2509,28 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     $sp = New-Object Windows.Controls.StackPanel
     $head = New-Object Windows.Controls.DockPanel
     $pb = Nueva-Pill
+    # La etiqueta de estado arriba a la derecha y separada: el titulo usa el resto del ancho y baja de renglon, nunca queda abajo de ella
+    $pb.VerticalAlignment = 'Top'; $pb.Margin = '10,1,0,0'
     [Windows.Controls.DockPanel]::SetDock($pb, 'Right')
     $head.Children.Add($pb) | Out-Null
     $cb = New-Object Windows.Controls.CheckBox
-    $tit = New-Object Windows.Controls.StackPanel
-    $tit.Orientation = 'Horizontal'
-    $tit.Children.Add((Nuevo-Texto $it.Titulo 15 '#FFFFFF' $true)) | Out-Null
+    # El titulo es un solo texto que baja de renglon; los iconos van al final del texto (antes iban en una fila horizontal,
+    # que le da ancho infinito al titulo y lo cortaba cuando la ventana estaba achicada)
+    $tit = Nuevo-Texto $it.Titulo 15 '#FFFFFF' $true
     if ((-not $adv) -and ($pagina -eq 'Gaming') -and ($it.Id -eq 'xb')) {
         $script:XbIcono = Nuevo-Texto $Aviso 15 '#E5B567' $true
         $script:XbIcono.FontFamily = 'Segoe UI Symbol'; $script:XbIcono.Margin = '8,0,0,0'; $script:XbIcono.Visibility = 'Collapsed'
-        $tit.Children.Add($script:XbIcono) | Out-Null
+        Icono-EnTitulo $tit $script:XbIcono
     }
     if ($adv) {
         $ic = Nuevo-Texto $Aviso 15 '#E5B567' $true
         $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'; $ic.ToolTip = (Con-Enie $adv)
-        $tit.Children.Add($ic) | Out-Null
+        Icono-EnTitulo $tit $ic
     }
     if ($drv) {
         $id = Nuevo-Texto ([string][char]0xE896) 14 $ColorDrv $false
-        $id.FontFamily = 'Segoe MDL2 Assets'; $id.Margin = '8,1,0,0'; $id.VerticalAlignment = 'Center'; $id.ToolTip = (Con-Enie $drv)
-        $tit.Children.Add($id) | Out-Null
+        $id.FontFamily = 'Segoe MDL2 Assets'; $id.Margin = '8,1,0,0'; $id.ToolTip = (Con-Enie $drv)
+        Icono-EnTitulo $tit $id
     }
     $cb.Content = $tit; $cb.VerticalContentAlignment = 'Center'; $cb.IsChecked = $marcada
     $cb.Tag = $it.Id
@@ -2375,7 +2565,7 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     if ($SinVuelta.Contains($clave)) { Agregar-Linea $d ($Aviso + ' SIN VUELTA ATRAS: ') '#F28B82' ($SinVuelta[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
     if ($AvisosXbox.Contains($clave)) { Agregar-Linea $d ($Aviso + ' Xbox, Game Pass y Minecraft: ') '#E5B567' ($AvisosXbox[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
     if ($d.Inlines.Count -gt 0) { $d.Inlines.Add((New-Object Windows.Documents.LineBreak)) }
-    Agregar-Linea $d 'Que hace: ' '#9AD7FF' $it.Hace
+    Agregar-Linea $d 'Que hace: ' '#60A5FA' $it.Hace
     Agregar-Linea $d 'A favor: ' '#81C995' $it.Favor
     Agregar-Linea $d 'En contra: ' '#F28B82' $it.Contra
     $sp.Children.Add($d) | Out-Null
@@ -2394,7 +2584,7 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
 
     if ($pagina -eq 'Gaming' -and $it.Id -in 'pri', 'afi') {
         $txtNota = $(if ($it.Id -eq 'pri') { 'Usa tu lista de juegos, la misma que la afinidad de CPU.' } else { 'Usa tu lista de juegos, la misma que la prioridad alta. Tu procesador se detecta solo.' })
-        $sp.Children.Add((Nota $txtNota '#9AD7FF' '24,8,0,0')) | Out-Null
+        $sp.Children.Add((Nota $txtNota '#60A5FA' '24,8,0,0')) | Out-Null
         $tj = Nota '' '#C3C8D0' '24,4,0,0'
         $script:TxtJuegos.Add($tj)
         $sp.Children.Add($tj) | Out-Null
@@ -2448,37 +2638,224 @@ function Nueva-Seccion([string]$t, [string]$color) {
     return $tb
 }
 
+# ------------------------------------------------------------
+# Categorias que se pliegan (Debloat y Gaming). El encabezado es un ToggleButton: se usa con el mouse o con el teclado
+# (Tab para llegar, Espacio o Enter para plegar o desplegar). Muestra una flecha, el nombre, cuantas opciones tiene y
+# cuantas marcaste. Su Tag lleva Seccion = $true para que la busqueda lo trate como titulo de seccion.
+# Lo plegado se guarda en app_config.txt como plegadas=Debloat|NOMBRE;Gaming|NOMBRE (nombres internos en espanol, no cambian
+# con el idioma). Si la clave no esta, o un nombre ya no existe (una categoria renombrada), se ignora: todo arranca desplegado.
+# Plegar solo esconde: lo marcado sigue marcado y se aplica igual (el encabezado avisa cuantas marcaste).
+# ------------------------------------------------------------
+$script:Plegadas = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+foreach ($x in (([string](Leer-Config)['plegadas']) -split ';')) { if ($x.Trim() -match '^(Debloat|Gaming)\|[A-Z0-9 ,()]{1,60}$') { [void]$script:Plegadas.Add($x.Trim()) } }
+$script:CabDe = New-Object 'System.Collections.Generic.Dictionary[object,object]'   # casilla -> encabezado de su categoria
+function Guardar-Plegadas { Guardar-Config 'plegadas' (@($script:Plegadas | Sort-Object) -join ';') }
+function Es-Plegable($h) { return (($h -is [Windows.Controls.Primitives.ToggleButton]) -and ($h.Tag -is [hashtable]) -and $h.Tag.Seccion) }
+
+function Nueva-SeccionPlegable([string]$pagina, [string]$nombre, [string]$color, $grilla) {
+    if (-not $script:PlantillaCabeza) {
+        $x = @'
+<ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="ToggleButton">
+  <Border x:Name="B" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
+    <ContentPresenter VerticalAlignment="Center"/>
+  </Border>
+  <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="#14FFFFFF"/></Trigger>
+    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="B" Property="BorderBrush" Value="FOCO"/></Trigger>
+  </ControlTemplate.Triggers>
+</ControlTemplate>
+'@
+        $script:PlantillaCabeza = [Windows.Markup.XamlReader]::Parse(((Tema-Texto $x) -replace 'FOCO', (Tema-Letra '#60A5FA')))
+    }
+    $b = New-Object Windows.Controls.Primitives.ToggleButton
+    $b.Template = $script:PlantillaCabeza
+    $b.FocusVisualStyle = $null
+    $b.Cursor = 'Hand'
+    $b.HorizontalAlignment = 'Stretch'; $b.HorizontalContentAlignment = 'Left'
+    $b.Margin = '0,10,8,6'; $b.Padding = '4,5,8,5'
+    $fila = New-Object Windows.Controls.WrapPanel
+    $chev = Nuevo-Texto '' 11 $color $true
+    $chev.FontFamily = 'Segoe MDL2 Assets'; $chev.VerticalAlignment = 'Center'; $chev.Margin = '0,1,8,0'; $chev.TextWrapping = 'NoWrap'
+    $tit = Nuevo-Texto (([string][char]0x258C) + ' ' + (Con-Enie $nombre).ToUpper()) 13 $color $true
+    $tit.VerticalAlignment = 'Center'; $tit.TextWrapping = 'NoWrap'
+    $cuenta = New-Object Windows.Controls.TextBlock
+    $cuenta.FontSize = 12; $cuenta.VerticalAlignment = 'Center'; $cuenta.Margin = '12,1,0,0'; $cuenta.TextWrapping = 'NoWrap'
+    foreach ($e in $chev, $tit, $cuenta) { $fila.Children.Add($e) | Out-Null }
+    $b.Content = $fila
+    $clave = $pagina + '|' + $nombre
+    $b.Tag = @{ Seccion = $true; Clave = $clave; Nombre = (Con-Enie $nombre); Grid = $grilla; Chev = $chev; Cuenta = $cuenta; Cbs = (New-Object System.Collections.Generic.List[object]); CuentaTxt = ''; Plegada = [bool]($script:Plegadas -and $script:Plegadas.Contains($clave)); PlegadaBusca = $false }
+    # Checked/Unchecked y no Click: asi tambien anda con un lector de pantalla (UI Automation cambia IsChecked sin hacer clic).
+    # Cuando la app cambia la flecha por su cuenta (Cabeza-Flecha) se ignora.
+    $b.Add_Checked({ if (-not $script:CabezaQuieta) { Cabeza-Click $this } })
+    $b.Add_Unchecked({ if (-not $script:CabezaQuieta) { Cabeza-Click $this } })
+    return $b
+}
+
+# La flecha y lo que lee un lector de pantalla (abajo = desplegada, a la derecha = plegada)
+function Cabeza-Flecha($cab, [bool]$abierta) {
+    $script:CabezaQuieta = $true
+    try { $cab.IsChecked = $abierta } finally { $script:CabezaQuieta = $false }
+    $cab.Tag.Chev.Text = [string][char]$(if ($abierta) { 0xE70D } else { 0xE76C })
+    $cab.ToolTip = (Con-Enie $(if ($abierta) { 'Plegar categoria' } else { 'Desplegar categoria' }))
+    [Windows.Automation.AutomationProperties]::SetName($cab, ($cab.Tag.Nombre + '. ' + $cab.Tag.CuentaTxt))
+}
+
+# Fuera de la busqueda manda lo que elegiste (y se guarda); mientras buscas, plegar es solo para esa busqueda
+function Cabeza-Mostrar($cab) {
+    $pl = $(if ($script:Buscando) { $cab.Tag.PlegadaBusca } else { $cab.Tag.Plegada })
+    $cab.Tag.Grid.Visibility = $(if ($pl) { 'Collapsed' } else { 'Visible' })
+    Cabeza-Flecha $cab (-not $pl)
+}
+function Cabeza-Click($cab) {
+    $abierta = ($cab.IsChecked -eq $true)
+    if ($script:Buscando) { $cab.Tag.PlegadaBusca = -not $abierta }
+    else {
+        $cab.Tag.Plegada = -not $abierta
+        if ($abierta) { [void]$script:Plegadas.Remove($cab.Tag.Clave) } else { [void]$script:Plegadas.Add($cab.Tag.Clave) }
+        Guardar-Plegadas
+    }
+    Cabeza-Mostrar $cab
+}
+
+# "12 opciones - 3 marcadas": las marcadas en celeste, para que se vean aunque la categoria este plegada
+function Cabeza-Cuenta($cab) {
+    if (-not $cab) { return }
+    $t = $cab.Tag; $n = $t.Cbs.Count; $m = 0
+    foreach ($c in $t.Cbs) { if ($c.IsChecked -eq $true) { $m++ } }
+    $tb = $t.Cuenta
+    $tb.Inlines.Clear()
+    $s1 = $(if ($n -eq 1) { Con-Enie '1 opcion' } else { [string]::Format((Con-Enie '{0} opciones'), $n) })
+    $r1 = New-Object Windows.Documents.Run($s1)
+    $r1.Foreground = (Pincel '#7D8590')
+    $tb.Inlines.Add($r1)
+    $t.CuentaTxt = $s1
+    if ($m -gt 0) {
+        $s2 = $(if ($m -eq 1) { Con-Enie '1 marcada' } else { [string]::Format((Con-Enie '{0} marcadas'), $m) })
+        $r2 = New-Object Windows.Documents.Run('  ' + [string][char]0x00B7 + '  ' + $s2)
+        $r2.Foreground = $script:bc.ConvertFromString((Tema-Letra '#60A5FA')); $r2.FontWeight = 'SemiBold'
+        $tb.Inlines.Add($r2)
+        $t.CuentaTxt = $s1 + ', ' + $s2
+    }
+    # Lo que lee un lector de pantalla: nombre, cuantas opciones y cuantas marcadas
+    [Windows.Automation.AutomationProperties]::SetName($cab, ($t.Nombre + '. ' + $t.CuentaTxt))
+}
+
 # --- Paginas de opciones (Debloat y Gaming) ---
 $Casillas = @{ Debloat = @{}; Gaming = @{} }
 $Paginas = @{}
 $TitulosChequeo = @{}
-# Categorias de mas a menos importantes, cada una con su color (las que no estan aca van al final, en gris)
+# ------------------------------------------------------------
+# ORDEN POR IMPACTO (v1.0.13). Arriba va lo que mas rendimiento real da y abajo lo marginal, la comodidad y la privacidad.
+# No hay porcentajes: cuanto gana cada ajuste depende de la PC. El criterio, de mas a menos:
+#   1. Rendimiento mientras jugas o usas la PC: en Gaming lo que cambia FPS, tirones o frametime (graficos, grabacion y
+#      Game Bar, CPU, procesador, plan de energia, RAM, seguridad); en Debloat lo que deja RAM, CPU y disco libres todo
+#      el tiempo (procesos de fondo, efectos visuales, memoria, actualizaciones de fondo, servicios).
+#   2. Latencia y respuesta: temporizador, red, mouse y DNS (bajan el ping o la demora, no suben los FPS).
+#   3. Comodidad, interfaz y privacidad: no cambian el rendimiento (en gris).
+#   A igual nivel va primero lo seguro y despues lo que tiene riesgo (seguridad, extremos, sin vuelta atras).
+# Las categorias de Debloat VERSION DE WINDOWS, DRIVERS y CUENTA son herramientas: la app no las muestra aca.
+# Cada categoria lleva su color: celeste (rendimiento), rojo (riesgo), gris (comodidad o privacidad).
+# ------------------------------------------------------------
 $OrdenSec = @{
     Debloat = @(
-        @('PUNTOS DE RESTAURACION', '#9AD7FF'), @('SISTEMA Y PRIVACIDAD', '#9AD7FF'), @('ALMACENAMIENTO Y MEMORIA', '#9AD7FF'),
-        @('DRIVERS', '#9AD7FF'), @('SEGURIDAD', '#9AD7FF'), @('VERSION DE WINDOWS', '#9AD7FF'), @('CUENTA', '#9AA0A6'),
-        @('CONFIRMAR CAMBIO DE CUENTA', '#9AA0A6'), @('BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)', '#F28B82'))
+        @('APPS Y PROCESOS EN SEGUNDO PLANO', '#60A5FA'),            # 1: RAM y CPU libres todo el tiempo
+        @('EFECTOS VISUALES Y FLUIDEZ', '#60A5FA'),                  # 1: menos trabajo para la placa de video y el Explorador
+        @('ALMACENAMIENTO Y MEMORIA', '#60A5FA'),                    # 1: RAM y disco
+        @('ACTUALIZACIONES Y STORE', '#60A5FA'),                     # 1: descargas y reinicios en segundo plano
+        @('SERVICIOS Y FUNCIONES QUE CASI NADIE USA', '#60A5FA'),    # 1: poca RAM cada uno; los extremos van al final
+        @('SEGURIDAD', '#60A5FA'),                                   # 1 con riesgo: el antivirus pesa, pero la PC queda sin proteccion
+        @('APPS, NAVEGADORES E IA', '#60A5FA'),                      # 1-3: apps basura, navegadores e IA
+        @('PRIVACIDAD Y TELEMETRIA', '#9AA0A6'),                     # 3
+        @('INTERFAZ Y COMODIDAD', '#9AA0A6'),                        # 3
+        @('PUNTOS DE RESTAURACION', '#60A5FA'),                      # apagarlos libera disco pero quita la red de seguridad
+        @('BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)', '#F28B82'), # sin vuelta atras: siempre al final
+        @('VERSION DE WINDOWS', '#60A5FA'), @('DRIVERS', '#60A5FA'), @('CUENTA', '#9AA0A6'), @('CONFIRMAR CAMBIO DE CUENTA', '#9AA0A6'))
     Gaming = @(
-        @('CPU Y PRIORIDAD', '#9AD7FF'), @('GRAFICOS', '#9AD7FF'), @('TEMPORIZADOR Y LATENCIA', '#9AD7FF'), @('MODO JUEGO Y GAME BAR', '#9AD7FF'),
-        @('ENERGIA Y RED', '#9AD7FF'), @('DNS', '#9AD7FF'), @('MOUSE', '#9AD7FF'), @('TECLADO', '#9AD7FF'), @('SONIDO', '#9AD7FF'),
-        @('LIMPIEZA DE RAM (STANDBY LIST)', '#9AD7FF'), @('BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR', '#9AA0A6'), @('AJUSTES EXTRA', '#9AA0A6'),
-        @('PLAN DE ENERGIA', '#9AD7FF'), @('PROCESADOR', '#9AD7FF'), @('SEGURIDAD (MAS RENDIMIENTO)', '#F28B82'))
+        @('GRAFICOS', '#60A5FA'),                          # 1: como la placa de video presenta los cuadros
+        @('MODO JUEGO Y GAME BAR', '#60A5FA'),             # 1: grabacion de fondo y Game Bar
+        @('CPU Y PRIORIDAD', '#60A5FA'),                   # 1: nucleos y prioridad para el juego
+        @('PROCESADOR', '#60A5FA'),                        # 1 con costo: mas calor y consumo
+        @('PLAN DE ENERGIA', '#60A5FA'),                   # 1 con costo: mas calor y consumo
+        @('LIMPIEZA DE RAM (STANDBY LIST)', '#60A5FA'),    # 1: solo con la RAM justa
+        @('SEGURIDAD (MAS RENDIMIENTO)', '#F28B82'),       # 1 con riesgo: VBS e integridad de memoria
+        @('TEMPORIZADOR Y LATENCIA', '#60A5FA'),           # 2
+        @('ENERGIA Y RED', '#60A5FA'),                     # 2: microcortes y ping
+        @('MOUSE', '#60A5FA'),                             # 2: punteria, no FPS
+        @('DNS', '#60A5FA'),                               # 2: no baja el ping en partida
+        @('TECLADO', '#9AA0A6'), @('SONIDO', '#9AA0A6'),   # 3: comodidad en partida
+        @('BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR', '#9AA0A6'), @('AJUSTES EXTRA', '#9AA0A6'))
+}
+# Dentro de cada categoria las opciones van en este orden (de mas a menos impacto, con el mismo criterio). La categoria de
+# cada una la dice su Seccion en Debloat.ps1 y Gaming.ps1. Si falta una, va al final de su categoria y
+# tests\Verificar-Opciones.ps1 avisa. El orden en que se APLICAN no cambia: es el de los scripts.
+$OrdenOpc = @{
+    Debloat = @(
+        # Apps y procesos en segundo plano: primero lo que se abre solo y mas RAM ocupa
+        'ini', 'apps', 'svh', 'ofb', 'nvl', 'upd', 'tsk', 'dia', 'inv', 'nvd', 'nvt',
+        # Efectos visuales y fluidez
+        'fx', 'trn', 'thm', 'rap', 'sud',
+        # Almacenamiento y memoria
+        'mc', 'hib', 'fsb',
+        # Actualizaciones y Store: lo que descarga en medio de una partida primero; lo peligroso al final
+        'do', 'su', 'wud', 'wup', 'wus', 'str', 'msx',
+        # Servicios y funciones: lo comun y seguro primero, los extremos al final
+        'sv', 'rsv', 'old', 'xbs', 'rmin', 'rnet', 'rdp', 'bt', 'leg', 'apl', 'ter', 'sx', 'usv', 'cdps', 'aif', 'tkb', 'tem', 'tim',
+        # Seguridad
+        'av', 'bl',
+        # Apps, navegadores e IA: borrar apps basura es lo que mas libera
+        'db', 'eb', 'ebb', 'ia', 'iap', 'iao', 'rc', 'edge', 'chr',
+        # Privacidad y telemetria: primero lo que ademas corre en segundo plano (servicios y tareas)
+        'tel', 'tp', 'tpn', 'tps', 'hst', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'cdp', 'clh', 'wer',
+        # Interfaz y comodidad
+        'ad', 'bng', 'wg', 'tvb', 'et', 'cal', 'sch', 'sns', 'cam',
+        # Puntos de restauracion y lo que borra partes de Windows (de mas a menos espacio liberado; el entorno de recuperacion al final)
+        'rpo', 'rbs', 'drs', 'lang', 'acc', 'dold', 'dball', 'wre'
+    )
+    Gaming = @(
+        # Graficos: HAGS hace falta para el Frame Generation; MPO solo arregla problemas; PcaSvc es comodidad
+        'gf', 'wgo', 'fso', 'msi', 'mpo', 'pca',
+        # Modo juego y Game Bar: la grabacion de fondo es la que come FPS; el Modo Xbox no cambia FPS
+        'dvr', 'gm', 'xb', 'notif', 'xm', 'xbt',
+        # CPU y prioridad: afinidad y prioridad alta antes que los de efecto chico
+        'afi', 'pri', 'mm', 'fgb',
+        # Procesador y plan de energia
+        'cpu', 'idle', 'll', 'pw', 'nb',
+        # RAM
+        'ram', 'sm',
+        # Seguridad: VBS e integridad de memoria son las que mas FPS dan; Spectre solo en procesadores viejos y es la mas peligrosa
+        'vbs', 'mi', 'avl', 'spc',
+        # Latencia, red, mouse y DNS
+        'tr', 'pe', 'nic', 'dup', 'wf', 'nag', 'v4', 'pci', 'dsk', 'ms', 'dns',
+        # Comodidad
+        'tk', 'du', 'wsr', 'stg', 'ext', 'hid', 'md'
+    )
 }
 foreach ($k in 'Debloat', 'Gaming') {
     $sp = New-Object Windows.Controls.StackPanel
     $orden = @($OrdenSec[$k])
+    $prio = @($OrdenOpc[$k])
     $secs = @($Opciones[$k] | ForEach-Object { $_.Seccion } | Select-Object -Unique)
     $secs = @($secs | ForEach-Object -Begin { $n = 0 } -Process { $pos = -1; for ($q = 0; $q -lt $orden.Count; $q++) { if ($orden[$q][0] -eq $_) { $pos = $q; break } }; [pscustomobject]@{ Nombre = $_; Pos = $(if ($pos -lt 0) { 1000 + $n } else { $pos }); Color = $(if ($pos -ge 0) { $orden[$pos][1] } else { '#7D8590' }) }; $n++ } | Sort-Object Pos)
     foreach ($s in $secs) {
-        $sp.Children.Add((Nueva-Seccion $s.Nombre $s.Color)) | Out-Null
         $ug = New-Object Windows.Controls.Primitives.UniformGrid; $ug.Columns = 2
-        foreach ($it in @($Opciones[$k] | Where-Object { $_.Seccion -eq $s.Nombre })) {
+        $cab = Nueva-SeccionPlegable $k $s.Nombre $s.Color $ug
+        $sp.Children.Add($cab) | Out-Null
+        # Orden por impacto ($OrdenOpc); las que no estan en la lista quedan al final, en el orden del script
+        $its = @($Opciones[$k] | Where-Object { $_.Seccion -eq $s.Nombre } | ForEach-Object -Begin { $n = 0 } -Process { $p = [array]::IndexOf($prio, [string]$_.Id); [pscustomobject]@{ It = $_; Pos = $(if ($p -lt 0) { 1000 + $n } else { $p }) }; $n++ } | Sort-Object Pos | ForEach-Object { $_.It })
+        foreach ($it in $its) {
             $tj = Nueva-Tarjeta $it $Casillas[$k] $false $k
             $tj.Margin = '0,0,8,8'
             $ug.Children.Add($tj) | Out-Null
             $TitulosChequeo[$k + '|' + $it.Id] = $it.Titulo
+            $cb = $Casillas[$k][$it.Id]
+            $cab.Tag.Cbs.Add($cb)
+            $script:CabDe[$cb] = $cab
+            $cb.Add_Checked({ Cabeza-Cuenta $script:CabDe[$this] })
+            $cb.Add_Unchecked({ Cabeza-Cuenta $script:CabDe[$this] })
         }
         $sp.Children.Add($ug) | Out-Null
+        Cabeza-Cuenta $cab
+        Cabeza-Mostrar $cab
     }
     $Paginas[$k] = $sp
 }
@@ -2522,7 +2899,7 @@ function Revisar-Conflictos([string]$nueva) {
             continue
         }
         $q = (Con-Enie 'Estas dos opciones chocan:') + "`n1. " + (Titulo-De $pa $ia) + "`n2. " + (Titulo-De $pb $ib) + "`n`n" + (Con-Enie $c[2]) + "`n`n" + (Con-Enie 'Cual queres dejar marcada?')
-        if (Confirmar ($Aviso + ' Opciones que chocan') $q 'Dejar la 1' '#9AD7FF' 'Dejar la 2') { $cb.IsChecked = $false } else { $ca.IsChecked = $false }
+        if (Confirmar ($Aviso + ' Opciones que chocan') $q 'Dejar la 1' '#60A5FA' 'Dejar la 2') { $cb.IsChecked = $false } else { $ca.IsChecked = $false }
     }
 }
 
@@ -2531,14 +2908,19 @@ function Calcular-NoDisp($i, $cpu) {
     $r = @{}
     if (-not $i) { return $r }
     $b = [int]$i.Build
-    $tuyo = $(if ($b -ge 22000) { 'Windows 11' } else { 'Windows 10' })
+    $tuyo = $(if ($b -ge 22000) { 'Windows 11' } elseif ($b -ge 10240) { 'Windows 10' } elseif ($b -ge 9200) { 'Windows 8' } else { 'Windows 7' })
     if ($i.Display) { $tuyo += (' ' + $i.Display) }
     $tuyo += (' (build ' + $b + ')')
     $nv = 'Tu Windows no lo soporta: necesita '
+    # Windows 7 y 8: lo que usa comandos de Windows 10 u 11 queda en gris (los scripts tambien lo saltean)
+    if (($b -gt 0) -and ($b -lt 10240)) {
+        foreach ($pg in 'Debloat', 'Gaming') { foreach ($it in $Opciones[$pg]) { if ($it.Win10) { $r[$pg + '|' + $it.Id] = ($nv + 'Windows 10 u 11. Tenes ' + $tuyo + '.') } } }
+    }
     if ($b -lt 26100) { $r['Debloat|rc'] = ($nv + 'Windows 11 24H2 o mas nuevo en una PC Copilot+. Tenes ' + $tuyo + '.') }
     elseif (-not $i.Recall) { $r['Debloat|rc'] = 'Tu PC no tiene Recall: solo viene en las PCs Copilot+ (con NPU).' }
     if ($b -lt 22621) { $r['Debloat|et'] = ($nv + 'Windows 11 22H2 o mas nuevo. Tenes ' + $tuyo + '.') }
-    if ($b -lt 26100) { $r['Debloat|ia'] = ($nv + 'Windows 11 24H2 o mas nuevo. Tenes ' + $tuyo + '.') }
+    # iap e iao salieron de ia (v1.0.13): mismo requisito, asi los perfiles hacen lo mismo que antes
+    if ($b -lt 26100) { foreach ($x in 'ia', 'iap', 'iao') { $r['Debloat|' + $x] = ($nv + 'Windows 11 24H2 o mas nuevo. Tenes ' + $tuyo + '.') } }
     if ($b -lt 22000) { $r['Debloat|cal'] = ($nv + 'Windows 11 (en Windows 10 el calendario del reloj no se puede quitar). Tenes ' + $tuyo + '.') }
     if (-not $i.BitLocker) { $r['Debloat|bl'] = 'Tu edicion de Windows no tiene BitLocker: viene en Pro, Enterprise y Education.' }
     if (-not $i.Winget) { $r['Debloat|chr'] = 'Falta winget en tu PC: instala o actualiza el "Instalador de aplicaciones" desde la Microsoft Store.' }
@@ -2549,6 +2931,7 @@ function Calcular-NoDisp($i, $cpu) {
     if (([int]$i.Wifi -eq 0) -or ([int]$i.Lan -eq 0)) { $r['Gaming|wf'] = 'No hace falta: es para PCs que tienen placa WiFi y de cable a la vez (las placas apagadas no cuentan).' }
     elseif ($i.WifiSinRed) { $r['Gaming|wf'] = 'Tu placa WiFi no ve ninguna red: puede que no tenga la antena puesta. Ponela y toca "Volver a leer los ajustes".' }
     if ($b -lt 19041) { $r['Gaming|gf'] = ($nv + 'Windows 10 2004 o mas nuevo. Tenes ' + $tuyo + '.') }
+    if ($b -lt 22000) { $r['Gaming|wgo'] = ($nv + 'Windows 11 (las optimizaciones para juegos en ventana no existen en Windows 10). Tenes ' + $tuyo + '.') }
     if (([int]$i.RamGB -lt 16) -or $i.Hdd) {
         $q = @()
         if ([int]$i.RamGB -lt 16) { $q += ('tenes ' + $i.RamGB + ' GB de RAM') }
@@ -2590,7 +2973,7 @@ function Actualizar-Bloqueos {
             $t.Cb.IsChecked = $false; $t.Cb.IsEnabled = $false
             $c.Opacity = 1
             $c.Child.Opacity = 0.45
-            $c.Background = (Pincel '#1C1C1C')
+            $c.Background = (Pincel '#181B21')
             $rojo = Color-Tema '#F28B82'
             $c.Tag.Color = $rojo; $c.Tag.Reposo = 150; $c.Tag.Encima = 255; $c.Tag.Bloq = $true
             $c.BorderThickness = 2
@@ -2660,8 +3043,8 @@ $fijo.Child = (Nuevo-Texto 'Archivos temporales de Windows y de tus usuarios, ca
 $spL.Children.Add($fijo) | Out-Null
 $catLimp = @(
     @{ T = 'ESPACIO RAPIDO (SIN RIESGO)'; C = '#81C995'; Ids = 'CLEAN_BIN', 'CLEAN_GPU' },
-    @{ T = 'CACHE DE PROGRAMAS'; C = '#9AD7FF'; Ids = 'CLEAN_LAUNCH', 'CLEAN_BRW' },
-    @{ T = 'SISTEMA DE WINDOWS'; C = '#9AD7FF'; Ids = 'CLEAN_RP', 'CLEAN_OLD', 'CLEAN_EVT', 'CLEAN_DISM' },
+    @{ T = 'CACHE DE PROGRAMAS'; C = '#60A5FA'; Ids = 'CLEAN_LAUNCH', 'CLEAN_BRW' },
+    @{ T = 'SISTEMA DE WINDOWS'; C = '#60A5FA'; Ids = 'CLEAN_RP', 'CLEAN_OLD', 'CLEAN_EVT', 'CLEAN_DISM' },
     @{ T = 'RESTOS Y ARCHIVOS TUYOS (CUIDADO CON LAS PARTIDAS GUARDADAS)'; C = '#F28B82'; Ids = 'CLEAN_APPS', 'CLEAN_DL' }
 )
 foreach ($cat in $catLimp) {
@@ -2688,7 +3071,7 @@ function Nueva-Herramienta([string]$titulo, [string]$hace, [string]$favor, [stri
     $sp.Children.Add((Nuevo-Texto $titulo 15 '#FFFFFF' $true)) | Out-Null
     $d = New-Object Windows.Controls.TextBlock
     $d.TextWrapping = 'Wrap'; $d.FontSize = 12.5; $d.Foreground = (Pincel '#C3C8D0'); $d.Margin = '0,6,0,0'; $d.LineHeight = 19
-    Agregar-Linea $d 'Que hace: ' '#9AD7FF' $hace
+    Agregar-Linea $d 'Que hace: ' '#60A5FA' $hace
     Agregar-Linea $d 'A favor: ' '#81C995' $favor
     Agregar-Linea $d 'En contra: ' '#F28B82' $contra
     $sp.Children.Add($d) | Out-Null
@@ -2699,7 +3082,7 @@ function Nueva-Herramienta([string]$titulo, [string]$hace, [string]$favor, [stri
     return $card
 }
 
-$script:BtnVer = Nuevo-Boton 'Actualizar a 26H2' '#9AD7FF'
+$script:BtnVer = Nuevo-Boton 'Actualizar a 26H2' '#60A5FA'
 $script:BtnVer.Tag = 'ver=S'
 $script:VerTexto = Nuevo-Texto '' 12 '#81C995' $false
 $script:VerTexto.Margin = '0,8,0,0'
@@ -2707,7 +3090,7 @@ $cardVer = Nueva-Herramienta 'Actualizar Windows 11' 'si tenes 24H2 o 25H2, pide
 $cardVer.Child.Children.Add($script:VerTexto) | Out-Null
 $spH.Children.Add($cardVer) | Out-Null
 
-$bDrv = Nuevo-Boton 'Buscar drivers' '#9AD7FF'; $bDrv.Tag = 'drv=S'
+$bDrv = Nuevo-Boton 'Buscar drivers' '#60A5FA'; $bDrv.Tag = 'drv=S'
 $bDrv.Add_Click({ $this.Effect = $null })
 $script:BtnDrv = $bDrv
 $spH.Children.Add(($script:CardDrv = Nueva-Herramienta 'Drivers recomendados' 'revisa tu PC y te recomienda solo los drivers que aportan algo: lo que no tiene driver (sonido, red, Bluetooth...), la placa de video, el chipset de AMD, el programa de tu mouse, teclado o auriculares de marca, de tu SSD y de otros aparatos (impresora, tableta grafica, volante, microfono, Stream Deck, capturadora, webcam, joystick, antena USB), y te abre la pagina oficial de cada uno. Tambien te avisa si la BIOS de tu placa esta vieja.' 'tenes lo que hace falta, en su ultima version, y nada de programas de mas.' 'la BIOS no se actualiza sola: se hace a mano desde la pagina de tu placa.' @($bDrv))) | Out-Null
@@ -3211,7 +3594,7 @@ function Resultado-Bios($rb, $cu) {
     $cab = New-Object Windows.Controls.Grid
     $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'
     $cab.ColumnDefinitions.Add($c0); $cab.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
-    $ic = Icono-Dialogo 0xE950 '#9AD7FF' 42
+    $ic = Icono-Dialogo 0xE950 '#60A5FA' 42
     $ic.Margin = '0,0,14,0'
     $cab.Children.Add($ic) | Out-Null
     $tx = New-Object Windows.Controls.StackPanel
@@ -3263,7 +3646,7 @@ function Resultado-Bios($rb, $cu) {
     $izq = @()
     # /fw reinicia directo a la BIOS: solo anda en modo UEFI
     if ($pl.Firmware -eq 'UEFI') {
-        $bFw = Nuevo-Boton 'Reiniciar y entrar a la BIOS' '#9AD7FF'
+        $bFw = Nuevo-Boton 'Reiniciar y entrar a la BIOS' '#60A5FA'
         $bFw.Add_Click({
             if (-not (Confirmar 'Entrar a la BIOS' 'La PC se reinicia ya y entra directo a la BIOS. Guarda todo lo que tengas abierto antes de seguir.' 'Reiniciar' '#B3412F' 'Cancelar')) { return }
             try {
@@ -3297,7 +3680,7 @@ function Abrir-Bios {
     Resultado-Bios $rb $cu
 }
 
-$bBios = Nuevo-Boton 'Revisar la BIOS' '#9AD7FF'
+$bBios = Nuevo-Boton 'Revisar la BIOS' '#60A5FA'
 $bBios.Add_Click({ Abrir-Bios })
 $script:BiosEstado = Nuevo-Texto '' 12 '#81C995' $false
 $script:BiosEstado.Margin = '0,8,0,0'; $script:BiosEstado.Visibility = 'Collapsed'
@@ -3309,8 +3692,8 @@ $spH.Children.Add($cardBios) | Out-Null
 # Lee la placa (NVIDIA con nvidia-smi, que viene con su driver; AMD e Intel por el nombre) y recomienda valores segun lo que elijas.
 # En NVIDIA de escritorio aplica sola lo seguro: limite de consumo y tope de reloj (con el tope baja el voltaje solo),
 # y una tarea lo vuelve a poner en cada arranque. La curva no se toca desde aca: no hay forma oficial y cada placa aguanta distinto.
-$GpuArchivo = Join-Path $XucaDir 'gpu_ajuste.txt'
-$GpuTarea = 'XucaGPU'
+$GpuArchivo = Join-Path $BrioDir 'gpu_ajuste.txt'
+$GpuTarea = 'BrioGPU'
 $Grado = [string][char]0xB0
 $UrlAfterburner = 'https://www.msi.com/Landing/afterburner/graphics-cards'
 $RutaAfterburner = Join-Path ${env:ProgramFiles(x86)} 'MSI Afterburner\MSIAfterburner.exe'
@@ -3482,7 +3865,7 @@ function Recomendar-Gpu($gi, [string]$obj) {
 function Empezar-MedicionGpu {
     if ($script:GpuMidiendo) { return }
     if (-not (Ruta-Smi)) { Avisar 'Medir jugando' 'La medicion en juego solo anda con placas NVIDIA: usa nvidia-smi, que viene con su driver.'; return }
-    if (-not (Confirmar 'Medir jugando' 'Toca Empezar, abri un juego y juga normal 1 minuto. La app mide temperatura, consumo, reloj y uso de la placa, y despues te dice que te conviene. Cuando termina suena un aviso.' 'Empezar' '#9AD7FF' 'Cancelar')) { return }
+    if (-not (Confirmar 'Medir jugando' 'Toca Empezar, abri un juego y juga normal 1 minuto. La app mide temperatura, consumo, reloj y uso de la placa, y despues te dice que te conviene. Cuando termina suena un aviso.' 'Empezar' '#60A5FA' 'Cancelar')) { return }
     $script:GpuMidiendo = @{ Fin = (Get-Date).AddSeconds(60); Muestras = New-Object Collections.ArrayList; Timer = (New-Object Windows.Threading.DispatcherTimer) }
     $script:GpuMidiendo.Timer.Interval = [TimeSpan]::FromSeconds(2)
     $script:GpuMidiendo.Timer.Add_Tick({ Paso-MedicionGpu })
@@ -3501,7 +3884,7 @@ function Paso-MedicionGpu {
     }
     $falta = [int][math]::Ceiling(($md.Fin - (Get-Date)).TotalSeconds)
     if ($falta -gt 0) {
-        $script:GpuEstado.Foreground = (Pincel (Tema-Letra '#9AD7FF'))
+        $script:GpuEstado.Foreground = (Pincel (Tema-Letra '#60A5FA'))
         $script:GpuEstado.Text = (Con-Enie ('Midiendo... juga normal. Faltan ' + $falta + ' s.'))
         return
     }
@@ -3559,7 +3942,7 @@ function Aplicar-Gpu($ap, [string]$obj) {
         $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
         Register-ScheduledTask -TaskName $GpuTarea -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force -ErrorAction Stop | Out-Null
     } catch { [void]$mal.Add('no se pudo crear la tarea de inicio: al reiniciar vuelve a como venia') }
-    if (-not (Test-Path -LiteralPath $XucaDir)) { New-Item -Path $XucaDir -ItemType Directory -Force | Out-Null }
+    if (-not (Test-Path -LiteralPath $BrioDir)) { New-Item -Path $BrioDir -ItemType Directory -Force | Out-Null }
     $lineas = @('objetivo=' + $obj, 'pl=' + $ap.Pl, 'pldef=' + $ap.PlDef, 'lgc=' + $(if ($ap.Lgc -and $lgcOk) { $ap.Lgc } else { '' }))
     [IO.File]::WriteAllLines($GpuArchivo, $lineas)
     # Se verifica leyendo el limite que quedo puesto
@@ -3612,7 +3995,7 @@ function Elegir-ObjetivoGpu($gi) {
     $cab = New-Object Windows.Controls.Grid
     $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'
     $cab.ColumnDefinitions.Add($c0); $cab.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
-    $ic = Icono-Dialogo 0xE7F4 '#9AD7FF' 42
+    $ic = Icono-Dialogo 0xE7F4 '#60A5FA' 42
     $ic.Margin = '0,0,14,0'
     $cab.Children.Add($ic) | Out-Null
     $tx = New-Object Windows.Controls.StackPanel
@@ -3636,7 +4019,7 @@ function Elegir-ObjetivoGpu($gi) {
     $med = $script:GpuMedida
     if ($med -and $med.Ok) {
         $mc = New-Object Windows.Controls.Border
-        $mc.CornerRadius = 12; $mc.Padding = '12,10'; $mc.Margin = '0,14,0,0'; $mc.Background = (Pincel '#1F2D37')
+        $mc.CornerRadius = 12; $mc.Padding = '12,10'; $mc.Margin = '0,14,0,0'; $mc.Background = (Pincel '#18243A')
         $mt = New-Object Windows.Controls.StackPanel
         $mt.Children.Add((Nuevo-Texto ('Jugando: hasta ' + $med.TempMax + $Grado + 'C, ' + $med.Consumo + ' W, ' + $med.Reloj + ' MHz y ' + $med.Uso + ' % de uso.') 12.5 '#E6E8EB' $true)) | Out-Null
         $mm = Nuevo-Texto $med.Motivo 12.5 '#C3C8D0' $false
@@ -3657,14 +4040,14 @@ function Elegir-ObjetivoGpu($gi) {
         $rec = ($med -and $med.Ok -and ($med.Obj -eq $o[0]))
         $card = New-Object Windows.Controls.Border
         $card.CornerRadius = 12; $card.Padding = '14,10'; $card.Margin = '0,8,0,0'
-        $card.Background = (Pincel $(if ($rec) { '#2A3F4D' } else { '#303037' }))
-        $card.BorderBrush = (Pincel $(if ($rec) { '#9AD7FF' } else { '#3B3B43' })); $card.BorderThickness = $(if ($rec) { 2 } else { 1 })
+        $card.Background = (Pincel $(if ($rec) { '#223454' } else { '#303037' }))
+        $card.BorderBrush = (Pincel $(if ($rec) { '#60A5FA' } else { '#3B3B43' })); $card.BorderThickness = $(if ($rec) { 2 } else { 1 })
         $card.Cursor = [Windows.Input.Cursors]::Hand
         $card.Tag = $o[0]
         $g = New-Object Windows.Controls.Grid
         $ca = New-Object Windows.Controls.ColumnDefinition; $ca.Width = 'Auto'
         $g.ColumnDefinitions.Add($ca); $g.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
-        $i1 = Nuevo-Texto ([string][char]$o[1]) 18 '#9AD7FF' $false
+        $i1 = Nuevo-Texto ([string][char]$o[1]) 18 '#60A5FA' $false
         $i1.FontFamily = 'Segoe MDL2 Assets'; $i1.VerticalAlignment = 'Center'; $i1.Margin = '2,0,14,0'
         $g.Children.Add($i1) | Out-Null
         $t2 = New-Object Windows.Controls.StackPanel
@@ -3683,7 +4066,7 @@ function Elegir-ObjetivoGpu($gi) {
         $t2.Children.Add($d2) | Out-Null
         $g.Children.Add($t2) | Out-Null
         $card.Child = $g
-        $card.Add_MouseEnter({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#9AD7FF') } })
+        $card.Add_MouseEnter({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#60A5FA') } })
         $card.Add_MouseLeave({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#3B3B43') } })
         # MouseLeftButtonDown con Handled: el borde del cartel tiene DragMove y se come el ButtonUp
         $card.Add_MouseLeftButtonDown({
@@ -3752,7 +4135,7 @@ function Resultado-Gpu($gi, [string]$obj, $rec, $ap) {
     $lista.Margin = '0,0,6,0'
     $titPro = 'En ' + $rec.Programa
     if ($ap) { $titPro = 'Opcion completa: en ' + $rec.Programa + ' (la que mas rinde)' }
-    $lista.Children.Add((Caja-Gpu $titPro '#9AD7FF' 0xE70F $rec.Pasos $true)) | Out-Null
+    $lista.Children.Add((Caja-Gpu $titPro '#60A5FA' 0xE70F $rec.Pasos $true)) | Out-Null
     if ($ap) {
         $la = @('Mas simple y sin riesgo, pero rinde menos: el undervolt es menos fino que la curva y no sube los MHz ni la memoria. Para eso esta la opcion completa.')
         $la += ('Limite de consumo: ' + $ap.Pl + ' W (de fabrica ' + $ap.PlDef + ' W).')
@@ -3791,7 +4174,7 @@ function Resultado-Gpu($gi, [string]$obj, $rec, $ap) {
     $bCer = Nuevo-Boton 'Cerrar'; $bCer.IsCancel = $true
     $der += $bCer
     if ($ap) {
-        $bAp = Nuevo-Boton 'Aplicar version lite' '#9AD7FF'
+        $bAp = Nuevo-Boton 'Aplicar version lite' '#60A5FA'
         $bAp.Add_Click({ $ww = [Windows.Window]::GetWindow($this); $ww.Tag.Aplicar = $true; $ww.DialogResult = $true })
         $der += $bAp
     }
@@ -3823,7 +4206,7 @@ function Abrir-AjusteGpu {
     Avisar 'Placa de video: aplicado' $m
 }
 
-$bGpu = Nuevo-Boton 'Ver recomendacion' '#9AD7FF'
+$bGpu = Nuevo-Boton 'Ver recomendacion' '#60A5FA'
 $bGpu.Add_Click({ Abrir-AjusteGpu })
 $script:BtnGpuMed = Nuevo-Boton 'Medir jugando (1 min)'
 $script:BtnGpuMed.Add_Click({ Empezar-MedicionGpu })
@@ -3840,11 +4223,11 @@ Actualizar-GpuCard
 # PresentMon es el medidor de Intel (gratis, codigo abierto, Apache 2.0): lee el tiempo de cada cuadro desde Windows (ETW),
 # sin overlay y sin meterse en el juego. No viene con la app: se baja de su repo oficial la primera vez que medis y se verifica.
 # La medicion corre en un hilo aparte (como Gaming.ps1) y la ventana sigue fluida. Lo medido queda en
-# ProgramData\XucaScripts\benchmark_estado.txt, asi despues de reiniciar la app sabe que falta "Medir despues".
+# ProgramData\Brio\benchmark_estado.txt, asi despues de reiniciar la app sabe que falta "Medir despues".
 $BenchRepo = 'GameTechDev/PresentMon'
-$BenchDir = Join-Path $XucaDir 'PresentMon'
+$BenchDir = Join-Path $BrioDir 'PresentMon'
 $BenchExe = Join-Path $BenchDir 'PresentMon.exe'
-$BenchEstado = Join-Path $XucaDir 'benchmark_estado.txt'
+$BenchEstado = Join-Path $BrioDir 'benchmark_estado.txt'
 $BenchEspera = 10
 $script:BenchRun = $null
 # Programas que pueden tener una ventana del tamano de la pantalla y no son juegos (no se miden en "cualquiera en pantalla completa")
@@ -3859,7 +4242,7 @@ function Leer-BenchEstado {
 }
 function Guardar-BenchEstado($d) {
     try {
-        if (-not (Test-Path -LiteralPath $XucaDir)) { New-Item -Path $XucaDir -ItemType Directory -Force | Out-Null }
+        if (-not (Test-Path -LiteralPath $BrioDir)) { New-Item -Path $BrioDir -ItemType Directory -Force | Out-Null }
         [IO.File]::WriteAllLines($BenchEstado, [string[]]@($d.Keys | Sort-Object | ForEach-Object { $_ + '=' + $d[$_] }))
     } catch { }
 }
@@ -3891,7 +4274,7 @@ $CodigoBench = {
             $Sync.Fase = 'bajando'
             try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
             $wc = New-Object Net.WebClient
-            $wc.Headers['User-Agent'] = 'XucaOP'
+            $wc.Headers['User-Agent'] = 'Brio'
             $rel = $null
             try { $rel = $wc.DownloadString('https://api.github.com/repos/' + $Op.Repo + '/releases/latest') | ConvertFrom-Json }
             catch { Fallar 'descarga' ('No se pudo leer la ultima version en GitHub: ' + $_.Exception.Message); return }
@@ -3901,7 +4284,7 @@ $CodigoBench = {
             if (-not $url.StartsWith('https://github.com/' + $Op.Repo + '/releases/download/')) { Fallar 'verificacion' 'La direccion de descarga no es la del repo oficial.'; return }
             $tmp = Join-Path $Op.Dir 'descarga.tmp'
             Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
-            try { $wc.Headers['User-Agent'] = 'XucaOP'; $wc.DownloadFile($url, $tmp) }
+            try { $wc.Headers['User-Agent'] = 'Brio'; $wc.DownloadFile($url, $tmp) }
             catch { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; Fallar 'descarga' ('Fallo la descarga: ' + $_.Exception.Message); return }
             $Sync.Fase = 'verificando'
             $mal = ''
@@ -4006,7 +4389,7 @@ public static class XucaPantalla {
         $Sync.Fase = 'midiendo'
         $Sync.Falta = [int]$Op.Seg
         $csvTmp = Join-Path $Op.Dir ('captura_' + [guid]::NewGuid().ToString('N') + '.csv')
-        $arg = '--process_id ' + $obj.Id + ' --output_file "' + $csvTmp + '" --timed ' + [int]$Op.Seg + ' --terminate_after_timed --terminate_on_proc_exit --no_console_stats --stop_existing_session --session_name XucaOP_FPS'
+        $arg = '--process_id ' + $obj.Id + ' --output_file "' + $csvTmp + '" --timed ' + [int]$Op.Seg + ' --terminate_after_timed --terminate_on_proc_exit --no_console_stats --stop_existing_session --session_name Brio_FPS'
         $psi = New-Object Diagnostics.ProcessStartInfo $Op.Exe, $arg
         $psi.UseShellExecute = $false; $psi.CreateNoWindow = $true; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true
         $pr = [Diagnostics.Process]::Start($psi)
@@ -4063,7 +4446,7 @@ public static class XucaPantalla {
         $res.Txt = Join-Path $Op.Logs ('benchmark_' + $stamp + '.txt')
         Move-Item -LiteralPath $csvTmp -Destination $res.Csv -Force
         $txt = @(
-            ('Xuca OPtimizer - medicion de FPS con PresentMon ' + $ver),
+            ($NombreApp + ' - medicion de FPS con PresentMon ' + $ver),
             ('Etapa: ' + $(if ($Op.Etapa -eq 'despues') { 'DESPUES de aplicar' } else { 'ANTES de aplicar' })),
             ('Fecha: ' + $res.Fecha),
             ('Juego: ' + $res.App + ' (PID ' + $obj.Id + ')'),
@@ -4101,7 +4484,7 @@ function Elegir-Bench([string]$etapa, $est) {
     $cab = New-Object Windows.Controls.Grid
     $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'
     $cab.ColumnDefinitions.Add($c0); $cab.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
-    $ic = Icono-Dialogo 0xE9D9 '#9AD7FF' 42
+    $ic = Icono-Dialogo 0xE9D9 '#60A5FA' 42
     $ic.Margin = '0,0,14,0'
     $cab.Children.Add($ic) | Out-Null
     $tx = New-Object Windows.Controls.StackPanel
@@ -4124,12 +4507,12 @@ function Elegir-Bench([string]$etapa, $est) {
     if ($est -and $est['seg']) { $prevSeg = [int]$est['seg'] }
     $w.Tag.Seg = $prevSeg
     foreach ($s in 30, 60, 120) {
-        $b = Nuevo-Boton ([string]$s + ' s') $(if ($s -eq $prevSeg) { '#9AD7FF' } else { '' })
+        $b = Nuevo-Boton ([string]$s + ' s') $(if ($s -eq $prevSeg) { '#60A5FA' } else { '' })
         $b.Tag = $s
         $b.Add_Click({
             $ww = [Windows.Window]::GetWindow($this)
             $ww.Tag.Seg = [int]$this.Tag
-            foreach ($o in $ww.Tag.Botones) { if ($o -eq $this) { $o.Background = (Pincel '#9AD7FF'); $o.Foreground = (Pincel '#0B2533') } else { $o.ClearValue([Windows.Controls.Control]::BackgroundProperty); $o.ClearValue([Windows.Controls.Control]::ForegroundProperty) } }
+            foreach ($o in $ww.Tag.Botones) { if ($o -eq $this) { $o.Background = (Pincel '#60A5FA'); $o.Foreground = (Pincel '#0B1B33') } else { $o.ClearValue([Windows.Controls.Control]::BackgroundProperty); $o.ClearValue([Windows.Controls.Control]::ForegroundProperty) } }
         })
         [void]$w.Tag.Botones.Add($b)
         $fila.Children.Add($b) | Out-Null
@@ -4141,7 +4524,7 @@ function Elegir-Bench([string]$etapa, $est) {
     $sp.Children.Add($l2) | Out-Null
     $t = New-Object Windows.Controls.TextBox
     $t.Padding = '6,6'; $t.FontSize = 13.5; $t.VerticalContentAlignment = 'Center'
-    $t.Background = (Pincel '#191919'); $t.Foreground = (Pincel '#FFFFFF'); $t.BorderBrush = (Pincel '#46464F'); $t.CaretBrush = (Pincel '#FFFFFF')
+    $t.Background = (Pincel '#111318'); $t.Foreground = (Pincel '#FFFFFF'); $t.BorderBrush = (Pincel '#46464F'); $t.CaretBrush = (Pincel '#FFFFFF')
     if ($est -and $est['proc']) { $t.Text = [string]$est['proc'] }
     $w.Tag.Texto = $t
     $sp.Children.Add($t) | Out-Null
@@ -4162,7 +4545,7 @@ function Elegir-Bench([string]$etapa, $est) {
     $sp.Children.Add($wp) | Out-Null
 
     $bNo = Nuevo-Boton 'Cancelar'; $bNo.IsCancel = $true
-    $bSi = Nuevo-Boton 'Empezar' '#9AD7FF'; $bSi.IsDefault = $true
+    $bSi = Nuevo-Boton 'Empezar' '#60A5FA'; $bSi.IsDefault = $true
     $bSi.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
     $sp.Children.Add((Fila-Botones @() @($bNo, $bSi))) | Out-Null
     $w.Content.Child = $sp
@@ -4180,10 +4563,10 @@ function Empezar-Bench([string]$etapa) {
     if ($etapa -eq 'despues') {
         if ((-not $est) -or (-not $est['antes_fps'])) { Avisar 'Medir FPS' 'Primero toca "Medir antes", con el juego abierto, antes de aplicar los cambios.'; return }
         if (($est['pendiente'] -eq 'reinicio') -and ($est['arranque'] -eq (Bench-Arranque))) {
-            if (-not (Confirmar 'Todavia no reiniciaste' 'Algunos de los cambios que aplicaste se notan recien al reiniciar la PC. Si medis ahora, la comparacion puede no mostrar la diferencia.' 'Medir igual' '#9AD7FF' 'Cancelar')) { return }
+            if (-not (Confirmar 'Todavia no reiniciaste' 'Algunos de los cambios que aplicaste se notan recien al reiniciar la PC. Si medis ahora, la comparacion puede no mostrar la diferencia.' 'Medir igual' '#60A5FA' 'Cancelar')) { return }
         }
     } elseif ($est -and $est['antes_fps']) {
-        if (-not (Confirmar 'Medir antes otra vez' 'Ya tenes una medicion de antes guardada. Si medis de nuevo, se reemplaza (los archivos de la carpeta de logs quedan).' 'Medir de nuevo' '#9AD7FF' 'Cancelar')) { return }
+        if (-not (Confirmar 'Medir antes otra vez' 'Ya tenes una medicion de antes guardada. Si medis de nuevo, se reemplaza (los archivos de la carpeta de logs quedan).' 'Medir de nuevo' '#60A5FA' 'Cancelar')) { return }
     }
     $op = Elegir-Bench $etapa $(if ($etapa -eq 'despues') { $est } else { $null })
     if (-not $op) { return }
@@ -4194,8 +4577,8 @@ function Empezar-Bench([string]$etapa) {
     }
     $bajar = -not (Test-Path -LiteralPath $BenchExe)
     if ($bajar) {
-        $q = 'Para medir los FPS la app usa PresentMon, el medidor gratis y de codigo abierto de Intel: lee el tiempo de cada cuadro desde Windows, sin overlay y sin meterse en el juego.' + "`n`n" + 'No lo tenes: se baja ahora de su pagina oficial de GitHub (github.com/' + $BenchRepo + ', unos 2 MB), se verifica y se guarda en ProgramData\XucaScripts\PresentMon.'
-        if (-not (Confirmar 'Hace falta PresentMon' $q 'Bajar y medir' '#9AD7FF' 'Cancelar')) { return }
+        $q = 'Para medir los FPS la app usa PresentMon, el medidor gratis y de codigo abierto de Intel: lee el tiempo de cada cuadro desde Windows, sin overlay y sin meterse en el juego.' + "`n`n" + 'No lo tenes: se baja ahora de su pagina oficial de GitHub (github.com/' + $BenchRepo + ', unos 2 MB), se verifica y se guarda en ProgramData\Brio\PresentMon.'
+        if (-not (Confirmar 'Hace falta PresentMon' $q 'Bajar y medir' '#60A5FA' 'Cancelar')) { return }
     }
     $sync = [hashtable]::Synchronized(@{ Fase = 'inicio'; Falta = 0; Fin = $false; Error = ''; Detalle = ''; Res = $null; Bajado = $false; Version = ''; App = '' })
     $opc = @{ Exe = $BenchExe; Dir = $BenchDir; Repo = $BenchRepo; Bajar = $bajar; Proc = $op.Proc; Seg = $op.Seg; Espera = $BenchEspera; Logs = (Join-Path $Scripts 'logs'); Etapa = $etapa; Excluir = $BenchExcluir }
@@ -4226,7 +4609,7 @@ function Paso-Bench {
             'calculando' { 'Calculando los resultados...' }
             default { 'Preparando...' }
         }
-        $script:BenchTxt.Foreground = (Pincel (Tema-Letra '#9AD7FF'))
+        $script:BenchTxt.Foreground = (Pincel (Tema-Letra '#60A5FA'))
         $script:BenchTxt.Text = (Con-Enie $t)
         $script:BenchTxt.Visibility = 'Visible'
         return
@@ -4336,7 +4719,7 @@ function Resultado-Bench($est, [string]$extra) {
     }
     $bLog = Nuevo-Boton 'Abrir carpeta de logs'
     $bLog.Add_Click({ $d = Join-Path $Scripts 'logs'; if (Test-Path -LiteralPath $d) { Abrir-Normal $d } })
-    $bOk = Nuevo-Boton 'Entendido' '#9AD7FF'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
+    $bOk = Nuevo-Boton 'Entendido' '#60A5FA'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
     $bOk.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
     $sp.Children.Add((Fila-Botones @($bLog) @($bOk))) | Out-Null
     $w.Content.Child = $sp
@@ -4389,9 +4772,9 @@ function Actualizar-BenchCard {
     $script:BenchTxt.Visibility = $(if ($lin.Count -gt 0) { 'Visible' } else { 'Collapsed' })
 }
 
-$script:BtnBenchAntes = Nuevo-Boton 'Medir antes' '#9AD7FF'
+$script:BtnBenchAntes = Nuevo-Boton 'Medir antes' '#60A5FA'
 $script:BtnBenchAntes.Add_Click({ Empezar-Bench 'antes' })
-$script:BtnBenchDespues = Nuevo-Boton 'Medir despues' '#9AD7FF'
+$script:BtnBenchDespues = Nuevo-Boton 'Medir despues' '#60A5FA'
 $script:BtnBenchDespues.Add_Click({ Empezar-Bench 'despues' })
 $script:BtnBenchVer = Nuevo-Boton 'Ver comparacion'
 $script:BtnBenchVer.Add_Click({ $e = Leer-BenchEstado; if ($e -and $e['despues_fps']) { Resultado-Bench $e '' } })
@@ -4407,10 +4790,10 @@ Actualizar-BenchCard
 $bAcc = Nuevo-Boton 'Elegir cuenta para borrar' '#B3412F'; $bAcc.Tag = 'ms_acc=S'
 $spH.Children.Add((Nueva-Herramienta 'Borrar una cuenta de esta PC' 'te muestra las otras cuentas de la PC (usuarios de Windows y cuentas de Microsoft vinculadas) y borras la que elijas. Tu cuenta actual no aparece.' 'limpia cuentas viejas que ya no usas.' 'si tambien borras su carpeta, se pierden sus archivos.' @($bAcc))) | Out-Null
 
-$bSin = Nuevo-Boton 'Quitar la contrasena' '#9AD7FF'; $bSin.Tag = 'al=S'
+$bSin = Nuevo-Boton 'Quitar la contrasena' '#60A5FA'; $bSin.Tag = 'al=S'
 $bCon = Nuevo-Boton 'Volver a usar contrasena'; $bCon.Tag = 'al=R'
 $spH.Children.Add((Nueva-Herramienta 'Entrar a Windows sin contrasena' 'tu cuenta pasa a ser local y sin contrasena. Si es una cuenta de Microsoft, te guia para pasarla a local.' 'entras directo a Windows.' 'cualquiera que prenda la PC entra, y no anda el Escritorio remoto.' @($bSin, $bCon))) | Out-Null
-$bEst = Nuevo-Boton 'Ver estado de la PC' '#9AD7FF'
+$bEst = Nuevo-Boton 'Ver estado de la PC' '#60A5FA'
 $bEst.Add_Click({
     try {
         $os = Get-CimInstance Win32_OperatingSystem
@@ -4428,9 +4811,9 @@ $bEst.Add_Click({
     } catch { Avisar 'Estado de la PC' $_.Exception.Message }
 })
 $spH.Children.Add((Nueva-Herramienta 'Estado de la PC' 'muestra RAM libre, espacio en disco, programas de inicio, plan de energia y tiempo encendida.' 'sirve para comparar antes y despues de aplicar.' '' @($bEst))) | Out-Null
-$bWin = Nuevo-Boton 'Activacion de Windows' '#9AD7FF'
+$bWin = Nuevo-Boton 'Activacion de Windows' '#60A5FA'
 $bWin.Add_Click({
-    if (-not (Confirmar 'Activar Windows' ('Se abre PowerShell y corre el comando oficial de Massgrave:' + "`n`n" + 'irm https://get.activated.win | iex') 'Abrir' '#9AD7FF' 'Cancelar')) { return }
+    if (-not (Confirmar 'Activar Windows' ('Se abre PowerShell y corre el comando oficial de Massgrave:' + "`n`n" + 'irm https://get.activated.win | iex') 'Abrir' '#60A5FA' 'Cancelar')) { return }
     Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command "irm https://get.activated.win | iex"'
 })
 $spH.Children.Add((Nueva-Herramienta 'Activar Windows' 'ejecuta el comando oficial de Massgrave para activar Windows de manera segura.' '' '' @($bWin))) | Out-Null
@@ -4439,8 +4822,8 @@ $Paginas.Herr = $spH
 # --- Pagina Configs (por dentro se llama Adicional): configs de juegos y apps que subo a GitHub ---
 # Solo cuentan los repos de mi perfil que se llaman "Algo-Config" (por ejemplo Valorant-Config o Marvel-Rivals-Config).
 # En la app se ven sin guiones y con mayuscula al principio de cada palabra: "Marvel Rivals Config".
-$CfgUsuario = ($XucaRepo -split '/')[0]
-$ColorAdic = '#9AD7FF'
+$CfgUsuario = ($BrioRepo -split '/')[0]
+$ColorAdic = '#60A5FA'
 $spA = New-Object Windows.Controls.StackPanel
 $filaA = New-Object Windows.Controls.DockPanel
 $filaA.Margin = '2,0,0,12'
@@ -4462,6 +4845,8 @@ $Paginas.Adicional = $spA
 
 # Acorta un texto para las tarjetas chicas: corta en el ultimo espacio antes de $n y agrega "..."
 function Recortar([string]$s, [int]$n) {
+    # Se traduce antes de cortar: el texto cortado ya no coincide con el de lang\ y quedaria en espanol
+    $s = Traducir $s
     if ((-not $s) -or ($s.Length -le $n)) { return $s }
     $c = $s.Substring(0, $n)
     $i = $c.LastIndexOf(' ')
@@ -4470,43 +4855,43 @@ function Recortar([string]$s, [int]$n) {
 }
 
 # --- Pagina Apps recomendadas: programas gratis que recomiendo, con su descarga oficial ---
-$ColorApps = '#9AD7FF'
+$ColorApps = '#60A5FA'
 $AppsRec = @(
-    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#9AD7FF'; Icono = 0xE7F4; Nombre = 'DDU (Display Driver Uninstaller)'; Critica = $false; Url = 'https://download.wagnardsoft.com/DDU/DDU%20v18.1.6.0_setup.exe'
+    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#60A5FA'; Icono = 0xE7F4; Nombre = 'DDU (Display Driver Uninstaller)'; Critica = $false; Url = 'https://download.wagnardsoft.com/DDU/DDU%20v18.1.6.0_setup.exe'
         Texto = 'borra por completo el driver de tu placa de video. La solucion cuando los juegos dan tirones o hay problemas de video despues de cambiar de driver.' },
-    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#9AD7FF'; Icono = 0xE9D2; Nombre = 'MSI Afterburner'; Critica = $false; Url = 'https://www.msi.com/Landing/afterburner/graphics-cards'
+    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#60A5FA'; Icono = 0xE9D2; Nombre = 'MSI Afterburner'; Critica = $false; Url = 'https://www.msi.com/Landing/afterburner/graphics-cards'
         Texto = 'controla tu placa de video: undervolt, overclock, ventiladores y el contador de FPS en pantalla. Anda con NVIDIA y AMD. En Herramientas > Undervolt y overclock te digo que valores ponerle.' },
-    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#9AD7FF'; Icono = 0xE7FC; Nombre = 'SCSKiller'; Critica = $false; Url = 'https://github.com/BlueHeisenberg/SCSKiller/releases/'
+    [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#60A5FA'; Icono = 0xE7FC; Nombre = 'SCSKiller'; Critica = $false; Url = 'https://github.com/BlueHeisenberg/SCSKiller/releases/'
         Texto = 'compila antes de jugar los shaders del juego que elijas, asi no da tirones ni bajones de FPS en las primeras partidas. Anda con NVIDIA y AMD.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#9AD7FF'; Icono = 0xE839; Nombre = 'Xuca Monitor'; Critica = $false; Url = 'https://github.com/011Xuca/xuca-monitor/releases/latest/download/XucaMonitor.exe'
-        Texto = 'vigila tu PC desde la bandeja: cortes de internet y lag, USB que se desconectan, que te baja los FPS mientras jugas y errores como pantalla negra o pantallazo azul. Te dice que fue y que probar. Se actualiza sola y casi no gasta nada.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#9AD7FF'; Icono = 0xE774; Nombre = 'Hiber'; Critica = $false; Url = 'https://github.com/011Xuca/hiber'
-        Texto = 'extension de navegador que duerme las pestañas que no usas, bloquea anuncios (incluido YouTube) y recorta RAM, CPU y red. Anda en Chrome, Edge, Brave, Opera y Firefox.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#9AD7FF'; Icono = 0xE9D9; Nombre = 'HWiNFO'; Critica = $false; Url = 'https://www.hwinfo.com/download/'
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xE839; Nombre = 'Pulso'; Critica = $false; Url = 'https://github.com/011Xuca/pulse/releases/latest/download/Pulso.exe'
+        Texto = 'vigila tu PC desde la bandeja: cortes de internet y lag, USB que se desconectan, que te baja los FPS mientras jugas, que tan caliente esta tu PC y errores como pantalla negra o pantallazo azul. Te dice que fue y que probar. Se actualiza sola y casi no gasta nada.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xE774; Nombre = 'Hiber'; Critica = $false; Url = 'https://github.com/011Xuca/hiber'
+        Texto = 'extension de navegador que duerme las pestanas que no usas, bloquea anuncios (incluido YouTube) y recorta RAM, CPU y red. Anda en Chrome, Edge, Brave, Opera y Firefox.' },
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xE9D9; Nombre = 'HWiNFO'; Critica = $false; Url = 'https://www.hwinfo.com/download/'
         Texto = 'muestra en detalle temperaturas, voltajes y ventiladores. Esencial para saber si tu PC se esta calentando de mas.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#9AD7FF'; Icono = 0xE946; Nombre = 'CPU-Z'; Critica = $false; Url = 'https://download.cpuid.com/cpu-z/cpu-z_3.01-en.exe'
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xE946; Nombre = 'CPU-Z'; Critica = $false; Url = 'https://download.cpuid.com/cpu-z/cpu-z_3.01-en.exe'
         Texto = 'te dice el modelo exacto de tu procesador, tu placa madre y tu memoria RAM. Muy util para saber que tenes adentro de la PC.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#9AD7FF'; Icono = 0xE945; Nombre = 'OCCT'; Critica = $false; Url = 'https://www.ocbase.com/download/edition:Personal/os:Windows'
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xE945; Nombre = 'OCCT'; Critica = $false; Url = 'https://www.ocbase.com/download/edition:Personal/os:Windows'
         Texto = 'pone al maximo el procesador, la placa de video o la fuente para probarlos. Ideal para saber por que la PC se apaga sola o da pantallazos azules.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#9AD7FF'; Icono = 0xEC4A; Nombre = 'Cinebench'; Critica = $false; Url = 'https://www.maxon.net/en/cinebench'
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xEC4A; Nombre = 'Cinebench'; Critica = $false; Url = 'https://www.maxon.net/en/cinebench'
         Texto = 'mide la potencia de tu procesador con un benchmark y te deja comparar tu puntaje con el de otras PCs.' },
-    [pscustomobject]@{ Sec = 'Discos y espacio'; Color = '#9AD7FF'; Icono = 0xEDA2; Nombre = 'CrystalDiskInfo'; Critica = $false; Url = 'https://sourceforge.net/projects/crystaldiskinfo/files/9.9.2/CrystalDiskInfo9_9_2Ads.exe/download'
+    [pscustomobject]@{ Sec = 'Discos y espacio'; Color = '#60A5FA'; Icono = 0xEDA2; Nombre = 'CrystalDiskInfo'; Critica = $false; Url = 'https://sourceforge.net/projects/crystaldiskinfo/files/9.9.2/CrystalDiskInfo9_9_2Ads.exe/download'
         Texto = 'revisa la salud y la temperatura de tus discos y SSD, y te avisa si alguno esta por fallar, antes de que pierdas tus archivos.' },
-    [pscustomobject]@{ Sec = 'Discos y espacio'; Color = '#9AD7FF'; Icono = 0xE8B7; Nombre = 'WizTree'; Critica = $false; Url = 'https://diskanalyzer.com/files/wiztree_4_33_setup.exe'
+    [pscustomobject]@{ Sec = 'Discos y espacio'; Color = '#60A5FA'; Icono = 0xE8B7; Nombre = 'WizTree'; Critica = $false; Url = 'https://diskanalyzer.com/files/wiztree_4_33_setup.exe'
         Texto = 'analiza tu disco en segundos y te muestra con colores que archivos y carpetas te estan comiendo el espacio.' },
-    [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#9AD7FF'; Icono = 0xE74D; Nombre = 'Bulk Crap Uninstaller (BCU)'; Critica = $false; Url = 'https://sourceforge.net/projects/bulk-crap-uninstaller/files/latest/download'
+    [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#60A5FA'; Icono = 0xE74D; Nombre = 'Bulk Crap Uninstaller (BCU)'; Critica = $false; Url = 'https://sourceforge.net/projects/bulk-crap-uninstaller/files/latest/download'
         Texto = 'desinstala programas de forma limpia y borra los archivos basura y las entradas del registro que dejan los desinstaladores normales.' },
-    [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#9AD7FF'; Icono = 0xE7E8; Nombre = 'Autoruns (Sysinternals)'; Critica = $false; Url = 'https://download.sysinternals.com/files/Autoruns.zip'
+    [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#60A5FA'; Icono = 0xE7E8; Nombre = 'Autoruns (Sysinternals)'; Critica = $false; Url = 'https://download.sysinternals.com/files/Autoruns.zip'
         Texto = 'te muestra todo lo que arranca con Windows y te deja apagarlo. Lo mejor para que la PC prenda mas rapido y para encontrar malware escondido.' },
-    [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#9AD7FF'; Icono = 0xE785; Nombre = 'LockHunter'; Critica = $false; Url = 'https://lockhunter.com/startdownload.htm'
+    [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#60A5FA'; Icono = 0xE785; Nombre = 'LockHunter'; Critica = $false; Url = 'https://lockhunter.com/startdownload.htm'
         Texto = 'desbloquea y borra los archivos que Windows no te deja borrar porque "estan siendo usados por otro programa".' },
-    [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#9AD7FF'; Icono = 0xE785; Nombre = 'IObit Unlocker'; Critica = $false; Url = 'https://www.iobit.com/en/iobit-unlocker.php'
+    [pscustomobject]@{ Sec = 'Limpieza y arranque'; Color = '#60A5FA'; Icono = 0xE785; Nombre = 'IObit Unlocker'; Critica = $false; Url = 'https://www.iobit.com/en/iobit-unlocker.php'
         Texto = 'desbloquea archivos y carpetas que Windows tiene bloqueados o en uso, para que los puedas mover, renombrar o borrar.' },
-    [pscustomobject]@{ Sec = 'Windows liviano (ISO recortada)'; Color = '#9AD7FF'; Icono = 0xE7B8; Nombre = 'tiny11builder'; Critica = $false; Url = 'https://github.com/ntdevlabs/tiny11builder'
+    [pscustomobject]@{ Sec = 'Windows liviano (ISO recortada)'; Color = '#60A5FA'; Icono = 0xE7B8; Nombre = 'tiny11builder'; Critica = $false; Url = 'https://github.com/ntdevlabs/tiny11builder'
         Texto = 'arma una ISO de Windows 11 recortada (sin Store, Edge ni otras apps) desde tu ISO oficial. Es lo que hace falta para pasar de 2 GB de RAM en reposo, porque saca componentes antes de instalar.' },
-    [pscustomobject]@{ Sec = 'Windows liviano (ISO recortada)'; Color = '#9AD7FF'; Icono = 0xE713; Nombre = 'NTLite'; Critica = $false; Url = 'https://www.ntlite.com/download/'
+    [pscustomobject]@{ Sec = 'Windows liviano (ISO recortada)'; Color = '#60A5FA'; Icono = 0xE713; Nombre = 'NTLite'; Critica = $false; Url = 'https://www.ntlite.com/download/'
         Texto = 'te deja sacar componentes de Windows de una ISO o de una instalacion (Defender, Store, idiomas, drivers) y armar tu propia ISO liviana. La version gratis alcanza para lo basico.' },
-    [pscustomobject]@{ Sec = 'Otros'; Color = '#9AD7FF'; Icono = 0xE896; Nombre = 'LIII BitTorrent Client'; Critica = $false; Url = 'https://github.com/aliakseis/LIII/releases/download/0.1.1.20/LIII_setup.exe'
+    [pscustomobject]@{ Sec = 'Otros'; Color = '#60A5FA'; Icono = 0xE896; Nombre = 'LIII BitTorrent Client'; Critica = $false; Url = 'https://github.com/aliakseis/LIII/releases/download/0.1.1.20/LIII_setup.exe'
         Texto = 'cliente de torrent liviano, minimalista y de codigo abierto, sin publicidad ni programas de mas como uTorrent.' }
 )
 
@@ -4544,13 +4929,16 @@ function Nueva-AppRec($a) {
         $tit.Children.Add($pl) | Out-Null
     }
     $sp.Children.Add($tit) | Out-Null
-    $corto = Recortar $a.Texto 115
-    $d = Nuevo-Texto ($corto.Substring(0, 1).ToUpper() + $corto.Substring(1)) 12 '#C3C8D0' $false
+    # Se traduce entero antes de recortar (el texto cortado ya no coincide con el de lang\); en lang\ esta tal cual o con mayuscula
+    $largo = [string]$a.Texto; $v = $null
+    if ($script:Trad -and $script:Trad.TryGetValue($largo, [ref]$v)) { $largo = $v }
+    $largo = $largo.Substring(0, 1).ToUpper() + $largo.Substring(1)
+    $d = Nuevo-Texto (Recortar $largo 115) 12 '#C3C8D0' $false
     $d.Margin = '0,3,0,0'; $d.LineHeight = 17
-    $card.ToolTip = (New-Object Windows.Controls.TextBlock -Property @{ Text = (Con-Enie ($a.Texto.Substring(0, 1).ToUpper() + $a.Texto.Substring(1))); TextWrapping = 'Wrap'; MaxWidth = 420 })
+    $card.ToolTip = (New-Object Windows.Controls.TextBlock -Property @{ Text = (Con-Enie $largo); TextWrapping = 'Wrap'; MaxWidth = 420 })
     $sp.Children.Add($d) | Out-Null
     $fila = New-Object Windows.Controls.WrapPanel
-    $b = Nuevo-Boton 'Descargar' '#9AD7FF'
+    $b = Nuevo-Boton 'Descargar' '#60A5FA'
     $b.Tag = $a
     $b.Add_Click({
         $x = $this.Tag
@@ -4640,12 +5028,12 @@ $h2 = Nuevo-Texto 'Saca lo que sobra de Windows, lo prepara para jugar con menos
 $h2.Margin = '0,6,0,0'; $h2.LineHeight = 20
 $hola.Children.Add($h2) | Out-Null
 $cHola = Inicio-Caja '' $hola
-Caja-Borde $cHola '#9AD7FF'
+Caja-Borde $cHola '#60A5FA'
 $spI.Children.Add($cHola) | Out-Null
 
 # Novedades: los cambios de esta version, sacados de CHANGELOG.md (la seccion "## v<version del version.txt>").
 # El changelog esta en espanol y se muestra tal cual (no pasa por la traduccion).
-$UrlChangelog = 'https://github.com/011Xuca/xuca-optimizer/blob/main/CHANGELOG.md'
+$UrlChangelog = 'https://github.com/011Xuca/brio/blob/main/CHANGELOG.md'
 function Leer-Novedades {
     $fc = Join-Path $Root 'CHANGELOG.md'
     $ver = ''
@@ -4682,7 +5070,7 @@ if ($novedades) {
         if ($ln -match '^###\s+(.+)$') {
             # "Nuevo" en verde y "Cambios" en celeste
             $subNov = $Matches[1].Trim()
-            $tSub = Nuevo-Texto $subNov 13 $(if ($subNov -match '(?i)nuevo') { '#81C995' } else { '#9AD7FF' }) $true
+            $tSub = Nuevo-Texto $subNov 13 $(if ($subNov -match '(?i)nuevo') { '#81C995' } else { '#60A5FA' }) $true
             $tSub.Margin = $(if ($spNov.Children.Count -gt 0) { '0,10,0,2' } else { '0,0,0,2' })
             $spNov.Children.Add($tSub) | Out-Null
         } elseif ($ln -match '^(\s*)[-*]\s+(.+)$') {
@@ -4703,7 +5091,7 @@ if ($novedades) {
             $spNov.Children.Add($tNov) | Out-Null
         }
     }
-    $verTodo = Nuevo-Texto 'Ver todos los cambios en GitHub' 12.5 '#9AD7FF' $true
+    $verTodo = Nuevo-Texto 'Ver todos los cambios en GitHub' 12.5 '#60A5FA' $true
     $verTodo.Margin = '0,12,0,0'; $verTodo.Cursor = [Windows.Input.Cursors]::Hand; $verTodo.TextDecorations = [Windows.TextDecorations]::Underline
     $verTodo.Add_MouseLeftButtonDown({ param($sd, $e) $e.Handled = $true; Abrir-Normal $UrlChangelog })
     $spNov.Children.Add($verTodo) | Out-Null
@@ -4712,20 +5100,20 @@ if ($novedades) {
 
 # Como se usa
 $pasos = New-Object Windows.Controls.StackPanel
-$pasos.Children.Add((Inicio-Fila '1' $false '#9AD7FF' 'Elegi una seccion en la barra de la izquierda.' 'Si no sabes por donde empezar, anda a Perfiles.')) | Out-Null
-$pasos.Children.Add((Inicio-Fila '2' $false '#9AD7FF' 'Marca lo que quieras.' 'Toca cualquier parte de una opcion para marcarla. Lo que marques en Debloat y en Gaming se junta.')) | Out-Null
+$pasos.Children.Add((Inicio-Fila '1' $false '#60A5FA' 'Elegi una seccion en la barra de la izquierda.' 'Si no sabes por donde empezar, anda a Perfiles.')) | Out-Null
+$pasos.Children.Add((Inicio-Fila '2' $false '#60A5FA' 'Marca lo que quieras.' 'Toca cualquier parte de una opcion para marcarla. Lo que marques en Debloat y en Gaming se junta.')) | Out-Null
 $pasos.Children.Add((Inicio-Fila '3' $false '#81C995' 'Toca Aplicar.' 'Antes te ofrece crear un punto de restauracion. Casi todo se deshace despues con Restablecer.')) | Out-Null
 $spI.Children.Add((Inicio-Caja 'Como se usa' $pasos)) | Out-Null
 
 # Que hay en cada seccion
 $secs = New-Object Windows.Controls.StackPanel
-$secs.Children.Add((Inicio-Fila ([string][char]0xE77B) $true '#9AD7FF' 'Perfiles:' 'combos listos, de Seguro a Full Optimizado, que se aplican con un toque.')) | Out-Null
+$secs.Children.Add((Inicio-Fila ([string][char]0xE77B) $true '#60A5FA' 'Perfiles:' 'combos listos, de Seguro a Full Optimizado, que se aplican con un toque.')) | Out-Null
 $secs.Children.Add((Inicio-Fila ([string][char]0xE72E) $true '#81C995' 'Debloat y privacidad:' 'publicidad, telemetria, IA de Windows, apps basura y apps de inicio que no hacen falta.')) | Out-Null
-$secs.Children.Add((Inicio-Fila ([string][char]0xE7FC) $true '#9AD7FF' 'Optimizacion gaming:' 'mouse, prioridad y afinidad para tus juegos, energia, red, DNS y mas.')) | Out-Null
-$secs.Children.Add((Inicio-Fila ([string][char]0xE74D) $true '#9AD7FF' 'Limpiar cache:' 'temporales, cache de Windows Update, shaders y otras cosas que ocupan espacio.')) | Out-Null
+$secs.Children.Add((Inicio-Fila ([string][char]0xE7FC) $true '#60A5FA' 'Optimizacion gaming:' 'mouse, prioridad y afinidad para tus juegos, energia, red, DNS y mas.')) | Out-Null
+$secs.Children.Add((Inicio-Fila ([string][char]0xE74D) $true '#60A5FA' 'Limpiar cache:' 'temporales, cache de Windows Update, shaders y otras cosas que ocupan espacio.')) | Out-Null
 $secs.Children.Add((Inicio-Fila ([string][char]0xE90F) $true '#E5B567' 'Herramientas:' 'drivers recomendados, actualizar Windows, entrar sin contrasena y mas.')) | Out-Null
-$secs.Children.Add((Inicio-Fila ([string][char]0xE7B8) $true '#9AD7FF' 'Apps recomendadas:' 'programas gratis para revisar, cuidar y limpiar tu PC.')) | Out-Null
-$secs.Children.Add((Inicio-Fila ([string][char]0xE713) $true '#9AD7FF' 'Configs recomendadas:' 'configs de juegos y apps que subo a GitHub, con sus instrucciones.')) | Out-Null
+$secs.Children.Add((Inicio-Fila ([string][char]0xE7B8) $true '#60A5FA' 'Apps recomendadas:' 'programas gratis para revisar, cuidar y limpiar tu PC.')) | Out-Null
+$secs.Children.Add((Inicio-Fila ([string][char]0xE713) $true '#60A5FA' 'Configs recomendadas:' 'configs de juegos y apps que subo a GitHub, con sus instrucciones.')) | Out-Null
 $spI.Children.Add((Inicio-Caja 'Que hay en cada seccion' $secs)) | Out-Null
 
 # Antes de empezar
@@ -4739,14 +5127,14 @@ $spI.Children.Add((Inicio-Caja 'Antes de empezar' $ojo)) | Out-Null
 $fila = New-Object Windows.Controls.StackPanel
 $fila.Orientation = 'Horizontal'; $fila.Margin = '4,4,0,8'
 $fl = New-Object Windows.Controls.TextBlock
-$fl.Text = [string][char]0xE72B; $fl.FontFamily = 'Segoe MDL2 Assets'; $fl.FontSize = 16; $fl.Foreground = (Pincel '#9AD7FF'); $fl.VerticalAlignment = 'Center'; $fl.Margin = '0,0,10,0'
+$fl.Text = [string][char]0xE72B; $fl.FontFamily = 'Segoe MDL2 Assets'; $fl.FontSize = 16; $fl.Foreground = (Pincel (Tema-Letra '#60A5FA')); $fl.VerticalAlignment = 'Center'; $fl.Margin = '0,0,10,0'
 $tfl = New-Object Windows.Media.TranslateTransform
 $fl.RenderTransform = $tfl
 $anFl = [Windows.Media.Animation.DoubleAnimation]::new(0, -7, [Windows.Duration]::new([TimeSpan]::FromMilliseconds(650)))
 $anFl.AutoReverse = $true; $anFl.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever; $anFl.EasingFunction = $script:Suave
 $tfl.BeginAnimation([Windows.Media.TranslateTransform]::XProperty, $anFl)
 $fila.Children.Add($fl) | Out-Null
-$fila.Children.Add((Nuevo-Texto 'Elegi una seccion a la izquierda para empezar.' 14 '#9AD7FF' $true)) | Out-Null
+$fila.Children.Add((Nuevo-Texto 'Elegi una seccion a la izquierda para empezar.' 14 '#60A5FA' $true)) | Out-Null
 $spI.Children.Add($fila) | Out-Null
 $Paginas.Inicio = $spI
 
@@ -4757,7 +5145,7 @@ $ErrorActionPreference = 'Stop'
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
 function Pedir([string]$url, [int]$espera) {
     $rq = [Net.HttpWebRequest]::Create($url)
-    $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'XucaOP'
+    $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'Brio'
     return $rq.GetResponse()
 }
 try {
@@ -4774,7 +5162,7 @@ try {
         }
         $sync.Lista = @($lista | Sort-Object { $_.Nombre })
     } else {
-        $tmp = Join-Path ([IO.Path]::GetTempPath()) ('XucaCfg_' + [guid]::NewGuid().ToString('N'))
+        $tmp = Join-Path ([IO.Path]::GetTempPath()) ('brio_cfg_' + [guid]::NewGuid().ToString('N'))
         [void][IO.Directory]::CreateDirectory($tmp)
         try {
             $zip = Join-Path $tmp 'repo.zip'
@@ -4876,7 +5264,7 @@ function Nueva-Config($c) {
     $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'
     $g.ColumnDefinitions.Add($c0); $g.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
     $badge = New-Object Windows.Controls.Border
-    $badge.Width = 40; $badge.Height = 40; $badge.CornerRadius = 10; $badge.Background = (Pincel '#2E9AD7FF'); $badge.VerticalAlignment = 'Top'; $badge.Margin = '0,2,14,0'
+    $badge.Width = 40; $badge.Height = 40; $badge.CornerRadius = 10; $badge.Background = (Pincel '#2E60A5FA'); $badge.VerticalAlignment = 'Top'; $badge.Margin = '0,2,14,0'
     $ic = New-Object Windows.Controls.TextBlock
     $ic.Text = [string][char]0xE713; $ic.FontFamily = 'Segoe MDL2 Assets'; $ic.FontSize = 18; $ic.Foreground = (Pincel $ColorAdic)
     $ic.HorizontalAlignment = 'Center'; $ic.VerticalAlignment = 'Center'
@@ -4891,7 +5279,7 @@ function Nueva-Config($c) {
     else { $t2 = Nuevo-Texto 'Sin descripcion.' 12.5 '#7D8590' $false }
     $t2.Margin = '0,4,0,0'; $t2.LineHeight = 19
     $sp.Children.Add($t2) | Out-Null
-    $b = Nuevo-Boton 'Descargar en el escritorio' '#9AD7FF'
+    $b = Nuevo-Boton 'Descargar en el escritorio' '#60A5FA'
     $b.HorizontalAlignment = 'Left'; $b.Tag = $c
     $b.Add_Click({ Bajar-Config $this })
     $sp.Children.Add($b) | Out-Null
@@ -4923,6 +5311,41 @@ function Poner-Insignia([int]$n) {
             $an.EasingFunction = $rebote
             $ui.CfgInsignia.RenderTransform.BeginAnimation($pr, $an)
         }
+    }
+}
+
+# Circulitos de las demas paginas (mismo estilo que el de Configs). Se cuentan los items que la app cargo, nunca un numero fijo:
+#   Perfiles: los perfiles. Debloat y Gaming: las opciones que podes usar en esta PC (no cuentan las que la app muestra en gris
+#   como no compatibles: version de Windows, $SoloWin10 en Windows 7 y 8, hardware que no tenes). Limpiar cache: las opciones
+#   para marcar. Herramientas: las herramientas. Apps recomendadas: las apps. Inicio no tiene.
+# Se llama al abrir y cada vez que se termina de leer Windows (ahi se sabe que no es compatible).
+function Contar-Tarjetas($panel, [bool]$soloBuscables) {
+    $n = 0
+    foreach ($h in @($panel.Children)) {
+        foreach ($x in @($(if ($h -is [Windows.Controls.Primitives.UniformGrid]) { $h.Children } else { $h }))) {
+            if (($x -is [Windows.Controls.Border]) -and ($x.Tag -is [hashtable]) -and ((-not $soloBuscables) -or $x.Tag.ContainsKey('Busca'))) { $n++ }
+        }
+    }
+    return $n
+}
+function Actualizar-Insignias {
+    $viejo = ([Environment]::OSVersion.Version.Build -lt 10240)
+    $c = [ordered]@{ Perfiles = @($Perfiles).Count }
+    foreach ($p in 'Debloat', 'Gaming') {
+        # Antes de leer Windows solo se sabe lo de Windows 7 y 8; despues manda la lista de no compatibles
+        $c[$p] = @($Opciones[$p] | Where-Object { -not ($script:NoDisp.ContainsKey($p + '|' + $_.Id) -or ((-not $script:Leido) -and $viejo -and $_.Win10)) }).Count
+    }
+    $c.Limpieza = @($Casillas.Limpieza.Keys).Count
+    $c.Herr = Contar-Tarjetas $Paginas.Herr $false
+    $c.Apps = Contar-Tarjetas $Paginas.Apps $true
+    foreach ($k in $c.Keys) {
+        $b = $ui['Ins' + $k]; $t = $ui['Ins' + $k + 'Txt']
+        if ((-not $b) -or (-not $t)) { continue }
+        $n = [int]$c[$k]
+        $t.Text = $(if ($n -gt 99) { '99+' } else { [string]$n })
+        $b.Visibility = $(if ($n -gt 0) { 'Visible' } else { 'Collapsed' })
+        $b.ToolTip = $null
+        [Windows.Automation.AutomationProperties]::SetHelpText($Nav[$k], [string]::Format((Con-Enie '{0} opciones'), $n))
     }
 }
 
@@ -5044,65 +5467,85 @@ function Actualizar-Cuentas([bool]$denuevo = $false) {
 
 
 # --- Pagina de perfiles ---
+# Opciones que hasta v1.0.12 eran una sola casilla y en v1.0.13 se dividieron: 'Pagina|id original' -> ids nuevos.
+# El id original quedo para la parte principal. Todo perfil que tiene la original tiene tambien las nuevas, asi cada perfil
+# aplica exactamente lo mismo que antes (lo revisa tests\Verificar-Opciones.ps1).
+$Divididas = [ordered]@{
+    'Debloat|pv'   = @('pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl')
+    'Debloat|ad'   = @('bng')
+    'Debloat|sch'  = @('sns')
+    'Debloat|fx'   = @('trn')
+    'Debloat|wg'   = @('tvb')
+    'Debloat|rmin' = @('rnet', 'rdp')
+    'Debloat|cdp'  = @('clh')
+    'Debloat|rap'  = @('sud')
+    'Debloat|leg'  = @('apl', 'wer')
+    'Debloat|tp'   = @('tpn', 'tps')
+    'Debloat|eb'   = @('ebb')
+    'Debloat|ia'   = @('iap', 'iao')
+    'Gaming|gf'    = @('wgo')
+    'Gaming|ext'   = @('hid')
+    'Gaming|pe'    = @('pci', 'dsk')
+}
 $Perfiles = @(
     [pscustomobject]@{
-        Id = 'seguro'; Nombre = 'Seguro (Debloat basico)'; Color = '#9AD7FF'
+        Id = 'seguro'; Nombre = 'Seguro (Debloat basico)'; Color = '#60A5FA'
         Hace = 'saca publicidad, sugerencias, Bing, telemetria, rastreo y Widgets, apaga la IA de Windows, borra las apps basura y apaga servicios que casi nadie usa; suma ajustes comodos para jugar que no tienen riesgo (sin carteles de Teclas especiales, sin bajar el volumen en llamadas, Modo Juego, menus sin retraso).'
         Ideal = 'cualquier PC, incluso la de alguien que no sabe de esto.'
         NoToca = 'la seguridad, el procesador ni tus programas: solo borra lo que viene de fabrica (WhatsApp, Xbox y la Store quedan).'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Sin los servicios que casi nadie usa, el escaner de Windows y el Media Player viejo dejan de estar.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db')
-        G = @('tk', 'du', 'gm', 'ext', 'md')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'db')
+        G = @('tk', 'du', 'gm', 'ext', 'hid', 'md')
     },
     [pscustomobject]@{
-        Id = 'opt'; Nombre = 'Optimizado'; Color = '#9AD7FF'
+        Id = 'opt'; Nombre = 'Optimizado'; Color = '#60A5FA'
         Hace = 'todo lo de Seguro, y ademas deja Windows mas liviano: apaga la hibernacion, los efectos visuales, los sonidos, las apps basura de inicio, SysMain, el Asistente de compatibilidad y el Storage Sense, y Windows Update deja de instalar drivers.'
         Ideal = 'cualquier PC que queres que ande mas rapida y liviana, sin tocar la seguridad ni los ajustes de juego.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo (mouse, procesador, plan de energia, temporizador y red).'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Los drivers los actualizas vos (Herramientas > Buscar drivers, o la app de tu placa de video).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'hib', 'fx', 'sch', 'wud', 'ini', 'tsk', 'fsb', 'upd')
-        G = @('tk', 'du', 'gm', 'ext', 'md', 'sm', 'pca', 'stg')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'db', 'hib', 'fx', 'trn', 'sch', 'sns', 'wud', 'ini', 'tsk', 'fsb', 'upd')
+        G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'sm', 'pca', 'stg')
     },
     [pscustomobject]@{
-        Id = 'comp'; Nombre = 'Competitivo'; Color = '#9AD7FF'
+        Id = 'comp'; Nombre = 'Competitivo'; Color = '#60A5FA'
         Hace = 'lo que mas FPS da por cada grado de mas, sin tocar la seguridad: mouse sin aceleracion, afinidad para tus juegos, temporizador al minimo, efectos visuales en rendimiento, sin grabacion de juegos ni Game Bar, DNS mas rapido y sin notificaciones en partida. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware); si haces stream con OBS o TikTok LIVE Studio, usa NVENC o AMF. Antes de borrar la Game Bar la app te pregunta.'
         Ideal = 'jugar competitivo (Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL y Deadlock) con la PC protegida. Los antitrampas de esos juegos siguen andando.'
         NoToca = 'el antivirus (ni sus analisis), BitLocker, la integridad de memoria ni VBS, ni el plan de energia ni el procesador (nada de Alto rendimiento, Modo Nitro ni Baja latencia); tampoco borra apps.'
         Adv = 'el Modo Nitro, el plan Alto rendimiento y la Baja latencia no estan incluidos a proposito: suben mucho la temperatura, incluso en reposo. Si los queres, activalos a mano en Gaming y mira las temperaturas.'
-        D = @('fx')
+        D = @('fx', 'trn')
         G = @('ms', 'tk', 'du', 'mm', 'afi', 'gm', 'xb', 'notif', 'pca', 'tr', 'sm', 'dns', 'md', 'fgb')
     },
     [pscustomobject]@{
-        Id = 'ramlow'; Nombre = 'RAM liviana'; Color = '#9AD7FF'
+        Id = 'ramlow'; Nombre = 'RAM liviana'; Color = '#60A5FA'
         Hace = 'baja el uso de RAM de Windows sin tocar la seguridad: saca publicidad, telemetria, rastreo, Widgets y la IA de Windows, borra las apps basura, apaga las apps basura de inicio, las apps en segundo plano, los efectos visuales, SysMain, el inicio rapido de Office, servicios que casi nadie usa (Telefono, Billetera, diagnostico y mas), activa la compresion de memoria y junta los servicios de Windows en menos procesos.'
         Ideal = 'una PC con poca RAM (4 a 8 GB) que queres que arranque con el menor consumo posible, sin perder el antivirus.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo. Tampoco apaga los servicios de Xbox ni Gaming Services: Game Pass y Minecraft siguen andando.'
         Adv = 'la zona wifi movil deja de andar y Windows deja de buscar problemas solo. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.'
         Estima = '2,5 a 3,5 GB de RAM y 0 a 2 % de CPU, sin nada abierto en Windows 11 (estimado, no medido; depende del hardware y los drivers).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'fx', 'sch', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd')
-        G = @('tk', 'du', 'gm', 'ext', 'md', 'pca', 'stg')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'fx', 'trn', 'sch', 'sns', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd')
+        G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'pca', 'stg')
     },
     [pscustomobject]@{
-        Id = 'tiny'; Nombre = 'RAM minima (extremo)'; Color = '#9AD7FF'
+        Id = 'tiny'; Nombre = 'RAM minima (extremo)'; Color = '#60A5FA'
         Hace = 'lo mas cerca de un Windows recortado sin reinstalar: todo lo de RAM liviana y ademas apaga la hibernacion, el antivirus y BitLocker, Windows Update (y sus drivers), Bluetooth, la Store y el Centro de seguridad, quita la Microsoft Store y los componentes viejos (Internet Explorer, WordPad, SMBv1, PowerShell 2), baja los servicios de usuario y de red local, la grabacion de juegos y el NVIDIA extra, y desactiva la integridad de memoria y VBS.'
         Ideal = 'una PC vieja o con poca RAM que solo tiene que abrir uno o dos programas con el menor consumo posible, sabiendo lo que haces.'
         NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
         Adv = 'la PC queda sin antivirus, sin parches de seguridad (Windows Update apagado), sin Store ni Bluetooth, y dejan de andar WSL, Docker y las maquinas virtuales. Si el disco estaba cifrado con BitLocker, la PC va mas lenta hasta que termine de descifrarse. Para pasar de ahi hace falta una ISO recortada (tiny11 o NTLite): desde una Windows instalada no se llega a 0,5 GB.'
         Estima = 'alrededor de 3 GB de RAM en uso, sin nada abierto en Windows 11 (medido en una PC real; varia con el hardware y los drivers). Para bajar de ahi hace falta una ISO recortada (tiny11 o NTLite).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'sch', 'av', 'bl', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd', 'rmin', 'nvl', 'nvt', 'sx', 'thm', 'leg', 'bt', 'msx', 'old', 'usv', 'wus')
-        G = @('tk', 'du', 'gm', 'ext', 'md', 'pca', 'stg', 'mi', 'vbs', 'wsr', 'dvr')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'trn', 'sch', 'sns', 'av', 'bl', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd', 'rmin', 'rnet', 'rdp', 'nvl', 'nvt', 'sx', 'thm', 'leg', 'apl', 'wer', 'bt', 'msx', 'old', 'usv', 'wus')
+        G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'pca', 'stg', 'mi', 'vbs', 'wsr', 'dvr')
     },
     [pscustomobject]@{
-        Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#9AD7FF'
+        Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#60A5FA'
         Hace = 'lo de Seguro (sin publicidad, Bing, telemetria, rastreo, Widgets, IA de Windows, apps basura ni servicios que casi nadie usa), y ademas apaga las apps basura de inicio y los efectos visuales, y prioriza la bateria cuando la notebook no esta enchufada.'
         Ideal = 'una notebook para estudiar, trabajar o usar todos los dias: la bateria dura mas y anda mas liviana.'
         NoToca = 'la seguridad, la hibernacion (la notebook la usa cuando se queda sin bateria), los drivers de Windows Update, tus programas ni el rendimiento enchufada.'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'ia', 'sv', 'db', 'fx', 'ini', 'tsk', 'upd')
-        G = @('tk', 'du', 'gm', 'ext', 'md', 'nb')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'db', 'fx', 'trn', 'ini', 'tsk', 'upd')
+        G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'nb')
     },
     [pscustomobject]@{
-        Id = 'nbcomp'; Nombre = 'Competitivo - Notebook'; Color = '#9AD7FF'
+        Id = 'nbcomp'; Nombre = 'Competitivo - Notebook'; Color = '#60A5FA'
         Hace = 'lo de Competitivo que no gasta bateria ni calienta de mas: mouse sin aceleracion, afinidad para tus juegos, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware). Antes de borrar la Game Bar la app te pregunta.'
         Ideal = 'jugar competitivo en una notebook: enchufada rinde al maximo y a bateria dura mas.'
         NoToca = 'el antivirus (ni sus analisis), la integridad de memoria ni VBS. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.'
@@ -5116,8 +5559,8 @@ $Perfiles = @(
         Ideal = 'una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.'
         NoToca = 'la integridad de memoria ni VBS, los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
         Adv = 'la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'do', 'ad', 'pv', 'tp', 'eb', 'su', 'ia', 'hib', 'fx', 'sch', 'sv', 'wud', 'db', 'av', 'bl', 'hst', 'ter', 'ini', 'tsk', 'cdp', 'fsb', 'rap', 'upd', 'old')
-        G = @('tk', 'du', 'gm', 'ext', 'md', 'mm', 'xb', 'gf', 'pca', 'ram', 'sm', 'stg', 'wsr')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'su', 'ia', 'iap', 'iao', 'hib', 'fx', 'trn', 'sch', 'sns', 'sv', 'wud', 'db', 'av', 'bl', 'hst', 'ter', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd', 'old')
+        G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'mm', 'xb', 'gf', 'wgo', 'pca', 'ram', 'sm', 'stg', 'wsr')
     }
 )
 
@@ -5139,14 +5582,13 @@ foreach ($pf in $Perfiles) {
     $card.Padding = '12,9'; $card.Margin = '0,0,8,8'
     $card.BorderBrush = (Pincel $pf.Color); $card.BorderThickness = '4,0,0,0'; $card.Tag = $null
     $sp = New-Object Windows.Controls.StackPanel
-    $tit = New-Object Windows.Controls.StackPanel
-    $tit.Orientation = 'Horizontal'
-    $tit.Children.Add((Nuevo-Texto $pf.Nombre 15 '#FFFFFF' $true)) | Out-Null
+    # Titulo que baja de renglon con sus iconos al final (en una fila horizontal se cortaba con la ventana achicada)
+    $tit = Nuevo-Texto $pf.Nombre 15 '#FFFFFF' $true
     if (($pf.Id -like 'full*' -or $pf.Id -eq 'tiny')) {
         $porque = ('Tiene la alerta porque apaga el antivirus (Defender, SmartScreen y Smart App Control): la PC queda sin proteccion contra virus.' + "`n" + 'Tambien apaga BitLocker, la integridad de memoria y VBS, y desinstala Riot Vanguard (lo reinstalas abriendo el cliente de Riot).')
         $ic = Nuevo-Texto $Aviso 17 '#E5B567' $true
         $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'
-        $tit.Children.Add($ic) | Out-Null
+        Icono-EnTitulo $tit $ic
         $card.ToolTip = (Con-Enie $porque)
         [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
     }
@@ -5154,7 +5596,7 @@ foreach ($pf in $Perfiles) {
     if ($pf.Id -like 'nb*') {
         $icN = Nuevo-Texto $Aviso 17 '#E5B567' $true
         $icN.FontFamily = 'Segoe UI Symbol'; $icN.Margin = '8,0,0,0'; $icN.Visibility = 'Collapsed'; $icN.ToolTip = (Con-Enie 'Solo para notebooks')
-        $tit.Children.Add($icN) | Out-Null
+        Icono-EnTitulo $tit $icN
         $avN = Nota 'Tu PC es de escritorio (no tiene bateria): este perfil es para notebooks. Si lo aplicas igual, lo de la bateria se saltea solo.' '#E5B567' '0,6,0,0'
         $avN.FontWeight = 'SemiBold'; $avN.Visibility = 'Collapsed'
         $sp.Children.Add($avN) | Out-Null
@@ -5163,10 +5605,10 @@ foreach ($pf in $Perfiles) {
     $d = New-Object Windows.Controls.TextBlock
     $d.TextWrapping = 'Wrap'; $d.FontSize = 12; $d.Foreground = (Pincel '#C3C8D0'); $d.Margin = '0,4,0,0'; $d.LineHeight = 17
     # Tarjeta corta: lo importante a la vista y el texto completo al pasar el mouse
-    Agregar-Linea $d 'Que hace: ' '#9AD7FF' (Recortar $pf.Hace 420)
+    Agregar-Linea $d 'Que hace: ' '#60A5FA' (Recortar $pf.Hace 420)
     Agregar-Linea $d 'Ideal para: ' '#81C995' (Recortar $pf.Ideal 200)
     if ($pf.Adv) { Agregar-Linea $d ($Aviso + ' Ojo: ') '#E5B567' (Recortar $pf.Adv 320) }
-    if ($pf.Estima) { Agregar-Linea $d 'Consumo estimado en reposo: ' '#9AD7FF' $pf.Estima }
+    if ($pf.Estima) { Agregar-Linea $d 'Consumo estimado en reposo: ' '#60A5FA' $pf.Estima }
     $tipPf = $(if ($pf.Estima) { 'Consumo estimado en reposo: ' + $pf.Estima + "`n`n" } else { '' }) + ('Que hace: ' + $pf.Hace + "`n`n" + 'Ideal para: ' + $pf.Ideal + "`n`n" + 'No toca: ' + $pf.NoToca) + $(if ($pf.Adv) { "`n`n" + 'Ojo: ' + $pf.Adv } else { '' })
     if ($card.ToolTip) { $tipPf = ([string]$card.ToolTip) + "`n`n" + (Con-Enie $tipPf) } else { $tipPf = (Con-Enie $tipPf) }
     $card.ToolTip = (New-Object Windows.Controls.TextBlock -Property @{ Text = $tipPf; TextWrapping = 'Wrap'; MaxWidth = 460 })
@@ -5176,7 +5618,7 @@ foreach ($pf in $Perfiles) {
     $script:PerfilTxt[$pf.Id] = $cuenta
     $sp.Children.Add($cuenta) | Out-Null
     $fila = New-Object Windows.Controls.WrapPanel
-    $bA = Nuevo-Boton 'Aplicar perfil' $(if (($pf.Id -like 'full*' -or $pf.Id -eq 'tiny')) { '#B3412F' } else { '#9AD7FF' })
+    $bA = Nuevo-Boton 'Aplicar perfil' $(if (($pf.Id -like 'full*' -or $pf.Id -eq 'tiny')) { '#B3412F' } else { '#60A5FA' })
     $bA.Tag = $pf.Id
     $bA.Add_Click({ Aplicar-Perfil ([string]$this.Tag) })
     $bR = Nuevo-Boton 'Marcar y revisar'
@@ -5193,7 +5635,7 @@ foreach ($pf in $Perfiles) {
     $GridPerf[$gk].Children.Add($card) | Out-Null
 }
 foreach ($gk in $GruposPerf.Keys) {
-    $spP.Children.Add((Nueva-Seccion $gk $(switch ($gk) { 'Competitivo' { '#9AD7FF' } 'RAM y CPU al minimo' { '#9AD7FF' } default { '#9AD7FF' } }))) | Out-Null
+    $spP.Children.Add((Nueva-Seccion $gk $(switch ($gk) { 'Competitivo' { '#60A5FA' } 'RAM y CPU al minimo' { '#60A5FA' } default { '#60A5FA' } }))) | Out-Null
     $spP.Children.Add($GridPerf[$gk]) | Out-Null
 }
 $Paginas.Perfiles = $spP
@@ -5286,7 +5728,7 @@ function Perfil-ConDrivers($pf) {
     $lineas = @(foreach ($k in $f) { $pp = $k -split '\|'; '- ' + (Titulo-De $pp[0] $pp[1]) + ': ' + $script:DrvFalta[$k] + '.' })
     $m = (Con-Enie ('El perfil "' + $pf.Nombre + '" tiene ajustes que necesitan drivers que te faltan:')) + "`n" + ($lineas -join "`n") + "`n`n" + (Con-Enie 'Podes instalarlos ahora (te llevo a Herramientas, a "Buscar drivers"; despues toca "Volver a leer los ajustes") o seguir con el perfil sin esos ajustes.')
     # Cerrar el cartel (Esc o la X) cancela: solo "Seguir sin esos ajustes" sigue con el perfil
-    if (Confirmar ('Faltan drivers para este perfil') $m 'Seguir sin esos ajustes' '#9AD7FF' 'Ir a instalar drivers') { return $true }
+    if (Confirmar ('Faltan drivers para este perfil') $m 'Seguir sin esos ajustes' '#60A5FA' 'Ir a instalar drivers') { return $true }
     Mostrar-Drivers
     return $false
 }
@@ -5299,7 +5741,7 @@ function Marcar-Perfil([string]$id) {
     foreach ($p in 'Debloat', 'Gaming') { foreach ($oid in (Elegidas $p)) { if ($propias -notcontains ($p + '|' + $oid)) { $ajenas++ } } }
     $sumar = $false
     if ($ajenas -gt 0) {
-        $sumar = Confirmar 'Sumar perfiles' ('Ya tenes marcadas ' + $ajenas + ' opciones que no son de "' + $pf.Nombre + '" (de otro perfil o elegidas a mano).' + "`n`n" + 'Queres sumar la lista de este perfil a lo que ya marcaste, o cambiar lo marcado por este perfil?') 'Sumar' '#9AD7FF' 'Cambiar'
+        $sumar = Confirmar 'Sumar perfiles' ('Ya tenes marcadas ' + $ajenas + ' opciones que no son de "' + $pf.Nombre + '" (de otro perfil o elegidas a mano).' + "`n`n" + 'Queres sumar la lista de este perfil a lo que ya marcaste, o cambiar lo marcado por este perfil?') 'Sumar' '#60A5FA' 'Cambiar'
     }
     if (-not $sumar) { foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } } }
     $n = 0
@@ -5333,7 +5775,7 @@ function Aplicar-Perfil([string]$id) {
 
 $IconosPag = @{ Inicio = 0xE80F; Perfiles = 0xE77B; Debloat = 0xE72E; Gaming = 0xE7FC; Limpieza = 0xE74D; Herr = 0xE90F; Apps = 0xE7B8; Adicional = 0xE713 }
 $Textos = @{
-    Inicio    = @('Bienvenido a Xuca OPtimizer', 'Que hace la app y como se usa. Cuando quieras, elegi una seccion a la izquierda.')
+    Inicio    = @('Bienvenido a Brio', 'Que hace la app y como se usa. Cuando quieras, elegi una seccion a la izquierda.')
     Perfiles  = @('Perfiles', 'Elegi un perfil armado: aplicalo con un toque, o marcalo para revisar y ajustar las opciones antes de aplicar. Si ya tenes otro perfil marcado, te pregunta si queres sumarlos. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.')
     Debloat   = @('Debloat y privacidad', 'Lo que se puede sacar o apagar de Windows. Lo que marques aca y en Gaming se aplica junto con un solo Aplicar.')
     Gaming    = @('Optimizacion gaming', 'Ajustes para mas FPS y menos latencia. Lo que marques aca y en Debloat se aplica junto con un solo Aplicar.')
@@ -5378,8 +5820,8 @@ function Actualizar-Contador {
 }
 
 # Fondo sin elegir, fondo elegido, texto sin elegir, texto elegido
-$NavColores = @{ Apps = @('#1F2D37', '#2A3F4D', '#9AD7FF', '#D6EEFF'); Adicional = @('#1F2D37', '#2A3F4D', '#9AD7FF', '#D6EEFF') }
-if ($script:Claro) { $NavColores = @{ Apps = @('#E6F5FC', '#CFEAFB', '#0B6FA8', '#0B4F7A'); Adicional = @('#E6F5FC', '#CFEAFB', '#0B6FA8', '#0B4F7A') } }
+$NavColores = @{ Apps = @('#18243A', '#223454', '#60A5FA', '#D6EEFF'); Adicional = @('#18243A', '#223454', '#60A5FA', '#D6EEFF') }
+if ($script:Claro) { $NavColores = @{ Apps = @('#EFF6FF', '#DBEAFE', '#1D4ED8', '#1E3A8A'); Adicional = @('#EFF6FF', '#DBEAFE', '#1D4ED8', '#1E3A8A') } }
 function Ir-A([string]$p) {
     if ($script:Buscando -or $ui.Buscar.Text) { Terminar-Busqueda }
     if ($p -eq 'Herr') { try { Actualizar-Cuentas } catch { } }
@@ -5394,7 +5836,7 @@ function Ir-A([string]$p) {
             $Nav[$k].BorderBrush = (Pincel $cp[2])
             continue
         }
-        $Nav[$k].Background = (Pincel $(if ($k -eq $p) { '#2A3F4D' } else { '#00000000' }))
+        $Nav[$k].Background = (Pincel $(if ($k -eq $p) { '#223454' } else { '#00000000' }))
         $Nav[$k].Foreground = (Pincel $(if ($k -eq $p) { '#FFFFFF' } else { '#C9CDD4' }))
     }
     $ui.Titulo.Text = (Con-Enie $Textos[$p][0])
@@ -5454,14 +5896,14 @@ $script:BuscaQuieto = $false
 $spBusca = New-Object Windows.Controls.StackPanel
 $script:BuscaCab = @{}
 foreach ($k in 'Debloat', 'Gaming') {
-    $cab = Nuevo-Texto $Textos[$k][0] 15 '#9AD7FF' $true
+    $cab = Nuevo-Texto $Textos[$k][0] 15 '#60A5FA' $true
     $cab.Margin = '12,6,0,2'
     $script:BuscaCab[$k] = $cab
 }
 $ui.BuscarBorrar.ToolTip = (Con-Enie 'Borrar busqueda')
 
 function Es-Buscable($h) { return (($h.Tag -is [hashtable]) -and $h.Tag.ContainsKey('Busca')) }
-function Es-Seccion($h) { return (($h.Tag -is [string]) -and ($h.Tag -eq 'Seccion')) }
+function Es-Seccion($h) { return ((($h.Tag -is [string]) -and ($h.Tag -eq 'Seccion')) -or (Es-Plegable $h)) }
 
 # Deja solo las tarjetas que tienen todas las palabras; devuelve cuantas quedaron
 function Filtrar-Panel($panel, $pal) {
@@ -5482,7 +5924,12 @@ function Filtrar-Panel($panel, $pal) {
             $h.Visibility = $(if ($ok) { 'Visible' } else { 'Collapsed' })
             if ($ok) { $n++; $vis++; $cabVis = $true }
         }
-        if ($h0 -is [Windows.Controls.Primitives.UniformGrid]) { $h0.Visibility = $(if ($vis -gt 0) { 'Visible' } else { 'Collapsed' }) }
+        if ($h0 -is [Windows.Controls.Primitives.UniformGrid]) {
+            # Las categorias plegadas se despliegan mientras buscas (salvo que la plegues durante la busqueda)
+            $abierta = -not ($cab -and (Es-Plegable $cab) -and $cab.Tag.PlegadaBusca)
+            $h0.Visibility = $(if (($vis -gt 0) -and $abierta) { 'Visible' } else { 'Collapsed' })
+            if ($cab -and (Es-Plegable $cab)) { Cabeza-Flecha $cab $abierta }
+        }
     }
     if ($cab) { $cab.Visibility = $(if ($cabVis) { 'Visible' } else { 'Collapsed' }) }
     return $n
@@ -5493,12 +5940,16 @@ function Mostrar-TodoPanel($panel) {
         if ($h -is [Windows.Controls.Primitives.UniformGrid]) { $h.Visibility = 'Visible'; foreach ($x in @($h.Children)) { if (Es-Buscable $x) { $x.Visibility = 'Visible' } } }
         elseif ((Es-Buscable $h) -or (Es-Seccion $h)) { $h.Visibility = 'Visible' }
     }
+    # Al terminar la busqueda, cada categoria vuelve a como la dejaste (plegada o no)
+    foreach ($h in @($panel.Children)) { if (Es-Plegable $h) { Cabeza-Mostrar $h } }
     $panel.Visibility = 'Visible'
 }
 
 # Debloat y Gaming juntas (primero la pagina en la que estas)
 function Empezar-Busqueda {
     $script:Buscando = $true
+    # Una busqueda nueva arranca con todas las categorias desplegadas (lo que elegiste antes no se pierde)
+    foreach ($k in 'Debloat', 'Gaming') { foreach ($h in @($Paginas[$k].Children)) { if (Es-Plegable $h) { $h.Tag.PlegadaBusca = $false } } }
     $ui.Scroll.Content = $null
     $spBusca.Children.Clear()
     $orden = $(if ($script:Pagina -eq 'Gaming') { @('Gaming', 'Debloat') } else { @('Debloat', 'Gaming') })
@@ -5575,7 +6026,7 @@ $ui.Buscar.Add_PreviewKeyDown({
     if ($e.Key -eq 'Escape') { $ui.Buscar.Text = ''; $e.Handled = $true }
 })
 # Borde celeste mientras estas escribiendo
-$ui.Buscar.Add_GotFocus({ $ui.BuscarCaja.BorderBrush = $script:bc.ConvertFromString((Tema-Letra '#9AD7FF')) })
+$ui.Buscar.Add_GotFocus({ $ui.BuscarCaja.BorderBrush = $script:bc.ConvertFromString((Tema-Letra '#60A5FA')) })
 $ui.Buscar.Add_LostFocus({ $ui.BuscarCaja.BorderBrush = (Pincel '#3B3B43') })
 # Tocar en cualquier parte del recuadro pone el cursor para escribir
 $ui.BuscarCaja.Add_MouseLeftButtonDown({ if ($ui.Buscar.IsEnabled) { $ui.Buscar.Focus() | Out-Null } })
@@ -5802,7 +6253,7 @@ function Entrar-Menus {
     if (-not $script:InicioAnotado) {
         $script:InicioAnotado = $true
         Marca-Inicio 'entran los menus'
-        try { [IO.File]::WriteAllLines((Join-Path $env:ProgramData 'XucaScripts\tiempos_inicio.txt'), [string[]]$TiemposInicio.ToArray()) } catch { }
+        try { [IO.File]::WriteAllLines((Join-Path $env:ProgramData 'Brio\tiempos_inicio.txt'), [string[]]$TiemposInicio.ToArray()) } catch { }
     }
 }
 
@@ -5897,7 +6348,7 @@ function Actualizar-Cpu($cpu) {
     $a = $script:CpuTxt['afi']
     if ($a -and $cpu.Afi) {
         # Celeste, igual que "Que hace"
-        Agregar-Linea $a 'Con tu procesador: ' '#9AD7FF' ($cpu.Nombre + ' - cambio ' + $cpu.Afi.Nivel)
+        Agregar-Linea $a 'Con tu procesador: ' '#60A5FA' ($cpu.Nombre + ' - cambio ' + $cpu.Afi.Nivel)
         Agregar-Linea $a 'Puede mejorar: ' '#81C995' $cpu.Afi.Favor
         Agregar-Linea $a 'Puede empeorar: ' '#F28B82' $cpu.Afi.Contra
         Agregar-Linea $a 'Conviene: ' '#E5B567' $cpu.Afi.Recom
@@ -5909,7 +6360,7 @@ function Actualizar-Cpu($cpu) {
             Agregar-Linea $g ($Aviso + ' Atencion: ') '#E5B567' $cpu.Gb.Aviso
             if ($script:XbIcono) { $script:XbIcono.ToolTip = (Con-Enie $cpu.Gb.Aviso); $script:XbIcono.Visibility = 'Visible' }
         }
-        Agregar-Linea $g 'Con tu procesador: ' '#9AD7FF' $cpu.Gb.Texto
+        Agregar-Linea $g 'Con tu procesador: ' '#60A5FA' $cpu.Gb.Texto
         $g.Visibility = 'Visible'
     }
 }
@@ -5918,6 +6369,7 @@ function Aplicar-Lectura($s) {
     $res = $s.Resultados
     if ($null -ne $s.Juegos) { $script:JuegosDet = @($s.Juegos) }
     $script:NoDisp = Calcular-NoDisp $s.Info $s.Cpu
+    try { Actualizar-Insignias } catch { }
     $script:DrvFalta = @{}
     if ($s.Info -and $s.Info.DrvFalta) { foreach ($k in $s.Info.DrvFalta.Keys) { if (-not $script:NoDisp.ContainsKey($k)) { $script:DrvFalta[$k] = $s.Info.DrvFalta[$k] } } }
     $script:Estados = @{}
@@ -5990,7 +6442,7 @@ $latin = [Text.Encoding]::GetEncoding(28591)
 function Limpiar([string]$t) { return (($t -replace '^(\u00EF\u00BB\u00BF|\uFEFF)', '') -split "`r?`n")[0].Trim() }
 function Bajar([string]$remoto, [int]$espera, [double]$desde, [double]$peso) {
     $rq = [Net.HttpWebRequest]::Create($sync.Base + $remoto + '?nc=' + [DateTime]::UtcNow.Ticks)
-    $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'XucaOP'
+    $rq.Timeout = $espera; $rq.ReadWriteTimeout = $espera; $rq.UserAgent = 'Brio'
     $rs = $rq.GetResponse()
     try {
         $len = $rs.ContentLength
@@ -6005,12 +6457,36 @@ function Bajar([string]$remoto, [int]$espera, [double]$desde, [double]$peso) {
     } finally { $rs.Close() }
 }
 
+# Otras ventanas de esta app (otra copia abierta, una herramienta en su consola o el .bat) que tengan algo de la carpeta.
+# Esta misma app ($PID) no se toca: se cierra sola al terminar de actualizar.
+function Cerrar-Propios {
+    foreach ($p in @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe' OR Name='cmd.exe'" -ErrorAction SilentlyContinue)) {
+        if (($p.ProcessId -ne $PID) -and ([string]$p.CommandLine).IndexOf($sync.Raiz, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            try { Stop-Process -Id $p.ProcessId -Force -ErrorAction Stop } catch { }
+        }
+    }
+}
+# Un antivirus revisando el archivo lo bloquea un momento: se reintenta. Si sigue bloqueado, se cierran las otras
+# ventanas de la app y se prueba de nuevo. Si igual no se puede, falla (y se vuelve todo atras).
+function Copiar([string]$de, [string]$a) {
+    for ($n = 0; ; $n++) {
+        try { [IO.File]::Copy($de, $a, $true); return }
+        catch {
+            if ($n -ge 5) { throw }
+            if ($n -eq 2) { Cerrar-Propios }
+            Start-Sleep -Milliseconds 500
+        }
+    }
+}
+
 if (-not $bajar) {
     # Buscar: compara el texto del version.txt de tu PC con el de GitHub
     $local = ''
     if (Test-Path -LiteralPath $sync.VerLocal) { try { $local = Limpiar ([IO.File]::ReadAllText($sync.VerLocal)) } catch { } }
     $remota = ''
     try { $remota = Limpiar (Bajar 'version.txt' 4000 0 0) } catch { }
+    # Un wifi con pagina de inicio de sesion (hotel, bar) devuelve su HTML: si no parece un numero de version, se ignora
+    if ($remota -notmatch '^[vV]?\d+(\.\d+){1,3}$') { $remota = '' }
     $sync.Local = $local
     $sync.Remota = $remota
     # Avisa siempre que tu version no sea la misma que la de GitHub (mas vieja o mas nueva).
@@ -6023,7 +6499,7 @@ if (-not $bajar) {
     # Se manda sin esperar la respuesta: si esa pagina anda lenta, la app no tarda mas en abrir.
     try {
         $rc = [Net.HttpWebRequest]::Create('https://abacus.jasoncameron.dev/get/011xuca/xuca-optimizer-instalaciones')
-        $rc.Timeout = 3000; $rc.ReadWriteTimeout = 3000; $rc.UserAgent = 'XucaOP'
+        $rc.Timeout = 3000; $rc.ReadWriteTimeout = 3000; $rc.UserAgent = 'Brio'
         [void]$rc.BeginGetResponse($null, $null)
     } catch { }
     return
@@ -6058,7 +6534,31 @@ try {
     $listos += [pscustomobject]@{ Tmp = $tmp; Local = $sync.VerLocal }
     $sync.Paso = 'reemplazando la version vieja'
     # Copy en vez de Move-Item: si el destino esta abierto por otro proceso (ej. el .bat en cmd), Move-Item falla con "Cannot create a file when that file already exists"
-    foreach ($l in $listos) { [IO.File]::Copy($l.Tmp, $l.Local, $true); Remove-Item -LiteralPath $l.Tmp -Force -ErrorAction SilentlyContinue }
+    # Antes de pisar cada archivo se guarda una copia (.viejo). Si uno no se puede reemplazar (abierto por otro programa,
+    # antivirus, sin permiso), se vuelven a poner los viejos: la app nunca queda mitad nueva y mitad vieja.
+    $hechos = @()
+    try {
+        foreach ($l in $listos) {
+            $bak = $null
+            if ([IO.File]::Exists($l.Local)) {
+                # Uno de solo lectura no se deja pisar
+                [IO.File]::SetAttributes($l.Local, [IO.FileAttributes]::Normal)
+                $bak = $l.Local + '.viejo'
+                Copiar $l.Local $bak
+            }
+            $hechos += [pscustomobject]@{ Local = $l.Local; Bak = $bak }
+            Copiar $l.Tmp $l.Local
+        }
+    } catch {
+        $err = $_
+        foreach ($h in $hechos) {
+            # Si alguno no se pudo devolver, su .viejo queda al lado para recuperarlo a mano
+            try { if ($h.Bak) { [IO.File]::Copy($h.Bak, $h.Local, $true); [IO.File]::Delete($h.Bak) } else { [IO.File]::Delete($h.Local) } } catch { }
+        }
+        throw $err
+    }
+    foreach ($h in $hechos) { if ($h.Bak) { Remove-Item -LiteralPath $h.Bak -Force -ErrorAction SilentlyContinue } }
+    foreach ($l in $listos) { Remove-Item -LiteralPath $l.Tmp -Force -ErrorAction SilentlyContinue }
 } catch {
     foreach ($l in $listos) { Remove-Item -LiteralPath $l.Tmp -Force -ErrorAction SilentlyContinue }
     $sync.Error = $_.Exception.Message
@@ -6074,8 +6574,8 @@ $updTimer = New-Object Windows.Threading.DispatcherTimer
 $updTimer.Interval = [TimeSpan]::FromMilliseconds(40)
 
 function Upd-Iniciar([bool]$bajar) {
-    $base = 'https://raw.githubusercontent.com/' + $XucaRepo + '/' + $XucaRama + '/'
-    $sync = [hashtable]::Synchronized(@{ Base = $base; VerLocal = $VersionLocal; Remota = $script:UpdRemota; Local = ''; Hay = $false; Listo = $false; Prog = 0.0; Paso = ''; Error = $null })
+    $base = 'https://raw.githubusercontent.com/' + $BrioRepo + '/' + $BrioRama + '/'
+    $sync = [hashtable]::Synchronized(@{ Base = $base; Raiz = $Root; VerLocal = $VersionLocal; Remota = $script:UpdRemota; Local = ''; Hay = $false; Listo = $false; Prog = 0.0; Paso = ''; Error = $null })
     $ps = [powershell]::Create()
     [void]$ps.AddScript($CodigoUpd).AddArgument(@($ArchivosUpd)).AddArgument($sync).AddArgument($bajar)
     $script:UpdRun = @{ PS = $ps; Handle = $ps.BeginInvoke(); Sync = $sync; Bajar = $bajar; Desde = (Get-Date) }
@@ -6089,7 +6589,7 @@ function Buscar-Actualizacion {
     Modo-Splash $true
     Intro-Carga
     $script:SplashDesde = Get-Date
-    if ((-not $XucaRepo) -or ($XucaRepo -like 'TU_USUARIO*')) { Fin-Splash; return }
+    if ((-not $BrioRepo) -or ($BrioRepo -like 'TU_USUARIO*')) { Fin-Splash; return }
     Upd-Iniciar $false
 }
 
@@ -6131,7 +6631,7 @@ function Fin-Busqueda($s) {
     }
     $ui.UpdBarraTexto.Text = (Con-Enie ($t + '. Toca aca para actualizar.'))
     $animTimer.Stop()
-    $ui.CargaTitulo.Text = (Con-Enie $(if ($s.TuyaMasNueva) { 'Tu version de Xuca OPtimizer es distinta' } else { 'Hay una version nueva de Xuca OPtimizer' }))
+    $ui.CargaTitulo.Text = (Con-Enie $(if ($s.TuyaMasNueva) { 'Tu version de Brio es distinta' } else { 'Hay una version nueva de Brio' }))
     Marcar-OP $ui.CargaTitulo
     $ui.CargaDetalle.Text = ''
     Upd-MostrarCartel $true
@@ -6139,7 +6639,7 @@ function Fin-Busqueda($s) {
 
 function Descargar-Actualizacion {
     if ($script:UpdRun -or $script:Lectura -or (-not $script:UpdHay)) { return }
-    if ($script:Proc -and -not $script:Proc.HasExited) { Avisar 'Actualizar' 'Espera a que termine lo que se esta aplicando y despues toca el cartel amarillo.'; return }
+    if ($script:Proc -and -not $script:Proc.HasExited) { Avisar 'Actualizar' 'Espera a que termine lo que se esta aplicando y despues toca el cartel azul.'; return }
     Upd-MostrarCartel $false
     Bloquear $true
     Mostrar-Carga 'Descargando la actualizacion' $true
@@ -6151,7 +6651,7 @@ function Fin-Descarga($s) {
         $script:UpdError = $s.Error
         Cerrar-Carga {
             $ui.BtnUpdBarra.Visibility = 'Visible'
-            if (Confirmar 'No se pudo actualizar' ('No se pudo bajar la version nueva: ' + $script:UpdError + "`n`n" + 'Seguis usando esta version. Podes probar de nuevo con el cartel amarillo de arriba, o bajarla a mano desde las Releases de GitHub.') 'Abrir las Releases' '#9AD7FF' 'Cerrar') { Abrir-Normal ('https://github.com/' + $XucaRepo + '/releases') }
+            if (Confirmar 'No se pudo actualizar' ('No se pudo bajar la version nueva: ' + $script:UpdError + "`n`n" + 'Seguis usando esta version. Podes probar de nuevo con el cartel azul de arriba, o bajarla a mano desde las Releases de GitHub.') 'Abrir las Releases' '#60A5FA' 'Cerrar') { Abrir-Normal ('https://github.com/' + $BrioRepo + '/releases') }
             Bloquear $false
         }
         return
@@ -6172,8 +6672,11 @@ $updTimer.Add_Tick({
     $s = $u.Sync
     if ($u.Bajar) { Poner-Progreso (0.95 * $s.Prog) $(if ($s.Paso) { 'Descargando: ' + $s.Paso } else { '' }) }
     else { Poner-Progreso ((1 - [math]::Exp(-((Get-Date) - $u.Desde).TotalSeconds / 1.5)) * 0.9) 'Buscando versiones nuevas' }
-    # Al buscar alcanza con saber la version (Listo): no se espera a que termine lo demas
-    if (-not ($u.Handle.IsCompleted -or ((-not $u.Bajar) -and $s.Listo))) { return }
+    # Al buscar alcanza con saber la version (Listo): no se espera a que termine lo demas.
+    # Si la red se cuelga (DNS o proxy que no contestan), a los 8 segundos se abre igual, como si no hubiera version nueva.
+    $colgado = (-not $u.Bajar) -and (((Get-Date) - $u.Desde).TotalSeconds -gt 8)
+    if (-not ($u.Handle.IsCompleted -or ((-not $u.Bajar) -and $s.Listo) -or $colgado)) { return }
+    if ($colgado -and -not $s.Listo) { $s.Hay = $false }
     $updTimer.Stop()
     if ($u.Handle.IsCompleted) {
         try { $u.PS.EndInvoke($u.Handle) | Out-Null } catch { if ($u.Bajar -and -not $s.Error) { $s.Error = $_.Exception.Message } }
@@ -6185,7 +6688,7 @@ $updTimer.Add_Tick({
 
 $ui.BtnUpd.Add_Click({ Descargar-Actualizacion })
 $ui.BtnUpdBarra.Add_Click({ Descargar-Actualizacion })
-$ui.BtnUpdGit.Add_Click({ Abrir-Normal ('https://github.com/' + $XucaRepo + '/releases') })
+$ui.BtnUpdGit.Add_Click({ Abrir-Normal ('https://github.com/' + $BrioRepo + '/releases') })
 $ui.BtnUpdNo.Add_Click({
     # Sigue con esta version: el cartel queda chiquito arriba por si despues queres actualizar
     Upd-MostrarCartel $false
@@ -6366,9 +6869,9 @@ function Cerrar-Parte($p) {
 
 # Archivo donde una parte escribe su progreso. No va en Temp: la limpieza borra Temp y se lo llevaba puesto.
 function Nueva-Salida {
-    $d = Join-Path $XucaDir 'salida'
+    $d = Join-Path $BrioDir 'salida'
     if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
-    return (Join-Path $d ('xucaop_' + [guid]::NewGuid().ToString('N') + '.txt'))
+    return (Join-Path $d ('brio_' + [guid]::NewGuid().ToString('N') + '.txt'))
 }
 
 function Siguiente {
@@ -6516,9 +7019,9 @@ $timer.Add_Tick({
 
 # Cartel con el resultado de "Buscar drivers": una cajita de color con icono por cada cosa, separadas con espacio
 $CajaDrv = @{
-    'placa'     = @('#9AD7FF', 0xE896); 'gpu-nv' = @('#76B900', 0xE7F4); 'gpu-amd' = @('#ED1C24', 0xE7F4); 'gpu-intel' = @('#0071C5', 0xE7F4)
-    'red' = @('#9AD7FF', 0xE839); 'impresora' = @('#9AD7FF', 0xE749); 'tableta' = @('#9AD7FF', 0xE70F); 'volante' = @('#9AD7FF', 0xE7FC); 'joystick' = @('#9AD7FF', 0xE7FC); 'camara' = @('#9AD7FF', 0xE722); 'stream' = @('#9AD7FF', 0xE8A1); 'disco' = @('#94A3B8', 0xEDA2); 'wifi' = @('#9AD7FF', 0xE701); 'bt' = @('#9AD7FF', 0xE702); 'chipset'   = @('#9AD7FF', 0xE945); 'mouse' = @('#9AD7FF', 0xE962); 'teclado' = @('#9AD7FF', 0xE765); 'audio' = @('#9AD7FF', 0xE7F6)
-    'perif'     = @('#9AD7FF', 0xE7FC); 'rgb' = @('#9AD7FF', 0xE790); 'bios' = @('#9AD7FF', 0xE7BA); 'wu' = @('#9AD7FF', 0xE895); 'ok' = @('#81C995', 0xE73E)
+    'placa'     = @('#60A5FA', 0xE896); 'gpu-nv' = @('#76B900', 0xE7F4); 'gpu-amd' = @('#ED1C24', 0xE7F4); 'gpu-intel' = @('#0071C5', 0xE7F4)
+    'red' = @('#60A5FA', 0xE839); 'impresora' = @('#60A5FA', 0xE749); 'tableta' = @('#60A5FA', 0xE70F); 'volante' = @('#60A5FA', 0xE7FC); 'joystick' = @('#60A5FA', 0xE7FC); 'camara' = @('#60A5FA', 0xE722); 'stream' = @('#60A5FA', 0xE8A1); 'disco' = @('#94A3B8', 0xEDA2); 'wifi' = @('#60A5FA', 0xE701); 'bt' = @('#60A5FA', 0xE702); 'chipset'   = @('#60A5FA', 0xE945); 'mouse' = @('#60A5FA', 0xE962); 'teclado' = @('#60A5FA', 0xE765); 'audio' = @('#60A5FA', 0xE7F6)
+    'perif'     = @('#60A5FA', 0xE7FC); 'rgb' = @('#60A5FA', 0xE790); 'bios' = @('#60A5FA', 0xE7BA); 'wu' = @('#60A5FA', 0xE895); 'ok' = @('#81C995', 0xE73E)
 }
 function Resultado-Drivers($r) {
     $w = Nuevo-Dialogo 540
@@ -6583,7 +7086,7 @@ function Resultado-Drivers($r) {
         $pie.Margin = '0,14,0,0'
         $sp.Children.Add($pie) | Out-Null
     }
-    $bOk = Nuevo-Boton 'Entendido' '#9AD7FF'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
+    $bOk = Nuevo-Boton 'Entendido' '#60A5FA'; $bOk.IsDefault = $true; $bOk.IsCancel = $true
     $bOk.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
     $sp.Children.Add((Fila-Botones @() @($bOk))) | Out-Null
     $w.Content.Child = $sp
@@ -6632,7 +7135,7 @@ function Terminar-Corrida {
         if ($C.PideReinicio) {
             $pre = 'Algunos de estos cambios necesitan reiniciar la PC.'
             if ($bench) { $pre += ' Despues de reiniciar, abri la app y toca "Medir despues" en Herramientas para ver la diferencia de FPS.' }
-            if (Confirmar 'Listo' ($m + "`n`n" + $pre + ' Reiniciar ahora?') 'Reiniciar' '#9AD7FF' 'Despues') { & shutdown.exe /r /t 10 }
+            if (Confirmar 'Listo' ($m + "`n`n" + $pre + ' Reiniciar ahora?') 'Reiniciar' '#60A5FA' 'Despues') { & shutdown.exe /r /t 10 }
         } elseif (($C.Fallos -gt 0) -or ($res.Count -gt 0)) {
             Avisar 'Listo' ($m + "`n`n" + 'No hace falta reiniciar.' + $(if ($bench) { ' Ya podes tocar "Medir despues" en Herramientas.' } else { '' }))
         } else {
@@ -6712,7 +7215,7 @@ function Preguntar-Punto($selD) {
     $chk.Content = (Nuevo-Texto 'No volver a preguntar' 12.5 '#C3C8D0' $false)
     $sp.Children.Add($chk) | Out-Null
     $bNo = Nuevo-Boton 'No, seguir sin crear'; $bNo.IsCancel = $true
-    $bSi = Nuevo-Boton 'Crear y seguir' '#9AD7FF'; $bSi.IsDefault = $true
+    $bSi = Nuevo-Boton 'Crear y seguir' '#60A5FA'; $bSi.IsDefault = $true
     $bSi.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
     $sp.Children.Add((Fila-Botones @() @($bNo, $bSi))) | Out-Null
     $w.Content.Child = $sp
@@ -6730,14 +7233,14 @@ $accionHerr = {
     if ($par[1] -eq 'R') { $txt = 'Volver a usar contrasena' }
     if ($par[0] -eq 'drv') {
         # Drivers corre sin ventana negra: revisa, instala lo que falta desde Windows Update y abre las paginas solo
-        if (-not (Confirmar $txt 'Revisa tu PC (tarda un minuto) y te abre la pagina oficial de cada driver recomendado. No instala nada: lo bajas vos desde ahi.' 'Buscar' '#9AD7FF' 'Cancelar')) { return }
+        if (-not (Confirmar $txt 'Revisa tu PC (tarda un minuto) y te abre la pagina oficial de cada driver recomendado. No instala nada: lo bajas vos desde ahi.' 'Buscar' '#60A5FA' 'Cancelar')) { return }
         $v = @{ XR_drv = 'S'; XUCA_DRVAPP = '1' }
         $n = 1
         if (Preguntar-Punto @()) { $v['XR_rp'] = 'S'; $n++ }
         Correr @([pscustomobject]@{ Nombre = $txt; Ruta = $Rutas.Debloat; Vars = $v; Cambios = $n; Visible = $false; Tipo = 'drivers' }) $false 'Buscando drivers'
         return
     }
-    if (-not (Confirmar $txt 'Se abre la ventana negra del script y ahi te va pidiendo lo que necesita.' 'Seguir' '#9AD7FF' 'Cancelar')) { return }
+    if (-not (Confirmar $txt 'Se abre la ventana negra del script y ahi te va pidiendo lo que necesita.' 'Seguir' '#60A5FA' 'Cancelar')) { return }
     $v = @{}; $v['XR_' + $par[0]] = $par[1]
     if (Preguntar-Punto @()) { $v['XR_rp'] = 'S' }
     Correr @([pscustomobject]@{ Nombre = $txt; Ruta = $Rutas.Debloat; Vars = $v; Cambios = 1; Visible = $true; Tipo = 'herramienta' }) $false ''
@@ -6834,12 +7337,12 @@ function Aplicar-Seleccion {
     foreach ($id in $selD) { $vD['XR_' + $id] = 'S' }
     if ($selD -contains 'av') {
         Start-Process 'windowsdefender://threatsettings'
-        if (-not (Confirmar 'Antivirus' ('Para apagar el antivirus del todo, primero apaga vos la "Proteccion contra alteraciones" (Windows no deja que un programa la apague).' + "`n`n" + 'Se abrio Seguridad de Windows. Apagala y despues toca Listo.') 'Listo' '#9AD7FF' 'Cancelar')) { return }
+        if (-not (Confirmar 'Antivirus' ('Para apagar el antivirus del todo, primero apaga vos la "Proteccion contra alteraciones" (Windows no deja que un programa la apague).' + "`n`n" + 'Se abrio Seguridad de Windows. Apagala y despues toca Listo.') 'Listo' '#60A5FA' 'Cancelar')) { return }
     }
 
     $n = $selD.Count + $selG.Count
     $txtN = $(if ($n -eq 1) { 'Se va a aplicar 1 cambio.' } else { 'Se van a aplicar ' + $n + ' cambios.' })
-    if (-not (Confirmar 'Aplicar cambios' ($txtN + ' Seguir?') 'Aplicar' '#9AD7FF' 'Cancelar')) { return }
+    if (-not (Confirmar 'Aplicar cambios' ($txtN + ' Seguir?') 'Aplicar' '#60A5FA' 'Cancelar')) { return }
 
     $tareas = @()
     $nD = $selD.Count
@@ -6900,7 +7403,7 @@ $ui.BtnAplicar.Add_Click({
         if (($v['CLEAN_APPS'] -eq '1') -or ($v['CLEAN_DL'] -eq '1')) {
             $msj += "`n`n" + (Con-Enie ($Aviso + ' OJO CON LAS PARTIDAS GUARDADAS: ')) + (Con-Enie $(if ($v['CLEAN_APPS'] -eq '1') { 'los restos de apps desinstaladas pueden incluir partidas y configuraciones de juegos que ya no tenes instalados. ' } else { '' })) + (Con-Enie $(if ($v['CLEAN_DL'] -eq '1') { 'Descargas se vacia por completo y no va a la papelera. ' } else { '' })) + (Con-Enie 'Si no copiaste lo que quieras conservar, se pierde para siempre.')
         }
-        if (-not (Confirmar 'Limpiar cache' $msj 'Limpiar' '#9AD7FF' 'Cancelar')) { return }
+        if (-not (Confirmar 'Limpiar cache' $msj 'Limpiar' '#60A5FA' 'Cancelar')) { return }
         Correr @([pscustomobject]@{ Nombre = 'Limpieza'; Ruta = $Rutas.Limpieza; Vars = $v; Cambios = 1; Visible = $false; Tipo = 'limpieza' }) $false 'Limpiando la cache'
         return
     }
@@ -6921,16 +7424,16 @@ function Confirmar-Salida {
     $chk = $null
     if ($mostrarKofi) {
         $caja = New-Object Windows.Controls.Border
-        $caja.CornerRadius = 10; $caja.Background = (Pincel '#1F2D37'); $caja.BorderBrush = (Pincel '#9AD7FF'); $caja.BorderThickness = 1
+        $caja.CornerRadius = 10; $caja.Background = (Pincel '#18243A'); $caja.BorderBrush = (Pincel '#60A5FA'); $caja.BorderThickness = 1
         $caja.Padding = '14,12'; $caja.Margin = '0,14,0,0'
         $sk = New-Object Windows.Controls.StackPanel
         $m = Nuevo-Texto 'Este proyecto es gratis y lo hago en mi tiempo libre. Si te sirvio y queres apoyarme, podes donarme un Ko-fi:' 13 '#C3C8D0' $false
         $m.LineHeight = 20
         $sk.Children.Add($m) | Out-Null
-        $link = Nuevo-Texto $KoFi 12.5 '#9AD7FF' $false
+        $link = Nuevo-Texto $KoFi 12.5 '#60A5FA' $false
         $link.Margin = '0,4,0,0'
         $sk.Children.Add($link) | Out-Null
-        $bK = Nuevo-Boton 'Apoyar en Ko-fi' '#9AD7FF'; $bK.Foreground = (Pincel '#0B2533')
+        $bK = Nuevo-Boton 'Apoyar en Ko-fi' '#60A5FA'; $bK.Foreground = (Pincel '#0B1B33')
         $bK.HorizontalAlignment = 'Left'
         $bK.Add_Click({ Abrir-Normal $KoFi })
         $sk.Children.Add($bK) | Out-Null
@@ -7016,7 +7519,6 @@ function Texto-Tema {
     return (Con-Enie $t)
 }
 $ui.TemaTxt.Text = (Texto-Tema)
-if ($script:Claro) { $ui.BtnRedes.Foreground = $script:bc.ConvertFromString('#0369A1') }
 
 function Elegir-Tema {
     $w = Nuevo-Dialogo 470
@@ -7025,7 +7527,7 @@ function Elegir-Tema {
     $cab = New-Object Windows.Controls.Grid
     $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'
     $cab.ColumnDefinitions.Add($c0); $cab.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition))
-    $ic = Icono-Dialogo 0xE706 '#9AD7FF' 42
+    $ic = Icono-Dialogo 0xE706 '#60A5FA' 42
     $ic.Margin = '0,0,14,0'
     $cab.Children.Add($ic) | Out-Null
     $tx = New-Object Windows.Controls.StackPanel
@@ -7050,15 +7552,15 @@ function Elegir-Tema {
         $es = ($o[0] -eq $script:TemaCfg)
         $card = New-Object Windows.Controls.Border
         $card.CornerRadius = 12; $card.Padding = '14,10'; $card.Margin = $(if ($primera) { '0,16,0,0' } else { '0,8,0,0' }); $primera = $false
-        $card.Background = (Pincel $(if ($es) { '#2A3F4D' } else { '#303037' }))
-        $card.BorderBrush = (Pincel $(if ($es) { '#9AD7FF' } else { '#3B3B43' })); $card.BorderThickness = $(if ($es) { 2 } else { 1 })
+        $card.Background = (Pincel $(if ($es) { '#223454' } else { '#303037' }))
+        $card.BorderBrush = (Pincel $(if ($es) { '#60A5FA' } else { '#3B3B43' })); $card.BorderThickness = $(if ($es) { 2 } else { 1 })
         $card.Cursor = [Windows.Input.Cursors]::Hand
         $card.Tag = $o[0]
         $g = New-Object Windows.Controls.Grid
         $ca = New-Object Windows.Controls.ColumnDefinition; $ca.Width = 'Auto'
         $cc = New-Object Windows.Controls.ColumnDefinition; $cc.Width = 'Auto'
         $g.ColumnDefinitions.Add($ca); $g.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition)); $g.ColumnDefinitions.Add($cc)
-        $i1 = Nuevo-Texto ([string][char]$o[1]) 18 '#9AD7FF' $false
+        $i1 = Nuevo-Texto ([string][char]$o[1]) 18 '#60A5FA' $false
         $i1.FontFamily = 'Segoe MDL2 Assets'; $i1.VerticalAlignment = 'Center'; $i1.Margin = '2,0,14,0'
         $g.Children.Add($i1) | Out-Null
         $t2 = New-Object Windows.Controls.StackPanel
@@ -7069,13 +7571,13 @@ function Elegir-Tema {
         $t2.Children.Add($d2) | Out-Null
         $g.Children.Add($t2) | Out-Null
         if ($es) {
-            $ok = Nuevo-Texto ([string][char]0xE73E) 16 '#9AD7FF' $true
+            $ok = Nuevo-Texto ([string][char]0xE73E) 16 '#60A5FA' $true
             $ok.FontFamily = 'Segoe MDL2 Assets'; $ok.VerticalAlignment = 'Center'; $ok.Margin = '10,0,2,0'
             [Windows.Controls.Grid]::SetColumn($ok, 2)
             $g.Children.Add($ok) | Out-Null
         }
         $card.Child = $g
-        $card.Add_MouseEnter({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#9AD7FF') } })
+        $card.Add_MouseEnter({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#60A5FA') } })
         $card.Add_MouseLeave({ if ($this.BorderThickness.Left -lt 2) { $this.BorderBrush = (Pincel '#3B3B43') } })
         # Se elige al apretar (no al soltar): el cartel se puede arrastrar y el arrastre se comia el clic.
         # Handled corta el evento para que no llegue al borde del cartel y no empiece a arrastrarlo.
@@ -7225,6 +7727,7 @@ $win.Dispatcher.Add_UnhandledException({
     $script:EnError = $false
 })
 
+try { Actualizar-Insignias } catch { }
 Ir-A 'Inicio'
 $ui.Estado.Text = ''
 Marca-Inicio 'app armada (antes de mostrar la ventana)'

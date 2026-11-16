@@ -1,7 +1,7 @@
 # ============================================================
 #  OPTIMIZACION PARA GAMING
 #  Compatible con Windows 11 v. 25H2 (y Windows 10, salvo lo que avisa cada opcion).
-#  La app XucaOP.ps1 lee de aca la lista de opciones ($ListaOpciones) y las corre en un hilo aparte,
+#  La app Brio.ps1 lee de aca la lista de opciones ($ListaOpciones) y las corre en un hilo aparte,
 #  junto con Comun.ps1: S = Si, R = Restaurar al valor por defecto de Windows (o al que tenias), N = no se toca.
 #  Cada cambio se verifica y queda anotado en la carpeta "logs".
 #  Este archivo solo define cosas: cargarlo no cambia nada en la PC.
@@ -9,6 +9,11 @@
 
 # Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
 $ReinGaming = @('tk', 'mm', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'mi', 'vbs', 'md', 'v4', 'll', 'nag', 'nic', 'dup', 'spc', 'xbt')
+
+# Opciones que usan comandos que Windows 7 y 8 no tienen (tareas programadas nuevas, apps de la Store, DNS por placa,
+# Defender nuevo, dispositivos). En esas versiones la app las muestra como no compatibles y aca se saltean.
+# wgo (juegos en ventana) solo existe en Windows 11.
+$SoloWin10 = @('afi', 'xb', 'xbt', 'fso', 'msi', 'tr', 'ram', 'dns', 'mi', 'avl', 'vbs', 'wgo')
 $GameBarProtocolos = @('ms-gamingoverlay', 'ms-gamebar', 'ms-gamebarservices')
 
 # "Quitar Xbox completo" (xbt): servicios, apps (instaladas y provisionadas) y la tarea de guardado en la nube.
@@ -35,7 +40,7 @@ $afiFondoCat = 'discord=Discord; spotify=Spotify; onedrive=OneDrive; whatsapp=Wh
 # Juegos que usan pocos hilos y dependen de la latencia: en los Ryzen con bloques chicos van a un solo bloque.
 $afiLivianos = @('javaw', 'minecraft.windows', 'valorant-win64-shipping', 'league of legends', 'rocketleague', 'robloxplayerbeta')
 # Nunca se tocan: sistema, audio, antivirus y antitrampas, OBS, editores y compiladores.
-$afiProhibidos = @('system', 'idle', 'registry', 'smss', 'csrss', 'wininit', 'winlogon', 'services', 'lsass', 'lsaiso', 'svchost', 'dwm', 'fontdrvhost', 'memory compression', 'audiodg', 'explorer', 'sihost', 'ctfmon', 'taskmgr', 'searchhost', 'startmenuexperiencehost', 'shellexperiencehost', 'textinputhost', 'runtimebroker', 'securityhealthservice', 'msmpeng', 'nissrv', 'vgc', 'vgtray', 'vgk', 'easyanticheat', 'easyanticheat_eos', 'beservice', 'faceit', 'faceitservice', 'devenv', 'msbuild', 'vbcscompiler', 'servicehub.host.dotnet.x64', 'code', 'rider64', 'shadercompileworker', 'resolve', 'blender', 'fmod studio', 'java', 'xucaafinidad', 'xucatimer', 'xucaram')
+$afiProhibidos = @('system', 'idle', 'registry', 'smss', 'csrss', 'wininit', 'winlogon', 'services', 'lsass', 'lsaiso', 'svchost', 'dwm', 'fontdrvhost', 'memory compression', 'audiodg', 'explorer', 'sihost', 'ctfmon', 'taskmgr', 'searchhost', 'startmenuexperiencehost', 'shellexperiencehost', 'textinputhost', 'runtimebroker', 'securityhealthservice', 'msmpeng', 'nissrv', 'vgc', 'vgtray', 'vgk', 'easyanticheat', 'easyanticheat_eos', 'beservice', 'faceit', 'faceitservice', 'devenv', 'msbuild', 'vbcscompiler', 'servicehub.host.dotnet.x64', 'code', 'rider64', 'shadercompileworker', 'resolve', 'blender', 'fmod studio', 'java', 'brioafinidad', 'briotimer', 'brioram')
 
 function Afi-Prohibido([string]$n) { return (($afiProhibidos -contains $n) -or ($n -like 'obs*') -or ($n -like 'unrealeditor*') -or ($n -like 'godot*') -or ($n -like 'unrealinsights*')) }
 function Afi-Nombres([string]$txt) {
@@ -50,13 +55,13 @@ function Afi-Nombres([string]$txt) {
     return @($l | Sort-Object -Unique)
 }
 
-# >>> XUCA-PROGRAMAS (la app XucaOP copia todo lo que esta entre estas dos marcas para saber si el programa instalado es el de esta version)
-# Codigo de los programitas que se instalan en ProgramData\XucaScripts (temporizador, limpiador de RAM y afinidad).
+# >>> XUCA-PROGRAMAS (la app copia todo lo que esta entre estas dos marcas para saber si el programa instalado es el de esta version)
+# Codigo de los programitas que se instalan en ProgramData\Brio (temporizador, limpiador de RAM y afinidad).
 # Al instalarlos se guarda al lado un .ver con la huella del codigo. Si una version nueva del script cambia el codigo,
 # la huella no coincide: la app lo muestra como no aplicado y al aplicarlo se vuelve a instalar el nuevo.
 $CodTimer = 'using System.Runtime.InteropServices; using System.Threading; public class P { [DllImport("ntdll.dll")] public static extern int NtSetTimerResolution(uint d, bool s, out uint c); public static void Main() { uint c; NtSetTimerResolution(5000, true, out c); Thread.Sleep(Timeout.Infinite); } }'
 $CodRam = 'using System; using System.Runtime.InteropServices; using System.Threading; public class P { [DllImport("ntdll.dll")] public static extern int NtSetSystemInformation(int i, ref int n, int l); [DllImport("advapi32.dll", SetLastError=true)] static extern bool OpenProcessToken(IntPtr p, uint d, out IntPtr t); [DllImport("advapi32.dll")] static extern bool LookupPrivilegeValue(string s, string n, out long l); [DllImport("advapi32.dll")] static extern bool AdjustTokenPrivileges(IntPtr t, bool d, ref TP n, uint b, IntPtr p, IntPtr r); [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess(); [DllImport("kernel32.dll")] static extern bool GlobalMemoryStatusEx(ref MS b); [StructLayout(LayoutKind.Sequential)] struct MS { public uint d; public uint l; public ulong tp; public ulong ap; public ulong tpf; public ulong apf; public ulong tv; public ulong av; public ulong aev; } [StructLayout(LayoutKind.Sequential, Pack=1)] struct TP { public uint c; public long l; public uint a; } public static void Main() { IntPtr t; if (OpenProcessToken(GetCurrentProcess(), 40, out t)) { TP tp = new TP(); tp.c = 1; tp.a = 2; LookupPrivilegeValue(null, "SeProfileSingleProcessPrivilege", out tp.l); AdjustTokenPrivileges(t, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero); } while(true) { MS m = new MS(); m.d = (uint)Marshal.SizeOf(typeof(MS)); if (GlobalMemoryStatusEx(ref m)) { if ((m.ap / 1048576) < 1024) { int c = 4; NtSetSystemInformation(80, ref c, 4); } } Thread.Sleep(10000); } } }'
-$CodAfi = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static bool Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); p.Refresh(); return (long)p.ProcessorAffinity == m; } catch { return false; } } public static void Main() { string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "XucaScripts\\afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> rendidos = new HashSet<int>(); Dictionary<int, int> fallos = new Dictionary<int, int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m == 0) continue; hayJuego = true; if (rendidos.Contains(p.Id)) continue; if (Poner(p, m)) fallos.Remove(p.Id); else { int c = 0; fallos.TryGetValue(p.Id, out c); c++; fallos[p.Id] = c; if (c >= 3) rendidos.Add(p.Id); } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom) && Poner(p, fondo)) hechosF.Add(p.Id); } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } rendidos.IntersectWith(vivos); hechosF.IntersectWith(vivos); List<int> viejos = new List<int>(); foreach (int k in fallos.Keys) if (!vivos.Contains(k)) viejos.Add(k); foreach (int k in viejos) fallos.Remove(k); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
+$CodAfi = 'using System; using System.Collections.Generic; using System.Diagnostics; using System.IO; using System.Threading; public class P { static long juego, liviano, fondo, todo; static HashSet<string> juegos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> livianos = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static HashSet<string> apps = new HashSet<string>(StringComparer.OrdinalIgnoreCase); static void Lista(HashSet<string> h, string v) { foreach (string n in v.Split((char)44)) { string x = n.Trim(); if (x.Length > 0) h.Add(x); } } static void Leer(string ruta) { foreach (string l in File.ReadAllLines(ruta)) { int i = l.IndexOf((char)61); if (i < 1) continue; string k = l.Substring(0, i).Trim(); string v = l.Substring(i + 1).Trim(); if (k == "juego") juego = long.Parse(v); else if (k == "liviano") liviano = long.Parse(v); else if (k == "fondo") fondo = long.Parse(v); else if (k == "todo") todo = long.Parse(v); else if (k == "juegos") Lista(juegos, v); else if (k == "livianos") Lista(livianos, v); else if (k == "apps") Lista(apps, v); } } static bool Poner(Process p, long m) { try { if ((long)p.ProcessorAffinity != m) p.ProcessorAffinity = new IntPtr(m); p.Refresh(); return (long)p.ProcessorAffinity == m; } catch { return false; } } public static void Main() { string ruta = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "afinidad.txt"); try { Leer(ruta); } catch { return; } if (liviano == 0) liviano = juego; if (juego == 0 || todo == 0 || (juegos.Count + livianos.Count) == 0) return; try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch { } HashSet<int> rendidos = new HashSet<int>(); Dictionary<int, int> fallos = new Dictionary<int, int>(); HashSet<int> hechosF = new HashSet<int>(); while (true) { Process[] ps = Process.GetProcesses(); HashSet<int> vivos = new HashSet<int>(); bool hayJuego = false; foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } vivos.Add(p.Id); long m = 0; if (livianos.Contains(nom)) m = liviano; else if (juegos.Contains(nom)) m = juego; if (m == 0) continue; hayJuego = true; if (rendidos.Contains(p.Id)) continue; if (Poner(p, m)) fallos.Remove(p.Id); else { int c = 0; fallos.TryGetValue(p.Id, out c); c++; fallos[p.Id] = c; if (c >= 3) rendidos.Add(p.Id); } } if (hayJuego && fondo != 0) { foreach (Process p in ps) { string nom; try { nom = p.ProcessName; } catch { continue; } if (apps.Contains(nom) && Poner(p, fondo)) hechosF.Add(p.Id); } } else if (!hayJuego && hechosF.Count > 0) { foreach (Process p in ps) { if (hechosF.Contains(p.Id)) Poner(p, todo); } hechosF.Clear(); } rendidos.IntersectWith(vivos); hechosF.IntersectWith(vivos); List<int> viejos = new List<int>(); foreach (int k in fallos.Keys) if (!vivos.Contains(k)) viejos.Add(k); foreach (int k in viejos) fallos.Remove(k); foreach (Process p in ps) p.Dispose(); Thread.Sleep(2000); } } }'
 function Ver-Codigo([string]$c) {
     $h = [Security.Cryptography.SHA256]::Create()
     try { return (-join @($h.ComputeHash([Text.Encoding]::UTF8.GetBytes($c))[0..7] | ForEach-Object { $_.ToString('x2') })) } finally { $h.Dispose() }
@@ -69,7 +74,7 @@ function Ver-Igual([string]$exe, [string]$c) {
 function Ver-Guardar([string]$exe, [string]$c) { try { Set-Content -LiteralPath ($exe + '.ver') -Value (Ver-Codigo $c) -Encoding ASCII } catch { } }
 # <<< XUCA-PROGRAMAS
 
-# >>> XUCA-CPU (la app XucaOP copia todo lo que esta entre estas dos marcas para leer el procesador)
+# >>> XUCA-CPU (la app copia todo lo que esta entre estas dos marcas para leer el procesador)
 function Afi-Bit([long]$m, [int]$i) { return (($m -band ([long]1 -shl $i)) -ne 0) }
 function Afi-BitBajo([long]$m) { for ($i = 0; $i -lt 64; $i++) { if (Afi-Bit $m $i) { return $i } }; return 64 }
 function Afi-Hilos([long]$m) { $c = 0; for ($i = 0; $i -lt 64; $i++) { if (Afi-Bit $m $i) { $c++ } }; return $c }
@@ -224,7 +229,7 @@ function Gb-Consejo($pl) {
 }
 # <<< XUCA-CPU
 
-# >>> XUCA-JUEGOS (la app XucaOP copia todo lo que esta entre estas dos marcas para detectar los juegos instalados)
+# >>> XUCA-JUEGOS (la app copia todo lo que esta entre estas dos marcas para detectar los juegos instalados)
 # Detecta los juegos que tenes instalados, en TODOS los discos de la PC: Steam, Epic Games, EA app, Battle.net,
 # Ubisoft Connect, Riot, Xbox / Microsoft Store, GOG, Rockstar y Minecraft Java. Si no esta instalado, no aparece.
 # Para cada juego elige su .exe principal: es el proceso que se ve en el Administrador de tareas.
@@ -299,7 +304,7 @@ function Juego-Nombre([string]$proc) {
     $proc = ([string]$proc).Trim().ToLower()
     if (-not $proc) { return $null }
     if ($XucaJuegosConocidos.ContainsKey($proc)) { return $XucaJuegosConocidos[$proc] }
-    $fn = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'nombres_juegos.txt'
+    $fn = Join-Path (Join-Path $env:ProgramData 'Brio') 'nombres_juegos.txt'
     try {
         if ([IO.File]::Exists($fn)) {
             foreach ($l in [IO.File]::ReadAllLines($fn, [Text.Encoding]::UTF8)) { $c = $l -split "`t"; if (($c.Count -eq 2) -and ($c[0] -eq $proc)) { return $c[1] } }
@@ -442,14 +447,14 @@ function Juegos-Desinstalar {
 }
 
 # Devuelve los juegos instalados: Proc (proceso sin .exe), Nombre y Plat (plataforma).
-# El .exe elegido se guarda en ProgramData\XucaScripts\juegos_detectados.txt y solo se vuelve a buscar si la carpeta cambio.
+# El .exe elegido se guarda en ProgramData\Brio\juegos_detectados.txt y solo se vuelve a buscar si la carpeta cambio.
 function Juegos-Detectados {
     # Lo que no es un juego (launchers, herramientas, redistribuibles...)
     $noJuego = '(?i)soundtrack|redistributable|dedicated server|\bsdk\b|steamworks|proton|steam linux runtime|steamvr|wallpaper engine|lossless scaling|blender|aseprite|krita|soundpad|\bobs\b|vtube studio|voicemod|rpg maker|gamemaker|3dmark|benchmark|launcher|battle\.net|^ea app|^ea$|^origin$|ea desktop|ea core|ubisoft connect|^uplay|riot client|vanguard|social club|anti-?cheat|unreal engine|epic online services|directx|visual c\+\+|\.net |microsoft edge|webview|gog galaxy|^xbox$|gaming services|game bar'
     $procNo = '^(blender|resolve|obs(32|64)?|code|devenv|java|godot.*|unrealeditor.*|losslessscaling|aseprite|krita|soundpad|wallpaper(32|64)|steam.*|vtube studio|voicemod|explorer|cmd|powershell|epicgameslauncher|eadesktop|ealauncher|origin|battle\.net|agent|upc|ubisoftconnect|uplay|riotclient.*|rockstarservice|playgtav|socialclub.*|galaxyclient|gamebar|xboxpcapp)$'
     $fuera = @('228980', '1070560', '1391110', '1628350', '1493710', '250820', '431960', '1007', '2180100')
     $global:XJDiscos = $null
-    $dirC = Join-Path $env:ProgramData 'XucaScripts'
+    $dirC = Join-Path $env:ProgramData 'Brio'
     $fc = Join-Path $dirC 'juegos_detectados.txt'
     $cache = @{}
     try { if ([IO.File]::Exists($fc)) { foreach ($l in [IO.File]::ReadAllLines($fc, [Text.Encoding]::UTF8)) { $c = $l -split "`t"; if ($c.Count -eq 3) { $cache[$c[0]] = $c } } } } catch { }
@@ -632,7 +637,7 @@ function Afi-Mostrar($pl) {
     Say ('    Fondo:            ' + (Afi-Lista $pl.Fondo) + ' (' + (Afi-Hilos $pl.Fondo) + ' hilos), solo mientras jugas') 'Cyan'
 }
 
-# >>> XUCA-SPEC (la app XucaOP copia todo lo que esta entre estas dos marcas para saber si la opcion de Spectre sirve en esta PC)
+# >>> XUCA-SPEC (la app copia todo lo que esta entre estas dos marcas para saber si la opcion de Spectre sirve en esta PC)
 # Protecciones contra Spectre (variante 2) y Meltdown que Windows tiene activas ahora. Se leen del kernel con
 # NtQuerySystemInformation, igual que el modulo SpeculationControl de Microsoft:
 #   clase 196 (KVA shadow, contra Meltdown): bit 0x01 = activa
@@ -715,7 +720,7 @@ function Appx-Poner([string[]]$pares) {
 # ------------------------------------------------------------
 # Acciones: lo que antes hacia la parte de PowerShell del .bat (una por cada ACT).
 # Devuelven 0 = hecho, 1 = fallo, 2 = no aplica en esta PC, 5 = ya estaba, 6 = queda un paso para despues, 10 = caso especial.
-# $XDato: los valores para SPI (mouse) y DX (graficos).
+# $XDato: los valores para SPI (mouse) y DX (graficos), y en PWR_OFF/PWR_ON el grupo (usb, pcie o disco).
 # ------------------------------------------------------------
 function Gaming-Act([string]$XAct, [string]$XDato) {
     $code = 0
@@ -807,12 +812,14 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                 if ($g -in '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c', 'e9a42b02-d5df-448d-aa00-03f14749eb61') { $pcie = 0 }
             }
             # Ac / Dc = valor con corriente / con bateria ($null = no se toca). Opc = si no existe en esta PC, se saltea.
+            # Grupo: cada opcion toca solo lo suyo (pe = usb, pci = pcie, dsk = disco). Sin dato se tocan los tres, como antes de v1.0.13.
             $cfg = @(
-                @{ Nom = 'suspension selectiva USB'; Sub = '2a737441-1930-4402-8d77-b2bebba308a3'; Cfg = '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'; Ac = $usb; Dc = $usb },
-                @{ Nom = 'ahorro de energia PCI Express'; Sub = '501a4d13-42af-4429-9fd1-a8218c268e20'; Cfg = 'ee12f906-d277-404b-b6da-e5fa1a576df5'; Ac = $pcie; Dc = $pcie },
-                @{ Nom = 'ahorro de energia de USB 3 (0 = apagado, 2 = moderado)'; Sub = '2a737441-1930-4402-8d77-b2bebba308a3'; Cfg = 'd4e98f31-5ffe-4ce1-be31-1b38b384c009'; Ac = $(if ($on) { 2 } else { 0 }); Dc = $(if ($on) { 2 } else { 0 }); Opc = $true },
-                @{ Nom = 'apagar el disco con corriente (segundos, 0 = nunca)'; Sub = '0012ee47-9041-4b5d-9b77-535fba8b1442'; Cfg = '6738e2c4-e8a5-4a42-b16a-e040e769756e'; Ac = $(if ($on) { 1200 } else { 0 }); Dc = $null; Opc = $true }
+                @{ Grupo = 'usb'; Nom = 'suspension selectiva USB'; Sub = '2a737441-1930-4402-8d77-b2bebba308a3'; Cfg = '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'; Ac = $usb; Dc = $usb },
+                @{ Grupo = 'pcie'; Nom = 'ahorro de energia PCI Express'; Sub = '501a4d13-42af-4429-9fd1-a8218c268e20'; Cfg = 'ee12f906-d277-404b-b6da-e5fa1a576df5'; Ac = $pcie; Dc = $pcie },
+                @{ Grupo = 'usb'; Nom = 'ahorro de energia de USB 3 (0 = apagado, 2 = moderado)'; Sub = '2a737441-1930-4402-8d77-b2bebba308a3'; Cfg = 'd4e98f31-5ffe-4ce1-be31-1b38b384c009'; Ac = $(if ($on) { 2 } else { 0 }); Dc = $(if ($on) { 2 } else { 0 }); Opc = $true },
+                @{ Grupo = 'disco'; Nom = 'apagar el disco con corriente (segundos, 0 = nunca)'; Sub = '0012ee47-9041-4b5d-9b77-535fba8b1442'; Cfg = '6738e2c4-e8a5-4a42-b16a-e040e769756e'; Ac = $(if ($on) { 1200 } else { 0 }); Dc = $null; Opc = $true }
             )
+            if ($XDato) { $cfg = @($cfg | Where-Object { $_.Grupo -eq $XDato }) }
             $hizo = $false
             foreach ($c in $cfg) {
                 if ($c.Opc) {
@@ -883,7 +890,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
     # Cable a 1 Gbps: "Speed & Duplex" (*SpeedDuplex) de las placas de cable de 2.5 Gbps o mas.
     # Lo que tenia cada placa se anota en velocidad_cable.txt para que R lo deje como estaba.
     { $_ -eq 'DUP_ON' -or $_ -eq 'DUP_R' } {
-        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        $dir = Join-Path $env:ProgramData 'Brio'
         if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
         $guarda = Join-Path $dir 'velocidad_cable.txt'
         $notas = @()
@@ -934,7 +941,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
 
     # WiFi y cable a la vez. Lo que se cambia de cada placa se anota en wifi_lan.txt para que R lo deje como estaba.
     { $_ -eq 'WIFILAN_ON' -or $_ -eq 'WIFILAN_R' } {
-        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        $dir = Join-Path $env:ProgramData 'Brio'
         if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
         $guarda = Join-Path $dir 'wifi_lan.txt'
         $placas = @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue)
@@ -1071,7 +1078,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
     }
 
     'DNS_ON' {
-        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        $dir = Join-Path $env:ProgramData 'Brio'
         $rk0 = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\'
         $adaps = @(Get-NetAdapter -Physical | Where-Object { $_.Status -eq 'Up' })
         if (-not (Get-Command Resolve-DnsName -ErrorAction SilentlyContinue)) {
@@ -1166,7 +1173,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
     }
 
     'DNS_OFF' {
-        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        $dir = Join-Path $env:ProgramData 'Brio'
         $rk0 = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\'
         $adaps = @(Get-NetAdapter -Physical | Where-Object { $_.Status -eq 'Up' })
         if ($adaps.Count -eq 0) {
@@ -1243,9 +1250,9 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
     }
 
     'TIMER_ON' {
-        $tn = 'XucaTimer'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaTimer.exe'
+        $tn = 'BrioTimer'; $dir = Join-Path $env:ProgramData 'Brio'; $exe = Join-Path $dir 'BrioTimer.exe'
         Proteger-Carpeta $dir
-        # En Windows 11 el temporizador es por programa: sin esta clave, el pedido de XucaTimer no llega a los juegos.
+        # En Windows 11 el temporizador es por programa: sin esta clave, el pedido de BrioTimer no llega a los juegos.
         $kk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
         $glob = (Get-ItemProperty -Path $kk -ErrorAction SilentlyContinue).GlobalTimerResolutionRequests
         $globOk = ($glob -eq 1)
@@ -1261,11 +1268,11 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
         }
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
-            Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue | Stop-Process -Force
+            Get-Process -Name 'BrioTimer' -ErrorAction SilentlyContinue | Stop-Process -Force
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
             Proteger-Carpeta $dir
             $cs = $CodTimer
-            Esperar-Cierre 'XucaTimer'
+            Esperar-Cierre 'BrioTimer'
             # Si el programa ya es el de esta version, se usa ese (no hace falta compilarlo de nuevo).
             # Si no, se borra el viejo antes de compilar: si quedara trabado, no se instala encima con la huella nueva.
             if ((-not (Test-Path $exe)) -or (-not (Ver-Igual $exe $cs))) {
@@ -1276,41 +1283,41 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                 $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                 Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
                 Start-ScheduledTask -TaskName $tn
-                if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: temporizador a 0.5ms' } else { Log 'FALLO' 'la tarea XucaTimer no quedo corriendo'; $code = 1 }
+                if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: temporizador a 0.5ms' } else { Log 'FALLO' 'la tarea BrioTimer no quedo corriendo'; $code = 1 }
             }
         }
     }
 
     'TIMER_OFF' {
-        $tn = 'XucaTimer'; $exe = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'XucaTimer.exe'
+        $tn = 'BrioTimer'; $exe = Join-Path (Join-Path $env:ProgramData 'Brio') 'BrioTimer.exe'
         $kk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
         $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-        $p = Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue
+        $p = Get-Process -Name 'BrioTimer' -ErrorAction SilentlyContinue
         $hayGlob = ($null -ne (Get-ItemProperty -Path $kk -ErrorAction SilentlyContinue).GlobalTimerResolutionRequests)
         if ((-not $t) -and (-not $p) -and (-not $hayGlob) -and (-not (Test-Path $exe))) { Log 'OK' 'ya estaba: sin temporizador fijo'; $code = 5 }
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
-            Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue | Stop-Process -Force
-            Esperar-Cierre 'XucaTimer'
+            Get-Process -Name 'BrioTimer' -ErrorAction SilentlyContinue | Stop-Process -Force
+            Esperar-Cierre 'BrioTimer'
             Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             Remove-ItemProperty -Path $kk -Name 'GlobalTimerResolutionRequests' -ErrorAction SilentlyContinue
-            $queda = (Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaTimer' -ErrorAction SilentlyContinue) -or ($null -ne (Get-ItemProperty -Path $kk -ErrorAction SilentlyContinue).GlobalTimerResolutionRequests)
+            $queda = (Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'BrioTimer' -ErrorAction SilentlyContinue) -or ($null -ne (Get-ItemProperty -Path $kk -ErrorAction SilentlyContinue).GlobalTimerResolutionRequests)
             if ($queda) { Log 'FALLO' 'el temporizador no se pudo borrar del todo'; $code = 1 }
             else { Log 'OK' 'verificado: temporizador borrado (Windows vuelve a su valor por defecto)' }
         }
     }
 
     'RAM_ON' {
-        $tn = 'XucaRAM'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaRAM.exe'
+        $tn = 'BrioRAM'; $dir = Join-Path $env:ProgramData 'Brio'; $exe = Join-Path $dir 'BrioRAM.exe'
         Proteger-Carpeta $dir
         $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
         if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and (Ver-Igual $exe $CodRam)) { Log 'OK' 'ya estaba: limpiador RAM corriendo'; $code = 5 }
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
-            Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
+            Get-Process -Name 'BrioRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
             if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
             $cs = $CodRam
-            Esperar-Cierre 'XucaRAM'
+            Esperar-Cierre 'BrioRAM'
             # Si el programa ya es el de esta version, se usa ese (no hace falta compilarlo de nuevo).
             # Si no, se borra el viejo antes de compilar: si quedara trabado, no se instala encima con la huella nueva.
             if ((-not (Test-Path $exe)) -or (-not (Ver-Igual $exe $cs))) {
@@ -1321,22 +1328,22 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                 $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                 Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
                 Start-ScheduledTask -TaskName $tn
-                if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: limpiador RAM (< 1024MB)' } else { Log 'FALLO' 'la tarea XucaRAM no quedo corriendo'; $code = 1 }
+                if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' 'verificado: limpiador RAM (< 1024MB)' } else { Log 'FALLO' 'la tarea BrioRAM no quedo corriendo'; $code = 1 }
             }
         }
     }
 
     'RAM_OFF' {
-        $tn = 'XucaRAM'; $exe = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'XucaRAM.exe'
+        $tn = 'BrioRAM'; $exe = Join-Path (Join-Path $env:ProgramData 'Brio') 'BrioRAM.exe'
         $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-        $p = Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue
+        $p = Get-Process -Name 'BrioRAM' -ErrorAction SilentlyContinue
         if ((-not $t) -and (-not $p) -and (-not (Test-Path $exe))) { Log 'OK' 'ya estaba: sin limpiador de RAM'; $code = 5 }
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
-            Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
-            Esperar-Cierre 'XucaRAM'
+            Get-Process -Name 'BrioRAM' -ErrorAction SilentlyContinue | Stop-Process -Force
+            Esperar-Cierre 'BrioRAM'
             Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
-            if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaRAM' -ErrorAction SilentlyContinue)) { Log 'FALLO' 'el limpiador de RAM no se pudo borrar del todo'; $code = 1 }
+            if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'BrioRAM' -ErrorAction SilentlyContinue)) { Log 'FALLO' 'el limpiador de RAM no se pudo borrar del todo'; $code = 1 }
             else { Log 'OK' 'verificado: limpiador RAM borrado' }
         }
     }
@@ -1360,7 +1367,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
                 @{ Nom = 'subida de velocidad (2 = rapida, Rocket)'; Cfg = '465e1f50-b610-473a-ab58-00d1077dc418'; Val = 2; Opc = $true },
                 @{ Nom = 'enfriamiento (1 = ventiladores primero, activo)'; Cfg = '94d3a615-a899-4ac5-ae2b-e4d8f634367f'; Val = 1; Opc = $true }
             )
-            $dir = Join-Path $env:ProgramData 'XucaScripts'
+            $dir = Join-Path $env:ProgramData 'Brio'
             $bak = Join-Path $dir ('cpu_' + $g + '.txt')
             function LeerAc($id) {
                 $o = & powercfg /query $g $sub $id | Out-String
@@ -1471,7 +1478,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
     { $_ -eq 'IDLE_ON' -or $_ -eq 'IDLE_OFF' } {
         # Estados de reposo del procesador (C-states): ajuste "Processor idle disable" (IDLEDISABLE) del plan activo.
         # 1 = el procesador no entra en reposo, 0 = como viene en Windows. Viene oculto: se destapa con powercfg -attributes.
-        # Antes de cambiarlo se guardan los valores de ahora (corriente, bateria y si estaba oculto) en ProgramData\XucaScripts\idle_<plan>.txt
+        # Antes de cambiarlo se guardan los valores de ahora (corriente, bateria y si estaba oculto) en ProgramData\Brio\idle_<plan>.txt
         $g = [regex]::Match((& powercfg /getactivescheme | Out-String), '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}').Value
         if (-not $g) {
             Log 'FALLO' 'no se pudo leer el plan de energia activo'
@@ -1481,7 +1488,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
             $id = '5d76a2ca-e8c0-402f-a133-2158492d58ad'
             $rk = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $g + '\' + $sub + '\' + $id
             $ak = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\' + $sub + '\' + $id
-            $dir = Join-Path $env:ProgramData 'XucaScripts'
+            $dir = Join-Path $env:ProgramData 'Brio'
             $bak = Join-Path $dir ('idle_' + $g + '.txt')
             # Valores de ahora: @{ Ac; Dc } (powercfg los muestra al final: primero corriente, despues bateria)
             function LeerIdle {
@@ -1561,7 +1568,7 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
         $g = [regex]::Match((& powercfg /getactivescheme | Out-String), '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}').Value
         $bat = $false
         try { $bat = (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) } catch { }
-        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        $dir = Join-Path $env:ProgramData 'Brio'
         $bak = Join-Path $dir ('nb_' + $g + '.txt')
         if (-not $g) {
             Log 'FALLO' 'no se pudo leer el plan de energia activo'
@@ -1767,13 +1774,13 @@ public static class SpiNative {
                 if ($p -and $p.CpuPriorityClass -eq 3) { Log 'OK' ('ya estaba: ' + $x + ' con prioridad alta'); continue }
                 New-Item -Path $po -Force | Out-Null
                 New-ItemProperty -LiteralPath $po -Name 'CpuPriorityClass' -Value 3 -PropertyType DWord -Force | Out-Null
-                New-ItemProperty -LiteralPath $po -Name 'XucaPrioridad' -Value 1 -PropertyType DWord -Force | Out-Null
+                New-ItemProperty -LiteralPath $po -Name 'BrioPrioridad' -Value 1 -PropertyType DWord -Force | Out-Null
                 if ((Get-ItemProperty -LiteralPath $po -ErrorAction SilentlyContinue).CpuPriorityClass -eq 3) { $hizo++; Log 'OK' ('verificado: ' + $x + ' arranca con prioridad alta') }
                 else { Log 'FALLO' ('no se pudo dar prioridad alta a ' + $x); $code = 1 }
             }
             # Desde la app, la lista de juegos es la que manda: a los que sacaste de la lista se les quita la prioridad.
             if ($env:PRIOSYNC -eq '1') {
-                foreach ($k in @(Get-ChildItem -LiteralPath $ifeo -ErrorAction SilentlyContinue | Where-Object { (Get-ItemProperty -LiteralPath ($_.PSPath + '\PerfOptions') -ErrorAction SilentlyContinue).XucaPrioridad -eq 1 })) {
+                foreach ($k in @(Get-ChildItem -LiteralPath $ifeo -ErrorAction SilentlyContinue | Where-Object { (Get-ItemProperty -LiteralPath ($_.PSPath + '\PerfOptions') -ErrorAction SilentlyContinue).BrioPrioridad -eq 1 })) {
                     if ($exes -contains $k.PSChildName) { continue }
                     Remove-Item -LiteralPath ($k.PSPath + '\PerfOptions') -Recurse -Force -ErrorAction SilentlyContinue
                     $resto = Get-Item -LiteralPath $k.PSPath -ErrorAction SilentlyContinue
@@ -1788,7 +1795,7 @@ public static class SpiNative {
 
     'PRIO_OFF' {
         $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options'
-        $nuestros = @(Get-ChildItem -LiteralPath $ifeo -ErrorAction SilentlyContinue | Where-Object { (Get-ItemProperty -LiteralPath ($_.PSPath + '\PerfOptions') -ErrorAction SilentlyContinue).XucaPrioridad -eq 1 })
+        $nuestros = @(Get-ChildItem -LiteralPath $ifeo -ErrorAction SilentlyContinue | Where-Object { (Get-ItemProperty -LiteralPath ($_.PSPath + '\PerfOptions') -ErrorAction SilentlyContinue).BrioPrioridad -eq 1 })
         if ($nuestros.Count -eq 0) {
             Log 'OK' 'ya estaba: ningun juego tenia prioridad alta puesta por este script'
             $code = 5
@@ -1804,7 +1811,7 @@ public static class SpiNative {
     }
 
     'AFI_ON' {
-        $tn = 'XucaAfinidad'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaAfinidad.exe'; $cfg = Join-Path $dir 'afinidad.txt'
+        $tn = 'BrioAfinidad'; $dir = Join-Path $env:ProgramData 'Brio'; $exe = Join-Path $dir 'BrioAfinidad.exe'; $cfg = Join-Path $dir 'afinidad.txt'
         $pl = Afi-Plan
         Proteger-Carpeta $dir
         if (-not $pl.Ok) { Log 'OMITIDO' $pl.Motivo; Say ('  No se cambio nada: ' + $pl.Motivo + '.') 'Yellow'; $code = 2 }
@@ -1827,8 +1834,8 @@ public static class SpiNative {
                     Log 'OK' 'ya estaba: afinidad corriendo con los mismos juegos y programas'; $code = 5
                 } else {
                     if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
-                    Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
-                    Esperar-Cierre 'XucaAfinidad'
+                    Get-Process -Name 'BrioAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
+                    Esperar-Cierre 'BrioAfinidad'
                     if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null }
                     Proteger-Carpeta $dir
                     Set-Content -LiteralPath $cfg -Value $txt -Encoding ASCII
@@ -1848,7 +1855,7 @@ public static class SpiNative {
                         $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtStartup; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
                         Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
                         Start-ScheduledTask -TaskName $tn
-                        if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' ('verificado: afinidad corriendo - ' + $desc) } else { Log 'FALLO' 'la tarea XucaAfinidad no quedo corriendo'; $code = 1 }
+                        if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' ('verificado: afinidad corriendo - ' + $desc) } else { Log 'FALLO' 'la tarea BrioAfinidad no quedo corriendo'; $code = 1 }
                     }
                 }
             }
@@ -1856,14 +1863,14 @@ public static class SpiNative {
     }
 
     'AFI_OFF' {
-        $tn = 'XucaAfinidad'; $dir = Join-Path $env:ProgramData 'XucaScripts'; $exe = Join-Path $dir 'XucaAfinidad.exe'; $cfg = Join-Path $dir 'afinidad.txt'
+        $tn = 'BrioAfinidad'; $dir = Join-Path $env:ProgramData 'Brio'; $exe = Join-Path $dir 'BrioAfinidad.exe'; $cfg = Join-Path $dir 'afinidad.txt'
         $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
-        $p = Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue
+        $p = Get-Process -Name 'BrioAfinidad' -ErrorAction SilentlyContinue
         if ((-not $t) -and (-not $p) -and (-not (Test-Path $exe)) -and (-not (Test-Path $cfg))) { Log 'OK' 'ya estaba: sin afinidad puesta'; $code = 5 }
         else {
             if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
-            Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
-            Esperar-Cierre 'XucaAfinidad'
+            Get-Process -Name 'BrioAfinidad' -ErrorAction SilentlyContinue | Stop-Process -Force
+            Esperar-Cierre 'BrioAfinidad'
             # Lo que este abierto ahora vuelve a usar todos los nucleos.
             if (Test-Path -LiteralPath $cfg) {
                 $c = @{}
@@ -1877,13 +1884,13 @@ public static class SpiNative {
             }
             Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $cfg -Force -ErrorAction SilentlyContinue
-            if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'XucaAfinidad' -ErrorAction SilentlyContinue)) { Log 'FALLO' 'la afinidad no se pudo quitar del todo'; $code = 1 }
+            if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name 'BrioAfinidad' -ErrorAction SilentlyContinue)) { Log 'FALLO' 'la afinidad no se pudo quitar del todo'; $code = 1 }
             else { Log 'OK' 'verificado: afinidad quitada' }
         }
     }
 
     'MSI_ON' {
-        $dir = Join-Path $env:ProgramData 'XucaScripts'
+        $dir = Join-Path $env:ProgramData 'Brio'
         $bak = Join-Path $dir 'msi_backup.txt'
         $devs = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { ($_.Class -in 'Display', 'Net') -and ($_.InstanceId -like 'PCI\*') -and ($_.Status -eq 'OK') })
         if ($devs.Count -eq 0) {
@@ -1915,7 +1922,7 @@ public static class SpiNative {
     }
 
     'MSI_OFF' {
-        $bak = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'msi_backup.txt'
+        $bak = Join-Path (Join-Path $env:ProgramData 'Brio') 'msi_backup.txt'
         if (-not (Test-Path $bak)) {
             Log 'OMITIDO' 'no hay copia de como estaba el modo MSI, no se toco nada'
             Say '  No hay copia de como estaba el modo MSI: no se cambio nada.' 'Yellow'
@@ -2368,7 +2375,7 @@ $ListaOpciones = @(
         }
     },
     @{
-        # Nunca va en un perfil: la app avisa antes de aplicarla (AvisosXbox y Advertencias en XucaOP.ps1)
+        # Nunca va en un perfil: la app avisa antes de aplicarla (AvisosXbox y Advertencias en Brio.ps1)
         Id = 'xbt'; Seccion = 'MODO JUEGO Y GAME BAR'
         Q = '- Desea quitar Xbox completo? (SOLO si nunca usas Xbox, Game Pass, Minecraft ni juegos de la Microsoft Store)'
         Hace = 'apaga y deshabilita los servicios de Xbox y de Gaming Services, borra y desprovisiona la app de Xbox, Gaming Services, Xbox Identity Provider, Xbox TCUI, la transcripcion del chat de Xbox y la Xbox Game Bar (tambien su paquete viejo), y apaga las grabaciones (GameDVR), el atajo del joystick, el Modo Xbox y la tarea de guardado en la nube. En los Ryzen X3D de dos bloques deja instalada la Game Bar (el driver de V-Cache la usa) y solo apaga sus grabaciones.'
@@ -2425,23 +2432,44 @@ $ListaOpciones = @(
         }
     },
     @{
+        # v1.0.13: "GPU por hardware y juegos en ventana" se dividio en gf (GPU acelerada por hardware) y wgo (juegos en ventana)
         Id = 'gf'; Seccion = 'GRAFICOS'
-        Q = '- Desea activar la GPU acelerada por hardware y el modo moderno para juegos en ventana? (Menos latencia; pide reiniciar)'
-        Hace = 'activa la "Programacion de GPU acelerada por hardware" (HAGS) y el modo moderno de presentacion para juegos en ventana o sin bordes.'
-        Favor = 'menos latencia en ventana y sin bordes, y hace falta para el Frame Generation (DLSS 3 y FSR 3).'
+        Q = '- Desea activar la GPU acelerada por hardware? (HAGS: hace falta para el Frame Generation; pide reiniciar)'
+        Hace = 'activa la "Programacion de GPU acelerada por hardware" (HAGS): la placa de video organiza su propia memoria y su cola de trabajo.'
+        Favor = 'un poco menos de latencia, y hace falta para el Frame Generation (DLSS 3 y FSR 3).'
         Contra = 'en algunas PCs viejas puede dar problemas; R lo vuelve atras.'
         S = {
-            Opt-Ini 'Graficos'
-            # "Optimizaciones para juegos en ventana" existe solo en Windows 11 (22000 o mas). En Windows 10 se aplica solo la GPU por hardware.
-            if (-not (($Build -gt 0) -and ($Build -lt 22000))) { Resps (Act 'DX' 'SwapEffectUpgradeEnable=1;') }
+            Opt-Ini 'GPU acelerada por hardware'
             Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode' 'REG_DWORD' '2'
-            Opt-Fin 'Juegos en ventana optimizados y GPU acelerada por hardware (se aplica al reiniciar)'
+            Opt-Fin 'GPU acelerada por hardware activada (se aplica al reiniciar)'
         }
         R = {
-            Opt-Ini 'Graficos (restaurar)'
-            Resps (Act 'DX' 'SwapEffectUpgradeEnable=DEL;')
+            Opt-Ini 'GPU acelerada por hardware (restaurar)'
             Reg-Del 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' 'HwSchMode'
-            Opt-Fin 'Graficos restaurados (se aplica al reiniciar)'
+            Opt-Fin 'GPU acelerada por hardware como la deja Windows (se aplica al reiniciar)'
+        }
+    },
+    @{
+        Id = 'wgo'; Seccion = 'GRAFICOS'
+        Q = '- Desea activar las optimizaciones para juegos en ventana? (Modo moderno en ventana y sin bordes; solo Windows 11)'
+        Hace = 'activa "Optimizaciones para juegos en ventana": los juegos DirectX 10 y 11 en ventana o sin bordes usan el modo moderno de presentacion.'
+        Favor = 'menos latencia en ventana y sin bordes, y ahi tambien andan Auto HDR y la frecuencia variable (G-Sync o FreeSync).'
+        Contra = 'en algun juego viejo puede cambiar como se ve; R lo vuelve atras.'
+        Saltar = {
+            if ((Respuesta 'wgo') -ne 'S') { return $false }
+            # "Optimizaciones para juegos en ventana" existe solo en Windows 11 (22000 o mas)
+            if (($Build -gt 0) -and ($Build -lt 22000)) { Log 'SALTADO' ('Juegos en ventana: necesita Windows 11 - build ' + $Build); return $true }
+            return $false
+        }
+        S = {
+            Opt-Ini 'Optimizaciones para juegos en ventana'
+            Resps (Act 'DX' 'SwapEffectUpgradeEnable=1;')
+            Opt-Fin 'Juegos en ventana optimizados (cerra y abri el juego)'
+        }
+        R = {
+            Opt-Ini 'Optimizaciones para juegos en ventana (restaurar)'
+            Resps (Act 'DX' 'SwapEffectUpgradeEnable=DEL;')
+            Opt-Fin 'Optimizaciones para juegos en ventana como las deja Windows'
         }
     },
     @{
@@ -2453,7 +2481,7 @@ $ListaOpciones = @(
         S = {
             Opt-Ini 'Compatibilidad de juegos (pantalla completa y DPI)'
             $lay = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
-            $bak = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'fso.txt'
+            $bak = Join-Path (Join-Path $env:ProgramData 'Brio') 'fso.txt'
             $guardado = @{}
             if (Test-Path -LiteralPath $bak) { foreach ($l in (Get-Content -LiteralPath $bak)) { $c = $l -split "`t"; if ($c.Count -ge 1 -and $c[0]) { $guardado[$c[0]] = $(if ($c.Count -ge 2) { $c[1] } else { '' }) } } }
             $hecho = 0
@@ -2481,7 +2509,7 @@ $ListaOpciones = @(
         R = {
             Opt-Ini 'Compatibilidad de juegos (restaurar)'
             $lay = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
-            $bak = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'fso.txt'
+            $bak = Join-Path (Join-Path $env:ProgramData 'Brio') 'fso.txt'
             if (-not (Test-Path -LiteralPath $bak)) { Log 'OK' 'ya estaba: no hay juegos tocados por este script' }
             else {
                 foreach ($l in (Get-Content -LiteralPath $bak)) {
@@ -2621,20 +2649,55 @@ $ListaOpciones = @(
         }
     },
     @{
+        # v1.0.13: "Ahorro de energia de USB, PCIe y discos" se dividio en pe (USB), pci (PCI Express) y dsk (discos)
         Id = 'pe'; Seccion = 'ENERGIA Y RED'
-        Q = '- Desea desactivar el ahorro de energia de USB, PCIe y discos? (Evita microcortes de mouse y teclado, y tirones de discos HDD)'
-        Hace = 'apaga el ahorro de energia de USB, USB 3 y PCI Express, y con la PC enchufada los discos ya no se apagan solos.'
-        Favor = 'evita microcortes del mouse y el teclado, y los tirones de unos segundos cuando un disco HDD se vuelve a encender.'
-        Contra = 'en reposo la PC gasta unos vatios mas y la placa de video y los SSD NVMe pueden calentar un poco mas; en notebook la bateria dura menos (tambien con la tapa cerrada) y los discos HDD quedan girando mientras la PC esta prendida.'
+        Q = '- Desea desactivar el ahorro de energia de USB? (Evita microcortes de mouse y teclado)'
+        Hace = 'apaga la suspension selectiva de USB y el ahorro de energia de USB 3 en el plan activo, con corriente y a bateria.'
+        Favor = 'evita microcortes del mouse, el teclado y los auriculares USB.'
+        Contra = 'en reposo la PC gasta un poco mas; en notebook la bateria dura menos (tambien con la tapa cerrada).'
         S = {
-            Opt-Ini 'Ahorro de energia USB, PCIe y discos'
-            Resps (Act 'PWR_OFF')
-            Opt-Fin 'Ahorro de energia de USB, PCIe y discos desactivado'
+            Opt-Ini 'Ahorro de energia de USB'
+            Resps (Act 'PWR_OFF' 'usb')
+            Opt-Fin 'Ahorro de energia de USB desactivado'
         }
         R = {
-            Opt-Ini 'Ahorro de energia USB, PCIe y discos (restaurar)'
-            Resps (Act 'PWR_ON')
-            Opt-Fin 'Ahorro de energia de USB, PCIe y discos restaurado'
+            Opt-Ini 'Ahorro de energia de USB (restaurar)'
+            Resps (Act 'PWR_ON' 'usb')
+            Opt-Fin 'Ahorro de energia de USB restaurado'
+        }
+    },
+    @{
+        Id = 'pci'; Seccion = 'ENERGIA Y RED'
+        Q = '- Desea desactivar el ahorro de energia de PCI Express? (La placa de video y los SSD NVMe no ahorran energia en reposo)'
+        Hace = 'apaga la administracion de energia del enlace PCI Express (ASPM) en el plan activo, con corriente y a bateria.'
+        Favor = 'puede evitar microtirones con placas de video o SSD que se llevan mal con ese ahorro de energia.'
+        Contra = 'en reposo la PC gasta unos vatios mas y la placa de video y los SSD NVMe pueden calentar un poco mas; en notebook la bateria dura menos.'
+        S = {
+            Opt-Ini 'Ahorro de energia de PCI Express'
+            Resps (Act 'PWR_OFF' 'pcie')
+            Opt-Fin 'Ahorro de energia de PCI Express desactivado'
+        }
+        R = {
+            Opt-Ini 'Ahorro de energia de PCI Express (restaurar)'
+            Resps (Act 'PWR_ON' 'pcie')
+            Opt-Fin 'Ahorro de energia de PCI Express restaurado'
+        }
+    },
+    @{
+        Id = 'dsk'; Seccion = 'ENERGIA Y RED'
+        Q = '- Desea que los discos no se apaguen solos con la PC enchufada? (Evita tirones de unos segundos en discos HDD)'
+        Hace = 'con la PC enchufada, los discos ya no se apagan por inactividad (a bateria no cambia nada).'
+        Favor = 'evita los tirones de unos segundos cuando un disco HDD se vuelve a encender.'
+        Contra = 'los discos HDD quedan girando mientras la PC esta prendida: un poco mas de ruido y consumo.'
+        S = {
+            Opt-Ini 'Apagado de discos'
+            Resps (Act 'PWR_OFF' 'disco')
+            Opt-Fin 'Los discos ya no se apagan solos con la PC enchufada'
+        }
+        R = {
+            Opt-Ini 'Apagado de discos (restaurar)'
+            Resps (Act 'PWR_ON' 'disco')
+            Opt-Fin 'Apagado de discos como lo deja Windows'
         }
     },
     @{
@@ -2822,7 +2885,7 @@ $ListaOpciones = @(
             Opt-Ini 'Protecciones contra Spectre y Meltdown'
             $mm = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
             # Copia de lo que habia antes (vacio = no existia), para que R lo deje igual
-            $dir = Join-Path $env:ProgramData 'XucaScripts'
+            $dir = Join-Path $env:ProgramData 'Brio'
             $bak = Join-Path $dir 'spectre.txt'
             if (-not (Test-Path -LiteralPath $bak)) {
                 if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory -Force | Out-Null; Proteger-Carpeta $dir }
@@ -2839,7 +2902,7 @@ $ListaOpciones = @(
         R = {
             Opt-Ini 'Protecciones contra Spectre y Meltdown (restaurar)'
             $mm = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
-            $bak = Join-Path (Join-Path $env:ProgramData 'XucaScripts') 'spectre.txt'
+            $bak = Join-Path (Join-Path $env:ProgramData 'Brio') 'spectre.txt'
             $orig = @{ FeatureSettingsOverride = ''; FeatureSettingsOverrideMask = '' }
             if (Test-Path -LiteralPath $bak) {
                 foreach ($l in (Get-Content -LiteralPath $bak)) { if ($l -match '^(FeatureSettingsOverride(Mask)?)=(\d*)$') { $orig[$Matches[1]] = $Matches[3] } }
@@ -2888,24 +2951,42 @@ $ListaOpciones = @(
         }
     },
     @{
+        # v1.0.13: mostrar los elementos ocultos paso a su propia opcion (hid)
         Id = 'ext'; Seccion = 'BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR'
-        Q = '- Desea mostrar las extensiones de los archivos y los elementos ocultos? (Ves .exe, .bat, .txt al final del nombre y las carpetas ocultas)'
-        Hace = 'muestra el final del nombre de los archivos, como .exe o .txt, y las carpetas y archivos ocultos.'
-        Favor = 'ves que tipo de archivo es, detectas virus disfrazados y encontras carpetas como AppData.'
-        Contra = 'ves archivos de sistema ocultos: no los borres si no sabes que son.'
+        Q = '- Desea mostrar las extensiones de los archivos? (Ves .exe, .bat, .txt al final del nombre)'
+        Hace = 'muestra el final del nombre de los archivos, como .exe o .txt.'
+        Favor = 'ves que tipo de archivo es y detectas virus disfrazados (por ejemplo foto.jpg.exe).'
+        Contra = 'al renombrar un archivo tenes que cuidar de no borrarle la extension.'
         S = {
-            Opt-Ini 'Extensiones y elementos ocultos'
+            Opt-Ini 'Extensiones de archivos'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt' 'REG_DWORD' '0'
-            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden' 'REG_DWORD' '1'
             Refrescar-Explorer
-            Opt-Fin 'Extensiones y elementos ocultos visibles (si una ventana abierta no cambia, apreta F5)'
+            Opt-Fin 'Extensiones de archivos visibles (si una ventana abierta no cambia, apreta F5)'
         }
         R = {
-            Opt-Ini 'Extensiones y elementos ocultos (restaurar)'
+            Opt-Ini 'Extensiones de archivos (restaurar)'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt' 'REG_DWORD' '1'
+            Refrescar-Explorer
+            Opt-Fin 'Extensiones de archivos como las deja Windows'
+        }
+    },
+    @{
+        Id = 'hid'; Seccion = 'BUSQUEDA, ALMACENAMIENTO Y EXPLORADOR'
+        Q = '- Desea mostrar los archivos y carpetas ocultos? (Ves carpetas como AppData)'
+        Hace = 'muestra en el Explorador los archivos y las carpetas ocultos.'
+        Favor = 'encontras carpetas como AppData, donde los juegos guardan configs y partidas.'
+        Contra = 'ves archivos de sistema ocultos: no los borres si no sabes que son.'
+        S = {
+            Opt-Ini 'Elementos ocultos'
+            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden' 'REG_DWORD' '1'
+            Refrescar-Explorer
+            Opt-Fin 'Elementos ocultos visibles (si una ventana abierta no cambia, apreta F5)'
+        }
+        R = {
+            Opt-Ini 'Elementos ocultos (restaurar)'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden' 'REG_DWORD' '2'
             Refrescar-Explorer
-            Opt-Fin 'Extensiones y elementos ocultos como los deja Windows'
+            Opt-Fin 'Elementos ocultos como los deja Windows'
         }
     },
     @{
@@ -2926,7 +3007,7 @@ $ListaOpciones = @(
         }
     },
     @{
-        Id = 'v4'; Seccion = 'AJUSTES EXTRA'
+        Id = 'v4'; Seccion = 'ENERGIA Y RED'
         Q = '- Desea preferir IPv4 sobre IPv6? (Puede bajar la latencia en juegos; IPv6 sigue funcionando; pide reiniciar)'
         Hace = 'Windows usa IPv4 antes que IPv6 cuando hay las dos.'
         Favor = 'puede bajar la latencia con algunos servidores.'
@@ -2946,5 +3027,5 @@ $ListaOpciones = @(
 
 # Lo que llama la app (en otro hilo, con Comun.ps1 cargado). $salida = archivo donde la app lee el progreso.
 function Correr-Gaming([string]$salida, [string]$carpeta) {
-    Correr-Opciones -Nombre 'gaming' -Titulo 'OPTIMIZACION PARA GAMING' -Lista $ListaOpciones -Rein $ReinGaming -Salida $salida -Carpeta $carpeta
+    Correr-Opciones -Nombre 'gaming' -Titulo 'OPTIMIZACION PARA GAMING' -Lista $ListaOpciones -Rein $ReinGaming -Win10 $SoloWin10 -Salida $salida -Carpeta $carpeta
 }

@@ -480,6 +480,8 @@ en: : update Windows.
 es: "Windows 10 2004 o mas nuevo. Tenes "
 en: "Windows 10 2004 or newer. You have "
 
+es: "Windows 10 u 11. Tenes "
+en: "Windows 10 or 11. You have "
 es: "tenes "
 en: "you have "
 
@@ -819,14 +821,14 @@ en: Click this banner to download it. This version closes and the new one opens 
 es: . Toca aca para actualizar.
 en: . Click here to update.
 
-es: Hay una version nueva de Xuca OPtimizer
-en: There's a new version of Xuca OPtimizer
+es: Hay una version nueva de Brio
+en: There's a new version of Brío
 
 es: Hay una actualizacion disponible
 en: An update is available
 
-es: Espera a que termine lo que se esta aplicando y despues toca el cartel amarillo.
-en: Wait for what's being applied to finish and then click the yellow banner.
+es: Espera a que termine lo que se esta aplicando y despues toca el cartel azul.
+en: Wait for what's being applied to finish and then click the blue banner.
 
 es: Espera a que termine de leer tu Windows (abajo dice cuando termina) y volve a tocar.
 en: Wait until it finishes reading your Windows (it says so at the bottom) and click again.
@@ -846,8 +848,8 @@ en: Couldn't update
 es: "No se pudo bajar la version nueva: "
 en: "Couldn't download the new version: "
 
-es: Seguis usando esta version. Podes probar de nuevo con el cartel amarillo de arriba.
-en: You keep using this version. You can try again with the yellow banner at the top.
+es: Seguis usando esta version. Podes probar de nuevo con el cartel azul de arriba.
+en: You keep using this version. You can try again with the blue banner at the top.
 
 es: Actualizacion lista
 en: Update ready
@@ -975,8 +977,8 @@ en: The app had an error and closed:
 es: "Linea: "
 en: "Line: "
 
-es: Salir de Xuca OPtimizer
-en: Exit Xuca OPtimizer
+es: Salir de Brio
+en: Exit Brío
 
 es: Seguro que queres salir?
 en: Are you sure you want to exit?
@@ -1509,8 +1511,8 @@ en: Games and video
 es: Otros
 en: Others
 
-es: Vigila tu PC desde la bandeja: cortes de internet y lag, USB que se desconectan, que te baja los FPS mientras jugas y errores como pantalla negra o pantallazo azul. Te dice que fue y que probar. Se actualiza sola y casi no gasta nada.
-en: Watches your PC from the tray: internet drops and lag, USB devices that disconnect, what lowers your FPS while you play and errors like black screens or blue screens. It tells you what it was and what to try. It updates itself and barely uses anything.
+es: Vigila tu PC desde la bandeja: cortes de internet y lag, USB que se desconectan, que te baja los FPS mientras jugas, que tan caliente esta tu PC y errores como pantalla negra o pantallazo azul. Te dice que fue y que probar. Se actualiza sola y casi no gasta nada.
+en: Watches your PC from the tray: internet drops and lag, USB devices that disconnect, what lowers your FPS while you play, how hot your PC runs and errors like black screens or blue screens. It tells you what it was and what to try. It updates itself and barely uses anything.
 
 es: Gratis
 en: Free
@@ -1578,8 +1580,8 @@ en: " is not compatible with your PC."
 es: Configs recomendadas
 en: Recommended configs
 
-es: Bienvenido a Xuca OPtimizer
-en: Welcome to Xuca OPtimizer
+es: Bienvenido a Brio
+en: Welcome to Brío
 
 es: Que hace la app y como se usa. Cuando quieras, elegi una seccion a la izquierda.
 en: What the app does and how to use it. Whenever you're ready, pick a section on the left.
@@ -1773,8 +1775,8 @@ en: If you click this banner, the published version is downloaded and replaces y
 es: " (distinta)"
 en: " (different)"
 
-es: Tu version de Xuca OPtimizer es distinta
-en: Your Xuca OPtimizer version is different
+es: Tu version de Brio es distinta
+en: Your Brío version is different
 
 es: " y la nueva es la "
 en: " and the new one is "
@@ -2820,8 +2822,8 @@ en: To measure FPS the app uses PresentMon, Intel's free and open-source tool: i
 es: No lo tenes: se baja ahora de su pagina oficial de GitHub
 en: You don't have it: it will be downloaded now from its official GitHub page
 
-es: unos 2 MB), se verifica y se guarda en ProgramData\XucaScripts\PresentMon.
-en: about 2 MB), verified and saved in ProgramData\XucaScripts\PresentMon.
+es: unos 2 MB), se verifica y se guarda en ProgramData\Brio\PresentMon.
+en: about 2 MB), verified and saved in ProgramData\Brio\PresentMon.
 
 es: Bajar y medir
 en: Download and measure
@@ -3057,8 +3059,8 @@ en: DANGER: the PC stops receiving security and driver patches. Restore it from 
 es: No ves la vista previa de imagenes ni videos en el Explorador.
 en: You don't see the preview of images or videos in Explorer.
 
-es: La Asistencia remota y la Reproduccion automatica dejan de andar.
-en: Remote Assistance and AutoPlay stop working.
+es: La Asistencia remota deja de andar.
+en: Remote Assistance stops working.
 
 es: Si ademas borras las apps modernas, te quedas sin Bloc de notas ni Paint. Para volver a tener las antiguas hace falta internet.
 en: If you also delete the modern apps, you're left without Notepad or Paint. Getting the old ones back needs internet.
@@ -3069,8 +3071,8 @@ en: Very old games that need DirectPlay don't work, and you can't share files wi
 es: PELIGRO: sin la Store no instalas ni actualizas apps de la Store, Game Pass ni Minecraft. Se reinstala con wsreset -i (hace falta internet).
 en: DANGER: without the Store you can't install or update Store apps, Game Pass or Minecraft. It's reinstalled with wsreset -i (needs internet).
 
-es: No vas a poder imprimir ni transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.
-en: You won't be able to print or cast to the TV, and the PC stops showing on the local network, until you restore it.
+es: No vas a poder imprimir ni guardar en PDF desde Imprimir hasta que lo restablezcas.
+en: You won't be able to print or save to PDF from Print until you restore it.
 
 es: El overlay, ShadowPlay y los filtros de la NVIDIA App dejan de andar. Si la NVIDIA App no abre bien, restablecelo.
 en: The overlay, ShadowPlay and the NVIDIA App filters stop working. If the NVIDIA App doesn't open properly, restore it.
@@ -3096,8 +3098,8 @@ en: removes Windows speech, dictation, handwriting, OCR and Braille. What's dele
 es: quita la Microsoft Store: no se pueden instalar ni actualizar Xbox, Game Pass ni Minecraft hasta que la restablezcas.
 en: removes the Microsoft Store: Xbox, Game Pass and Minecraft can't be installed or updated until you restore it.
 
-es: Seguis usando esta version. Podes probar de nuevo con el cartel amarillo de arriba, o bajarla a mano desde las Releases de GitHub.
-en: You keep using this version. You can try again with the yellow banner above, or download it by hand from the GitHub Releases.
+es: Seguis usando esta version. Podes probar de nuevo con el cartel azul de arriba, o bajarla a mano desde las Releases de GitHub.
+en: You keep using this version. You can try again with the blue banner above, or download it by hand from the GitHub Releases.
 
 es: Bajarla a mano desde las Releases de GitHub
 en: Download it by hand from the GitHub Releases
@@ -3289,3 +3291,107 @@ en: Space freed
 
 es: DNS elegido
 en: DNS chosen
+
+es: Elegi un perfil armado: aplicalo con un toque, o marcalo para revisar y ajustar las opciones antes de aplicar. Si ya tenes otro perfil marcado, te pregunta si queres sumarlos. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.
+en: Pick a ready-made profile: apply it with one click, or select it to review and adjust the options before applying. If you already have another profile selected, it asks whether to combine them. Whatever isn't compatible with your PC or is already applied is skipped automatically.
+
+es: arma una ISO de Windows 11 recortada (sin Store, Edge ni otras apps) desde tu ISO oficial. Es lo que hace falta para pasar de 2 GB de RAM en reposo, porque saca componentes antes de instalar.
+en: builds a trimmed Windows 11 ISO (without the Store, Edge or other apps) from your official ISO. It's what you need to get under 2 GB of RAM at idle, because it removes components before installing.
+
+es: desbloquea archivos y carpetas que Windows tiene bloqueados o en uso, para que los puedas mover, renombrar o borrar.
+en: unlocks files and folders that Windows has locked or in use, so you can move, rename or delete them.
+
+es: extension de navegador que duerme las pestanas que no usas, bloquea anuncios (incluido YouTube) y recorta RAM, CPU y red. Anda en Chrome, Edge, Brave, Opera y Firefox.
+en: browser extension that puts the tabs you're not using to sleep, blocks ads (YouTube included) and cuts RAM, CPU and network use. Works on Chrome, Edge, Brave, Opera and Firefox.
+
+es: te deja sacar componentes de Windows de una ISO o de una instalacion (Defender, Store, idiomas, drivers) y armar tu propia ISO liviana. La version gratis alcanza para lo basico.
+en: lets you remove Windows components from an ISO or an installation (Defender, Store, languages, drivers) and build your own lightweight ISO. The free version is enough for the basics.
+
+es: Debloat y optimizacion
+en: Debloat and optimization
+
+es: RAM y CPU al minimo
+en: Minimum RAM and CPU
+
+es: BORRAR PARTES DE WINDOWS (SIN VUELTA ATRAS)
+en: REMOVE PARTS OF WINDOWS (NO GOING BACK)
+
+es: ESPACIO RAPIDO (SIN RIESGO)
+en: QUICK SPACE (NO RISK)
+
+es: CACHE DE PROGRAMAS
+en: PROGRAM CACHE
+
+es: SISTEMA DE WINDOWS
+en: WINDOWS SYSTEM
+
+es: RESTOS Y ARCHIVOS TUYOS (CUIDADO CON LAS PARTIDAS GUARDADAS)
+en: LEFTOVERS AND YOUR FILES (CAREFUL WITH SAVED GAMES)
+
+es: Archivos temporales de Windows y de tus usuarios, cache de Windows Update, volcados y logs de errores, cache de miniaturas, restos de instalaciones (carpetas C:\NVIDIA y C:\AMD de drivers ya instalados, instaladores de actualizaciones y OneDrive), cache de DNS y la cache de la Microsoft Store. Todo lo demas es opcional y esta abajo: lo que no marques no se toca. Nunca se borran documentos, fotos, juegos ni partidas guardadas, salvo que marques Descargas o los restos de apps.
+en: Temporary files from Windows and your users, the Windows Update cache, crash dumps and error logs, the thumbnail cache, installation leftovers (the C:\NVIDIA and C:\AMD folders of drivers already installed, update installers and OneDrive), the DNS cache and the Microsoft Store cache. Everything else is optional and below: whatever you don't select is left alone. Documents, photos, games and saved games are never deleted, unless you select Downloads or app leftovers.
+
+# v1.0.13: categorias de Debloat y Gaming que se pliegan, categorias nuevas y avisos de las opciones divididas
+es: APPS Y PROCESOS EN SEGUNDO PLANO
+en: BACKGROUND APPS AND PROCESSES
+
+es: EFECTOS VISUALES Y FLUIDEZ
+en: VISUAL EFFECTS AND SMOOTHNESS
+
+es: ACTUALIZACIONES Y STORE
+en: UPDATES AND STORE
+
+es: SERVICIOS Y FUNCIONES QUE CASI NADIE USA
+en: SERVICES AND FEATURES HARDLY ANYONE USES
+
+es: APPS, NAVEGADORES E IA
+en: APPS, BROWSERS AND AI
+
+es: PRIVACIDAD Y TELEMETRIA
+en: PRIVACY AND TELEMETRY
+
+es: INTERFAZ Y COMODIDAD
+en: INTERFACE AND COMFORT
+
+es: {0} opciones
+en: {0} options
+
+es: 1 opcion
+en: 1 option
+
+es: {0} marcadas
+en: {0} selected
+
+es: 1 marcada
+en: 1 selected
+
+es: Plegar categoria
+en: Collapse category
+
+es: Desplegar categoria
+en: Expand category
+
+es: La Reproduccion automatica deja de andar: al enchufar un USB no aparece el menu de que hacer.
+en: AutoPlay stops working: when you plug in a USB the what-to-do menu doesn't show up.
+
+es: Si un programa se cuelga seguido, no queda el informe que sirve para encontrar la causa.
+en: If a program crashes often, there's no report to help find the cause.
+
+es: No vas a poder transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.
+en: You won't be able to cast to the TV, and the PC stops showing on the local network, until you restore it.
+
+es: Nadie puede entrar a esta PC por Escritorio remoto hasta que lo restablezcas.
+en: Nobody can get into this PC through Remote Desktop until you restore it.
+
+es: En algun juego viejo puede cambiar como se ve la imagen en ventana.
+en: In some old game the image can look different in windowed mode.
+
+es: La placa de video y los SSD NVMe pueden calentar un poco mas en reposo. En notebooks la bateria baja mas rapido, incluso suspendida.
+en: The graphics card and NVMe SSDs can run a bit hotter at idle. On laptops the battery drains faster, even while asleep.
+
+es: Los discos HDD quedan girando mientras la PC esta prendida: un poco mas de ruido y consumo.
+en: HDDs keep spinning while the PC is on: a bit more noise and power use.
+
+es: "Windows 11 (las optimizaciones para juegos en ventana no existen en Windows 10). Tenes "
+en: "Windows 11 (optimizations for windowed games don't exist on Windows 10). You have "
+

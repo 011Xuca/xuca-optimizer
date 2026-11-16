@@ -1,12 +1,24 @@
 # ============================================================
 #  COMUN: lo que usan todas las partes del optimizador (Gaming, Debloat y, mas adelante, Limpieza).
-#  La app XucaOP.ps1 carga este archivo y el de la parte (Gaming.ps1 o Debloat.ps1) en un hilo aparte,
+#  La app Brio.ps1 carga este archivo y el de la parte (Gaming.ps1 o Debloat.ps1) en un hilo aparte,
 #  dentro del mismo proceso: ya no se abre cmd ni un powershell.exe nuevo por cada opcion.
 #  Cada cambio se verifica y queda anotado en la carpeta "logs", igual que con los .bat.
 #  Este archivo va sin acentos (igual que los demas) para que ninguna PC lo rompa.
 # ============================================================
 
 $ErrorActionPreference = 'SilentlyContinue'
+
+# Si a la PC le falta System32 en el PATH, sc.exe, reg.exe, powercfg y los demas no se encontrarian
+$s32 = Join-Path $env:SystemRoot 'System32'
+if ((';' + $env:Path + ';') -notlike ('*;' + $s32 + ';*')) { $env:Path = $s32 + ';' + $env:Path }
+
+# Windows 7 no trae estos comandos (llegaron con Windows 8) y ahi no hay apps de la Store ni tareas nuevas.
+# Se responden vacios: si faltaran, la limpieza y el resumen final se cortarian a la mitad.
+if ([Environment]::OSVersion.Version -lt [version]'6.2') {
+    foreach ($c in 'Get-AppxPackage', 'Get-AppxProvisionedPackage', 'Get-ScheduledTask') {
+        if (-not (Get-Command $c -ErrorAction SilentlyContinue)) { Set-Item -Path ('function:' + $c) -Value { } }
+    }
+}
 
 # Estado de la corrida
 $XSalida = $null            # lo que la app lee para mostrar el progreso
@@ -618,7 +630,7 @@ function Respuesta([string]$id) {
 #   Saltar (opcional): devuelve $true si la opcion no va en esta PC (ya anota el motivo)
 # ------------------------------------------------------------
 function Correr-Opciones {
-    param([string]$Nombre, [string]$Titulo, $Lista, [string[]]$Rein, [string]$Salida, [string]$Carpeta)
+    param([string]$Nombre, [string]$Titulo, $Lista, [string[]]$Rein, [string[]]$Win10, [string]$Salida, [string]$Carpeta)
     $enc = [Text.Encoding]::GetEncoding(850)
     $fs = $null
     try {
@@ -639,7 +651,9 @@ function Correr-Opciones {
         Log 'INFO' ('Inicio de ' + $Nombre)
 
         Say ($Titulo + ' - build detectado: ' + $script:Build)
-        if (($script:Build -gt 0) -and ($script:Build -lt 22000)) { Say 'Nota: esto esta pensado para Windows 11, en Windows 10 algunas opciones pueden no existir o fallar.' }
+        $viejo = ($script:Build -gt 0) -and ($script:Build -lt 10240)
+        if ($viejo) { Say 'Nota: tenes Windows 7 u 8. Las opciones que necesitan Windows 10 u 11 se saltean solas.' }
+        elseif (($script:Build -gt 0) -and ($script:Build -lt 22000)) { Say 'Nota: esto esta pensado para Windows 11, en Windows 10 algunas opciones pueden no existir o fallar.' }
         Say ('Cada cambio se verifica y queda anotado en: ' + $script:XLog)
 
         # Para el resumen final de la app: espacio libre y apps instaladas antes de tocar nada (solo cuando la app lee la salida)
@@ -653,6 +667,14 @@ function Correr-Opciones {
         $sec = ''
         foreach ($o in $Lista) {
             if ($o.Seccion -ne $sec) { $sec = $o.Seccion; Say ''; Say ''; Say ('=== ' + $sec + ' ===') }
+            # Windows 7 y 8: lo que necesita Windows 10 u 11 no se corre (ni su Saltar/Antes/N); si la habias marcado, se avisa
+            if ($viejo -and (@($Win10) -contains $o.Id)) {
+                if (((Respuesta $o.Id) -ne 'N') -or ($script:XConsola -and $o.Preguntar)) {
+                    Say ''; Say ([string]$o.Q); Say '  Omitido: necesita Windows 10 u 11, en tu Windows no existe.'
+                    Log 'OMITIDO' ($o.Id + ' - necesita Windows 10 u 11 (build ' + $script:Build + ')')
+                }
+                continue
+            }
             if ($o.Saltar -and (& $o.Saltar)) { continue }
             # Avisos que van antes de la pregunta
             if ($o.Antes) { foreach ($l in @(& $o.Antes)) { Say ([string]$l) 'Yellow' } }
@@ -693,7 +715,7 @@ function Correr-Opciones {
         if ($conResumen) {
             try {
                 $libre1 = [int64]([IO.DriveInfo]::new($env:SystemDrive.Substring(0, 1)).AvailableFreeSpace)
-                if (($libre0 -ge 0) -and (($libre1 - $libre0) -ge 52428800)) { Say ('XRES|libre|' + ($libre1 - $libre0)) }
+                if (($libre0 -ge 0) -and (($libre1 - $libre0) -ge 1048576)) { Say ('XRES|libre|' + ($libre1 - $libre0)) }
             } catch { }
             if ($apps0) { foreach ($n in @(Snap-Apps | ForEach-Object { $_ })) { [void]$apps0.Remove($n) } ; foreach ($n in ($apps0 | Sort-Object)) { Say ('XRES|app|' + $n) } }
         }
@@ -702,9 +724,15 @@ function Correr-Opciones {
         Say '=== RESUMEN ==='
         $txtLog = ''
         try { $txtLog = [IO.File]::ReadAllText($script:XLog) } catch { }
-        $nFallo = ([regex]::Matches($txtLog, '\[FALLO\]')).Count
+        $nFallo = ([regex]::Matches($txtLog, '\[(FALLO|PS-ERROR)\]')).Count
         $nAten = ([regex]::Matches($txtLog, '\[ATENCION\]')).Count
-        Say ('  Cambios que fallaron: ' + $nFallo + '  -  Opciones con problemas: ' + $nAten)
+        $nPend = ([regex]::Matches($txtLog, '\[PENDIENTE\]')).Count
+        Say ('  Cambios que fallaron: ' + $nFallo + '  -  Opciones con problemas: ' + $nAten + '  -  Pendientes: ' + $nPend)
+        if (($nFallo + $nAten + $nPend) -eq 0) { Say '  Todo salio bien: no hubo errores ni cosas sin encontrar.' 'Green' }
+        else {
+            Say '  NO todo salio bien. Esto fallo o quedo pendiente (detalle en el log):' 'Yellow'
+            foreach ($l in @($txtLog -split "`r?`n" | Where-Object { $_ -match '\[(FALLO|PS-ERROR|PENDIENTE)\]' } | Select-Object -First 15)) { Say ('   ' + ($l -replace '^\[[\d:.]+\]\s*', '')) 'Yellow' }
+        }
         Say ('  Log completo en: ' + $script:XLog)
         Log 'INFO' ('Fin. Cambios fallidos: ' + $nFallo + ', opciones con problemas: ' + $nAten)
         if ($script:VgAviso) {

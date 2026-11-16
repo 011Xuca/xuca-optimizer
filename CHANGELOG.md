@@ -1,6 +1,58 @@
 # Cambios
 
-Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arriba.
+Todo lo que cambió en cada versión de **Brío**. La más nueva va arriba.
+
+## v1.0.13
+### Nuevo
+- **Categorias que se pliegan** en Debloat y Optimizacion gaming: tocando el titulo de una categoria (o con Tab y Espacio/Enter) se pliega o se despliega. Cada titulo tiene una flecha, dice cuantas opciones tiene y, en celeste, cuantas marcaste (se ve aunque este plegada: plegar solo esconde, lo marcado se aplica igual). La app se acuerda de lo que dejaste plegado (app_config.txt, clave `plegadas`; si no esta o un nombre ya no existe, todo arranca desplegado). La barra de busqueda despliega las categorias con resultados mientras buscas y, al borrar la busqueda, vuelven a como las dejaste. En Limpiar cache y Herramientas no se agrego: tienen pocas opciones, y en Limpiar cache plegar podia esconder algo marcado que borra archivos (Descargas, restos de apps).
+- **Orden por impacto**: dentro de cada pagina, arriba va lo que mas rendimiento real da y abajo lo marginal. Criterio (sin porcentajes, depende de cada PC): 1) lo que cambia FPS, tirones o frametime en Gaming, y lo que deja RAM, CPU y disco libres todo el tiempo en Debloat; 2) latencia y respuesta (temporizador, red, mouse, DNS); 3) comodidad, interfaz y privacidad (titulos en gris). A igual nivel, primero lo seguro y despues lo que tiene riesgo; lo que no tiene vuelta atras siempre al final. La lista esta escrita y comentada en Brio.ps1 (`$OrdenSec` para las categorias y `$OrdenOpc` para las opciones). El orden en que se aplican no cambio.
+  - Gaming: Graficos, Modo juego y Game Bar, CPU y prioridad, Procesador, Plan de energia, Limpieza de RAM, Seguridad (mas rendimiento); despues Temporizador, Energia y red, Mouse, DNS; al final Teclado, Sonido, Busqueda/almacenamiento/Explorador y Ajustes extra. "Preferir IPv4" paso a Energia y red.
+  - Debloat: la categoria gigante "Sistema y privacidad" se separo en Apps y procesos en segundo plano, Efectos visuales y fluidez, Actualizaciones y Store, Servicios y funciones que casi nadie usa, Apps, navegadores e IA, Privacidad y telemetria e Interfaz y comodidad. Orden: segundo plano, efectos, almacenamiento y memoria, actualizaciones, servicios, seguridad, apps/navegadores/IA, privacidad, interfaz, puntos de restauracion y borrar partes de Windows.
+- **Opciones separadas**: las que hacian varias cosas en una sola casilla ahora son opciones sueltas, cada una con su explicacion, su lectura de estado, Aplicar y Restablecer. El id original quedo para la parte principal. Si ya tenias aplicada la opcion grande, cada parte nueva lee su estado por su cuenta y sale como aplicada.
+  - Rastreo y recopilacion de datos -> historial de actividad, ubicacion, Wifi Sense, sincronizacion de ajustes en la nube, aprendizaje de escritura, voz en la nube, descarga automatica de mapas y DRM en linea (con el Grupo Hogar, que ya no existe).
+  - Anuncios, sugerencias y Bing -> anuncios y sugerencias / Bing y busqueda web del Inicio.
+  - Sonidos de Windows -> sonidos / sonido de inicio. Efectos visuales -> efectos / transparencias. Widgets -> Widgets / boton Vista de tareas.
+  - Impresion, red local y Escritorio remoto -> impresion / descubrimiento de red y transmitir / Escritorio remoto.
+  - Dispositivos conectados y portapapeles -> experiencias compartidas / historial del portapapeles. Apagado y arranque rapidos -> apagado rapido / espera de los programas de inicio.
+  - Funciones heredadas -> Asistencia remota / Reproduccion automatica / reporte de errores. Telemetria de programas -> Office / NVIDIA / PowerShell 7.
+  - Bloat de Edge y Brave -> Edge / Brave. Funciones de IA -> IA de Windows / Bloc de notas y Paint / Copilot en Word y Excel.
+  - Gaming: GPU por hardware y juegos en ventana -> GPU acelerada por hardware / optimizaciones para juegos en ventana (solo Windows 11). Extensiones y ocultos -> extensiones / archivos ocultos. Ahorro de energia de USB, PCIe y discos -> USB / PCI Express / discos.
+  - No se separaron (y por que): las listas que son una sola cosa (apps basura, servicios extremos, componentes viejos, tareas de telemetria, servidores en hosts), el mouse competitivo (velocidad y rastro quedan en el valor de Windows tanto al aplicar como al restablecer), la telemetria de Windows (bajar el servicio y dejar el nivel para recibir versiones nuevas van juntos), pantalla completa y DPI de cada juego (es el mismo valor del registro) y "Servicios y funciones que casi nadie usa" (sus funciones de Windows no se pueden leer rapido sin DISM).
+- Los perfiles (Seguro, Optimizado, Competitivo, RAM liviana, RAM minima, notebook y Full) incluyen las partes nuevas de cada opcion que ya tenian: aplican exactamente lo mismo que antes. Las partes conservan los avisos de la opcion original (asi "Marcar solo seguras" no marca nada nuevo), el pedido de reiniciar (salvo juegos en ventana, que se toma al volver a abrir el juego) y los requisitos de version de Windows.
+- **Circulito con la cantidad en cada seccion** del menu de la izquierda, igual al de Configs recomendadas (mismo estilo, en la esquina). Se cuenta solo, con lo que la app cargo: Perfiles = perfiles; Debloat y Optimizacion gaming = opciones que podes usar en tu PC (no cuentan las que salen en gris por tu version de Windows, las de Windows 10/11 en Windows 7 y 8, ni las que no hacen falta por tu hardware; se recalcula al terminar de leer Windows y con "Volver a leer los ajustes"); Limpiar cache = opciones para marcar; Herramientas = herramientas; Apps recomendadas = apps. Inicio no lleva.
+- `tests\Verificar-Opciones.ps1`: verificacion automatica que falla si hay ids repetidos, si falta una traduccion, un chequeo de estado o el lugar en el orden por impacto, o si una opcion separada no esta en los perfiles que tenian la original.
+
+### Cambios
+- Xuca OPtimizer se renombró a **Brío** (repo github.com/011Xuca/brio).
+- Color propio: azul cielo (#60A5FA en oscuro, #1D4ED8 en claro) en botones, bordes, selección y en el icono (borde y dibujo). El fondo de la app pasa al gris oscuro del icono.
+- Los datos de la app (preferencias, logs de lectura, programitas de Gaming y sus tareas) pasan a ProgramData\Brio. La primera vez que abre se mudan solos, sin perder nada, y los programitas que estaban andando se vuelven a prender.
+- Apps recomendadas: la tarjeta del monitor de la PC ahora es **Pulso** (github.com/011Xuca/pulse).
+- Si tenías Xuca OPtimizer, se actualiza solo a Brío desde el cartel de actualización: baja la app nueva y el acceso directo del escritorio pasa a llamarse Brío.
+
+### Arreglado
+- El resumen final del debloat ahora cuenta tambien los errores de PowerShell (PS-ERROR) y las cosas pendientes, no solo los FALLO. Antes decia "todo bien" aunque fallaran opciones.
+- Al terminar muestra "Todo salio bien" o la lista de lo que fallo o quedo pendiente.
+- Arreglado "No se ha encontrado el elemento" al quitar o leer componentes de Windows (apps antiguas, idiomas, accesibilidad): ahora se anota como atencion y sigue.
+- Arreglado que pnputil y dism no se reconocian en PCs con System32 fuera del PATH (drivers sin uso, limpieza de componentes).
+- El cartel final de Debloat/Gaming ahora muestra el espacio liberado desde 1 MB (antes solo si eran 50 MB o mas), junto con las apps borradas y el DNS elegido.
+- Actualizador: si un archivo no se podia reemplazar (abierto por otro programa o el antivirus), la app quedaba mitad nueva y mitad vieja. Ahora guarda una copia de cada archivo antes de pisarlo y, si algo falla, vuelve todo a como estaba.
+- Actualizador: si un archivo esta bloqueado un momento (por ejemplo, el antivirus revisandolo) reintenta, y si lo tiene otra ventana de la app (otra copia abierta o una herramienta en su consola) la cierra sola antes de reemplazarlo. Despues, como siempre, se cierra y se abre la version nueva.
+- Actualizador: los archivos de solo lectura ya no hacen fallar la actualizacion.
+- Actualizador: la app dejaba su icono bloqueado mientras estaba abierta y la actualizacion no lo podia reemplazar. Ahora lo lee a memoria.
+- Restablecer el antivirus ahora tambien quita las politicas de SmartScreen de Edge (antes Edge seguia sin SmartScreen y decia "administrado por tu organizacion").
+- Actualizador: en un wifi con pagina de inicio de sesion (hotel, bar) ya no aparece una "version nueva" falsa.
+- Actualizador: si la red se cuelga al buscar versiones nuevas, la app abre igual a los 8 segundos.
+- Si en el cartel de permisos de Windows tocas "No", la app se cierra sin mostrar un error.
+- Las herramientas de Windows (sc, reg, powercfg, icacls, DISM...) se encuentran aunque a la PC le falte System32 en el PATH.
+- Texto de Hiber en Apps recomendadas: "pestañas" salia con letras raras.
+- En ingles, las descripciones de Apps recomendadas, la descripcion de Perfiles, el texto fijo de Limpieza y varios titulos de seccion (Perfiles, Debloat y Limpieza) salian en espanol o mezclados.
+- Tema claro: "Ya aplicado", el boton de redes y el enlace a las Releases se leian poco (verde y azul claros sobre fondo blanco).
+
+### Windows 7 y 8.1
+- Brio.bat revisa que este PowerShell 5.1 y, si falta (Windows 7 trae el 2.0), dice que instalar en vez de cerrarse sin explicar nada. install.ps1 hace lo mismo.
+- Las opciones que usan comandos que Windows 7 y 8 no tienen (apps de la Store, Defender, BitLocker, tareas programadas nuevas, DNS por placa, dispositivos, cuentas locales) aparecen en gris como no compatibles y los scripts las saltean con un aviso.
+- En Windows 7 el Debloat, el Gaming y la Limpieza ya no se cortan a la mitad por buscar apps de la Store; la limpieza de componentes (DISM) se saltea porque ese Windows no la tiene.
+- README: como instalar en Windows 7 SP1 y 8.1 (WMF 5.1 y TLS 1.2).
 
 ## v1.0.12
 
@@ -83,7 +135,7 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 
 ### Cambios
 - **Menos falsas alarmas del antivirus**: `scripts\Edge.txt` ya no trae programas (`setup.exe` y `SQLite.dll`) escondidos en base64. "Quitar Edge" ahora los descarga de ShadowWhisperer/Remove-MS-Edge en el momento y verifica su huella SHA-256 antes de usarlos; si no coincide, los baja el propio `Edge.bat`.
-- **Abrir la app**: `XucaOP.bat` y `install.ps1` ya no quitan la marca de "descargado de internet" (`Unblock-File`), que es una técnica que los antivirus miran con desconfianza. Con `-ExecutionPolicy Bypass` no hacía falta. La ventana de PowerShell ahora queda minimizada en la barra de tareas en vez de oculta.
+- **Abrir la app**: `Brio.bat` y `install.ps1` ya no quitan la marca de "descargado de internet" (`Unblock-File`), que es una técnica que los antivirus miran con desconfianza. Con `-ExecutionPolicy Bypass` no hacía falta. La ventana de PowerShell ahora queda minimizada en la barra de tareas en vez de oculta.
 
 ## v1.0.9
 
@@ -164,8 +216,8 @@ Todo lo que cambió en cada versión de **Xuca OPtimizer**. La más nueva va arr
 - Opción Gaming **Limitar el cable a 1 Gbps**: para placas de red de 2.5 Gbps (como las Realtek 2.5GbE) que se cortan solas. Se puede restablecer y pide reiniciar.
 - Perfil nuevo **Optimizado**: todo lo de Seguro y además Windows más liviano (sin hibernación, efectos visuales ni apps de inicio basura), sin tocar la seguridad ni los ajustes de juego.
 - **Limpiar caché** ahora también borra restos de instalaciones: instaladores de drivers de NVIDIA y AMD ya usados, temporales de OneDrive y descargas viejas de Windows Update.
-- **Xuca Monitor** en Apps recomendadas.
-- Ícono propio (`XucaOP.ico`) en la app, el acceso directo y el README.
+- **Pulso** en Apps recomendadas.
+- Ícono propio (`Brio.ico`) en la app, el acceso directo y el README.
 
 ### Cambios
 - **Seguro** ahora también borra las apps basura y apaga los servicios que casi nadie usa.

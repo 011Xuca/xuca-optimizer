@@ -1,4 +1,4 @@
-﻿# Opciones de Debloat, Gaming y Limpieza, por su Id (el mismo Id que en Debloat.ps1, Gaming.ps1 y XucaOP.ps1).
+﻿# Opciones de Debloat, Gaming y Limpieza, por su Id (el mismo Id que en Debloat.ps1, Gaming.ps1 y Brio.ps1).
 # Cada bloque empieza con [Pagina Id] y lleva Titulo, Hace, Favor y Contra.
 # Si cambias el texto en espanol de una opcion, esto sigue andando: solo acordate de actualizar el ingles.
 # Si a una opcion le falta su bloque (o un campo), se muestra en espanol.
@@ -93,15 +93,27 @@ Contra: you lose that screenshot search; it only exists on Copilot+ PCs.
 
 [Debloat sch]
 Titulo: Mute Windows sounds
-Hace: mutes Windows sounds and the startup sound; only the device connect and disconnect sounds remain.
+Hace: mutes Windows alert sounds; only the device connect and disconnect sounds remain.
 Favor: no alert sounds in the middle of a match or a stream.
 Contra: you don't hear system alerts.
 
+[Debloat sns]
+Titulo: Remove the Windows startup sound
+Hace: turns off the sound Windows makes when the PC turns on.
+Favor: the PC starts silently.
+Contra: none.
+
 [Debloat fx]
 Titulo: Reduce visual effects
-Hace: removes animations, shadows, fades and transparency.
+Hace: removes animations, shadows and fades from windows, menus and the taskbar.
 Favor: Windows feels faster and uses the graphics card a bit less.
 Contra: Windows looks plainer.
+
+[Debloat trn]
+Titulo: Remove transparency
+Hace: turns off the transparency effects of the taskbar, Start and windows.
+Favor: the graphics card works a bit less, especially with integrated graphics.
+Contra: Windows looks flatter.
 
 [Debloat et]
 Titulo: Add End task to the taskbar right-click menu
@@ -135,9 +147,15 @@ Contra: it's not a total shutdown of data: it's the middle ground to keep gettin
 
 [Debloat wg]
 Titulo: Disable Widgets
-Hace: removes the Widgets panel and hides the Task View button.
+Hace: removes the Widgets panel (on Windows 10, turns off News and interests).
 Favor: fewer processes and less RAM, and a cleaner taskbar.
 Contra: you lose the weather and news panel.
+
+[Debloat tvb]
+Titulo: Hide the Task View button from the taskbar
+Hace: hides the Task View button (open windows and desktops) from the taskbar.
+Favor: a cleaner taskbar.
+Contra: you open Task View with Win+Tab.
 
 [Debloat do]
 Titulo: Stop sharing updates with other PCs
@@ -158,9 +176,15 @@ Favor: it won't update or restart during a tournament or an important match.
 Contra: if you leave it paused for a long time, you miss security patches.
 
 [Debloat ad]
-Titulo: Remove ads, suggestions and Bing
-Hace: removes ads, the advertising ID, suggested apps and the ones Microsoft and the manufacturer install on their own, Start recommendations and Bing from search.
-Favor: a cleaner Start and search only looks in your PC, faster.
+Titulo: Remove ads and suggestions
+Hace: removes ads, the advertising ID, suggested apps and the ones Microsoft and the manufacturer install on their own, Start recommendations and personalized offers.
+Favor: a cleaner Start and no more new apps showing up on their own.
+Contra: Start no longer shows recommendations or your most used apps.
+
+[Debloat bng]
+Titulo: Remove Bing and web search from Start
+Hace: removes Bing, Cortana, web and Store suggestions, highlights and search history from Start search.
+Favor: Start search only looks in your PC, faster and without ads.
 Contra: Start search no longer searches the internet.
 
 [Debloat sv]
@@ -194,10 +218,52 @@ Favor: saves several hundred MB of RAM and lowers the process count.
 Contra: if one service hangs it can take down the ones sharing its process. Applies on restart.
 
 [Debloat pv]
-Titulo: Turn off tracking and data collection
-Hace: turns off activity history, location, Wifi Sense, cloud clipboard and settings, typing learning and suggestions, cloud speech and apps listening for voice commands, maps, DRM and Homegroup.
-Favor: more privacy and fewer background tasks.
-Contra: apps that use location, like weather, can't detect it, and your settings aren't copied to other PCs.
+Titulo: Turn off activity history
+Hace: turns off activity history: Windows stops recording the programs, files and pages you open and uploading them to your Microsoft account.
+Favor: more privacy and one less background task.
+Contra: you can't pick up on another device what you were doing on this PC.
+
+[Debloat pvu]
+Titulo: Turn off Windows location
+Hace: turns off the Windows location service (lfsvc) and apps' and web pages' access to your location.
+Favor: more privacy and one less background service.
+Contra: apps that use location, like weather, maps or Find my device, can't detect it.
+
+[Debloat pvw]
+Titulo: Turn off Wifi Sense
+Hace: turns off Wifi Sense: Windows stops connecting by itself to suggested open Wi-Fi networks and reporting data about Wi-Fi hotspots.
+Favor: your PC doesn't connect by itself to unknown public networks.
+Contra: none in normal use.
+
+[Debloat pvs]
+Titulo: Turn off cloud settings sync
+Hace: turns off copying your Windows settings (theme, language, Wi-Fi passwords and other preferences) to your Microsoft account, and the clipboard moving to other devices.
+Favor: more privacy and less data sent.
+Contra: your settings aren't copied to other PCs with your account and the clipboard doesn't move between devices.
+
+[Debloat pve]
+Titulo: Turn off typing learning
+Hace: turns off typing personalization: Windows stops collecting what you type and draw with the pen, your contacts and text suggestions to improve the keyboard.
+Favor: more privacy: what you type isn't used to train suggestions.
+Contra: the touch keyboard and handwriting suggest words less accurately.
+
+[Debloat pvv]
+Titulo: Turn off cloud speech
+Hace: turns off online speech recognition and apps listening for voice keywords in the background.
+Favor: more privacy: your voice isn't sent to Microsoft and no app keeps listening.
+Contra: online dictation and voice assistants don't work until you restore it.
+
+[Debloat pvm]
+Titulo: Turn off automatic map downloads
+Hace: turns off the automatic download and update of offline maps and the network traffic of the Maps page in Settings.
+Favor: fewer background downloads.
+Contra: the offline maps you downloaded don't update by themselves.
+
+[Debloat pvl]
+Titulo: Turn off Windows Media online DRM
+Hace: stops the old Windows Media Player from looking up licenses for protected music and video online, and blocks HomeGroup (an old feature Windows 10 and 11 no longer include; it's blocked in case something is left).
+Favor: fewer background connections from old features.
+Contra: old protected (DRM) music or videos may not play in the old Media Player.
 
 [Debloat ter]
 Titulo: Disable Teredo
@@ -206,9 +272,21 @@ Favor: it can remove extra latency on some connections.
 Contra: it can affect Xbox party chat and NAT in Xbox games on PC.
 
 [Debloat tp]
-Titulo: Turn off program telemetry
-Hace: turns off telemetry for Office, NVIDIA and PowerShell 7.
+Titulo: Turn off Office telemetry
+Hace: turns off Office telemetry and feedback and its data-sending tasks.
 Favor: less data sent and fewer background tasks.
+Contra: none in normal use.
+
+[Debloat tpn]
+Titulo: Turn off NVIDIA telemetry
+Hace: turns off the NVIDIA telemetry service, its data-sending tasks and the data collection of the driver and the Control Panel.
+Favor: less data sent and fewer background tasks.
+Contra: none in normal use.
+
+[Debloat tps]
+Titulo: Turn off PowerShell 7 telemetry
+Hace: tells PowerShell 7 not to send usage data to Microsoft (POWERSHELL_TELEMETRY_OPTOUT variable).
+Favor: less data sent.
 Contra: none in normal use.
 
 [Debloat hst]
@@ -218,9 +296,15 @@ Favor: cuts data sending even if Windows turns something back on later.
 Contra: Defender sometimes warns about hosts changes and some Microsoft diagnostics may fail.
 
 [Debloat eb]
-Titulo: Reduce Edge and Brave bloat
-Hace: turns off the sidebar, shopping, rewards, wallet, VPN and AI in Edge and Brave; in Edge it also removes Copilot (it doesn't read your pages or your history), AI writing, AI themes, DevTools AI and downloading local AI models.
-Favor: lighter browsers without ads.
+Titulo: Reduce Edge bloat
+Hace: turns off in Edge the sidebar, shopping, rewards, recommendations, running in the background and AI: removes Copilot (it doesn't read your pages or your history), AI writing, AI themes, DevTools AI and downloading local AI models.
+Favor: a lighter Edge without ads.
+Contra: you lose those features if you used them.
+
+[Debloat ebb]
+Titulo: Reduce Brave bloat
+Hace: turns off in Brave the rewards (Brave Rewards), the crypto wallet, the VPN and the AI chat (Leo). If you don't have Brave, it's ready in case you install it.
+Favor: a lighter Brave without crypto ads.
 Contra: you lose those features if you used them.
 
 [Debloat su]
@@ -231,9 +315,21 @@ Contra: you have to update them manually now and then. It also stops updates for
 
 [Debloat ia]
 Titulo: Turn off Windows AI features
-Hace: turns off Click to Do, the AI in Notepad and Paint (image creator, Cocreator, generative fill and erase, remove background), the AI agent in Settings, Copilot in search, app access to generative AI and Copilot in Word and Excel.
+Hace: turns off Click to Do, the AI agent in Settings, Copilot in search and app access to Windows generative AI.
 Favor: fewer AI processes and more privacy.
 Contra: you lose those features.
+
+[Debloat iap]
+Titulo: Turn off AI in Notepad and Paint
+Hace: turns off the AI in Notepad (rewrite and summarize) and in Paint (image creator, Cocreator, generative fill and erase, remove background).
+Favor: fewer AI processes and more privacy.
+Contra: you lose those Notepad and Paint features.
+
+[Debloat iao]
+Titulo: Turn off Copilot in Word and Excel
+Hace: turns off Copilot inside Word and Excel.
+Favor: fewer AI features and more privacy in your documents.
+Contra: you lose Copilot in Word and Excel.
 
 [Debloat cam]
 Titulo: Allow multiple apps to use the camera
@@ -360,10 +456,16 @@ Favor: the most you can do to get rid of Xbox: no Xbox service, app or task stay
 Contra: Game Pass, Minecraft Bedrock and the Minecraft Launcher, and Microsoft Store and Xbox app games stop working, and you can't play online with your Xbox account. Reset reinstalls the Xbox app, Gaming Services, Xbox Identity Provider and the Game Bar with winget (needs internet); the rest is installed by the Xbox app or the Store. It asks for a restart.
 
 [Gaming gf]
-Titulo: Optimize windowed games and hardware GPU scheduling
-Hace: uses the modern mode for windowed games and turns on hardware-accelerated GPU scheduling.
-Favor: less latency in windowed and borderless, and it's needed for Frame Generation.
+Titulo: Turn on hardware-accelerated GPU scheduling
+Hace: turns on "Hardware-accelerated GPU scheduling" (HAGS): the graphics card manages its own memory and work queue.
+Favor: a bit less latency, and it's needed for Frame Generation (DLSS 3 and FSR 3).
 Contra: it can cause problems on some old PCs.
+
+[Gaming wgo]
+Titulo: Turn on optimizations for windowed games
+Hace: turns on "Optimizations for windowed games": DirectX 10 and 11 games in windowed or borderless mode use the modern presentation mode.
+Favor: less latency in windowed and borderless, and Auto HDR and variable refresh rate (G-Sync or FreeSync) also work there.
+Contra: in some old game it can change how the image looks.
 
 [Gaming fso]
 Titulo: Disable fullscreen optimizations and DPI scaling on your games
@@ -408,10 +510,22 @@ Favor: leaves more RAM free for the game.
 Contra: some programs open a bit slower the first time. It also leaves memory compression without effect, since it depends on SysMain (with 16 GB or more you barely notice); so it cannot be used together with "Turn on memory compression".
 
 [Gaming pe]
-Titulo: Disable USB, PCIe and disk power saving
-Hace: turns off power saving for USB, USB 3 and PCI Express, and with the PC plugged in the disks no longer turn off by themselves.
-Favor: avoids mouse and keyboard micro-drops, and the few-second stutters when an HDD spins back up.
-Contra: at idle the PC uses a few more watts and the graphics card and NVMe SSDs can run a bit hotter; on laptops the battery lasts less (also with the lid closed) and HDDs keep spinning while the PC is on.
+Titulo: Disable USB power saving
+Hace: turns off USB selective suspend and USB 3 power saving in the active plan, plugged in and on battery.
+Favor: avoids micro-drops of the mouse, keyboard and USB headsets.
+Contra: at idle the PC uses a bit more power; on laptops the battery lasts less (also with the lid closed).
+
+[Gaming pci]
+Titulo: Disable PCI Express power saving
+Hace: turns off PCI Express link state power management (ASPM) in the active plan, plugged in and on battery.
+Favor: can avoid micro-stutters with graphics cards or SSDs that don't get along with that power saving.
+Contra: at idle the PC uses a few more watts and the graphics card and NVMe SSDs can run a bit hotter; on laptops the battery lasts less.
+
+[Gaming dsk]
+Titulo: Keep disks from turning off when plugged in
+Hace: with the PC plugged in, disks no longer turn off when idle (on battery nothing changes).
+Favor: avoids the few-second stutters when an HDD spins back up.
+Contra: HDDs keep spinning while the PC is on: a bit more noise and power use.
 
 [Gaming nic]
 Titulo: Disable network power saving
@@ -480,9 +594,15 @@ Favor: it doesn't delete anything by itself while you play.
 Contra: you do the cleaning yourself, for example with the app's Clean cache.
 
 [Gaming ext]
-Titulo: Show file extensions and hidden items
-Hace: shows the end of file names, like .exe or .txt, and hidden files and folders.
-Favor: you see what type of file it is, spot disguised viruses and find folders like AppData.
+Titulo: Show file extensions
+Hace: shows the end of file names, like .exe or .txt.
+Favor: you see what type of file it is and spot disguised viruses (for example photo.jpg.exe).
+Contra: when renaming a file you have to be careful not to delete its extension.
+
+[Gaming hid]
+Titulo: Show hidden files and folders
+Hace: shows hidden files and folders in File Explorer.
+Favor: you find folders like AppData, where games keep configs and saves.
 Contra: you see hidden system files: don't delete them if you don't know what they are.
 
 [Gaming md]
@@ -520,10 +640,22 @@ Favor: frees several GB of disk.
 Contra: if something goes wrong, you can't go back to how Windows was before.
 
 [Debloat rmin]
-Titulo: Turn off printing, network sharing and Remote Desktop
-Hace: turns off or sets to manual the printing services, the ones that make your PC show up on the local network and cast to the TV, the web folder service (WebClient), media sharing and work folders, and Remote Desktop.
+Titulo: Turn off printing
+Hace: turns off the printing services (print spooler and printer notifications).
 Favor: fewer programs running in the background and a bit of RAM freed.
-Contra: you can't print or save to PDF from Print, your PC doesn't show up on the local network, you can't cast to the TV and nobody can get in through Remote Desktop, until you restore it.
+Contra: you can't print or save to PDF from Print until you restore it.
+
+[Debloat rnet]
+Titulo: Turn off network discovery and casting to the TV
+Hace: turns off the services that make your PC show up on the local network and let you cast to the TV, the web folder service (WebClient), media sharing and work folders.
+Favor: fewer programs running in the background and a bit of RAM freed.
+Contra: your PC doesn't show up on the local network and you can't cast to the TV until you restore it.
+
+[Debloat rdp]
+Titulo: Turn off Remote Desktop
+Hace: turns off the Remote Desktop services (TermService, SessionEnv and UmRdpService).
+Favor: fewer services loaded and one less way into your PC.
+Contra: nobody can get into this PC through Remote Desktop until you restore it.
 
 [Debloat nvl]
 Titulo: Turn off the extra NVIDIA services and tasks
@@ -550,10 +682,16 @@ Favor: fewer processor and disk spikes when you're not doing anything.
 Contra: Windows stops doing that automatic maintenance. It doesn't touch Windows Update, restore points or SSD optimization.
 
 [Debloat cdp]
-Titulo: Turn off cross-device sync and clipboard history
-Hace: turns off the Connected Devices Platform (shared experiences and Nearby Sharing) and the clipboard history and sync.
+Titulo: Turn off shared experiences
+Hace: turns off the Connected Devices Platform by policy: shared experiences and Nearby Sharing.
 Favor: fewer sync processes and less data sent.
-Contra: Win+V stops saving the clipboard history, and you can't send files or clipboard between your PC and your phone or other PCs.
+Contra: you can't send files or links between your PC and your phone or other PCs.
+
+[Debloat clh]
+Titulo: Turn off clipboard history
+Hace: turns off clipboard history (Win+V) and clipboard sync between devices.
+Favor: what you copy, like passwords, isn't kept in the history or sent to other devices.
+Contra: Win+V stops showing what you copied before and the clipboard doesn't move to your phone or other PCs.
 
 [Debloat fsb]
 Titulo: Stop the disk from noting when you open each file
@@ -562,10 +700,16 @@ Favor: less is written to the disk and a bit less background work, mostly on har
 Contra: Explorer stops showing the real last-access date of files. Some old backup programs use it.
 
 [Debloat rap]
-Titulo: Speed up shutdown and desktop startup
-Hace: lowers to 2 seconds how long Windows waits to close services and programs when shutting down, and removes the 10-second delay Windows puts on startup programs.
-Favor: the PC turns off and on faster.
+Titulo: Speed up shutdown
+Hace: lowers to 2 seconds how long Windows waits to close frozen services and programs when shutting down.
+Favor: the PC shuts down faster.
 Contra: frozen services and programs are closed after 2 seconds; Windows still warns you if something is unsaved.
+
+[Debloat sud]
+Titulo: Remove the startup programs delay
+Hace: removes the roughly 10-second delay Windows puts on startup programs when you reach the desktop.
+Favor: startup programs open sooner.
+Contra: when you reach the desktop they all start at once and the PC can take a moment to respond.
 
 [Debloat sx]
 Titulo: Turn off even more services almost nobody uses
@@ -598,10 +742,22 @@ Favor: Explorer uses less RAM and opens photo and video folders faster.
 Contra: you don't see the preview of images or videos in folders.
 
 [Debloat leg]
-Titulo: Turn off legacy Windows features
-Hace: turns off Remote Assistance, AutoPlay for USBs and discs, and Windows error reporting.
-Favor: fewer services and features loaded, and an unknown USB no longer opens by itself.
-Contra: nobody can connect to your PC with Remote Assistance, and when you plug in a USB the what-to-do menu doesn't show up.
+Titulo: Turn off Remote Assistance
+Hace: turns off Windows Remote Assistance, the old feature that lets another person connect to your PC to help you.
+Favor: one less way into your PC.
+Contra: nobody can connect to your PC with Windows Remote Assistance.
+
+[Debloat apl]
+Titulo: Turn off AutoPlay
+Hace: turns off AutoPlay for USBs, discs and phones.
+Favor: an unknown USB no longer opens anything by itself.
+Contra: when you plug in a USB the what-to-do menu doesn't show up: you open it from File Explorer.
+
+[Debloat wer]
+Titulo: Turn off Windows error reporting
+Hace: turns off Windows error reporting: when a program crashes, Windows no longer builds or sends the report to Microsoft.
+Favor: less background work after a crash and less data sent.
+Contra: if a program crashes often, there's no report to help find the cause.
 
 [Debloat old]
 Titulo: Remove all the old Windows components nobody uses

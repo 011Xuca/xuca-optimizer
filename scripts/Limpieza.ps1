@@ -1,10 +1,10 @@
 # ============================================================
 #  LIMPIEZA DE CACHE (antes era limpiar_cache.bat)
-#  Lo corre la app XucaOP.ps1 en un hilo aparte, con Comun.ps1 cargado: ya no se abre cmd ni otro PowerShell.
+#  Lo corre la app Brio.ps1 en un hilo aparte, con Comun.ps1 cargado: ya no se abre cmd ni otro PowerShell.
 #  Se limpia sin preguntar: temporales, cache de Windows Update, Windows.old, volcados y logs de errores,
 #  restos de instalaciones, caches de apps, Visor de Eventos, Microsoft Store, DNS y componentes viejos (DISM).
 #  Lo que se decide en la app viene en CLEAN_BIN (papelera), CLEAN_GPU (shaders) y CLEAN_RP (puntos de restauracion) y CLEAN_APPS (restos de apps desinstaladas), CLEAN_OLD (Windows.old), CLEAN_LAUNCH (cache de Discord, Steam, Epic y Store), CLEAN_BRW (cache de navegadores), CLEAN_DL (carpeta Descargas), CLEAN_EVT (Visor de Eventos) y CLEAN_DISM (componentes viejos).
-#  La app sigue el progreso por las lineas que se escriben (ver $PasosLimpieza en XucaOP.ps1): si cambias un texto, cambialo alla tambien.
+#  La app sigue el progreso por las lineas que se escriben (ver $PasosLimpieza en Brio.ps1): si cambias un texto, cambialo alla tambien.
 # ============================================================
 
 function Format-Size([int64]$b) {
@@ -518,9 +518,12 @@ function Correr-Limpieza([string]$salida, [string]$carpeta) {
         # ---------------------------------------------------------------
         # COMPONENTES VIEJOS DE WINDOWS
         # ---------------------------------------------------------------
-        if ($env:CLEAN_DISM -eq '1') {
+        # /StartComponentCleanup existe desde Windows 8
+        if (($env:CLEAN_DISM -eq '1') -and ([Environment]::OSVersion.Version -lt [version]'6.2')) { Say 'Componentes viejos de Windows (DISM): tu Windows no tiene esta limpieza, se salteo.' 'Yellow' }
+        elseif ($env:CLEAN_DISM -eq '1') {
             Say "Limpiando componentes viejos de Windows (DISM), puede tardar varios minutos..." 'Cyan'
-            Start-Process -FilePath 'DISM.exe' -ArgumentList '/Online', '/Cleanup-Image', '/StartComponentCleanup' -Wait -WindowStyle Hidden
+            # Con la ruta completa: en algunas PCs System32 no esta en el PATH
+            Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\Dism.exe') -ArgumentList '/Online', '/Cleanup-Image', '/StartComponentCleanup' -Wait -WindowStyle Hidden
         } else { Say 'Componentes viejos de Windows (DISM): no se tocaron.' 'Yellow' }
 
         # ---------------------------------------------------------------
