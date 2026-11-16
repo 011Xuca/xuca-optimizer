@@ -4863,7 +4863,7 @@ $AppsRec = @(
         Texto = 'controla tu placa de video: undervolt, overclock, ventiladores y el contador de FPS en pantalla. Anda con NVIDIA y AMD. En Herramientas > Undervolt y overclock te digo que valores ponerle.' },
     [pscustomobject]@{ Sec = 'Juegos y video'; Color = '#60A5FA'; Icono = 0xE7FC; Nombre = 'SCSKiller'; Critica = $false; Url = 'https://github.com/BlueHeisenberg/SCSKiller/releases/'
         Texto = 'compila antes de jugar los shaders del juego que elijas, asi no da tirones ni bajones de FPS en las primeras partidas. Anda con NVIDIA y AMD.' },
-    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xE839; Nombre = 'Pulso'; Critica = $false; Url = 'https://github.com/011Xuca/pulse/releases/latest/download/Pulso.exe'
+    [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xE839; Nombre = 'Pulso'; Critica = $false; Url = 'https://github.com/011Xuca/pulso/releases/latest/download/Pulso.exe'
         Texto = 'vigila tu PC desde la bandeja: cortes de internet y lag, USB que se desconectan, que te baja los FPS mientras jugas, que tan caliente esta tu PC y errores como pantalla negra o pantallazo azul. Te dice que fue y que probar. Se actualiza sola y casi no gasta nada.' },
     [pscustomobject]@{ Sec = 'Hardware y temperaturas'; Color = '#60A5FA'; Icono = 0xE774; Nombre = 'Hiber'; Critica = $false; Url = 'https://github.com/011Xuca/hiber'
         Texto = 'extension de navegador que duerme las pestanas que no usas, bloquea anuncios (incluido YouTube) y recorta RAM, CPU y red. Anda en Chrome, Edge, Brave, Opera y Firefox.' },

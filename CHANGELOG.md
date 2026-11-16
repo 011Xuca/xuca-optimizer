@@ -26,7 +26,7 @@ Todo lo que cambió en cada versión de **Brío**. La más nueva va arriba.
 - Xuca OPtimizer se renombró a **Brío** (repo github.com/011Xuca/brio).
 - Color propio: azul cielo (#60A5FA en oscuro, #1D4ED8 en claro) en botones, bordes, selección y en el icono (borde y dibujo). El fondo de la app pasa al gris oscuro del icono.
 - Los datos de la app (preferencias, logs de lectura, programitas de Gaming y sus tareas) pasan a ProgramData\Brio. La primera vez que abre se mudan solos, sin perder nada, y los programitas que estaban andando se vuelven a prender.
-- Apps recomendadas: la tarjeta del monitor de la PC ahora es **Pulso** (github.com/011Xuca/pulse).
+- Apps recomendadas: la tarjeta del monitor de la PC ahora es **Pulso** (github.com/011Xuca/pulso).
 - Si tenías Xuca OPtimizer, se actualiza solo a Brío desde el cartel de actualización: baja la app nueva y el acceso directo del escritorio pasa a llamarse Brío.
 
 ### Arreglado
