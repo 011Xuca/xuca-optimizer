@@ -3799,3 +3799,72 @@ en: Brio programs
 
 es: Termino con
 en: Finished with
+
+es: Lo que marcaste puede dar problemas con eso:
+en: What you selected may cause problems with that:
+
+es: Se detecto:
+en: Detected:
+
+es: Si usas Xbox, Game Pass o Minecraft, toca "Todo menos esto".
+en: If you use Xbox, Game Pass or Minecraft, press "Everything except this".
+
+es: Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Todo menos esto".
+en: Going back may require reinstalling Windows. Create a restore point first and back up what matters. If you are not sure, press "Everything except this".
+
+es: Aca "Todo menos esto" aplica todo lo demas pero no borra las apps protegidas.
+en: Here "Everything except this" applies everything else but does not delete the protected apps.
+
+es: Todo menos esto
+en: Everything except this
+
+es: Cancelar no aplica nada y vuelve a la pantalla. "Todo menos esto" aplica todo lo demas y desmarca solo estos ajustes. "Aplicar" los aplica junto con el resto.
+en: Cancel applies nothing and returns to the screen. "Everything except this" applies everything else and unchecks only these settings. "Apply" applies them along with the rest.
+
+es: Dispositivos conectados
+en: Connected devices
+
+es: Con interfaces de audio o instrumentos MIDI puede cambiar la latencia. Al aplicar, la app te avisa si detecta uno.
+en: With audio interfaces or MIDI instruments it can change latency. When applying, the app warns you if it detects one.
+
+es: Si usas lector de tarjetas inteligentes o NFC, destildalo en la lista. Al aplicar, la app te avisa si detecta uno.
+en: If you use a smart card or NFC reader, uncheck it in the list. When applying, the app warns you if it detects one.
+
+es: Borra los drivers de impresoras, joysticks, camaras o interfaces de audio desenchufados. Al aplicar, la app te avisa si detecta alguno.
+en: Deletes the drivers of unplugged printers, joysticks, cameras or audio interfaces. When applying, the app warns you if it detects any.
+
+es: cambia la prioridad de CPU entre programas: la musica en vivo puede cortarse o tener mas latencia.
+en: changes CPU priority between programs: live music may cut out or have more latency.
+
+es: cambia el temporizador del sistema: puede variar la latencia de audio y MIDI.
+en: changes the system timer: audio and MIDI latency may vary.
+
+es: cambia los estados de reposo del procesador: pueden aparecer clicks o cortes de audio.
+en: changes the processor idle states: audio clicks or dropouts may appear.
+
+es: cambia el ahorro de energia de PCIe: una placa de audio PCIe o Thunderbolt puede cortarse.
+en: changes PCIe power saving: a PCIe or Thunderbolt audio card may cut out.
+
+es: cambia la energia de los puertos USB: una interfaz o un instrumento USB puede comportarse distinto.
+en: changes USB port power: a USB interface or instrument may behave differently.
+
+es: apaga el Bluetooth: estos aparatos dejan de andar.
+en: turns off Bluetooth: these devices stop working.
+
+es: apaga la cola de impresion: no vas a poder imprimir.
+en: turns off the print queue: you will not be able to print.
+
+es: apaga la biometria y los sensores: Windows Hello y los lectores dejan de andar.
+en: turns off biometrics and sensors: Windows Hello and the readers stop working.
+
+es: puede apagar el servicio de tarjetas inteligentes y NFC: el lector deja de andar.
+en: may turn off the smart card and NFC service: the reader stops working.
+
+es: borra los drivers de lo que no esta en uso: si desenchufaste este aparato, hay que bajar su driver de nuevo.
+en: deletes the drivers of what is not in use: if you unplugged this device, its driver must be downloaded again.
+
+es: apagados
+en: off
+
+es: quitadas del arranque
+en: removed from startup

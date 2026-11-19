@@ -598,7 +598,20 @@ function Inicio-Conteo {
     if (-not (Get-Command Inicio-Lista -ErrorAction SilentlyContinue)) { return $null }
     $basura = @(Inicio-Lista | Where-Object { -not $_.Dejar })
     $act = @($basura | Where-Object { $_.Activo })
-    return @{ Hechas = ($basura.Count - $act.Count); Total = $basura.Count; Que = 'apagadas'; Quedan = $act.Count; Nombres = @($act | ForEach-Object { [string]$_.Nombre } | Sort-Object -Unique) }
+    return @{ Hechas = ($basura.Count - $act.Count); Total = $basura.Count; Que = 'quitadas del arranque'; Quedan = $act.Count; Nombres = @($act | ForEach-Object { [string]$_.Nombre } | Sort-Object -Unique) }
+}
+# Servicios de una lista ("Apagar servicios"): cuenta solo los que existen en esta PC. Apagado = deshabilitado, o manual y detenido.
+function Svc-Conteo([string[]]$ids) {
+    $hechas = 0; $quedan = 0; $nom = @()
+    foreach ($s in $ids) {
+        $v = Leer-Svc $s
+        if ($null -eq $v) { continue }
+        $ya = ($v -eq 4)
+        if ((-not $ya) -and ($v -eq 3)) { try { $ya = ([string](New-Object ServiceProcess.ServiceController $s).Status -eq 'Stopped') } catch { } }
+        if ($ya) { $hechas++ } else { $quedan++; $nom += $s }
+    }
+    if (($hechas + $quedan) -eq 0) { return $null }
+    return @{ Hechas = $hechas; Total = ($hechas + $quedan); Que = 'apagados'; Quedan = $quedan; Nombres = $nom }
 }
 '@
 . ([scriptblock]::Create($FuncLectura))
@@ -942,6 +955,11 @@ $Chequeos = @{
     'Gaming|hid'    = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden') -eq 1 }
     'Gaming|md'     = { (Leer-Reg 'HKCU:\Control Panel\Desktop' 'MenuShowDelay') -eq '0' }
     'Gaming|v4'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters' 'DisabledComponents') -eq 32 }
+}
+# Contador "N/M apagados" de "Apagar servicios" y "Servicios extremos": sale de los servicios que existen en esta PC (lista de Debloat.ps1)
+foreach ($sid in 'rsv', 'sx') {
+    $ids = @($script:Elegibles[$sid] | Where-Object { -not $_.Prot } | ForEach-Object { "'" + $_.Id + "'" })
+    if ($ids.Count -gt 0) { $Chequeos['Debloat|' + $sid] = [scriptblock]::Create('Svc-Conteo @(' + ($ids -join ',') + ')') }
 }
 
 # Lo que corre en el hilo de fondo: carga las apps y el plan de energia, y despues hace cada chequeo
@@ -2184,7 +2202,7 @@ function Tipo-Dialogo([string]$titulo, [string]$colorSi, [bool]$pregunta) {
 }
 
 # Pregunta Si/No. Devuelve $true si tocas el boton principal. Sin $textoNo es solo un aviso con un boton.
-function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]$colorSi, [string]$textoNo) {
+function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]$colorSi, [string]$textoNo, [string]$textoMedio) {
     if (-not $textoSi) { $textoSi = 'Seguir' }
     if (-not $colorSi) { $colorSi = '#60A5FA' }
     $w = Nuevo-Dialogo 480
@@ -2206,13 +2224,40 @@ function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]
     $cab.Children.Add($tx) | Out-Null
     $sp.Children.Add($cab) | Out-Null
     $bSi = Nuevo-Boton $textoSi $colorSi; $bSi.IsDefault = $true
-    $bSi.Add_Click({ [Windows.Window]::GetWindow($this).DialogResult = $true })
+    $bSi.Add_Click({ $script:Res3 = 'aplicar'; [Windows.Window]::GetWindow($this).DialogResult = $true })
     $der = @()
     if ($textoNo) { $bNo = Nuevo-Boton $textoNo; $bNo.IsCancel = $true; $der += $bNo } else { $bSi.IsCancel = $true }
+    # Tercer boton (entre Cancelar y el principal): lo usa Confirmar-Tres. El predeterminado (Enter) pasa a ser el del medio, que es el seguro.
+    if ($textoMedio) {
+        $bMe = Nuevo-Boton $textoMedio; $bMe.IsDefault = $true; $bSi.IsDefault = $false
+        $bMe.Add_Click({ $script:Res3 = 'menos'; [Windows.Window]::GetWindow($this).DialogResult = $true })
+        $der += $bMe
+    }
     $der += $bSi
     $sp.Children.Add((Fila-Botones @() $der)) | Out-Null
     $w.Content.Child = $sp
     return ($w.ShowDialog() -eq $true)
+}
+# Cartel de 3 botones. Devuelve 'cancelar' (Esc o la X: no se aplica nada), 'menos' (todo menos lo del cartel) o 'aplicar' (todo, con lo del cartel).
+function Confirmar-Tres([string]$titulo, [string]$mensaje, [string]$textoSi = 'Aplicar', [string]$colorSi = '#60A5FA') {
+    $script:Res3 = 'cancelar'
+    [void](Confirmar $titulo $mensaje $textoSi $colorSi 'Cancelar' 'Todo menos esto')
+    return $script:Res3
+}
+$TxtTres = 'Cancelar no aplica nada y vuelve a la pantalla. "Todo menos esto" aplica todo lo demas y desmarca solo estos ajustes. "Aplicar" los aplica junto con el resto.'
+# Pregunta con 3 botones por un grupo de opciones ('Pagina|id'). Devuelve 'salir' (Cancelar: no se aplica nada), 'menos' (ya desmarco esas) o 'aplicar'.
+function Preguntar-Tres([string]$titulo, [string]$q, [string[]]$claves, [string]$perfil, [string]$colorSi = '#B3412F') {
+    $r = Confirmar-Tres $titulo ($q + "`n`n" + (Con-Enie $TxtTres)) 'Aplicar' $colorSi
+    if ($r -eq 'cancelar') {
+        # Con un perfil de 1 clic las marcas las puso el perfil: Cancelar las saca para no dejar la pantalla con un perfil a medias
+        if ($perfil) { foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } }; Actualizar-Contador }
+        return 'salir'
+    }
+    if ($r -eq 'menos') {
+        foreach ($k in $claves) { $p0, $id0 = $k -split '\|'; $Casillas[$p0][$id0].IsChecked = $false }
+        Actualizar-Contador
+    }
+    return $r
 }
 function Avisar([string]$titulo, [string]$mensaje) { Confirmar $titulo $mensaje 'Entendido' '#60A5FA' '' | Out-Null }
 
@@ -2602,6 +2647,15 @@ $Advertencias = @{
     'Gaming|spc'   = 'BAJA MUCHO LA SEGURIDAD: un programa o una pagina web maliciosa podria leer contrasenas y otros datos de la memoria. Usalo solo en una PC para jugar, sin datos importantes, y restablecelo si la vas a usar para otra cosa.'
 }
 
+# Avisos de la tarjeta para opciones que pueden dar problemas con aparatos conectados (no impiden "Marcar solo seguras"):
+# al aplicar, la app mira que tenes conectado y avisa con el nombre del aparato.
+$AdvDisp = @{
+    'Gaming|mm'   = 'Con interfaces de audio o instrumentos MIDI puede cambiar la latencia. Al aplicar, la app te avisa si detecta uno.'
+    'Gaming|tr'   = 'Con interfaces de audio o instrumentos MIDI puede cambiar la latencia. Al aplicar, la app te avisa si detecta uno.'
+    'Debloat|rsv' = 'Si usas lector de tarjetas inteligentes o NFC, destildalo en la lista. Al aplicar, la app te avisa si detecta uno.'
+    'Debloat|drs' = 'Borra los drivers de impresoras, joysticks, camaras o interfaces de audio desenchufados. Al aplicar, la app te avisa si detecta alguno.'
+}
+
 # Opciones que tocan Xbox, Game Bar, Game Pass o Minecraft: muestran el aviso en la tarjeta, "Marcar solo seguras" no las marca
 # y antes de aplicarlas (a mano o con un perfil) la app pregunta. Si no confirmas, se aplica todo lo demas sin ellas.
 # Opciones que BORRAN partes de Windows y no tienen restablecimiento: muestran el aviso en la tarjeta, "Marcar solo seguras" no las marca
@@ -2656,6 +2710,7 @@ function Icono-EnTitulo($tb, $el) {
 function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     $clave = $pagina + '|' + $it.Id
     $adv = $Advertencias[$clave]
+    if (-not $adv) { $adv = $AdvDisp[$clave] }
     $drv = $Drivers[$clave]
     $card = Nueva-Caja
     $sp = New-Object Windows.Controls.StackPanel
@@ -7283,6 +7338,69 @@ function Pausa-Tamper {
     return $true
 }
 
+# ------------------------------------------------------------
+# Dispositivos conectados que dependen de lo que se va a aplicar (musicos: MIDI e interfaces de audio; ademas
+# impresoras, joysticks, Bluetooth, biometria, tarjetas, camaras y escaneres). Solo se LEE; se hace una vez y queda guardado.
+# ------------------------------------------------------------
+function Leer-Dispositivos {
+    if ($script:Dispositivos) { return $script:Dispositivos }
+    $d = @{ audio = @(); midi = @(); asio = @(); bt = @(); imp = @(); joy = @(); bio = @(); cam = @(); tarj = @() }
+    $pnp = @()
+    try { $pnp = @(Get-CimInstance -ClassName Win32_PnPEntity -Filter 'Present=TRUE' -ErrorAction Stop) } catch { }
+    foreach ($e in $pnp) {
+        $n = [string]$e.Name; if (-not $n) { continue }
+        $c = [string]$e.PNPClass; $id = [string]$e.DeviceID
+        # Interfaz de audio USB, o placa de audio PCI/Thunderbolt que no es la de la mother (Realtek, HDMI, etc.)
+        if (($c -eq 'MEDIA') -and (($id -like 'USB\*') -or (($id -like 'PCI\*') -and ($n -notmatch '(?i)high definition|realtek|nvidia|intel|amd|smart sound|hdmi|display|creative sound blaster|sonido|azalia')))) { $d.audio += $n }
+        if (($n -match '(?i)\bmidi\b') -and ($n -notmatch '(?i)microsoft|wavetable|mapper|virtual|loop|midi 2\.0 service')) { $d.midi += $n }
+        if (($c -eq 'Bluetooth') -and ($id -match '^(BTHENUM|BTHLE)\DEV_')) { $d.bt += $n }
+        if (($c -in 'HIDClass', 'XboxComposite', 'XnaComposite') -and ($n -match '(?i)game controller|gamepad|joystick|controlador de juego|wheel|volante|xbox.*(controller|mando)')) { $d.joy += $n }
+        if ($c -eq 'Biometric') { $d.bio += $n }
+        if (($c -in 'Camera', 'Image') -and ($id -notlike 'ROOT\*')) { $d.cam += $n }
+        if ($c -eq 'SmartCardReader') { $d.tarj += $n }
+    }
+    # Impresoras reales (sin PDF, XPS, OneNote ni Fax)
+    try { $d.imp = @(Get-CimInstance -ClassName Win32_Printer -ErrorAction Stop | Where-Object { ([string]$_.Name -notmatch '(?i)^(microsoft|onenote|fax|send to|enviar|adobe pdf|root\print)') -and ([string]$_.PortName -notmatch '(?i)^(nul:|portprompt:|xpsport:)') } | ForEach-Object { [string]$_.Name }) } catch { }
+    # Drivers ASIO instalados (los registran las interfaces de audio y los programas de musica)
+    foreach ($ra in 'HKLM:\SOFTWARE\ASIO', 'HKLM:\SOFTWARE\WOW6432Node\ASIO') {
+        try { foreach ($k in @(Get-ChildItem -LiteralPath $ra -ErrorAction Stop)) { if ($k.PSChildName -notmatch '(?i)^asio4all|^fl studio|^generic') { $d.asio += $k.PSChildName } } } catch { }
+    }
+    foreach ($k in @($d.Keys)) { $d[$k] = @($d[$k] | Where-Object { $_ } | Sort-Object -Unique) }
+    $script:Dispositivos = $d
+    return $d
+}
+# Opcion -> que dispositivos puede afectar y por que. Cat = categorias de Leer-Dispositivos.
+$DispRiesgo = [ordered]@{
+    'Gaming|mm'   = @{ Cat = @('audio', 'midi', 'asio'); Por = 'cambia la prioridad de CPU entre programas: la musica en vivo puede cortarse o tener mas latencia.' }
+    'Gaming|tr'   = @{ Cat = @('audio', 'midi', 'asio'); Por = 'cambia el temporizador del sistema: puede variar la latencia de audio y MIDI.' }
+    'Gaming|idle' = @{ Cat = @('audio', 'midi', 'asio'); Por = 'cambia los estados de reposo del procesador: pueden aparecer clicks o cortes de audio.' }
+    'Gaming|pci'  = @{ Cat = @('audio', 'midi', 'asio'); Por = 'cambia el ahorro de energia de PCIe: una placa de audio PCIe o Thunderbolt puede cortarse.' }
+    'Gaming|pe'   = @{ Cat = @('audio', 'midi'); Por = 'cambia la energia de los puertos USB: una interfaz o un instrumento USB puede comportarse distinto.' }
+    'Debloat|bt'  = @{ Cat = @('bt'); Por = 'apaga el Bluetooth: estos aparatos dejan de andar.' }
+    'Debloat|rmin' = @{ Cat = @('imp'); Por = 'apaga la cola de impresion: no vas a poder imprimir.' }
+    'Debloat|sx'  = @{ Cat = @('bio', 'cam'); Por = 'apaga la biometria y los sensores: Windows Hello y los lectores dejan de andar.' }
+    'Debloat|rsv' = @{ Cat = @('tarj'); Por = 'puede apagar el servicio de tarjetas inteligentes y NFC: el lector deja de andar.' }
+    'Debloat|drs' = @{ Cat = @('audio', 'midi', 'imp', 'joy', 'cam', 'bt'); Por = 'borra los drivers de lo que no esta en uso: si desenchufaste este aparato, hay que bajar su driver de nuevo.' }
+}
+# Devuelve @{ Claves; Texto }: las opciones marcadas con riesgo para algun dispositivo detectado y el texto del cartel
+function Riesgos-Dispositivos($marcadas) {
+    $claves = @(); $lin = @(); $nom = @()
+    $marc = @($marcadas | Where-Object { $DispRiesgo.Contains($_) })
+    if ($marc.Count -gt 0) {
+        $d = Leer-Dispositivos
+        foreach ($k in $marc) {
+            $nn = @(); foreach ($ct in $DispRiesgo[$k].Cat) { $nn += @($d[$ct]) }
+            $nn = @($nn | Sort-Object -Unique)
+            if ($nn.Count -eq 0) { continue }
+            $claves += $k; $nom += $nn
+            $lin += ('- ' + (Titulo-De ($k -split '\|')[0] ($k -split '\|')[1]) + ': ' + (Con-Enie $DispRiesgo[$k].Por))
+        }
+    }
+    if ($claves.Count -eq 0) { return @{ Claves = @(); Texto = '' } }
+    $t = (Con-Enie 'Se detecto:') + ' ' + (@($nom | Sort-Object -Unique) -join ', ') + "`n`n" + (Con-Enie 'Lo que marcaste puede dar problemas con eso:') + "`n" + ($lin -join "`n")
+    return @{ Claves = $claves; Texto = $t }
+}
+
 # Perfiles de rendimiento: al limpiar el arranque tambien sacan OneDrive y el icono de Defender de la bandeja
 $PerfilesRend = @('opt', 'comp', 'nbcomp', 'ramlow', 'tiny', 'full')
 
@@ -7293,27 +7411,38 @@ function Aplicar-Seleccion([string]$perfil = '') {
     $selD = Elegidas 'Debloat'
     $selG = Elegidas 'Gaming'
     if (($selD.Count + $selG.Count) -eq 0) { Avisar 'Aplicar' 'No marcaste ninguna opcion.'; return }
-    # Lo que toca Xbox / Game Bar / Game Pass / Minecraft: se pregunta antes. Cancelar (o Esc) las desmarca y sigue sin ellas.
+    # Lo que toca Xbox / Game Bar / Game Pass / Minecraft: se pregunta antes (Cancelar / Todo menos esto / Aplicar).
     $xbx = @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }) | Where-Object { $AvisosXbox.Contains($_) })
     if ($xbx.Count -gt 0) {
         $lin = @($xbx | ForEach-Object { '- ' + (Titulo-De ($_ -split '\|')[0] ($_ -split '\|')[1]) + ': ' + (Con-Enie $AvisosXbox[$_]) })
-        $q = (Con-Enie 'Marcaste ajustes que tocan Xbox, la Game Bar, Game Pass o Minecraft:') + "`n" + ($lin -join "`n") + "`n`n" + (Con-Enie 'Si usas Xbox, Game Pass o Minecraft, toca "Sin Xbox": se aplica todo lo demas sin estos ajustes.')
-        if (-not (Confirmar ($Aviso + ' Xbox, Game Pass y Minecraft') $q 'Aplicarlos igual' '#B3412F' 'Sin Xbox')) {
-            foreach ($k in $xbx) { $p0, $id0 = $k -split '\|'; $Casillas[$p0][$id0].IsChecked = $false }
-            Actualizar-Contador
+        $q = (Con-Enie 'Marcaste ajustes que tocan Xbox, la Game Bar, Game Pass o Minecraft:') + "`n" + ($lin -join "`n") + "`n`n" + (Con-Enie 'Si usas Xbox, Game Pass o Minecraft, toca "Todo menos esto".')
+        $r3 = Preguntar-Tres ($Aviso + ' Xbox, Game Pass y Minecraft') $q $xbx $perfil
+        if ($r3 -eq 'salir') { return }
+        if ($r3 -eq 'menos') {
             $selD = Elegidas 'Debloat'
             $selG = Elegidas 'Gaming'
             if (($selD.Count + $selG.Count) -eq 0) { return }
         }
     }
-    # Lo que borra partes de Windows sin vuelta atras: se pregunta antes. Cancelar las desmarca y sigue sin ellas.
+    # Lo que borra partes de Windows sin vuelta atras: se pregunta antes (Cancelar / Todo menos esto / Aplicar).
     $svs = @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }) | Where-Object { $SinVuelta.Contains($_) })
     if ($svs.Count -gt 0) {
         $lin = @($svs | ForEach-Object { '- ' + (Titulo-De ($_ -split '\|')[0] ($_ -split '\|')[1]) + ': ' + (Con-Enie $SinVuelta[$_]) })
-        $q = (Con-Enie 'Marcaste opciones que BORRAN partes de Windows y NO SE PUEDEN RESTABLECER desde la app:') + "`n" + ($lin -join "`n") + "`n`n" + (Con-Enie 'Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Sin estas".')
-        if (-not (Confirmar ($Aviso + ' Sin vuelta atras') $q 'Borrar igual' '#B3412F' 'Sin estas')) {
-            foreach ($k in $svs) { $p0, $id0 = $k -split '\|'; $Casillas[$p0][$id0].IsChecked = $false }
-            Actualizar-Contador
+        $q = (Con-Enie 'Marcaste opciones que BORRAN partes de Windows y NO SE PUEDEN RESTABLECER desde la app:') + "`n" + ($lin -join "`n") + "`n`n" + (Con-Enie 'Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Todo menos esto".')
+        $r3 = Preguntar-Tres ($Aviso + ' Sin vuelta atras') $q $svs $perfil
+        if ($r3 -eq 'salir') { return }
+        if ($r3 -eq 'menos') {
+            $selD = Elegidas 'Debloat'
+            $selG = Elegidas 'Gaming'
+            if (($selD.Count + $selG.Count) -eq 0) { return }
+        }
+    }
+    # Dispositivos que tenes conectados y que dependen de lo marcado (MIDI, interfaces de audio, impresoras, Bluetooth...)
+    $dvr = Riesgos-Dispositivos @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }))
+    if ($dvr.Claves.Count -gt 0) {
+        $r3 = Preguntar-Tres ($Aviso + ' Dispositivos conectados') $dvr.Texto $dvr.Claves $perfil '#60A5FA'
+        if ($r3 -eq 'salir') { return }
+        if ($r3 -eq 'menos') {
             $selD = Elegidas 'Debloat'
             $selG = Elegidas 'Gaming'
             if (($selD.Count + $selG.Count) -eq 0) { return }
@@ -7361,7 +7490,9 @@ function Aplicar-Seleccion([string]$perfil = '') {
         }
         if ($prot.Count -gt 0) {
             $q = (Con-Enie 'Elegiste borrar apps protegidas por Windows:') + ' ' + ($prot -join ', ') + "`n`n" + (Con-Enie 'Se quitan con el metodo que usa Windows para retirar apps (las marca como fin de vida para todos los usuarios). NO se pueden revertir facil: para recuperarlas puede hacer falta una actualizacion grande de Windows o reinstalarlo.')
-            if (-not (Confirmar ($Aviso + ' Apps protegidas') $q 'Borrarlas igual' '#B3412F' 'Sin las protegidas')) {
+            $r3 = Preguntar-Tres ($Aviso + ' Apps protegidas') ($q + ' ' + (Con-Enie 'Aca "Todo menos esto" aplica todo lo demas pero no borra las apps protegidas.')) @() $perfil
+            if ($r3 -eq 'salir') { return }
+            if ($r3 -eq 'menos') {
                 $quitar = @($script:Elegibles.db | Where-Object { $_.Prot } | ForEach-Object { $_.Id })
                 $vD['XSEL_db'] = (@(([string]$vD['XSEL_db']) -split "`t" | Where-Object { $_ -and ($quitar -notcontains $_) }) -join "`t")
                 if (-not $vD['XSEL_db']) { $vD.Remove('XSEL_db'); $Casillas.Debloat['db'].IsChecked = $false }
