@@ -56,7 +56,7 @@ function Afi-Nombres([string]$txt) {
 }
 
 # >>> XUCA-PROGRAMAS (la app copia todo lo que esta entre estas dos marcas para saber si el programa instalado es el de esta version)
-# Codigo de los programitas que se instalan en ProgramData\Brio (temporizador, limpiador de RAM y afinidad).
+# Codigo de los programitas que se instalan en ProgramData\Brio (temporizador, limpiador de RAM, afinidad, destrabador de teclado y modo foco).
 # Al instalarlos se guarda al lado un .ver con la huella del codigo. Si una version nueva del script cambia el codigo,
 # la huella no coincide: la app lo muestra como no aplicado y al aplicarlo se vuelve a instalar el nuevo.
 $CodTimer = 'using System.Runtime.InteropServices; using System.Threading; public class P { [DllImport("ntdll.dll")] public static extern int NtSetTimerResolution(uint d, bool s, out uint c); public static void Main() { uint c; NtSetTimerResolution(5000, true, out c); Thread.Sleep(Timeout.Infinite); } }'
@@ -72,6 +72,110 @@ function Ver-Igual([string]$exe, [string]$c) {
     return (([string](Get-Content -LiteralPath $f -TotalCount 1)).Trim() -eq (Ver-Codigo $c))
 }
 function Ver-Guardar([string]$exe, [string]$c) { try { Set-Content -LiteralPath ($exe + '.ver') -Value (Ver-Codigo $c) -Encoding ASCII } catch { } }
+$CodBrioTeclado = @'
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+public class P {
+    [StructLayout(LayoutKind.Sequential)] struct MOUSEINPUT { public int dx, dy; public uint mouseData, dwFlags, time; public IntPtr extra; }
+    [StructLayout(LayoutKind.Sequential)] struct KEYBDINPUT { public ushort wVk, wScan; public uint dwFlags, time; public IntPtr extra; }
+    [StructLayout(LayoutKind.Explicit)] struct UNION { [FieldOffset(0)] public MOUSEINPUT mi; [FieldOffset(0)] public KEYBDINPUT ki; }
+    [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public UNION u; }
+    [StructLayout(LayoutKind.Sequential)] struct LII { public uint cb, t; }
+    [StructLayout(LayoutKind.Sequential)] struct MSG { public IntPtr h; public uint m; public IntPtr w, l; public uint t; public int x, y; }
+    [DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] i, int size);
+    [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LII i);
+    [DllImport("user32.dll")] static extern short GetAsyncKeyState(int k);
+    [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr h, int id, uint mods, uint vk);
+    [DllImport("user32.dll")] static extern int GetMessage(out MSG m, IntPtr h, uint a, uint b);
+    static readonly ushort[] Teclas = { 0xA4, 0xA5, 0xA2, 0xA3, 0xA0, 0xA1, 0x5B, 0x5C };
+    static void Soltar(ushort k) {
+        INPUT[] e = new INPUT[1];
+        uint f = 0x0002;
+        if (k == 0xA5 || k == 0xA3 || k == 0x5B || k == 0x5C) f |= 0x0001;
+        e[0].type = 1; e[0].u.ki.wVk = k; e[0].u.ki.dwFlags = f;
+        SendInput(1, e, Marshal.SizeOf(typeof(INPUT)));
+    }
+    static void Ctfmon() {
+        Process[] ps = Process.GetProcessesByName("ctfmon");
+        bool reiniciar = ps.Length == 0;
+        foreach (Process p in ps) { try { if (!p.Responding) { p.Kill(); p.WaitForExit(2000); reiniciar = true; } } catch { } }
+        if (!reiniciar) return;
+        try { Process.Start(new ProcessStartInfo("schtasks.exe", "/run /tn \"\\Microsoft\\Windows\\TextServicesFramework\\MsCtfMonitor\"") { CreateNoWindow = true, UseShellExecute = false }).WaitForExit(3000); } catch { }
+    }
+    // Suelta solo si no hubo NINGUNA entrada (teclado ni mouse) en 30 segundos: una tecla apretada de verdad repite y cuenta como entrada
+    static void Vigilar() {
+        while (true) {
+            Thread.Sleep(2000);
+            try {
+                LII i = new LII(); i.cb = 8;
+                if (!GetLastInputInfo(ref i)) continue;
+                if (((uint)Environment.TickCount - i.t) < 30000) continue;
+                foreach (ushort k in Teclas) { if ((GetAsyncKeyState(k) & 0x8000) != 0) Soltar(k); }
+            } catch { }
+        }
+    }
+    public static void Main() {
+        Thread t = new Thread(Vigilar); t.IsBackground = true; t.Start();
+        // Ctrl + Alt + K (MOD_ALT 1, MOD_CONTROL 2, MOD_NOREPEAT 0x4000): sin ventana, el mensaje llega a la cola de este hilo
+        RegisterHotKey(IntPtr.Zero, 1, 0x4003, 0x4B);
+        MSG m;
+        while (GetMessage(out m, IntPtr.Zero, 0, 0) > 0) {
+            if (m.m == 0x0312) { foreach (ushort k in Teclas) Soltar(k); Ctfmon(); }
+        }
+    }
+}
+'@
+$CodBrioFoco = @'
+using System;
+using System.Runtime.InteropServices;
+public class P {
+    delegate IntPtr Gancho(int n, IntPtr w, IntPtr l);
+    [StructLayout(LayoutKind.Sequential)] struct MSG { public IntPtr h; public uint m; public IntPtr w, l; public uint t; public int x, y; }
+    [DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(int id, Gancho f, IntPtr m, uint t);
+    [DllImport("user32.dll")] static extern bool UnhookWindowsHookEx(IntPtr h);
+    [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr h, int n, IntPtr w, IntPtr l);
+    [DllImport("kernel32.dll")] static extern IntPtr GetModuleHandle(string n);
+    [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr h, int id, uint mods, uint vk);
+    [DllImport("user32.dll")] static extern int GetMessage(out MSG m, IntPtr h, uint a, uint b);
+    [DllImport("shell32.dll")] static extern int SHQueryUserNotificationState(out int s);
+    static Gancho cb = Cb;
+    static IntPtr hook;
+    static volatile bool manual;
+    static bool[] sostenida = new bool[2];
+    static bool[] tragada = new bool[2];
+    // Pantalla completa (2 = ocupado, 3 = Direct3D a pantalla completa): lo calcula Windows, es una llamada barata
+    static bool Juego() { int s; return SHQueryUserNotificationState(out s) == 0 && (s == 2 || s == 3); }
+    static IntPtr Cb(int n, IntPtr w, IntPtr l) {
+        if (n >= 0) {
+            int vk = Marshal.ReadInt32(l);
+            int fl = Marshal.ReadInt32(l, 8);
+            // Solo la tecla Windows real (no las inyectadas, 0x10). Se decide al apretarla y se repite al soltarla: nunca queda una tecla a medias
+            if ((vk == 0x5B || vk == 0x5C) && (fl & 0x10) == 0) {
+                int i = vk - 0x5B;
+                if ((fl & 0x80) == 0) { if (!sostenida[i]) { sostenida[i] = true; tragada[i] = manual || Juego(); } }
+                else sostenida[i] = false;
+                bool tragar = tragada[i];
+                if ((fl & 0x80) != 0) tragada[i] = false;
+                if (tragar) return (IntPtr)1;
+            }
+        }
+        return CallNextHookEx(hook, n, w, l);
+    }
+    public static void Main() {
+        hook = SetWindowsHookEx(13, cb, GetModuleHandle(null), 0);
+        if (hook == IntPtr.Zero) return;
+        // Ctrl + Alt + F: trabar la tecla Windows siempre (sin juego) o volver a lo automatico. Un pitido corto agudo = trabada
+        RegisterHotKey(IntPtr.Zero, 1, 0x4003, 0x46);
+        MSG m;
+        while (GetMessage(out m, IntPtr.Zero, 0, 0) > 0) {
+            if (m.m == 0x0312) { manual = !manual; try { Console.Beep(manual ? 1000 : 600, 120); } catch { } }
+        }
+        UnhookWindowsHookEx(hook);
+    }
+}
+'@
 # <<< XUCA-PROGRAMAS
 
 # >>> XUCA-CPU (la app copia todo lo que esta entre estas dos marcas para leer el procesador)
@@ -722,6 +826,44 @@ function Appx-Poner([string[]]$pares) {
 # Devuelven 0 = hecho, 1 = fallo, 2 = no aplica en esta PC, 5 = ya estaba, 6 = queda un paso para despues, 10 = caso especial.
 # $XDato: los valores para SPI (mouse) y DX (graficos), y en PWR_OFF/PWR_ON el grupo (usb, pcie o disco).
 # ------------------------------------------------------------
+# Programitas que miran el teclado: tienen que correr en TU sesion (un servicio de SYSTEM no ve tu teclado), asi que la tarea
+# arranca al iniciar sesion con tu usuario y permisos altos (si no, no ven los juegos ni programas abiertos como administrador).
+function Prog-Usuario-On([string]$tn, [string]$cs, [string]$cuando) {
+    $dir = Join-Path $env:ProgramData 'Brio'; $exe = Join-Path $dir ($tn + '.exe')
+    Proteger-Carpeta $dir
+    $yo = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
+    if ($t -and ($t.State -eq 'Running') -and (Test-Path $exe) -and (Ver-Igual $exe $cs)) { Log 'OK' ('ya estaba: ' + $cuando + ' corriendo'); return 5 }
+    if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
+    Get-Process -Name $tn -ErrorAction SilentlyContinue | Stop-Process -Force
+    Esperar-Cierre $tn
+    if ((-not (Test-Path $exe)) -or (-not (Ver-Igual $exe $cs))) {
+        Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
+        try { Add-Type -TypeDefinition $cs -Language CSharp -OutputAssembly $exe -OutputType WindowsApplication } catch { Log 'FALLO' ('Compilar ' + $tn + ': ' + $_.Exception.Message); return 1 }
+    }
+    if (-not (Test-Path $exe)) { return 1 }
+    $acc = New-ScheduledTaskAction -Execute $exe; $trg = New-ScheduledTaskTrigger -AtLogOn -User $yo
+    $pri = New-ScheduledTaskPrincipal -UserId $yo -LogonType Interactive -RunLevel Highest
+    $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
+    Register-ScheduledTask -TaskName $tn -Action $acc -Trigger $trg -Principal $pri -Settings $set -Force | Out-Null
+    Start-ScheduledTask -TaskName $tn
+    if (Esperar-Tarea $tn) { Ver-Guardar $exe $cs; Log 'OK' ('verificado: ' + $cuando + ' corriendo'); return 0 }
+    Log 'FALLO' ('la tarea ' + $tn + ' no quedo corriendo'); return 1
+}
+function Prog-Usuario-Off([string]$tn, [string]$cuando) {
+    $exe = Join-Path (Join-Path $env:ProgramData 'Brio') ($tn + '.exe')
+    $t = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
+    $p = Get-Process -Name $tn -ErrorAction SilentlyContinue
+    if ((-not $t) -and (-not $p) -and (-not (Test-Path $exe))) { Log 'OK' ('ya estaba: sin ' + $cuando); return 5 }
+    if ($t) { Stop-ScheduledTask -TaskName $tn; Unregister-ScheduledTask -TaskName $tn -Confirm:$false }
+    # Al cerrar el programa Windows saca su gancho del teclado solo: no queda ninguna tecla bloqueada
+    Get-Process -Name $tn -ErrorAction SilentlyContinue | Stop-Process -Force
+    Esperar-Cierre $tn
+    Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
+    if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name $tn -ErrorAction SilentlyContinue)) { Log 'FALLO' ($cuando + ' no se pudo borrar del todo'); return 1 }
+    Log 'OK' ('verificado: ' + $cuando + ' borrado'); return 0
+}
+
 function Gaming-Act([string]$XAct, [string]$XDato) {
     $code = 0
     . {
@@ -1306,6 +1448,14 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
             else { Log 'OK' 'verificado: temporizador borrado (Windows vuelve a su valor por defecto)' }
         }
     }
+
+    'KBD_ON' { $code = Prog-Usuario-On 'BrioTeclado' $CodBrioTeclado 'destrabador de teclado' }
+
+    'KBD_OFF' { $code = Prog-Usuario-Off 'BrioTeclado' 'destrabador de teclado' }
+
+    'FOCO_ON' { $code = Prog-Usuario-On 'BrioFoco' $CodBrioFoco 'modo foco' }
+
+    'FOCO_OFF' { $code = Prog-Usuario-Off 'BrioFoco' 'modo foco' }
 
     'RAM_ON' {
         $tn = 'BrioRAM'; $dir = Join-Path $env:ProgramData 'Brio'; $exe = Join-Path $dir 'BrioRAM.exe'
@@ -2987,6 +3137,40 @@ $ListaOpciones = @(
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden' 'REG_DWORD' '2'
             Refrescar-Explorer
             Opt-Fin 'Elementos ocultos como los deja Windows'
+        }
+    },
+    @{
+        Id = 'dtk'; Seccion = 'TECLADO'
+        Q = '- Desea que el teclado se destrabe solo? (Un programa chico suelta Alt, Ctrl, Shift y Windows si quedan apretados; atajo Ctrl + Alt + K)'
+        Hace = 'un programa chico en segundo plano suelta Alt, Ctrl, Shift y Windows cuando quedan apretados sin que toques nada, y deja el atajo Ctrl + Alt + K para soltarlos y reiniciar la entrada de texto (ctfmon) cuando quieras.'
+        Favor = 'si el teclado se traba en plena partida (salen atajos al escribir, el mouse selecciona de mas), se arregla solo o con el atajo, sin salir del juego.'
+        Contra = 'una tecla apretada mas de 30 segundos sin tocar nada mas se suelta sola.'
+        S = {
+            Opt-Ini 'Destrabar el teclado'
+            Resps (Act 'KBD_ON')
+            Opt-Fin 'Destrabador de teclado activo (arranca al iniciar sesion)'
+        }
+        R = {
+            Opt-Ini 'Destrabar el teclado (restaurar)'
+            Resps (Act 'KBD_OFF')
+            Opt-Fin 'Destrabador de teclado desactivado'
+        }
+    },
+    @{
+        Id = 'foc'; Seccion = 'TECLADO'
+        Q = '- Desea activar el Modo foco? (La tecla Windows no abre el Inicio ni te saca del juego en pantalla completa; Ctrl + Alt + F la bloquea siempre)'
+        Hace = 'un programa chico en segundo plano ignora la tecla Windows mientras hay un juego en pantalla completa. Con Ctrl + Alt + F la ignora siempre, hasta que repitas el atajo (suena un pitido).'
+        Favor = 'un toque sin querer a la tecla Windows ya no te saca de la partida ni abre el menu Inicio.'
+        Contra = 'con el juego en pantalla completa tampoco andan los atajos con Windows (Win + D, Win + Shift + S...).'
+        S = {
+            Opt-Ini 'Modo foco'
+            Resps (Act 'FOCO_ON')
+            Opt-Fin 'Modo foco activo (arranca al iniciar sesion)'
+        }
+        R = {
+            Opt-Ini 'Modo foco (restaurar)'
+            Resps (Act 'FOCO_OFF')
+            Opt-Fin 'Modo foco desactivado: la tecla Windows vuelve a andar siempre'
         }
     },
     @{

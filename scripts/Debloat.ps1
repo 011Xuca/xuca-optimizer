@@ -16,11 +16,10 @@ $ReinDebloat = @('av', 'rc', 'ad', 'bng', 'sv', 'pv', 'pvu', 'pvw', 'pvs', 'pve'
 # Opciones que usan comandos que Windows 7 y 8 no tienen (apps de la Store, Defender nuevo, BitLocker, componentes,
 # dispositivos, cuentas locales, montar el ISO). En esas versiones la app las muestra como no compatibles y aca se saltean.
 # tvb, iap e iao salieron de wg e ia: son de Windows 10 y 11 igual que la opcion de la que vienen.
-$SoloWin10 = @('ver', 'av', 'bl', 'mc', 'rc', 'wg', 'tvb', 'sv', 'nvl', 'bt', 'old', 'msx', 'dold', 'dball', 'lang', 'acc', 'ia', 'iap', 'iao', 'db', 'edge', 'drv', 'ms_acc', 'al', 'cta')
+$SoloWin10 = @('ver', 'rep', 'av', 'bl', 'mc', 'rc', 'wg', 'tvb', 'sv', 'nvl', 'bt', 'old', 'msx', 'dold', 'dball', 'lang', 'acc', 'ia', 'iap', 'iao', 'db', 'edge', 'drv', 'ms_acc', 'al', 'cta')
 
 # Tareas de telemetria (opcion "Reducir la telemetria")
 $TareasTelemetria = @(
-    '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser',
     '\Microsoft\Windows\Application Experience\ProgramDataUpdater',
     '\Microsoft\Windows\Customer Experience Improvement Program\Consolidator',
     '\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip',
@@ -33,6 +32,13 @@ $TareasTelemetria = @(
     '\Microsoft\Windows\Maps\MapsUpdateTask',
     '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem'
 )
+
+# Windows Update por completo (opcion "wus"): servicios y tareas que lo vuelven a prender solo
+$SvcWu = @('wuauserv', 'UsoSvc', 'WaaSMedicSvc')
+$TareasWu = @('\Microsoft\Windows\WindowsUpdate\Scheduled Start', '\Microsoft\Windows\UpdateOrchestrator\Schedule Scan', '\Microsoft\Windows\UpdateOrchestrator\Schedule Scan Static Task', '\Microsoft\Windows\UpdateOrchestrator\Report policies', '\Microsoft\Windows\UpdateOrchestrator\USO_UxBroker', '\Microsoft\Windows\WaaSMedic\PerformRemediation')
+
+# Hasta v1.0.13 "tel" apagaba esta tarea: sin ella Windows Update no evalua si tu PC puede pasar a la version nueva (26H2)
+$TareaAppraiser = '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser'
 
 # Tareas de mantenimiento y diagnostico extra (opcion "tsk"). Las que no existan en esta PC se anotan como omitidas.
 $TareasExtra = @(
@@ -98,6 +104,104 @@ $HostsTelemetria = @(
     'watson.microsoft.com', 'statsfe2.ws.microsoft.com', 'corpext.msitadfs.glbdns2.microsoft.com',
     'compatexchange.cloudapp.net'
 )
+
+# Nunca se bloquean los servidores de la activacion y las licencias de Windows (aunque alguien los sume a la lista)
+$HostsTelemetria = @($HostsTelemetria | Where-Object { $_ -notmatch '(?i)(^|\.)(sls|licensing|activation|validation|displaycatalog|purchase|login\.live)\.' })
+
+# ------------------------------------------------------------
+# Submenus de la app: que se puede elegir en "Apagar servicios", "Servicios extremos", "Borrar apps" y en las apps
+# antiguas y modernas. Id = lo que recibe el script (XSEL_<opcion>), Nombre y Desc = lo que ve la persona,
+# Def = marcado de entrada, Nb = en notebooks queda desmarcado (wifi, sensores, biometria), Prot = protegido por Windows.
+# ------------------------------------------------------------
+function Elegible([string]$id, [string]$nombre, [string]$desc, [bool]$def = $true, [bool]$nb = $false, [bool]$prot = $false) {
+    [pscustomobject]@{ Id = $id; Nombre = $nombre; Desc = $desc; Def = $def; Nb = $nb; Prot = $prot }
+}
+$Elegibles = @{
+    rsv = @(
+        (Elegible 'PhoneSvc' 'Telefono' 'llamadas desde la PC con Vincular con el telefono.'),
+        (Elegible 'WalletService' 'Billetera' 'billetera de Windows (pagos guardados).'),
+        (Elegible 'SEMgrSvc' 'Pagos y NFC' 'pagos con NFC y elementos seguros. No afecta Windows Hello.'),
+        (Elegible 'icssvc' 'Zona wifi movil' 'compartir el internet de la PC por wifi.' $true $true),
+        (Elegible 'wisvc' 'Windows Insider' 'programa de versiones de prueba de Windows.'),
+        (Elegible 'WpcMonSvc' 'Control parental' 'limites de Microsoft Family. No afecta Windows Hello.'),
+        (Elegible 'SCardSvr' 'Tarjeta inteligente' 'lectores de tarjetas inteligentes (DNI, tokens de empresa).'),
+        (Elegible 'ScDeviceEnum' 'Lectores de tarjetas' 'detecta lectores de tarjetas inteligentes.'),
+        (Elegible 'SCPolicySvc' 'Retiro de tarjeta' 'bloquea la PC al sacar la tarjeta inteligente.'),
+        (Elegible 'TrkWks' 'Seguimiento de accesos directos' 'arregla accesos directos a archivos movidos en red.')
+    )
+    sx = @(
+        (Elegible 'WbioSrvc' 'Biometria' 'Windows Hello con huella o cara.' $true $true),
+        (Elegible 'SensorDataService' 'Datos de sensores' 'datos de los sensores de la PC.' $true $true),
+        (Elegible 'SensrSvc' 'Monitor de sensores' 'brillo automatico segun la luz.' $true $true),
+        (Elegible 'SensorService' 'Sensores' 'rotacion de pantalla y sensores de notebooks y tablets.' $true $true),
+        (Elegible 'wcncsvc' 'Windows Connect Now' 'conectar al wifi con el boton WPS.' $true $true),
+        (Elegible 'WFDSConMgrSvc' 'Wi-Fi Direct' 'proyectar y conectar aparatos por Wi-Fi Direct.' $true $true),
+        (Elegible 'TapiSrv' 'Telefonia (TAPI)' 'modems y telefonia vieja.'),
+        (Elegible 'MSiSCSI' 'iSCSI' 'discos de red de empresa.'),
+        (Elegible 'fhsvc' 'Historial de archivos' 'copias automaticas de tus archivos.'),
+        (Elegible 'SDRSVC' 'Copias de seguridad' 'copias de seguridad de Windows 7.'),
+        (Elegible 'Wecsvc' 'Eventos remotos' 'junta eventos de otras PCs.'),
+        (Elegible 'AxInstSV' 'Instalador ActiveX' 'instala controles ActiveX de paginas viejas.'),
+        (Elegible 'EntAppSvc' 'Apps de empresa' 'apps que instala una empresa.'),
+        (Elegible 'TroubleshootingSvc' 'Solucion de problemas' 'arreglos que Windows sugiere solo.'),
+        (Elegible 'RpcLocator' 'Localizador RPC' 'programas de red muy viejos.'),
+        (Elegible 'ALG' 'Puerta de enlace' 'compartir internet con el metodo viejo (ICS).'),
+        (Elegible 'CertPropSvc' 'Certificados de tarjeta' 'certificados de tarjetas inteligentes.'),
+        (Elegible 'SmsRouter' 'Mensajes SMS' 'mensajes de texto en PCs con chip.'),
+        (Elegible 'lmhosts' 'NetBIOS' 'nombres de red local del metodo viejo.')
+    )
+    # Apps: las basura (marcadas) salen de $AppsBasura; estas son las que se pueden sumar a mano
+    db = @(
+        (Elegible 'OneDrive' 'OneDrive' 'cierra OneDrive, lo desinstala y lo saca del Explorador y del inicio. Tus archivos no se borran.'),
+        (Elegible 'AdobeSystemsIncorporated.AdobeCreativeCloudExpress' 'Adobe Express' 'editor de imagenes de Adobe que viene de fabrica.' $false),
+        (Elegible 'MicrosoftCorporationII.QuickAssist' 'Asistencia rapida' 'que otra persona controle tu PC para ayudarte.' $false),
+        (Elegible 'Microsoft.StartExperiencesApp' 'Start Experiences' 'recomendaciones y paneles del menu Inicio.' $false),
+        (Elegible 'Microsoft.Paint' 'Paint' 'el Paint moderno.' $false),
+        (Elegible 'Microsoft.MicrosoftStickyNotes' 'Notas rapidas' 'notas adhesivas.' $false),
+        (Elegible 'Microsoft.WindowsAlarms' 'Reloj' 'alarmas, temporizador y sesiones de concentracion.' $false),
+        (Elegible 'Microsoft.WindowsCamera' 'Camara' 'la app de camara de Windows.' $false),
+        (Elegible 'Microsoft.ZuneMusic' 'Reproductor multimedia' 'el reproductor de musica y video moderno.' $false),
+        (Elegible 'EDGE' 'Microsoft Edge' 'el navegador de Windows (WebView2 se queda).' $false $false $true),
+        (Elegible 'Microsoft.BingSearch' 'Bing' 'busqueda web de Bing en Windows.' $false $false $true),
+        (Elegible 'Microsoft.Getstarted' 'Primeros pasos' 'consejos y presentacion de Windows.' $false $false $true)
+    )
+    dold = @(
+        (Elegible 'Microsoft.Windows.Notepad.System*' 'Bloc de notas clasico' 'el Bloc de notas de siempre (queda el moderno).'),
+        (Elegible 'Microsoft.Windows.MSPaint*' 'Paint clasico' 'el Paint de siempre (queda el moderno).'),
+        (Elegible 'Microsoft.Windows.WordPad*' 'WordPad' 'editor de texto con formato.'),
+        (Elegible 'Media.WindowsMediaPlayer*' 'Windows Media Player clasico' 'el reproductor viejo.'),
+        (Elegible 'App.StepsRecorder*' 'Grabador de pasos' 'graba lo que haces en capturas.'),
+        (Elegible 'Microsoft.Windows.PowerShell.ISE*' 'PowerShell ISE' 'editor de scripts viejo.'),
+        (Elegible 'Browser.InternetExplorer*' 'Internet Explorer' 'el navegador viejo.'),
+        (Elegible 'XPS.Viewer*' 'Visor XPS' 'abre documentos .xps.'),
+        (Elegible 'Print.Fax.Scan*' 'Fax y Escaner' 'enviar faxes y escanear con la app vieja.'),
+        (Elegible 'MathRecognizer*' 'Panel de matematicas' 'escribir formulas a mano.')
+    )
+}
+# Apps modernas que "Borrar las apps modernas" nunca toca (codecs, captura, Store, Xbox, paneles de audio y video, partes de Windows)
+$KeepModernas = '^(Microsoft\.\w*(Video|Image|Media)Extension|Microsoft\.ScreenSketch|AppUp\.|AdvancedMicroDevices|RealtekSemiconductor|DolbyLaboratories|WavesAudio|B9ECED6F\.|Microsoft\.WindowsCalculator|Microsoft\.WindowsStore|Microsoft\.StorePurchaseApp|Microsoft\.DesktopAppInstaller|Microsoft\.SecHealthUI|Microsoft\.WindowsTerminal|Microsoft\.Xbox|Microsoft\.Gaming|Microsoft\.UI\.Xaml|Microsoft\.VCLibs|Microsoft\.NET\.|Microsoft\.WindowsAppRuntime|Microsoft\.Windows\.|MicrosoftWindows\.|Microsoft\.MicrosoftEdge|Microsoft\.LockApp|Microsoft\.AAD|Microsoft\.AccountsControl|Microsoft\.CredDialogHost|Microsoft\.BioEnrollment|Microsoft\.AsyncTextService|Microsoft\.Win32WebViewHost|Microsoft\.XboxIdentityProvider|NVIDIACorp|windows\.)'
+
+# Lista de servicios para una opcion: lo elegido en el submenu o, sin submenu, los de siempre (en notebook sin wifi, sensores ni biometria)
+function Svc-Lista([string]$opt) {
+    $sel = Elegidos $opt
+    if ($null -ne $sel) { return @($Elegibles[$opt] | Where-Object { $sel -contains $_.Id } | ForEach-Object { $_.Id }) }
+    return @($Elegibles[$opt] | Where-Object { $_.Def -and -not ($_.Nb -and (Es-Notebook)) } | ForEach-Object { $_.Id })
+}
+
+# Borra un paquete que Windows marca como del sistema (Edge, Bing, Primeros pasos...). Mismo metodo que usa Windows al
+# retirar una app: se anota como "fin de vida" y "desaprovisionada" para todos los usuarios y recien ahi se desinstala.
+function Quitar-Protegida([string]$n) {
+    $base = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
+    $pk = @(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue)
+    if ($pk.Count -eq 0) { Log 'OMITIDO' ($n + ' no estaba instalada'); return }
+    $sids = @('S-1-5-18') + @(Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special } | ForEach-Object { [string]$_.SID })
+    foreach ($p in $pk) {
+        foreach ($s in $sids) { New-Item -Path ($base + '\EndOfLife\' + $s + '\' + $p.PackageFullName) -Force -ErrorAction SilentlyContinue | Out-Null }
+        New-Item -Path ($base + '\Deprovisioned\' + $p.PackageFamilyName) -Force -ErrorAction SilentlyContinue | Out-Null
+        try { Remove-AppxPackage -Package $p.PackageFullName -AllUsers -ErrorAction Stop } catch { try { Remove-AppxPackage -Package $p.PackageFullName -ErrorAction Stop } catch { } }
+    }
+    Res (@(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue).Count -eq 0) ('app protegida quitada: ' + $n)
+}
 
 function Hosts-Tiene([string]$h) {
     try { return ([IO.File]::ReadAllText($h, [Text.Encoding]::Default)).Contains('# xuca-telemetria') } catch { return $false }
@@ -1083,7 +1187,12 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
     }
 
     'INICIO_OFF' {
-        $lista = @(Inicio-Basura)
+        # Submenu "Limpiar arranque": las entradas que elegiste (Aprob + '>' + Clave). Sin submenu, las basura de siempre.
+        # XINI_EXTRA (perfiles de rendimiento): ademas apaga estas aunque esten en la lista para dejar (ej. el icono de Defender).
+        $selIni = Elegidos 'ini'
+        $extra = [string]$env:XINI_EXTRA
+        $lista = $(if ($null -ne $selIni) { @(Inicio-Lista | Where-Object { $_.Activo -and ($selIni -contains ($_.Aprob + '>' + $_.Clave)) }) } else { @(Inicio-Basura) })
+        if ($extra) { $lista = @(@($lista) + @(Inicio-Lista | Where-Object { $_.Activo -and $_.Dejar -and ($_.Texto -match $extra) })) }
         if ($lista.Count -eq 0) {
             Log 'OK' 'ya estaba: no hay apps basura que arranquen solas'
             $code = 5
@@ -1124,10 +1233,14 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
     }
 
     'DEBLOAT' {
-        Stop-Process -Name "OneDrive", "ms-teams", "msteams" -Force -ErrorAction SilentlyContinue
+        # Lo elegido en el submenu "Borrar apps" (sin submenu: OneDrive y las apps basura, como siempre)
+        $selDb = Elegidos 'db'
+        $quiereOd = ($null -eq $selDb) -or ($selDb -contains 'OneDrive')
+        Stop-Process -Name "ms-teams", "msteams" -Force -ErrorAction SilentlyContinue
+        if ($quiereOd) { Stop-Process -Name 'OneDrive' -Force -ErrorAction SilentlyContinue }
         Esperar-Cierre 'OneDrive', 'ms-teams', 'msteams' 2000
         $odExes = @(($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'))
-        $odHabia = (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0)
+        $odHabia = $quiereOd -and (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0)
         # Si Escritorio/Documentos/Imagenes viven en OneDrive o hay archivos solo en la nube, no se desinstala (se perderia el acceso)
         $odProtege = ''
         if ($odHabia) {
@@ -1140,30 +1253,39 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                 }
             } catch { }
         }
-        if (-not $odHabia) {
+        if (-not $quiereOd) {
+            Log 'INFO' 'OneDrive se deja: no lo elegiste'
+        } elseif (-not $odHabia) {
             Log 'OMITIDO' 'OneDrive no estaba instalado'
         } elseif ($odProtege) {
             Log 'OMITIDO' ('OneDrive no se desinstalo: ' + $odProtege)
         } else {
-            $odSetup = @(("$env:SystemRoot\System32\OneDriveSetup.exe"), ("$env:SystemRoot\SysWOW64\OneDriveSetup.exe")) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-            $odArgs = '/uninstall'
-            if (-not $odSetup) {
+            # El desinstalador oficial, el de 64 y el de 32 bits (System32 y SysWOW64), y si no esta, el que anoto el propio OneDrive
+            $setups = @(@(("$env:SystemRoot\System32\OneDriveSetup.exe"), ("$env:SystemRoot\SysWOW64\OneDriveSetup.exe")) | Where-Object { Test-Path -LiteralPath $_ } | ForEach-Object { , @($_, '/uninstall') })
+            if ($setups.Count -eq 0) {
                 foreach ($uk in 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe', 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe') {
                     $us = [string](Get-ItemProperty -Path $uk -ErrorAction SilentlyContinue).UninstallString
-                    if ($us -match '^\s*"?([^"]*OneDriveSetup\.exe)"?\s*(.*)$') { $odSetup = $Matches[1]; if ($Matches[2]) { $odArgs = $Matches[2] }; break }
+                    if ($us -match '^\s*"?([^"]*OneDriveSetup\.exe)"?\s*(.*)$') { $setups = @(, @($Matches[1], $(if ($Matches[2]) { $Matches[2] } else { '/uninstall' }))); break }
                 }
             }
-            if ($odSetup -and (Test-Path -LiteralPath $odSetup)) {
-                Start-Process -FilePath $odSetup -ArgumentList $odArgs -Wait -WindowStyle Hidden
+            if ($setups.Count -eq 0) { Log 'INFO' 'no se encontro el desinstalador de OneDrive' }
+            foreach ($s in $setups) {
+                if (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0) { break }
+                Start-Process -FilePath $s[0] -ArgumentList $s[1] -Wait -WindowStyle Hidden
                 Esperar-Cierre 'OneDrive', 'OneDriveSetup' 2000
-            } else {
-                Log 'INFO' 'no se encontro el desinstalador de OneDrive'
             }
             if (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0) {
                 Log 'OK' 'verificado: OneDrive desinstalado (tus archivos de la carpeta OneDrive no se tocan)'
             } else {
                 Log 'FALLO' 'OneDrive sigue instalado'
                 $code = 1
+            }
+        }
+        if ($quiereOd -and (-not $odProtege)) {
+            # Fuera del Explorador (panel de la izquierda, 64 y 32 bits) y fuera del inicio
+            foreach ($cl in 'HKCR\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}', 'HKCR\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}') { if (Reg-Existe $cl) { Reg-Set $cl 'System.IsPinnedToNameSpaceTree' 'REG_DWORD' '0' } }
+            foreach ($rk in 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run', 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run') {
+                foreach ($vn in 'OneDrive', 'OneDriveSetup') { if (Reg-Leer $rk $vn) { Reg-Del $rk $vn } }
             }
         }
 
@@ -1187,12 +1309,23 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                  'king.com.CandyCrushSodaSaga', 'king.com.CandyCrushFriends', 'king.com.BubbleWitch3Saga', 'Duolingo-LearnLanguagesforFree',
                  'AdobeSystemsIncorporated.AdobePhotoshopExpress', 'PandoraMediaInc.29680B314EFC2')
         # <<< XUCA-APPS
+        # Con submenu: las apps elegidas (basura y extras); las protegidas y Edge van aparte
+        $protDb = @($Elegibles.db | Where-Object { $_.Prot } | ForEach-Object { $_.Id })
+        $lista = $(if ($null -eq $selDb) { $AppsBasura } else { @($selDb | Where-Object { ($_ -ne 'OneDrive') -and ($protDb -notcontains $_) }) })
         $antes = @(Get-AppxPackage -AllUsers | Where-Object { -not $_.NonRemovable } | ForEach-Object { $_.Name })
-        Quitar-Apps $AppsBasura
+        $global:tocadas = 0
+        if (@($lista).Count -gt 0) { Quitar-Apps $lista }
         if ($odHabia) { $global:tocadas++ }
+        if ($null -ne $selDb) {
+            foreach ($p in @($selDb | Where-Object { $protDb -contains $_ })) {
+                $global:tocadas++
+                if ($p -eq 'EDGE') { Resps (Act 'EDGE_REMOVE'); Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate' 'Install{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}' 'REG_DWORD' '0' }
+                else { Quitar-Protegida $p }
+            }
+        }
         # Se anota lo que se borro, para que la app muestre el contador "5/13 borradas"
         $despues = @(Get-AppxPackage -AllUsers | Where-Object { -not $_.NonRemovable } | ForEach-Object { $_.Name })
-        $borradas = @(foreach ($n in $AppsBasura) { $antes | Where-Object { ($_ -like $n) -and ($despues -notcontains $_) } })
+        $borradas = @(foreach ($n in $lista) { $antes | Where-Object { ($_ -like $n) -and ($despues -notcontains $_) } })
         if ($odHabia -and (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0)) { $borradas += 'OneDrive' }
         if ($borradas.Count -gt 0) {
             $archApps = Join-Path $env:ProgramData 'Brio\apps_borradas.txt'
@@ -1882,14 +2015,15 @@ public static extern bool IsProcessorFeaturePresent(uint feature);
         } elseif ((-not [XucaWin.Cpu]::IsProcessorFeaturePresent(38)) -or (-not [XucaWin.Cpu]::IsProcessorFeaturePresent(14))) {
             Log 'INFO' 'el CPU no declara SSE4.2 o CMPXCHG16B'
             Say '  Parece que tu CPU no tiene SSE4.2 o CMPXCHG16B. Sin eso Windows 11 24H2 o mas nuevo no arranca.'
-            $f = Read-Host '  Escribi FORZAR para seguir igual (cualquier otra cosa cancela)'
+            # Desde la app (sin ventana) la respuesta llega en XUPG_FORZAR
+            $f = $(if ($env:XUPG_ISO) { [string]$env:XUPG_FORZAR } else { Read-Host '  Escribi FORZAR para seguir igual (cualquier otra cosa cancela)' })
             if ($f -cne 'FORZAR') { $sigo = $false; $code = 4 }
         }
         if ($sigo) {
             Say ''
             Say '  Descarga el ISO oficial de Windows 11 25H2 en:'
             Say '  https://www.microsoft.com/software-download/windows11  (Descargar imagen de disco ISO)'
-            $r = ([string](Read-Host '  Pega la ruta del archivo .iso (Enter = abrir esa pagina y cancelar)')).Trim().Trim('"')
+            $r = $(if ($env:XUPG_ISO) { [string]$env:XUPG_ISO } else { ([string](Read-Host '  Pega la ruta del archivo .iso (Enter = abrir esa pagina y cancelar)')).Trim().Trim('"') })
             if (-not $r) {
                 Abrir-Pagina 'https://www.microsoft.com/software-download/windows11'
                 Log 'INFO' 'sin ISO: se abrio la pagina de descarga'
@@ -1916,7 +2050,8 @@ public static extern bool IsProcessorFeaturePresent(uint feature);
                         Log 'FALLO' 'el ISO no parece ser un instalador de Windows'
                         $code = 1
                     } elseif (($bld -gt 0) -and ($bld -lt 26100)) {
-                        Log 'FALLO' ('el ISO es de una version vieja (build ' + $bld + '), hace falta 24H2 o 25H2')
+                        Log 'FALLO' ('el ISO es de una version vieja (build ' + $bld + '), hace falta 24H2, 25H2 o 26H2')
+                        Say 'XMSG|El ISO es de una version vieja de Windows: baja el de Windows 11 mas nuevo de microsoft.com.'
                         $code = 1
                     } else {
                         Log 'INFO' ('ISO montado en ' + $d + ' - build ' + $bld)
@@ -1938,10 +2073,11 @@ public static extern bool IsProcessorFeaturePresent(uint feature);
                         if ($code -eq 0) {
                             Say ''
                             Say '  Ultimo aviso: hace backup de tus archivos importantes antes de seguir.'
-                            $c = Read-Host '  Escribi UPGRADE para empezar (cualquier otra cosa cancela)'
+                            $c = $(if ($env:XUPG_ISO) { [string]$env:XUPG_OK } else { Read-Host '  Escribi UPGRADE para empezar (cualquier otra cosa cancela)' })
                             if ($c -ceq 'UPGRADE') {
                                 Start-Process -FilePath ($d + '\setup.exe') -ArgumentList '/product', 'server', '/auto', 'upgrade', '/dynamicupdate', 'disable', '/compat', 'ignorewarning', '/eula', 'accept', '/showoobe', 'none'
                                 Log 'OK' 'setup.exe de Windows 11 lanzado con /product server'
+                                Say 'XMSG|El instalador de Windows 11 quedo trabajando: no apagues la PC. Reinicia solo varias veces (cerca de una hora).'
                                 $code = 3
                             } else {
                                 Log 'INFO' 'actualizacion cancelada en la confirmacion final'
@@ -2007,6 +2143,67 @@ function Act([string]$a, [string]$dato = '', [bool]$chk = $false) { return (Hace
 # ------------------------------------------------------------
 
 $ListaOpciones = @(
+    @{
+        # Herramienta "Escanear y reparar Windows" (y paso previo de "Actualizar a 26H2"). La app la corre sin ventana.
+        # XREP_RAPIDO=1: primero mira rapido si hay danos y solo repara si hace falta. XREP_WU=1: ademas deja Windows Update listo para actualizar.
+        Id = 'rep'; Seccion = 'VERSION DE WINDOWS'
+        Q = '- Desea escanear Windows y reparar los errores que encuentre? (DISM y SFC; con tu permiso)'
+        Hace = 'revisa la imagen de Windows con DISM y la repara si esta danada, revisa los archivos del sistema con SFC y deja Windows Update listo para actualizar.'
+        Favor = 'arregla archivos rotos de Windows y errores que impiden actualizar.'
+        Contra = 'tarda de 5 a 30 minutos y usa internet para bajar los archivos sanos.'
+        S = {
+            Opt-Ini 'Escanear y reparar Windows'
+            $dism = Join-Path $env:SystemRoot 'System32\dism.exe'
+            $rapido = ([string]$env:XREP_RAPIDO -eq '1')
+            $roto = $true
+            if ($rapido) {
+                Say '  Revisando si Windows tiene errores (DISM CheckHealth)...'
+                $o = (& $dism /Online /Cleanup-Image /CheckHealth /English 2>&1 | Out-String)
+                $roto = ($o -notmatch 'No component store corruption detected')
+                Log 'INFO' ('DISM CheckHealth: ' + $(if ($roto) { 'hay danos o no se pudo leer' } else { 'sin danos' }))
+            }
+            if ($roto) {
+                Say '  Reparando la imagen de Windows (DISM RestoreHealth, puede tardar)...'
+                & $dism /Online /Cleanup-Image /RestoreHealth /English 2>&1 | Out-Null
+                $cd = $LASTEXITCODE
+                Res ($cd -eq 0) ('DISM RestoreHealth (codigo ' + $cd + ')')
+                Say ('XMSG|' + $(if ($cd -eq 0) { 'Imagen de Windows revisada y reparada (DISM).' } else { 'DISM no pudo reparar la imagen (codigo ' + $cd + '). Revisa tu internet y proba de nuevo.' }))
+                Say '  Revisando los archivos del sistema (SFC, puede tardar)...'
+                $sfc = ((& (Join-Path $env:SystemRoot 'System32\sfc.exe') /scannow 2>&1 | Out-String) -replace "`0", '')
+                $msg = $(if ($sfc -match '(?i)did not find any integrity|no encontr') { 'Archivos del sistema sanos (SFC).' } elseif ($sfc -match '(?i)successfully repaired|repar\S* correctamente') { 'SFC encontro archivos rotos y los reparo.' } elseif ($sfc -match '(?i)unable to fix|no pudo') { 'SFC encontro archivos rotos que no pudo reparar: reinicia y corre esta herramienta otra vez.' } else { 'SFC termino (el detalle esta en C:\Windows\Logs\CBS\CBS.log).' })
+                Log 'INFO' ('SFC: ' + $msg)
+                $script:OptT++
+                Say ('XMSG|' + $msg)
+            } else { Say 'XMSG|La imagen de Windows esta sana: no hizo falta reparar nada.'; Ya-Estaba }
+            if ([string]$env:XREP_WU -eq '1') {
+                Say '  Dejando Windows Update listo para actualizar...'
+                # Servicios que Windows Update necesita (si alguna opcion o programa los apago, vuelven a como vienen)
+                foreach ($s in @(@('wuauserv', 'demand', '3'), @('bits', 'demand', '3'), @('UsoSvc', 'delayed-auto', '2'), @('WaaSMedicSvc', 'demand', '3'), @('cryptsvc', 'auto', '2'))) {
+                    $v = Reg-Leer ('HKLM\SYSTEM\CurrentControlSet\Services\' + $s[0]) 'Start'
+                    if ($v -and ([int64]$v.Valor -eq 4)) { Svc $s[0] $s[1] $s[2] }
+                }
+                # Cache de Windows Update y catalogo de firmas: se renombran (no se borran) para que Windows los arme de nuevo
+                foreach ($s in 'wuauserv', 'bits', 'cryptsvc') { Stop-Service -Name $s -Force -ErrorAction SilentlyContinue }
+                foreach ($dd in @((Join-Path $env:SystemRoot 'SoftwareDistribution'), (Join-Path $env:SystemRoot 'System32\catroot2'))) {
+                    if (-not (Test-Path -LiteralPath $dd)) { continue }
+                    $viejo = $dd + '.brio'
+                    Remove-Item -LiteralPath $viejo -Recurse -Force -ErrorAction SilentlyContinue
+                    try { Rename-Item -LiteralPath $dd -NewName (Split-Path -Leaf $viejo) -ErrorAction Stop; Res $true ('renombrado ' + $dd) } catch { Log 'INFO' ('no se pudo renombrar ' + $dd + ': ' + $_.Exception.Message) }
+                }
+                foreach ($s in 'cryptsvc', 'bits', 'wuauserv') { Start-Service -Name $s -ErrorAction SilentlyContinue }
+                # Pausas y el evaluador de compatibilidad
+                foreach ($n in 'PauseFeatureUpdatesStartTime', 'PauseFeatureUpdatesEndTime', 'PauseQualityUpdatesStartTime', 'PauseQualityUpdatesEndTime', 'PauseUpdatesStartTime', 'PauseUpdatesExpiryTime') { if (Reg-Leer 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' $n) { Reg-Del 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' $n } }
+                Tarea $TareaAppraiser 'enable'
+                Say 'XMSG|Windows Update quedo listo: servicios prendidos, cache renovada y sin pausas.'
+                try {
+                    $libre = [math]::Round(([IO.DriveInfo]::new($env:SystemDrive.Substring(0, 1)).AvailableFreeSpace) / 1GB, 1)
+                    if ($libre -lt 25) { Say ('XMSG|Tenes ' + $libre + ' GB libres en ' + $env:SystemDrive + ': para actualizar conviene tener 25 GB o mas (usa Limpiar cache).') }
+                } catch { }
+                if ((Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'XMSG|Windows tiene un reinicio pendiente: reinicia la PC antes de actualizar.' }
+            }
+            Opt-Fin 'Windows escaneado y reparado'
+        }
+    },
     @{
         Id = 'ver'; Seccion = 'VERSION DE WINDOWS'
         Q = '- Desea forzar la actualizacion a Windows 11 25H2? (Pide el ISO oficial e ignora los requisitos de hardware)'
@@ -2076,6 +2273,7 @@ $ListaOpciones = @(
             }
             Abrir-Pagina 'ms-settings:windowsupdate'
             Say '  Se abrio Windows Update: instala lo que aparezca y reinicia.'
+            Say 'XMSG|Se le pidio la 26H2 a Windows Update y se abrio Windows Update: instala lo que aparezca y reinicia. Si todavia no aparece, Microsoft la va liberando de a poco: proba en unos dias.'
             Say '  Si todavia no te ofrece la 26H2, volve a buscar en unos dias: Microsoft la va liberando de a poco.'
             Opt-Fin 'Windows 11 26H2 pedida a Windows Update'
         }
@@ -2494,6 +2692,8 @@ $ListaOpciones = @(
             Svc 'DiagTrack' 'disabled' '4'
             Svc-Parar 'DiagTrack'
             foreach ($t in $TareasTelemetria) { Tarea $t 'disable' }
+            # El evaluador de compatibilidad decide si Windows Update te ofrece la version nueva (26H2): se deja prendido
+            Tarea $TareaAppraiser 'enable'
             # Sin gpupdate /force: las politicas van directo al registro y Windows las lee igual (gpupdate tardaba 5 a 15 s)
             Opt-Fin 'Telemetria reducida'
         }
@@ -2733,7 +2933,7 @@ $ListaOpciones = @(
         Contra = 'la zona wifi movil, los lectores de tarjetas inteligentes y el control parental de Microsoft dejan de andar.'
         S = {
             Opt-Ini 'Mas servicios apagados para liberar RAM'
-            foreach ($n in 'PhoneSvc', 'WalletService', 'SEMgrSvc', 'icssvc', 'wisvc', 'WpcMonSvc', 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc', 'TrkWks') {
+            foreach ($n in (Svc-Lista 'rsv')) {
                 Svc $n 'disabled' '4'
                 Svc-Parar $n
             }
@@ -2994,7 +3194,7 @@ $ListaOpciones = @(
         Contra = 'dejan de andar Windows Hello (huella o cara), los sensores (brillo automatico o rotacion), Wi-Fi Direct y el Historial de archivos. Si algo falla, restablece la opcion.'
         S = {
             Opt-Ini 'Servicios extra apagados'
-            foreach ($n in 'WbioSrvc', 'SensorDataService', 'SensrSvc', 'SensorService', 'wcncsvc', 'WFDSConMgrSvc', 'TapiSrv', 'MSiSCSI', 'fhsvc', 'SDRSVC', 'Wecsvc', 'AxInstSV', 'EntAppSvc', 'TroubleshootingSvc', 'RpcLocator', 'ALG', 'CertPropSvc', 'SmsRouter', 'lmhosts') {
+            foreach ($n in (Svc-Lista 'sx')) {
                 Svc $n 'disabled' '4'
                 Svc-Parar $n
             }
@@ -3036,12 +3236,12 @@ $ListaOpciones = @(
     @{
         Id = 'str'; Seccion = 'ACTUALIZACIONES Y STORE'
         Q = '- Desea apagar los servicios de instalacion de la Microsoft Store? (Extremo: no se instalan ni actualizan apps de la Store)'
-        Hace = 'apaga el servicio que instala apps de la Store, el que revisa sus licencias y el que las prepara.'
+        Hace = 'apaga el servicio que instala apps de la Store y el que las prepara. El de licencias (LicenseManager) se deja prendido: la activacion de Windows lo usa.'
         Favor = 'hay menos servicios abiertos y se libera algo de RAM.'
         Contra = 'no podes instalar ni actualizar apps de la Microsoft Store (ni Xbox ni juegos de Game Pass). Algunas apps de la Store pueden dejar de abrir por no poder revisar su licencia.'
         S = {
             Opt-Ini 'Servicios de la Store'
-            foreach ($n in 'InstallService', 'LicenseManager', 'AppReadiness') {
+            foreach ($n in 'InstallService', 'AppReadiness') {
                 Svc $n 'disabled' '4'
                 Svc-Parar $n
             }
@@ -3063,16 +3263,33 @@ $ListaOpciones = @(
         Contra = 'la PC no recibe parches de seguridad ni de drivers: queda expuesta a fallas conocidas. Restablecelo cada tanto para actualizar.'
         S = {
             Opt-Ini 'Windows Update apagado'
+            # Antes solo se apagaban wuauserv y UsoSvc: el Medico de Windows Update (WaaSMedicSvc) y las tareas del Orquestador
+            # los volvian a prender solos al rato, y en Windows 11 UsoSvc no se dejaba cambiar (protegido). Ahora se apagan
+            # tambien esos, como SYSTEM cuando el administrador no tiene permiso. La Store y la activacion no se tocan.
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'NoAutoUpdate' 'REG_DWORD' '1'
-            Svc 'wuauserv' 'disabled' '4'; Svc-Parar 'wuauserv'
-            Svc 'UsoSvc' 'disabled' '4'; Svc-Parar 'UsoSvc'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'AUOptions' 'REG_DWORD' '1'
+            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'SetDisableUXWUAccess' 'REG_DWORD' '1'
+            foreach ($n in $SvcWu) { Svc $n 'disabled' '4'; Svc-Parar $n }
+            foreach ($tn in $TareasWu) { Tarea $tn 'disable' }
+            # Las del Orquestador estan protegidas: si quedaron prendidas se apagan como SYSTEM
+            $quedan = @($TareasWu | Where-Object { try { [bool](Sched-Tarea $_).Enabled } catch { $false } })
+            if ($quedan.Count -gt 0) {
+                Como-Sistema (($quedan | ForEach-Object { 'schtasks /change /tn "' + $_ + '" /disable' }) -join ' & ') | Out-Null
+                foreach ($tn in $quedan) { Res (-not $(try { [bool](Sched-Tarea $tn).Enabled } catch { $false })) ('tarea protegida apagada: ' + $tn) }
+            }
             Opt-Fin 'Windows Update apagado (restablecelo para volver a actualizar)'
         }
         R = {
             Opt-Ini 'Windows Update (restaurar)'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'NoAutoUpdate'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'AUOptions'
+            Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'SetDisableUXWUAccess'
             Svc 'wuauserv' 'demand' '3'
             Svc 'UsoSvc' 'delayed-auto' '2'
+            Svc 'WaaSMedicSvc' 'demand' '3'
+            foreach ($tn in $TareasWu) { Tarea $tn 'enable' }
+            $quedan = @($TareasWu | Where-Object { try { -not [bool](Sched-Tarea $_).Enabled } catch { $false } })
+            if ($quedan.Count -gt 0) { Como-Sistema (($quedan | ForEach-Object { 'schtasks /change /tn "' + $_ + '" /enable' }) -join ' & ') | Out-Null }
             Svc-Arrancar 'UsoSvc'
             Opt-Fin 'Windows Update restaurado'
         }
@@ -3231,15 +3448,18 @@ $ListaOpciones = @(
     },
     @{
         Id = 'usv'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
-        Q = '- Desea apagar los servicios de usuario de contactos, calendario, mensajes y sincronizacion? (Extremo: baja procesos por cada sesion)'
-        Hace = 'apaga los servicios que Windows levanta por cada usuario: contactos y calendario (UserDataSvc, Unistore, PimIndex), sincronizacion (OneSync), mensajes, Dispositivos conectados, portapapeles en la nube, impresion de usuario y Defensa web.'
+        Q = '- Desea apagar los servicios de usuario de contactos, calendario, mensajes y sincronizacion? (Extremo: baja procesos por cada sesion; la captura de pantalla sigue andando)'
+        Hace = 'apaga los servicios que Windows levanta por cada usuario: contactos y calendario (UserDataSvc, Unistore, PimIndex), sincronizacion (OneSync), mensajes, Dispositivos conectados, impresion de usuario y Defensa web. El servicio del portapapeles (cbdhsvc) se deja prendido: Recortes y Win+Shift+S lo necesitan.'
         Favor = 'menos procesos svchost por sesion y algo menos de RAM.'
-        Contra = 'las apps Correo, Calendario y Contactos no sincronizan, el portapapeles en la nube y "Compartir cerca" dejan de andar, y la proteccion web de Defender no corre. ATENCION: tambien apaga el servicio del portapapeles, que Recortes y Win+Shift+S necesitan: la captura de pantalla deja de funcionar. Para volver a usarla hay que restablecer esta opcion y reiniciar sesion.'
+        Contra = 'las apps Correo, Calendario y Contactos no sincronizan, "Compartir cerca" deja de andar y la proteccion web de Defender no corre.'
         S = {
             Opt-Ini 'Servicios de usuario'
-            foreach ($n in 'CDPUserSvc', 'cbdhsvc', 'DevicesFlowUserSvc', 'PimIndexMaintenanceSvc', 'UnistoreSvc', 'UserDataSvc', 'OneSyncSvc', 'MessagingService', 'PrintWorkflowUserSvc', 'webthreatdefsvc', 'webthreatdefusersvc') {
+            foreach ($n in 'CDPUserSvc', 'DevicesFlowUserSvc', 'PimIndexMaintenanceSvc', 'UnistoreSvc', 'UserDataSvc', 'OneSyncSvc', 'MessagingService', 'PrintWorkflowUserSvc', 'webthreatdefsvc', 'webthreatdefusersvc') {
                 Svc $n 'disabled' '4'
             }
+            # Hasta v1.0.13 esta opcion apagaba el portapapeles (cbdhsvc) y con eso Recortes y Win+Shift+S dejaban de andar sin avisar
+            $cb = Reg-Leer 'HKLM\SYSTEM\CurrentControlSet\Services\cbdhsvc' 'Start'
+            if ($cb -and ([int64]$cb.Valor -eq 4)) { Log 'INFO' 'cbdhsvc estaba apagado (version vieja): vuelve a prenderse para que ande la captura de pantalla'; Svc 'cbdhsvc' 'delayed-auto' '2' }
             Opt-Fin 'Servicios de usuario apagados (se aplica al reiniciar sesion)'
         }
         R = {
@@ -3316,7 +3536,11 @@ $ListaOpciones = @(
                 Res ([bool](Get-AppxPackage -AllUsers -Name $m[0] -ErrorAction SilentlyContinue)) ($m[2] + ' instalada')
             }
             Say '  Revisando los componentes de Windows, un momento...'
-            foreach ($f in 'Internet-Explorer-Optional-amd64', 'WindowsMediaPlayer', 'FaxServicesClientPackage', 'Printing-XPSServices-Features') {
+            # Submenu: las apps antiguas que elegiste borrar (las que dejaste sin marcar se quedan)
+            $selOld = Elegidos 'dold'
+            $pats = $(if ($null -ne $selOld) { @($selOld) } else { @($Elegibles.dold | ForEach-Object { $_.Id }) })
+            $funDe = @{ 'Internet-Explorer-Optional-amd64' = 'Browser.InternetExplorer*'; 'WindowsMediaPlayer' = 'Media.WindowsMediaPlayer*'; 'FaxServicesClientPackage' = 'Print.Fax.Scan*'; 'Printing-XPSServices-Features' = 'XPS.Viewer*' }
+            foreach ($f in @($funDe.Keys | Where-Object { $pats -contains $funDe[$_] })) {
                 $x = Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue
                 if ((-not $x) -or ([string]$x.State -eq 'Disabled')) { continue }
                 Disable-WindowsOptionalFeature -Online -FeatureName $f -NoRestart -ErrorAction SilentlyContinue | Out-Null
@@ -3324,7 +3548,7 @@ $ListaOpciones = @(
                 Res (($est -eq 'Disabled') -or ($est -eq 'DisablePending')) ('funcion ' + $f + ' desactivada (' + $est + ')')
             }
             $caps = @(try { Get-WindowsCapability -Online -ErrorAction Stop } catch { Log 'ATENCION' ('no se pudo leer los componentes de Windows: ' + $_.Exception.Message) })
-            foreach ($pat in 'Microsoft.Windows.Notepad.System*', 'Microsoft.Windows.MSPaint*', 'Microsoft.Windows.WordPad*', 'Media.WindowsMediaPlayer*', 'App.StepsRecorder*', 'Microsoft.Windows.PowerShell.ISE*', 'Browser.InternetExplorer*', 'XPS.Viewer*', 'Print.Fax.Scan*', 'MathRecognizer*') {
+            foreach ($pat in $pats) {
                 foreach ($c in @($caps | Where-Object { ($_.Name -like $pat) -and ([string]$_.State -eq 'Installed') })) {
                     # Bloc de notas y Paint clasicos solo se quitan si ya esta el moderno
                     if (($c.Name -like 'Microsoft.Windows.Notepad.System*') -and -not (Get-AppxPackage -AllUsers -Name 'Microsoft.WindowsNotepad' -ErrorAction SilentlyContinue)) { Log 'OMITIDO' 'Bloc de notas clasico se queda: falta el moderno'; continue }
@@ -3378,9 +3602,11 @@ $ListaOpciones = @(
                 }
             }
             Say '  Desinstalando las apps modernas, un momento...'
-            $keep = '^(Microsoft\.\w*(Video|Image|Media)Extension|Microsoft\.ScreenSketch|AppUp\.|AdvancedMicroDevices|RealtekSemiconductor|DolbyLaboratories|WavesAudio|B9ECED6F\.|Microsoft\.WindowsCalculator|Microsoft\.WindowsStore|Microsoft\.StorePurchaseApp|Microsoft\.DesktopAppInstaller|Microsoft\.SecHealthUI|Microsoft\.WindowsTerminal|Microsoft\.Xbox|Microsoft\.Gaming|Microsoft\.UI\.Xaml|Microsoft\.VCLibs|Microsoft\.NET\.|Microsoft\.WindowsAppRuntime|Microsoft\.Windows\.|MicrosoftWindows\.|Microsoft\.MicrosoftEdge|Microsoft\.LockApp|Microsoft\.AAD|Microsoft\.AccountsControl|Microsoft\.CredDialogHost|Microsoft\.BioEnrollment|Microsoft\.AsyncTextService|Microsoft\.Win32WebViewHost|Microsoft\.XboxIdentityProvider|NVIDIACorp|windows\.)'
+            $keep = $KeepModernas
             $prov = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue)
-            foreach ($a in @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { (-not $_.IsFramework) -and (-not $_.NonRemovable) -and ($_.SignatureKind -ne 'System') -and ($_.Name -notmatch $keep) })) {
+            # Submenu: las apps modernas que elegiste borrar (las que dejaste sin marcar se quedan)
+            $selAll = Elegidos 'dball'
+            foreach ($a in @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { (-not $_.IsFramework) -and (-not $_.NonRemovable) -and ($_.SignatureKind -ne 'System') -and ($_.Name -notmatch $keep) -and (($null -eq $selAll) -or ($selAll -contains $_.Name)) } | Sort-Object Name -Unique)) {
                 Remove-AppxPackage -Package $a.PackageFullName -AllUsers -ErrorAction SilentlyContinue
                 foreach ($pp in @($prov | Where-Object { $_.DisplayName -eq $a.Name })) { Remove-AppxProvisionedPackage -Online -PackageName $pp.PackageName -ErrorAction SilentlyContinue | Out-Null }
                 Res (-not (Get-AppxPackage -AllUsers -Name $a.Name -ErrorAction SilentlyContinue)) ('app ' + $a.Name + ' borrada')
@@ -4090,7 +4316,6 @@ $ListaOpciones = @(
             Reg-Set 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 'REG_DWORD' '1'
             Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 'REG_DWORD' '1'
             Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowCopilotButton' 'REG_DWORD' '0'
-            Reg-Set 'HKCR\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}' 'System.IsPinnedToNameSpaceTree' 'REG_DWORD' '0'
             Resps (Act 'DEBLOAT')
             Resps (Act 'IA_PAQ')
             Resps (Act 'IA_ARCH')

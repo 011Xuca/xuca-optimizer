@@ -105,8 +105,8 @@ en: Profiles
 es: Debloat y privacidad
 en: Debloat and privacy
 
-es: Optimizacion gaming
-en: Gaming optimization
+es: Zona gamer
+en: Gamer zone
 
 es: Limpiar cache
 en: Clean cache
@@ -194,6 +194,9 @@ en: "Cons: "
 
 es: " Puede dar problemas: "
 en: " May cause problems: "
+
+es: " SIN VUELTA ATRAS: "
+en: " CAN'T BE UNDONE: "
 
 es: "Ideal para: "
 en: "Ideal for: "
@@ -1631,8 +1634,8 @@ en: Debloat and privacy:
 es: publicidad, telemetria, IA de Windows, apps basura y apps de inicio que no hacen falta.
 en: ads, telemetry, Windows AI, junk apps and startup apps you don't need.
 
-es: Optimizacion gaming:
-en: Gaming optimization:
+es: Zona gamer:
+en: Gamer zone:
 
 es: mouse, prioridad y afinidad para tus juegos, energia, red, DNS y mas.
 en: mouse, priority and affinity for your games, power, network, DNS and more.
@@ -1823,8 +1826,8 @@ en: deleting bloatware apps can't be reset: if you want one back, reinstall it f
 es: Competitivo - Notebook
 en: Competitive - Laptop
 
-es: lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. Antes de borrar la Game Bar la app te pregunta.
-en: the parts of Competitive that don't drain the battery: mouse without acceleration, priority and affinity for your games, Nitro Mode only when plugged in, hardware GPU, lower network latency, faster DNS, no Game Bar and no notifications in game. On battery it prioritizes battery life. The app asks you before deleting the Game Bar.
+es: lo de Competitivo que no gasta bateria: mouse sin aceleracion, prioridad y afinidad para tus juegos, Modo Nitro solo enchufada, GPU por hardware, menos latencia de red, DNS mas rapido, sin Game Bar, sin notificaciones en partida y sin programas de mas al arrancar. A bateria prioriza la duracion. Antes de borrar la Game Bar la app te pregunta.
+en: the parts of Competitive that don't drain the battery: mouse without acceleration, priority and affinity for your games, Nitro Mode only when plugged in, hardware GPU, lower network latency, faster DNS, no Game Bar, no notifications in game and no extra programs at startup. On battery it prioritizes battery life. The app asks you before deleting the Game Bar.
 
 es: jugar competitivo en una notebook: enchufada rinde al maximo y a bateria dura mas.
 en: playing competitive on a laptop: plugged in it performs at its best and on battery it lasts longer.
@@ -2726,167 +2729,11 @@ es: No hace falta: tu procesador no tiene activas las protecciones contra Spectr
 en: Not needed: your processor doesn't have the Spectre and Meltdown protections turned on (it isn't affected), so there's nothing to turn off.
 
 # --- Herramientas: medir FPS antes y despues ---
-es: Medir FPS antes y despues
-en: Measure FPS before and after
-
-es: mide los FPS de tu juego antes de aplicar cambios y despues (aunque reinicies en el medio) y te muestra la diferencia: FPS promedio, 1% low y 0.1% low. Usa PresentMon de Intel, que lee el tiempo de cada cuadro desde Windows sin overlay y sin meterse en el juego; si no lo tenes, se baja de su GitHub oficial la primera vez. Los resultados quedan en la carpeta de logs (benchmark_ con la fecha, en CSV y en texto).
-en: measures your game's FPS before you apply changes and after (even if you restart in between) and shows you the difference: average FPS, 1% low and 0.1% low. It uses Intel's PresentMon, which reads the time of every frame from Windows with no overlay and without touching the game; if you don't have it, it's downloaded from its official GitHub the first time. The results are saved in the logs folder (benchmark_ with the date, as CSV and text).
-
-es: sabes con numeros si los cambios te dieron mas FPS o menos tirones en tu PC.
-en: you know with numbers whether the changes gave you more FPS or less stutter on your PC.
-
-es: tenes que jugar la misma escena las dos veces para que la comparacion sea justa, y siempre hay algo de variacion entre partidas.
-en: you have to play the same scene both times for a fair comparison, and there's always some variation between matches.
-
-es: Medir antes
-en: Measure before
-
-es: Medir despues
-en: Measure after
-
-es: Ver comparacion
-en: See comparison
-
-es: Borrar mediciones
-en: Delete measurements
-
-es: Medir FPS antes de aplicar
-en: Measure FPS before applying
-
-es: Medir FPS despues de aplicar
-en: Measure FPS after applying
-
-es: Usa el mismo juego, la misma escena y la misma duracion que en la medicion de antes, asi la comparacion es justa.
-en: Use the same game, the same scene and the same duration as in the before measurement, so the comparison is fair.
-
-es: Al tocar Empezar tenes
-en: When you tap Start you have
-
-es: segundos para volver al juego. Juga normal, mejor siempre en la misma escena, hasta que suene el aviso.
-en: seconds to go back to the game. Play normally, ideally always in the same scene, until you hear the sound.
-
-es: Cuanto medir
-en: How long to measure
-
-es: Que juego
-en: Which game
-
-es: Vacio = el juego que este en pantalla completa (o sin bordes). Si jugas en ventana, escribi su proceso (por ejemplo, cs2.exe) o tocalo abajo.
-en: Empty = the game that's in fullscreen (or borderless). If you play windowed, type its process (for example, cs2.exe) or tap it below.
-
-es: Cualquiera en pantalla completa
-en: Any fullscreen game
-
-es: Medir FPS
-en: Measure FPS
-
-es: Espera a que termine la medicion de la placa de video (1 minuto).
-en: Wait for the graphics card measurement to finish (1 minute).
-
-es: Espera a que termine lo que se esta aplicando.
-en: Wait for what's being applied to finish.
-
-es: Primero toca "Medir antes", con el juego abierto, antes de aplicar los cambios.
-en: First tap "Measure before", with the game open, before applying the changes.
-
-es: Todavia no reiniciaste
-en: You haven't restarted yet
-
-es: Algunos de los cambios que aplicaste se notan recien al reiniciar la PC. Si medis ahora, la comparacion puede no mostrar la diferencia.
-en: Some of the changes you applied only take effect after restarting the PC. If you measure now, the comparison may not show the difference.
-
-es: Medir igual
-en: Measure anyway
-
-es: Medir antes otra vez
-en: Measure before again
-
-es: Ya tenes una medicion de antes guardada. Si medis de nuevo, se reemplaza (los archivos de la carpeta de logs quedan).
-en: You already have a before measurement saved. If you measure again, it gets replaced (the files in the logs folder stay).
-
-es: Medir de nuevo
-en: Measure again
-
-es: No hay ningun juego abierto
-en: No game is open
-
-es: Abri el juego y toca de nuevo. No se midio nada.
-en: Open the game and tap again. Nothing was measured.
-
-es: Hace falta PresentMon
-en: PresentMon is needed
-
-es: Para medir los FPS la app usa PresentMon, el medidor gratis y de codigo abierto de Intel: lee el tiempo de cada cuadro desde Windows, sin overlay y sin meterse en el juego.
-en: To measure FPS the app uses PresentMon, Intel's free and open-source tool: it reads the time of every frame from Windows, with no overlay and without touching the game.
-
-es: No lo tenes: se baja ahora de su pagina oficial de GitHub
-en: You don't have it: it will be downloaded now from its official GitHub page
-
-es: unos 2 MB), se verifica y se guarda en ProgramData\Brio\PresentMon.
-en: about 2 MB), verified and saved in ProgramData\Brio\PresentMon.
-
-es: Bajar y medir
-en: Download and measure
-
-es: Bajando PresentMon de GitHub...
-en: Downloading PresentMon from GitHub...
-
-es: Verificando lo que se bajo...
-en: Verifying the download...
-
-es: Volve al juego: la medicion empieza en
-en: Go back to the game: the measurement starts in
-
 es: juga normal. Faltan
 en: play normally. Time left:
 
-es: Calculando los resultados...
-en: Calculating the results...
-
-es: Preparando...
-en: Preparing...
-
-es: No se pudo bajar PresentMon
-en: Couldn't download PresentMon
-
-es: No se cambio nada en tu PC. Revisa tu conexion y proba de nuevo, o bajalo a mano desde
-en: Nothing was changed on your PC. Check your connection and try again, or download it manually from
-
-es: No se pudo verificar PresentMon
-en: Couldn't verify PresentMon
-
-es: Lo que se bajo no paso la verificacion
-en: The download didn't pass verification
-
-es: y se borro. No se cambio nada en tu PC. Proba de nuevo mas tarde.
-en: and was deleted. Nothing was changed on your PC. Try again later.
-
-es: Abri el juego (en pantalla completa, o elegi su proceso si jugas en ventana) y toca de nuevo.
-en: Open the game (in fullscreen, or pick its process if you play windowed) and tap again.
-
-es: No hay ningun juego en pantalla completa. No se midio nada.
-en: There's no game in fullscreen. Nothing was measured.
-
-es: No se pudieron medir los FPS
-en: Couldn't measure FPS
-
-es: Puede que el juego estuviera minimizado o en un menu en pausa. Volve al juego antes de que termine la cuenta y proba de nuevo.
-en: The game may have been minimized or in a paused menu. Go back to the game before the countdown ends and try again.
-
-es: Medicion de antes lista
-en: Before measurement ready
-
-es: Ahora aplica tus cambios en Optimizacion gaming (o con un perfil) y despues toca "Medir despues" con el mismo juego. Si algun cambio pide reiniciar, reinicia primero: la app se acuerda de esta medicion.
-en: Now apply your changes in Gaming optimization (or with a profile) and then tap "Measure after" with the same game. If a change asks for a restart, restart first: the app remembers this measurement.
-
 es: FPS promedio
 en: Average FPS
-
-es: Antes y despues
-en: Before and after
-
-es: Diferencia
-en: Difference
 
 es: Antes
 en: Before
@@ -2894,53 +2741,11 @@ en: Before
 es: Ahora
 en: Now
 
-es: Cuanto mas alto, mejor. El 1% y el 0.1% low muestran los tirones: si suben, el juego se siente mas parejo.
-en: Higher is better. The 1% and 0.1% lows show stutter: if they go up, the game feels smoother.
-
-es: Diferencias de menos de 3 % pueden ser solo la variacion normal entre una partida y otra.
-en: Differences under 3 % can just be the normal variation from one match to another.
-
-es: Se borra la medicion de antes y la de despues que guardo la app. Los archivos de la carpeta de logs quedan.
-en: The before and after measurements saved by the app are deleted. The files in the logs folder stay.
-
-es: Aplicaste cambios que piden reiniciar: reinicia la PC y despues toca "Medir despues".
-en: You applied changes that need a restart: restart the PC and then tap "Measure after".
-
-es: Ya reiniciaste: abri el mismo juego y toca "Medir despues".
-en: You already restarted: open the same game and tap "Measure after".
-
-es: Ya aplicaste cambios: abri el mismo juego y toca "Medir despues".
-en: You already applied changes: open the same game and tap "Measure after".
-
-es: Ahora aplica tus cambios en Optimizacion gaming y despues toca "Medir despues".
-en: Now apply your changes in Gaming optimization and then tap "Measure after".
-
 es: Algunos de estos cambios necesitan reiniciar la PC.
 en: Some of these changes need the PC to restart.
 
-es: Despues de reiniciar, abri la app y toca "Medir despues" en Herramientas para ver la diferencia de FPS.
-en: After restarting, open the app and tap "Measure after" in Tools to see the FPS difference.
-
 es: Reiniciar ahora?
 en: Restart now?
-
-es: Ya podes tocar "Medir despues" en Herramientas.
-en: You can now tap "Measure after" in Tools.
-
-es: "Ya podes tocar "Medir despues" en Herramientas. "
-en: "You can now tap "Measure after" in Tools. "
-
-es: Ver estado de la PC
-en: View PC status
-
-es: Estado de la PC
-en: PC status
-
-es: muestra RAM libre, espacio en disco, programas de inicio, plan de energia y tiempo encendida.
-en: shows free RAM, disk space, startup programs, power plan and uptime.
-
-es: sirve para comparar antes y despues de aplicar.
-en: useful to compare before and after applying.
 
 es: RAM liviana
 en: Light RAM
@@ -3023,24 +2828,6 @@ en: deletes the Xbox app, Gaming Services and the Game Bar and turns off all the
 
 es: Xbox se reinstala desde la Store con winget (hace falta internet). Xbox TCUI y la transcripcion del chat de Xbox los instala la app de Xbox o la Store cuando hagan falta. Despues reinicia la PC.
 en: Xbox is reinstalled from the Store with winget (needs internet). Xbox TCUI and Xbox chat transcription are installed by the Xbox app or the Store when needed. Restart the PC afterwards.
-
-es: RAM libre: {0} GB de {1} GB
-en: Free RAM: {0} GB of {1} GB
-
-es: Disco {0} libre: {1} GB
-en: Disk {0} free: {1} GB
-
-es: Programas que arrancan con Windows: {0}
-en: Programs that start with Windows: {0}
-
-es: " ({0} activos)"
-en: " ({0} enabled)"
-
-es: Plan de energia: {0}
-en: Power plan: {0}
-
-es: Encendida hace: {0} d {1} h
-en: Uptime: {0} d {1} h
 
 es: Correo, Calendario y Contactos dejan de sincronizar, y el portapapeles en la nube y Compartir cerca no andan. Tambien se rompe la captura de pantalla (Recortes y Win+Shift+S).
 en: Mail, Calendar and People stop syncing, and the cloud clipboard and Nearby Sharing do not work. Screenshots (Snipping Tool and Win+Shift+S) also break.
@@ -3202,11 +2989,11 @@ en: One prioritizes battery and the other uses the High performance plan: opposi
 es: Este perfil apaga el antivirus y BitLocker. La PC queda sin proteccion contra virus.
 en: This profile turns off the antivirus and BitLocker. The PC is left without virus protection.
 
-es: lo que mas FPS da por cada grado de mas, sin tocar la seguridad: mouse sin aceleracion, afinidad para tus juegos, temporizador al minimo, efectos visuales en rendimiento, sin grabacion de juegos ni Game Bar, DNS mas rapido y sin notificaciones en partida. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware); si haces stream con OBS o TikTok LIVE Studio, usa NVENC o AMF. Antes de borrar la Game Bar la app te pregunta.
-en: what gives the most FPS for every extra degree, without touching security: mouse without acceleration, affinity for your games, timer at the minimum, visual effects on performance, no game recording or Game Bar, faster DNS and no notifications in game. It does not include what can bother streaming (high priority, RAM cleaning, hardware GPU); if you stream with OBS or TikTok LIVE Studio, use NVENC or AMF. The app asks you before deleting the Game Bar.
+es: lo que mas FPS da por cada grado de mas, sin tocar la seguridad: mouse sin aceleracion, afinidad para tus juegos, temporizador al minimo, efectos visuales en rendimiento, sin grabacion de juegos ni Game Bar, DNS mas rapido, sin notificaciones en partida y sin programas de mas al arrancar (OneDrive y el icono de Defender incluidos). No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware); si haces stream con OBS o TikTok LIVE Studio, usa NVENC o AMF. Antes de borrar la Game Bar la app te pregunta.
+en: what gives the most FPS for every extra degree, without touching security: mouse without acceleration, affinity for your games, timer at the minimum, visual effects on performance, no game recording or Game Bar, faster DNS, no notifications in game and no extra programs at startup (OneDrive and the Defender icon included). It does not include what can bother streaming (high priority, RAM cleaning, hardware GPU); if you stream with OBS or TikTok LIVE Studio, use NVENC or AMF. The app asks you before deleting the Game Bar.
 
-es: lo de Competitivo que no gasta bateria ni calienta de mas: mouse sin aceleracion, afinidad para tus juegos, menos latencia de red, DNS mas rapido, sin Game Bar y sin notificaciones en partida. A bateria prioriza la duracion. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware). Antes de borrar la Game Bar la app te pregunta.
-en: the parts of Competitive that don't drain the battery: mouse without acceleration, affinity for your games, lower network latency, faster DNS, no Game Bar and no notifications in game. On battery it prioritizes battery life. It does not include what can bother streaming (high priority, RAM cleaning, hardware GPU). The app asks you before deleting the Game Bar.
+es: lo de Competitivo que no gasta bateria ni calienta de mas: mouse sin aceleracion, afinidad para tus juegos, menos latencia de red, DNS mas rapido, sin Game Bar, sin notificaciones en partida y sin programas de mas al arrancar. A bateria prioriza la duracion. No incluye lo que puede molestar al stream (prioridad alta, limpieza de RAM, GPU por hardware). Antes de borrar la Game Bar la app te pregunta.
+en: the parts of Competitive that don't drain the battery: mouse without acceleration, affinity for your games, lower network latency, faster DNS, no Game Bar, no notifications in game and no extra programs at startup. On battery it prioritizes battery life. It does not include what can bother streaming (high priority, RAM cleaning, hardware GPU). The app asks you before deleting the Game Bar.
 
 es: alrededor de 3 GB de RAM en uso, sin nada abierto en Windows 11 (medido en una PC real; varia con el hardware y los drivers). Para bajar de ahi hace falta una ISO recortada (tiny11 o NTLite).
 en: about 3 GB of RAM in use, with nothing open in Windows 11 (measured on a real PC; it varies with the hardware and drivers). To go lower you need a stripped ISO (tiny11 or NTLite).
@@ -3395,3 +3182,620 @@ en: HDDs keep spinning while the PC is on: a bit more noise and power use.
 es: "Windows 11 (las optimizaciones para juegos en ventana no existen en Windows 10). Tenes "
 en: "Windows 11 (optimizations for windowed games don't exist on Windows 10). You have "
 
+es: Herramientas que corren cuando las tocas. Casi todas trabajan solas con la barra de progreso; solo Borrar una cuenta y Entrar sin contrasena abren una ventana aparte para pedirte datos.
+en: Tools that run when you tap them. Almost all of them work on their own with the progress bar; only Delete an account and Sign in without a password open a separate window to ask you for data.
+es: Actualizar a Windows 11 26H2
+en: Update to Windows 11 26H2
+es: desde Windows 10 (cualquier version) o Windows 11 viejo instala Windows 11 con el ISO oficial aunque tu PC no cumpla los requisitos; desde 24H2 o 25H2 pide la 26H2 por Windows Update. Antes revisa y arregla lo que impide actualizar (Windows danado, Windows Update apagado o en pausa, poco espacio). Todo sin ventanas negras.
+en: from Windows 10 (any version) or an old Windows 11 it installs Windows 11 with the official ISO even if your PC does not meet the requirements; from 24H2 or 25H2 it asks Windows Update for 26H2. First it checks and fixes what blocks updating (damaged Windows, Windows Update off or paused, low space). All without black windows.
+es: Actualizar Windows
+en: Update Windows
+es: Actualizando Windows
+en: Updating Windows
+es: Revisar y reparar
+en: Check and repair
+es: Ya tenes Windows 11 26H2 o mas nuevo: no hace falta actualizar.
+en: You already have Windows 11 26H2 or newer: no need to update.
+es: Tu Windows es de 32 bits: Windows 11 solo existe en 64 bits, asi que no se puede actualizar desde aca.
+en: Your Windows is 32-bit: Windows 11 only exists in 64-bit, so it cannot be updated from here.
+es: Tambien se restablecen estas opciones que frenan la actualizacion:
+en: These options that block the update are also restored:
+es: Tenes Windows 11 24H2 o 25H2: la 26H2 llega por Windows Update con un reinicio corto.
+en: You have Windows 11 24H2 or 25H2: 26H2 arrives through Windows Update with a short restart.
+es: Primero revisa lo que puede impedir la actualizacion (archivos de Windows rotos, Windows Update apagado o en pausa, poco espacio) y lo arregla.
+en: First it checks what can block the update (broken Windows files, Windows Update off or paused, low space) and fixes it.
+es: " Despues le pide la 26H2 a Windows Update. Tarda unos minutos."
+en: " Then it asks Windows Update for 26H2. It takes a few minutes."
+es: Actualizar
+en: Update
+es: Actualizar a Windows 11
+en: Update to Windows 11
+es: Elegir el ISO
+en: Choose the ISO
+es: Bajar el ISO
+en: Download the ISO
+es: . Para pasar a Windows 11 hace falta el ISO oficial de Microsoft (gratis): la app lo instala aunque tu PC no cumpla los requisitos y conserva tus archivos y programas.
+en: . To move to Windows 11 you need the official Microsoft ISO (free): the app installs it even if your PC does not meet the requirements and keeps your files and programs.
+es: Si ya lo bajaste, elegilo. Si no, bajalo de microsoft.com (Descargar imagen de disco ISO) y volve a tocar Actualizar.
+en: If you already downloaded it, choose it. If not, download it from microsoft.com (Download Disk Image ISO) and tap Update again.
+es: Elegi el ISO de Windows 11
+en: Choose the Windows 11 ISO
+es: Tu procesador puede no servir
+en: Your processor may not work
+es: Tu procesador no declara SSE4.2 o CMPXCHG16B: sin eso Windows 11 24H2 o mas nuevo no arranca. Si seguis, puede quedar sin arrancar y tener que reinstalar.
+en: Your processor does not report SSE4.2 or CMPXCHG16B: without them Windows 11 24H2 or newer does not boot. If you continue, it may not boot and you may have to reinstall.
+es: Seguir igual
+en: Continue anyway
+es: "Ultimo aviso: hace backup de tus archivos importantes. "
+en: "Last warning: back up your important files. "
+es: " Despues abre el instalador de Windows 11 sin ventanas: tarda cerca de una hora y reinicia varias veces. No apagues la PC."
+en: " Then it opens the Windows 11 installer without windows: it takes about an hour and restarts several times. Do not turn off the PC."
+es: Escanear y reparar Windows
+en: Scan and repair Windows
+es: Escanear y reparar
+en: Scan and repair
+es: revisa Windows con DISM y SFC y repara los archivos del sistema que esten rotos o faltan.
+en: checks Windows with DISM and SFC and repairs system files that are broken or missing.
+es: arregla cuelgues, errores raros y actualizaciones que no se instalan.
+en: fixes freezes, weird errors and updates that will not install.
+es: tarda de 5 a 30 minutos y usa internet.
+en: takes 5 to 30 minutes and uses the internet.
+es: Revisa la imagen de Windows (DISM) y los archivos del sistema (SFC) y repara lo que este roto. Tarda de 5 a 30 minutos y usa internet. Podes seguir usando la PC, pero no la apagues.
+en: Checks the Windows image (DISM) and the system files (SFC) and repairs what is broken. It takes 5 to 30 minutes and uses the internet. You can keep using the PC, but do not turn it off.
+es: Repara solo si encuentra errores. Seguir?
+en: It only repairs if it finds errors. Continue?
+es: Escaneando y reparando Windows
+en: Scanning and repairing Windows
+es: Termino bien.
+en: Finished fine.
+es: El detalle quedo en la carpeta de logs.
+en: The details are in the logs folder.
+es: Imagen de Windows revisada y reparada (DISM).
+en: Windows image checked and repaired (DISM).
+es: La imagen de Windows esta sana: no hizo falta reparar nada.
+en: The Windows image is healthy: nothing needed repairing.
+es: Archivos del sistema sanos (SFC).
+en: System files are healthy (SFC).
+es: SFC encontro archivos rotos y los reparo.
+en: SFC found broken files and repaired them.
+es: SFC encontro archivos rotos que no pudo reparar: reinicia y corre esta herramienta otra vez.
+en: SFC found broken files it could not repair: restart and run this tool again.
+es: Windows Update quedo listo: servicios prendidos, cache renovada y sin pausas.
+en: Windows Update is ready: services on, cache renewed and no pauses.
+es: Windows tiene un reinicio pendiente: reinicia la PC antes de actualizar.
+en: Windows has a pending restart: restart the PC before updating.
+es: Se le pidio la 26H2 a Windows Update y se abrio Windows Update: instala lo que aparezca y reinicia. Si todavia no aparece, Microsoft la va liberando de a poco: proba en unos dias.
+en: Windows Update was asked for 26H2 and Windows Update was opened: install what shows up and restart. If it does not show up yet, Microsoft releases it gradually: try again in a few days.
+es: El instalador de Windows 11 quedo trabajando: no apagues la PC. Reinicia solo varias veces (cerca de una hora).
+en: The Windows 11 installer is working: do not turn off the PC. It restarts by itself several times (about an hour).
+es: El ISO es de una version vieja de Windows: baja el de Windows 11 mas nuevo de microsoft.com.
+en: The ISO is from an old Windows version: download the newest Windows 11 one from microsoft.com.
+es: Cuenta local sin Microsoft
+en: Local account without Microsoft
+es: si entras a Windows con una cuenta de Microsoft, crea una cuenta local de administrador nueva, sin contrasena ni correo, que no depende de Microsoft. Anda en Windows 10 y en cualquier Windows 11 (26H2 incluido).
+en: if you sign in to Windows with a Microsoft account, it creates a new local administrator account, with no password or email, that does not depend on Microsoft. Works on Windows 10 and any Windows 11 (26H2 included).
+es: entras sin internet ni correo y Windows deja de sincronizar tu cuenta.
+en: you sign in without internet or email and Windows stops syncing your account.
+es: la cuenta nueva arranca vacia: tus archivos, partidas y sesiones quedan en la vieja hasta que los pases. Con BitLocker encendido, guarda la clave antes.
+en: the new account starts empty: your files, saves and sessions stay in the old one until you move them. With BitLocker on, save the key first.
+es: Crear cuenta local
+en: Create local account
+es: Ya estas usando una cuenta local sin Microsoft
+en: You are already using a local account without Microsoft
+es: Tu cuenta ya es local y no tiene una cuenta de Microsoft para iniciar sesion: no hace falta.
+en: Your account is already local and has no Microsoft account to sign in: not needed.
+es: Entras con una cuenta de Microsoft
+en: You sign in with a Microsoft account
+es: ANTES DE SEGUIR, LEE ESTO:
+en: BEFORE YOU CONTINUE, READ THIS:
+es: - Se crea una cuenta local de administrador NUEVA, sin contrasena y sin correo. Tu cuenta actual no se borra.
+en: - A NEW local administrator account is created, with no password and no email. Your current account is not deleted.
+es: - La cuenta nueva arranca vacia: tus archivos (Escritorio, Documentos, Descargas), partidas guardadas, sesiones de juegos y navegadores siguen en la cuenta vieja.
+en: - The new account starts empty: your files (Desktop, Documents, Downloads), saved games, game and browser sessions stay in the old account.
+es: - Si borras o desvinculas la cuenta vieja sin copiar todo antes, lo perdes.
+en: - If you delete or unlink the old account without copying everything first, you lose it.
+es: " BITLOCKER / CIFRADO DE DISPOSITIVO ESTA ENCENDIDO: la clave de recuperacion esta guardada en tu cuenta de Microsoft. Antes de dejar esa cuenta, anota la clave (aka.ms/myrecoverykey) o apaga el cifrado, o podes perder el acceso a tus datos."
+en: " BITLOCKER / DEVICE ENCRYPTION IS ON: the recovery key is stored in your Microsoft account. Before leaving that account, write down the key (aka.ms/myrecoverykey) or turn off encryption, or you may lose access to your data."
+es: Recomendado: copia tus archivos primero y deja la cuenta vieja hasta que tengas todo en la nueva.
+en: Recommended: copy your files first and keep the old account until you have everything in the new one.
+es: Entendi, seguir
+en: I understand, continue
+es: Nombre de la cuenta nueva
+en: Name of the new account
+es: Escribi el nombre de la cuenta local (letras y numeros, sin espacios raros).
+en: Type the name of the local account (letters and numbers, no odd spaces).
+es: Aceptar
+en: OK
+es: Ese nombre no sirve: usa hasta 20 letras o numeros (puede llevar espacio, punto, guion o guion bajo).
+en: That name does not work: use up to 20 letters or numbers (it can have a space, dot, hyphen or underscore).
+es: Cuenta local creada
+en: Local account created
+es: No se pudo crear la cuenta
+en: The account could not be created
+es: Confirmar
+en: Confirm
+es: Limpiar arranque
+en: Clean up startup
+es: Marca los programas que NO queres que se abran solos al prender la PC. Se apagan igual que desde el Administrador de tareas: se vuelven a prender con Restablecer. Los de drivers y perifericos (audio, mouse, RGB) mejor dejalos.
+en: Check the programs you do NOT want to open by themselves when the PC starts. They are turned off just like from Task Manager: Restore turns them back on. Better leave the driver and peripheral ones (audio, mouse, RGB).
+es: Borrar apps
+en: Remove apps
+es: Marca las apps que queres borrar. Las protegidas por Windows (Edge, Bing, Primeros pasos) se borran a la fuerza y no se pueden revertir facil: la app te avisa antes.
+en: Check the apps you want to remove. The ones protected by Windows (Edge, Bing, Get Started) are forced out and cannot be easily reverted: the app warns you first.
+es: Apagar servicios
+en: Turn off services
+es: Marca los servicios que queres apagar. Ninguno de estos afecta Windows Hello ni la activacion de Windows.
+en: Check the services you want to turn off. None of these affect Windows Hello or Windows activation.
+es: Apagar servicios extremos
+en: Turn off extreme services
+es: Marca los servicios que queres apagar. Biometria apaga Windows Hello con huella o cara; en notebooks conviene dejar wifi, sensores y biometria.
+en: Check the services you want to turn off. Biometrics turns off Windows Hello with fingerprint or face; on laptops it is better to keep Wi-Fi, sensors and biometrics.
+es: Borrar apps antiguas
+en: Remove legacy apps
+es: Marca las apps antiguas que queres BORRAR. Lo que dejes sin marcar se queda.
+en: Check the legacy apps you want to REMOVE. What you leave unchecked stays.
+es: Borrar apps modernas
+en: Remove modern apps
+es: Marca las apps modernas que queres BORRAR. Lo que dejes sin marcar se queda.
+en: Check the modern apps you want to REMOVE. What you leave unchecked stays.
+es: Seguro de quitar
+en: Safe to remove
+es: Seguro de quitar: es solo el icono, el antivirus sigue
+en: Safe to remove: it is just the icon, the antivirus keeps running
+es: Driver o periferico: mejor dejarlo
+en: Driver or peripheral: better keep it
+es: Protegida por Windows: no se puede revertir facil
+en: Protected by Windows: not easy to revert
+es: Notebook: mejor dejarlo
+en: Laptop: better keep it
+es: App de la Store que se abre sola al prender la PC.
+en: Store app that opens by itself when the PC starts.
+es: App que viene de fabrica.
+en: App that comes preinstalled.
+es: Elegiste borrar apps protegidas por Windows:
+en: You chose to remove apps protected by Windows:
+es: Se quitan con el metodo que usa Windows para retirar apps (las marca como fin de vida para todos los usuarios). NO se pueden revertir facil: para recuperarlas puede hacer falta una actualizacion grande de Windows o reinstalarlo.
+en: They are removed with the method Windows uses to retire apps (it marks them as end of life for all users). They CANNOT be easily reverted: getting them back may need a major Windows update or a reinstall.
+es: Apps protegidas
+en: Protected apps
+es: Borrarlas igual
+en: Remove them anyway
+es: Sin las protegidas
+en: Without the protected ones
+es: Telefono
+en: Phone
+es: llamadas desde la PC con Vincular con el telefono.
+en: calls from the PC with Phone Link.
+es: Billetera
+en: Wallet
+es: billetera de Windows (pagos guardados).
+en: Windows wallet (saved payments).
+es: Pagos y NFC
+en: Payments and NFC
+es: pagos con NFC y elementos seguros. No afecta Windows Hello.
+en: NFC payments and secure elements. Does not affect Windows Hello.
+es: Zona wifi movil
+en: Mobile hotspot
+es: compartir el internet de la PC por wifi.
+en: share the PC internet over Wi-Fi.
+es: Windows Insider
+en: Windows Insider
+es: programa de versiones de prueba de Windows.
+en: Windows preview builds program.
+es: Control parental
+en: Parental controls
+es: limites de Microsoft Family. No afecta Windows Hello.
+en: Microsoft Family limits. Does not affect Windows Hello.
+es: Tarjeta inteligente
+en: Smart card
+es: lectores de tarjetas inteligentes (DNI, tokens de empresa).
+en: smart card readers (ID cards, company tokens).
+es: Lectores de tarjetas
+en: Card readers
+es: detecta lectores de tarjetas inteligentes.
+en: detects smart card readers.
+es: Retiro de tarjeta
+en: Card removal
+es: bloquea la PC al sacar la tarjeta inteligente.
+en: locks the PC when the smart card is removed.
+es: Seguimiento de accesos directos
+en: Shortcut tracking
+es: arregla accesos directos a archivos movidos en red.
+en: fixes shortcuts to files moved over the network.
+es: Biometria
+en: Biometrics
+es: Windows Hello con huella o cara.
+en: Windows Hello with fingerprint or face.
+es: Datos de sensores
+en: Sensor data
+es: datos de los sensores de la PC.
+en: PC sensor data.
+es: Monitor de sensores
+en: Sensor monitor
+es: brillo automatico segun la luz.
+en: automatic brightness based on light.
+es: Sensores
+en: Sensors
+es: rotacion de pantalla y sensores de notebooks y tablets.
+en: screen rotation and sensors on laptops and tablets.
+es: conectar al wifi con el boton WPS.
+en: connect to Wi-Fi with the WPS button.
+es: proyectar y conectar aparatos por Wi-Fi Direct.
+en: project and connect devices over Wi-Fi Direct.
+es: Telefonia (TAPI)
+en: Telephony (TAPI)
+es: modems y telefonia vieja.
+en: modems and old telephony.
+es: discos de red de empresa.
+en: company network disks.
+es: Historial de archivos
+en: File History
+es: copias automaticas de tus archivos.
+en: automatic copies of your files.
+es: Copias de seguridad
+en: Backups
+es: copias de seguridad de Windows 7.
+en: Windows 7 backups.
+es: Eventos remotos
+en: Remote events
+es: junta eventos de otras PCs.
+en: collects events from other PCs.
+es: Instalador ActiveX
+en: ActiveX installer
+es: instala controles ActiveX de paginas viejas.
+en: installs ActiveX controls from old pages.
+es: Apps de empresa
+en: Enterprise apps
+es: apps que instala una empresa.
+en: apps installed by a company.
+es: Solucion de problemas
+en: Troubleshooting
+es: arreglos que Windows sugiere solo.
+en: fixes Windows suggests on its own.
+es: Localizador RPC
+en: RPC locator
+es: programas de red muy viejos.
+en: very old network programs.
+es: Puerta de enlace
+en: Gateway
+es: compartir internet con el metodo viejo (ICS).
+en: share internet with the old method (ICS).
+es: Certificados de tarjeta
+en: Card certificates
+es: certificados de tarjetas inteligentes.
+en: smart card certificates.
+es: Mensajes SMS
+en: SMS messages
+es: mensajes de texto en PCs con chip.
+en: text messages on PCs with a SIM.
+es: nombres de red local del metodo viejo.
+en: local network names, old method.
+es: cierra OneDrive, lo desinstala y lo saca del Explorador y del inicio. Tus archivos no se borran.
+en: closes OneDrive, uninstalls it and removes it from File Explorer and startup. Your files are not deleted.
+es: editor de imagenes de Adobe que viene de fabrica.
+en: preinstalled Adobe image editor.
+es: Asistencia rapida
+en: Quick Assist
+es: que otra persona controle tu PC para ayudarte.
+en: lets another person control your PC to help you.
+es: recomendaciones y paneles del menu Inicio.
+en: Start menu recommendations and panels.
+es: el Paint moderno.
+en: the modern Paint.
+es: Notas rapidas
+en: Sticky Notes
+es: notas adhesivas.
+en: sticky notes.
+es: Reloj
+en: Clock
+es: alarmas, temporizador y sesiones de concentracion.
+en: alarms, timer and focus sessions.
+es: Camara
+en: Camera
+es: la app de camara de Windows.
+en: the Windows camera app.
+es: Reproductor multimedia
+en: Media Player
+es: el reproductor de musica y video moderno.
+en: the modern music and video player.
+es: el navegador de Windows (WebView2 se queda).
+en: the Windows browser (WebView2 stays).
+es: busqueda web de Bing en Windows.
+en: Bing web search in Windows.
+es: Primeros pasos
+en: Get Started
+es: consejos y presentacion de Windows.
+en: Windows tips and intro.
+es: Bloc de notas clasico
+en: Classic Notepad
+es: el Bloc de notas de siempre (queda el moderno).
+en: the classic Notepad (the modern one stays).
+es: Paint clasico
+en: Classic Paint
+es: el Paint de siempre (queda el moderno).
+en: the classic Paint (the modern one stays).
+es: editor de texto con formato.
+en: rich text editor.
+es: Windows Media Player clasico
+en: Classic Windows Media Player
+es: el reproductor viejo.
+en: the old player.
+es: Grabador de pasos
+en: Steps Recorder
+es: graba lo que haces en capturas.
+en: records what you do in screenshots.
+es: editor de scripts viejo.
+en: old script editor.
+es: el navegador viejo.
+en: the old browser.
+es: Visor XPS
+en: XPS Viewer
+es: abre documentos .xps.
+en: opens .xps documents.
+es: Fax y Escaner
+en: Fax and Scan
+es: enviar faxes y escanear con la app vieja.
+en: send faxes and scan with the old app.
+es: Panel de matematicas
+en: Math Input Panel
+es: escribir formulas a mano.
+en: handwrite formulas.
+es: Vincular con el telefono
+en: Phone Link
+es: Solitario
+en: Solitaire
+es: Obtener ayuda
+en: Get Help
+es: Centro de opiniones
+en: Feedback Hub
+es: Grabadora de sonido
+en: Sound Recorder
+es: Mapas
+en: Maps
+es: Experiencia entre dispositivos
+en: Cross-device experience
+es: Noticias
+en: News
+es: El tiempo
+en: Weather
+es: Outlook (nuevo)
+en: Outlook (new)
+es: Antivirus: falta un paso tuyo
+en: Antivirus: one step is up to you
+es: Para apagar el antivirus, primero apaga vos la "Proteccion contra alteraciones" (Windows no deja que un programa la apague).
+en: To turn off the antivirus, first turn off "Tamper Protection" yourself (Windows does not let a program turn it off).
+es: 1. Se abrio Seguridad de Windows, en Configuracion de antivirus y proteccion contra amenazas.
+en: 1. Windows Security opened, in Virus & threat protection settings.
+es: 2. Apaga "Proteccion contra alteraciones" y acepta el cartel de Windows.
+en: 2. Turn off "Tamper Protection" and accept the Windows prompt.
+es: 3. Volve aca y toca "Ya la apague".
+en: 3. Come back here and tap "I turned it off".
+es: Mientras tanto la app espera: todavia no se aplico nada.
+en: Meanwhile the app waits: nothing has been applied yet.
+es: Ya la apague
+en: I turned it off
+es: Sigue encendida
+en: Still on
+es: La Proteccion contra alteraciones todavia esta encendida. Se vuelve a abrir Seguridad de Windows para que la apagues.
+en: Tamper Protection is still on. Windows Security opens again so you can turn it off.
+es: Se desmarcaron estas opciones porque chocan con otras que marcaste:
+en: These options were unchecked because they clash with others you checked:
+es: Opcion nueva:
+en: New option:
+es: Choca con la que ya tenes:
+en: It clashes with the one you already have:
+es: " (ya aplicada)"
+en: " (already applied)"
+es: " (marcada)"
+en: " (checked)"
+es: Cual queres conservar?
+en: Which one do you want to keep?
+es: Usar la nueva
+en: Use the new one
+es: Conservar la actual
+en: Keep the current one
+es: Windows Update esta apagado por completo: esta opcion no hace falta.
+en: Windows Update is fully off: this option is not needed.
+es: Quitar Xbox completo ya incluye esto.
+en: Remove all of Xbox already includes this.
+es: Sin la Microsoft Store esta opcion no hace falta.
+en: Without the Microsoft Store this option is not needed.
+es: Primero instala los drivers
+en: Install the drivers first
+es: Ir a Herramientas
+en: Go to Tools
+es: Instalalos desde Herramientas ("Buscar drivers"), toca "Volver a leer los ajustes" y despues aplica el perfil.
+en: Install them from Tools ("Find drivers"), tap "Read settings again" and then apply the profile.
+es: "Aplicar perfil" lo aplica directo, sin carteles de choques ni listas para elegir. "Marcar y revisar" te deja ajustar las opciones antes. Si al perfil le faltan drivers, no se aplica hasta que los instales. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.
+en: "Apply profile" applies it directly, without clash prompts or lists to choose from. "Check and review" lets you adjust the options first. If the profile needs drivers you are missing, it is not applied until you install them. What is not compatible with your PC or already applied is skipped automatically.
+es: Correo, Calendario y Contactos dejan de sincronizar y Compartir cerca no anda. La captura de pantalla (Recortes y Win+Shift+S) sigue andando: el portapapeles ya no se apaga.
+en: Mail, Calendar and People stop syncing and Nearby Sharing does not work. Screenshots (Snipping Tool and Win+Shift+S) keep working: the clipboard is no longer turned off.
+es: Defender a veces lo marca como amenaza porque toca el archivo hosts. Puede impedir actualizar a Windows 11 26H2: bloquea el servidor de compatibilidad que Windows Update consulta antes de ofrecerla.
+en: Defender sometimes flags it as a threat because it touches the hosts file. It can prevent updating to Windows 11 26H2: it blocks the compatibility server Windows Update checks before offering it.
+es: PELIGRO: la PC deja de recibir parches de seguridad y de drivers, y no podes actualizar a Windows 11 26H2 hasta restablecerlo.
+en: DANGER: the PC stops getting security and driver patches, and you cannot update to Windows 11 26H2 until you restore it.
+es: Puede impedir actualizar a Windows 11 26H2: sin el inventario de compatibilidad Windows Update no sabe si tu PC puede recibirla. Restablecelo antes de actualizar.
+en: It can prevent updating to Windows 11 26H2: without the compatibility inventory Windows Update does not know if your PC can get it. Restore it before updating.
+es: Puede impedir actualizar a Windows 11 26H2: apaga las tareas de diagnostico, inventario de dispositivos y configuracion de funciones (Flighting) que Windows usa para ofrecer la version nueva. Restablecelo antes de actualizar.
+en: It can prevent updating to Windows 11 26H2: it turns off the diagnostic, device inventory and feature configuration (Flighting) tasks Windows uses to offer the new version. Restore it before updating.
+es: Mientras tengas las actualizaciones en pausa no llega Windows 11 26H2.
+en: While updates are paused, Windows 11 26H2 does not arrive.
+es: "Ajustes procesados: "
+en: "Settings processed: "
+es: " bien, "
+en: " fine, "
+es: " con fallos)"
+en: " with errors)"
+es: "Que se aplico: "
+en: "What was applied: "
+es: Ya no arrancan con Windows (
+en: No longer start with Windows (
+es: Todo lo que tiene restablecimiento se deshace marcandolo y tocando "Restablecer seleccionadas".
+en: Anything that can be restored is undone by checking it and tapping "Restore selected".
+es: Algunos de estos cambios necesitan reiniciar la PC. Reiniciar ahora?
+en: Some of these changes need a PC restart. Restart now?
+es: "  -  Notebook"
+en: "  -  Laptop"
+es: "  -  PC de escritorio"
+en: "  -  Desktop PC"
+es: "  -  Windows recortado ("
+en: "  -  Trimmed Windows ("
+es: ): no se borran apps de nuevo
+en: ): apps are not removed again
+es: No hace falta: tu Windows ya viene recortado (
+en: Not needed: your Windows already comes trimmed (
+es: ) y esto ya lo trae quitado.
+en: ) and already has this removed.
+es: Actualizando los programas de Brio
+en: Updating the Brio programs
+es: Programas de Brio actualizados
+en: Brio programs updated
+es: " a la version nueva (la vieja se cierra sola)..."
+en: " to the new version (the old one closes by itself)..."
+
+es: Algunos antitrampas (Valorant, Fortnite, FACEIT) desconfian de los programas que miran el teclado: si un juego te da problemas, restablecelo.
+en: Some anti-cheats (Valorant, Fortnite, FACEIT) distrust programs that watch the keyboard: if a game gives you trouble, reset it.
+
+es: Elegi un perfil armado: "Aplicar perfil" lo aplica directo, sin carteles de choques ni listas para elegir. "Marcar y revisar" te deja ajustar las opciones antes. Si al perfil le faltan drivers, no se aplica hasta que los instales. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.
+en: Pick a ready-made profile: "Apply profile" applies it directly, with no conflict prompts or lists to choose from. "Select and review" lets you adjust the options first. If the profile is missing drivers, it is not applied until you install them. What is not compatible with your PC or is already applied is skipped automatically.
+
+es: Ya existe una cuenta que se llama "
+en: An account called "
+
+es: Windows no dejo crear la cuenta de administrador.
+en: Windows would not let the administrator account be created.
+
+es: " es de administrador, local, sin contrasena y sin correo.
+en: " is an administrator account, local, with no password and no email.
+
+es: ". Pasa tus archivos desde C:\Users\
+en: ". Move your files from C:\Users\
+
+es: y, cuando tengas todo, si queres borra la cuenta vieja con "Borrar una cuenta de esta PC".
+en: and, when you have everything, if you want, delete the old account with "Delete an account from this PC".
+
+es: Listo: la cuenta "
+en: Done: the account "
+
+es: Ahora: cerra sesion (Inicio > tu nombre > Cerrar sesion) y entra con "
+en: Now: sign out (Start > your name > Sign out) and sign in with "
+
+es: Quedo anotado en la carpeta de logs (app_errores.txt).
+en: It was recorded in the logs folder (app_errores.txt).
+
+es: No se pudo terminar la limpieza
+en: The cleanup could not finish
+
+es: La limpieza se corto antes de terminar. El detalle quedo en la carpeta de logs.
+en: The cleanup stopped before finishing. The details are in the logs folder.
+
+es: Marcaste opciones que BORRAN partes de Windows y NO SE PUEDEN RESTABLECER desde la app:
+en: You selected options that DELETE parts of Windows and CANNOT BE RESET from the app:
+
+es: Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Sin estas".
+en: Going back may require reinstalling Windows. Create a restore point first and back up what matters. If you are not sure, tap "Skip these".
+
+es: Si no copiaste lo que quieras conservar, se pierde para siempre.
+en: If you didn't copy what you want to keep, it is lost forever.
+
+es: Descargas se vacia por completo y no va a la papelera.
+en: Downloads is emptied completely and does not go to the Recycle Bin.
+
+es: los restos de apps desinstaladas pueden incluir partidas y configuraciones de juegos que ya no tenes instalados.
+en: the leftovers of uninstalled apps can include saves and settings of games you no longer have installed.
+
+es: OJO CON LAS PARTIDAS GUARDADAS:
+en: CAREFUL WITH YOUR SAVED GAMES:
+
+es: Cambiar
+en: Replace
+
+es: Sumar
+en: Add
+
+es: Sumar perfiles
+en: Add profiles
+
+es: " (de otro perfil o elegidas a mano).
+en: " (from another profile or picked by hand).
+
+es: Queres sumar la lista de este perfil a lo que ya marcaste, o cambiar lo marcado por este perfil?
+en: Do you want to add this profile's list to what you already selected, or replace the selection with this profile?
+
+es: opciones que no son de "
+en: options that are not from "
+
+es: Borrar igual
+en: Delete anyway
+
+es: Sin estas
+en: Skip these
+
+es: el Modo Nitro, el plan Alto rendimiento y la Baja latencia no estan incluidos a proposito: suben mucho la temperatura, incluso en reposo. Si los queres, activalos a mano en Gaming y mira las temperaturas.
+en: Nitro Mode, the High performance plan and Low latency are left out on purpose: they raise the temperature a lot, even at idle. If you want them, turn them on by hand in Gamer zone and watch the temperatures.
+
+es: el antivirus (ni sus analisis), BitLocker, la integridad de memoria ni VBS, ni el plan de energia ni el procesador (nada de Alto rendimiento, Modo Nitro ni Baja latencia); tampoco borra apps.
+en: the antivirus (or its scans), BitLocker, memory integrity or VBS, or the power plan or the processor (no High performance, Nitro Mode or Low latency); it does not delete apps either.
+
+es: Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga el antivirus y BitLocker, bloquea la telemetria en hosts y apaga Teredo y Windows Search. No toca la integridad de memoria ni VBS.
+en: Windows as light as possible: all of the debloat and system optimization, and it also turns off the antivirus and BitLocker, blocks telemetry in hosts and turns off Teredo and Windows Search. It does not touch memory integrity or VBS.
+
+es: la integridad de memoria ni VBS, los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.
+en: memory integrity or VBS, the competitive gaming tweaks (mouse, priority, affinity, power plan, timer and network), or Edge or Chrome. It creates a restore point before starting.
+
+es: para jugar, enchufa la notebook: a bateria rinde menos a proposito. El Modo Nitro y el plan Alto rendimiento no estan incluidos: en una notebook suben mucho la temperatura.
+en: to play, plug the laptop in: on battery it performs worse on purpose. Nitro Mode and the High performance plan are left out: on a laptop they raise the temperature a lot.
+
+es: el antivirus (ni sus analisis), la integridad de memoria ni VBS. Tampoco pone el plan Alto rendimiento, el temporizador al minimo ni apaga el ahorro de energia de USB, PCIe y red, porque gastan bateria todo el tiempo.
+en: the antivirus (or its scans), memory integrity or VBS. It does not set the High performance plan, the minimum timer or turn off USB, PCIe and network power saving either, because they drain the battery all the time.
+
+es: 2,5 a 3,5 GB de RAM y 0 a 2 % de CPU, sin nada abierto en Windows 11 (estimado, no medido; depende del hardware y los drivers).
+en: 2.5 to 3.5 GB of RAM and 0 to 2% of CPU, with nothing open, on Windows 11 (estimated, not measured; it depends on the hardware and drivers).
+
+es: la PC queda sin antivirus, sin parches de seguridad (Windows Update apagado), sin Store ni Bluetooth, y dejan de andar WSL, Docker y las maquinas virtuales. Si el disco estaba cifrado con BitLocker, la PC va mas lenta hasta que termine de descifrarse. Para pasar de ahi hace falta una ISO recortada (tiny11 o NTLite): desde una Windows instalada no se llega a 0,5 GB.
+en: the PC is left with no antivirus, no security patches (Windows Update off), no Store or Bluetooth, and WSL, Docker and virtual machines stop working. If the disk was encrypted with BitLocker, the PC is slower until it finishes decrypting. To go lower than this you need a trimmed ISO (tiny11 or NTLite): from an installed Windows you will not reach 0.5 GB.
+
+es: lo mas cerca de un Windows recortado sin reinstalar: todo lo de RAM liviana y ademas apaga la hibernacion, el antivirus y BitLocker, Windows Update (y sus drivers), Bluetooth, la Store y el Centro de seguridad, quita la Microsoft Store y los componentes viejos (Internet Explorer, WordPad, SMBv1, PowerShell 2), baja los servicios de usuario y de red local, la grabacion de juegos y el NVIDIA extra, y desactiva la integridad de memoria y VBS.
+en: the closest to a trimmed Windows without reinstalling: everything in Light RAM, and it also turns off hibernation, the antivirus and BitLocker, Windows Update (and its drivers), Bluetooth, the Store and the Security Center, removes the Microsoft Store and old components (Internet Explorer, WordPad, SMBv1, PowerShell 2), lowers user and local network services, game recording and the extra NVIDIA software, and turns off memory integrity and VBS.
+
+es: una PC vieja o con poca RAM que solo tiene que abrir uno o dos programas con el menor consumo posible, sabiendo lo que haces.
+en: an old PC or one with little RAM that only has to open one or two programs with the lowest possible use, knowing what you are doing.
+
+es: los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.
+en: the competitive gaming tweaks, or Edge or Chrome. It creates a restore point before starting.
+
+es: . Desconectalo (o usa otro) y volve a leer los ajustes.
+en: . Disconnect it (or use another one) and re-read the settings.
+
+es: No se puede ahora: tenes conectado por Bluetooth
+en: Not possible right now: you have this connected over Bluetooth:
+
+es: Ya esta hecho y no se puede volver atras desde la app.
+en: Already done and it cannot be undone from the app.
+
+es: tiene un error en la linea
+en: has an error on line
+
+es: errores: mira la carpeta de logs.
+en: errors: check the logs folder.
+
+es: ". Elegi otro nombre.
+en: ". Pick another name.
+
+es: Codigo de error:
+en: Error code:
+
+es: Ya aplicada
+en: Already applied
+
+es: Ya tenes marcadas
+en: You already have
+
+es: Sin vuelta atras
+en: No way back
+
+es: Programas de Brio
+en: Brio programs
+
+es: Termino con
+en: Finished with

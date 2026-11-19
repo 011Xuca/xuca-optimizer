@@ -168,7 +168,8 @@ function Reg-Abrir([string]$ruta, [string]$modo) {
     $i = $ruta.IndexOf('\')
     $raiz = $(if ($i -lt 0) { $ruta } else { $ruta.Substring(0, $i) })
     $sub = $(if ($i -lt 0) { '' } else { $ruta.Substring($i + 1) })
-    $h = switch ($raiz.ToUpper()) {
+    # acepta tambien el estilo de PowerShell (HKCU:\...): el log del pendrive fallaba por eso
+    $h = switch ($raiz.ToUpper().TrimEnd(':')) {
         'HKCU' { [Microsoft.Win32.RegistryHive]::CurrentUser }
         'HKLM' { [Microsoft.Win32.RegistryHive]::LocalMachine }
         'HKCR' { [Microsoft.Win32.RegistryHive]::ClassesRoot }
@@ -277,8 +278,52 @@ function Reg-Del([string]$ruta, [string]$nombre) {
 # ------------------------------------------------------------
 # Servicios (modo = disabled, auto, delayed-auto o demand; inicio = el valor Start que tiene que quedar)
 # ------------------------------------------------------------
+# Servicios de la licencia y la activacion de Windows: ninguna opcion los apaga nunca (si se apagan, Windows con cuenta
+# local puede pasar a "no activado" o "copia no original"). Proteccion de software, licencia de cliente (licencias digitales
+# OEM/HWID), licencias de la Store, inicio de sesion de cuenta Microsoft del equipo y aislamiento de claves.
+$SvcLicencia = @('sppsvc', 'ClipSVC', 'LicenseManager', 'wlidsvc', 'KeyIso')
+
+# Corre un comando como SYSTEM (tarea programada de un solo uso). Sirve para los servicios y tareas que Windows protege
+# (WaaSMedicSvc, UsoSvc, UpdateOrchestrator): el administrador no puede cambiarlos, SYSTEM si. Devuelve $true si corrio.
+function Como-Sistema([string]$cmd) {
+    $tn = 'BrioSistema_' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+    try {
+        $a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/d /c ' + $cmd)
+        Register-ScheduledTask -TaskName $tn -Action $a -User 'NT AUTHORITY\SYSTEM' -RunLevel Highest -Force -ErrorAction Stop | Out-Null
+        Start-ScheduledTask -TaskName $tn -ErrorAction Stop
+        $sw = [Diagnostics.Stopwatch]::StartNew()
+        do { Start-Sleep -Milliseconds 150 } while (((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue).State -eq 'Running') -and ($sw.ElapsedMilliseconds -lt 15000))
+        return $true
+    } catch { Log 'INFO' ('no se pudo correr como SYSTEM: ' + $_.Exception.Message); return $false }
+    finally { Unregister-ScheduledTask -TaskName $tn -Confirm:$false -ErrorAction SilentlyContinue }
+}
+
+# Lo que elegiste en el submenu de la app para una opcion (variable XSEL_<id>, separado con tab).
+# Sin submenu (perfiles o la consola) devuelve $null y la opcion usa su lista de siempre.
+function Elegidos([string]$id) {
+    $v = [Environment]::GetEnvironmentVariable('XSEL_' + $id)
+    if ($null -eq $v) { return $null }
+    return , @($v -split "`t" | Where-Object { $_ })
+}
+# Notebook (lo pasa la app): no se apagan wifi, sensores, biometria ni bateria si no los elegiste a mano
+function Es-Notebook { return ([string]$env:XNOTEBOOK -eq '1') }
+
+# Versiones viejas apagaban LicenseManager (opcion "str"): con eso Windows con cuenta local podia salir como no activado.
+# Si alguno de los servicios de la activacion quedo deshabilitado, vuelve a como viene en Windows.
+function Reparar-Licencia {
+    $def = @{ sppsvc = 2; ClipSVC = 3; LicenseManager = 3; wlidsvc = 3; KeyIso = 3 }
+    foreach ($n in $script:SvcLicencia) {
+        $v = Reg-Leer ('HKLM\SYSTEM\CurrentControlSet\Services\' + $n) 'Start'
+        if ($v -and ([int64]$v.Valor -eq 4)) {
+            Log 'INFO' ($n + ' estaba deshabilitado (afecta la activacion de Windows): vuelve a como viene en Windows')
+            try { Set-ItemProperty -LiteralPath ('HKLM:\SYSTEM\CurrentControlSet\Services\' + $n) -Name 'Start' -Value $def[$n] -ErrorAction Stop } catch { Como-Sistema ('reg add "HKLM\SYSTEM\CurrentControlSet\Services\' + $n + '" /v Start /t REG_DWORD /d ' + $def[$n] + ' /f') | Out-Null }
+        }
+    }
+}
+
 function Svc([string]$nombre, [string]$modo, [string]$inicio) {
     $rk = 'HKLM\SYSTEM\CurrentControlSet\Services\' + $nombre
+    if (($modo -eq 'disabled') -and ($script:SvcLicencia -contains $nombre)) { Log 'OMITIDO' ($nombre + ' es parte de la activacion de Windows: no se apaga'); return }
     if (-not (Reg-Existe $rk)) { Log 'OMITIDO' ('el servicio ' + $nombre + ' no existe en esta PC'); return }
     if (Reg-Igual (Reg-Leer $rk 'Start') $inicio 'REG_DWORD') { $script:OptS++; Log 'OK' ('el servicio ' + $nombre + ' ya estaba con inicio ' + $modo); return }
     # Disabled y manual se cambian sin abrir otro programa; auto y delayed-auto van por sc.exe (deja bien el "retrasado")
@@ -289,6 +334,11 @@ function Svc([string]$nombre, [string]$modo, [string]$inicio) {
     if (-not $hecho) { & sc.exe config $nombre start= $modo 2>&1 | Out-Null }
     # Algunos servicios rechazan el cambio por el administrador de servicios pero aceptan el registro directo
     if (-not (Reg-Igual (Reg-Leer $rk 'Start') $inicio 'REG_DWORD')) { try { Set-ItemProperty -LiteralPath ('HKLM:\SYSTEM\CurrentControlSet\Services\' + $nombre) -Name 'Start' -Value ([int]$inicio) -ErrorAction Stop } catch { } }
+    # Servicio protegido (WaaSMedicSvc, UsoSvc...): el administrador no tiene permiso, SYSTEM si
+    if (-not (Reg-Igual (Reg-Leer $rk 'Start') $inicio 'REG_DWORD')) {
+        Log 'INFO' ($nombre + ' esta protegido: se cambia como SYSTEM')
+        Como-Sistema ('reg add "HKLM\SYSTEM\CurrentControlSet\Services\' + $nombre + '" /v Start /t REG_DWORD /d ' + [int]$inicio + ' /f') | Out-Null
+    }
     $script:OptT++
     Reg-Verif $rk 'Start' $inicio
 }
@@ -320,6 +370,8 @@ function Sched-Tarea([string]$tn) {
     return (Sched).GetFolder($dir).GetTask($tn.Substring($i + 1))
 }
 function Tarea([string]$tn, [string]$modo) {
+    # Las tareas de la licencia de Windows no se apagan nunca (sin ellas la activacion no se renueva)
+    if (($modo -eq 'disable') -and ($tn -match '(?i)\\(SoftwareProtectionPlatform|Clip|Subscription)\\')) { Log 'OMITIDO' ('tarea de la activacion de Windows, no se apaga: ' + $tn); return }
     $t = $null
     try { $t = Sched-Tarea $tn } catch { }
     if ($t) {
@@ -649,6 +701,7 @@ function Correr-Opciones {
         $script:XLog = Join-Path $dir ($Nombre + '_' + $script:Stamp + '.txt')
         Log-Cabecera
         Log 'INFO' ('Inicio de ' + $Nombre)
+        Reparar-Licencia
 
         Say ($Titulo + ' - build detectado: ' + $script:Build)
         $viejo = ($script:Build -gt 0) -and ($script:Build -lt 10240)

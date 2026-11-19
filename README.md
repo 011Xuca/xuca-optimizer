@@ -36,9 +36,9 @@ Ahí las opciones que necesitan Windows 10 u 11 aparecen en gris y no se aplican
 |---|---|
 | **Perfiles** | Combos listos (Seguro, Competitivo, Full Optimizado...) que se aplican con un toque. Competitivo está pensado para Valorant, CS2, Fortnite, Warzone, Marvel Rivals, LoL y Deadlock, sin tocar la seguridad. |
 | **Debloat y privacidad** | Saca publicidad, telemetría, IA de Windows, apps basura y apps de inicio que no hacen falta. |
-| **Optimización gaming** | Mouse sin aceleración, prioridad y afinidad para tus juegos, plan de energía, red, DNS y más. |
+| **Zona gamer** | Mouse sin aceleración, prioridad y afinidad para tus juegos, plan de energía, red, DNS y más. |
 | **Limpiar caché** | Borra temporales, caché de Windows Update, shaders y otras cosas que ocupan espacio. |
-| **Herramientas** | Drivers recomendados, ajustes de la BIOS, medir FPS antes y después de aplicar (con PresentMon), actualizar Windows, entrar sin contraseña y otras opciones que te piden datos. |
+| **Herramientas** | Drivers recomendados, ajustes de la BIOS, actualizar a Windows 11 26H2 (sin ventanas negras: revisa y arregla lo que impide actualizar), escanear y reparar Windows (DISM + SFC), cuenta local sin Microsoft, entrar sin contraseña y más. |
 | **Apps recomendadas** | Programas gratis para revisar, cuidar y limpiar tu PC (CrystalDiskInfo, HWiNFO, DDU, WizTree y más). Cada uno se baja de su página oficial. |
 | **Configs recomendadas** | Configs de juegos y apps que subo a GitHub. Se bajan al escritorio con sus instrucciones. El circulito azul dice cuántas hay. |
 
@@ -50,7 +50,7 @@ Ahí las opciones que necesitan Windows 10 u 11 aparecen en gris y no se aplican
 
 ## Drivers
 
-- Las opciones con borde **violeta** necesitan un driver. Si te falta, la app no te deja marcarla: te avisa cuál falta y te lleva a **Herramientas > Buscar drivers**. Los perfiles también te avisan antes de seguir.
+- Las opciones con borde **violeta** necesitan un driver. Si te falta, la app no te deja marcarla: te avisa cuál falta y te lleva a **Herramientas > Buscar drivers**. Un perfil que necesita drivers que te faltan no se aplica hasta que los instales.
 - **Buscar drivers** revisa tu PC y te muestra qué conviene bajar (placa de video, chipset, lo que falta de tu placa madre, el programa de tu mouse, teclado o auriculares y si la BIOS está vieja). **No instala nada**: solo te abre la página oficial de lo que falta.
 
 ## Antes de usarlo
@@ -66,7 +66,7 @@ Ahí las opciones que necesitan Windows 10 u 11 aparecen en gris y no se aplican
 - **Idioma:** español o inglés, con el botón de abajo a la izquierda.
 - **Logs:** con "Abrir carpeta de logs" ves todo lo que se cambió.
 - **Zoom:** Ctrl + rueda del mouse (o Ctrl + / Ctrl -) agranda o achica la app. Ctrl + 0 la vuelve al tamaño normal.
-- La optimización para gaming (`scripts/Gaming.ps1`), el debloat (`scripts/Debloat.ps1`) y la limpieza (`scripts/Limpieza.ps1`) corren dentro de la app, sin abrir ventanas de consola. Solo las herramientas que te piden datos (actualizar Windows, borrar una cuenta, entrar sin contraseña) abren una ventana de PowerShell.
+- La optimización para gaming (`scripts/Gaming.ps1`), el debloat (`scripts/Debloat.ps1`) y la limpieza (`scripts/Limpieza.ps1`) corren dentro de la app, sin abrir ventanas de consola. Solo borrar una cuenta y entrar sin contraseña abren una ventana de PowerShell para pedirte datos.
 
 ## Créditos
 

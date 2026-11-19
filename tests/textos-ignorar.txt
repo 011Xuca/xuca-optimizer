@@ -1,0 +1,42 @@
+# Cadenas que se ven igual en espanol y en ingles (nombres propios, siglas, marcas) o que no son texto: no hace falta traducirlas.
+# Una por linea, sin espacios al principio ni al final. Las revisa tests\Verificar-Textos.ps1.
+DNS
+MOUSE
+DRIVERS
+Adobe Express
+Bing
+Microsoft Edge
+OneDrive
+Paint
+Start Experiences
+Internet Explorer
+PowerShell ISE
+WordPad
+Windows Insider
+iSCSI
+NetBIOS
+Wi-Fi Direct
+Windows Connect Now
+CONFIRMAR CAMBIO DE CUENTA
+CUENTA
+VERSION DE WINDOWS
+Cuenta local creada por Brio
+# no son texto de la app: filtro del selector de archivos, lineas que se buscan en lo que escribe un script, notas internas
+ISO de Windows (*.iso)|*.iso
+Restableciendo cache de resolucion DNS
+Borrando puntos de restauracion
+No hay una placa de red conectada
+Hace falta reiniciar la PC
+app armada (antes de mostrar la ventana)
+# nombres de funciones, marcas de tiempo y patrones que estan entre comillas pero no se muestran
+Resumen-De
+Procesos-De
+Sin-Acentos
+Cabeza-Cuenta
+Sin-Colores
+entran los menus
+empieza a irse la intro
+version de GitHub leida
+TU_USUARIO*
+cambiar el DNS*
+Jugador

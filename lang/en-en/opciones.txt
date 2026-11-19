@@ -14,8 +14,8 @@ Favor: frees disk space and Windows stops writing copies in the background.
 Contra: if something goes wrong you won't be able to go back with a restore point.
 
 [Debloat av]
-Titulo: Turn off ALL the antivirus
-Hace: turns off Defender, SmartScreen and Smart App Control.
+Titulo: Turn off the antivirus
+Hace: turns off Defender, SmartScreen and Smart App Control (aka turning off Defender).
 Favor: less CPU and disk use, and no scans in the middle of a match.
 Contra: the PC is left without virus protection and Smart App Control can't be turned back on without reinstalling Windows.
 
@@ -38,13 +38,13 @@ Favor: with 4 to 8 GB of RAM more programs fit open and there is less stutter fr
 Contra: uses a bit of CPU to compress. With 16 GB or more it barely changes anything. It needs SysMain turned on, so it cannot be used together with "Disable SysMain and Prefetch".
 
 [Debloat nvd]
-Titulo: Turn off the NVIDIA display container
+Titulo: Turn off the NVIDIA container
 Hace: disables and stops the NVIDIA Display Container service (NVDisplay.ContainerLocalSystem), which keeps the NVDisplay.Container processes open.
 Favor: the NVDisplay.Container processes close and RAM is freed, without touching the driver.
 Contra: the NVIDIA Control Panel and its icon will not open until restored. Updating the driver may turn it back on.
 
 [Debloat inv]
-Titulo: Turn off Windows compatibility inventory and health
+Titulo: Turn off the compatibility inventory
 Hace: disables the InventorySvc (inventory and compatibility assessment) and whesvc (Windows health and optimized experiences) services.
 Favor: two fewer processes always open and less background CPU use.
 Contra: Windows does not assess whether your PC is compatible with a new version until restored.
@@ -62,25 +62,25 @@ Favor: fewer text input processes in the background.
 Contra: you may not be able to type in Start search, Settings and Store apps, and the emoji panel, touch keyboard, dictation, clipboard history (Win+V), IME languages and switching the keyboard with Alt+Shift stop working. Classic programs, games and Discord keep working. Before restarting, lock with Win+L and check that you can type your password.
 
 [Debloat tkb]
-Titulo: Turn off the web account manager
+Titulo: Turn off web accounts
 Hace: disables and stops the Token Broker service (TokenBroker).
 Favor: one service less in the background.
 Contra: you cannot sign in with your Microsoft account in the Store, Office, OneDrive, Xbox, Teams, the new Outlook or Settings > Accounts. Your Windows session and programs that do not use a Microsoft account keep working.
 
 [Debloat aif]
-Titulo: Turn off the Windows AI service (AI Fabric)
+Titulo: Turn off the AI service
 Hace: disables and stops WSAIFabricSvc, the service that runs the local AI models of Windows.
 Favor: one service less always on.
 Contra: local AI features (Click to Do, semantic search, AI effects in Photos and Paint) do not work until restored.
 
 [Debloat cdps]
-Titulo: Turn off the connected devices service
+Titulo: Turn off Connected Devices
 Hace: disables and stops the Connected Devices Platform Service (CDPSvc).
 Favor: one service less in the background.
 Contra: Phone Link, Nearby Share, Continue on PC and cross-device sync stop working.
 
 [Debloat ofb]
-Titulo: Turn off Office Startup Boost
+Titulo: Turn off Office preload
 Hace: turns off the "Office Startup Boost" tasks that preload Word, Excel and PowerPoint when you sign in. If you don't have Office, nothing changes.
 Favor: the RAM Office was using in the background is freed (tens to hundreds of MB, depending on the version).
 Contra: the first time you open Word, Excel or PowerPoint it takes a bit longer. A big Office update can turn it back on.
@@ -116,7 +116,7 @@ Favor: the graphics card works a bit less, especially with integrated graphics.
 Contra: Windows looks flatter.
 
 [Debloat et]
-Titulo: Add End task to the taskbar right-click menu
+Titulo: End task on the taskbar
 Hace: adds End task to the taskbar right-click menu.
 Favor: you close a frozen game or program without opening Task Manager.
 Contra: none.
@@ -128,19 +128,19 @@ Favor: the panel doesn't open by accident in the middle of a match and the taskb
 Contra: you don't see the calendar or the notification history; Win + N doesn't open it either.
 
 [Debloat apps]
-Titulo: Block Store apps in the background
+Titulo: Block background apps
 Hace: stops Store apps from running when you aren't using them. The Xbox app, the Game Bar, Gaming Services and Minecraft can still run in the background.
 Favor: saves RAM and CPU.
 Contra: some apps don't notify you of anything until you open them.
 
 [Debloat ini]
-Titulo: Turn off junk startup apps
+Titulo: Clean up startup
 Hace: turns off the programs that open by themselves when the PC starts (Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge and similar). It doesn't touch Windows stuff, drivers, mouse, keyboard, headset and RGB software (Logitech, Razer, SteelSeries Sonar, Corsair...), Wallpaper Engine, antivirus, VPN or anti-cheats.
 Favor: the PC boots faster and more RAM stays free.
 Contra: those programs no longer open by themselves: you open them when you need them.
 
 [Debloat tel]
-Titulo: Reduce telemetry and get the newest Windows updates for lower RAM use
+Titulo: Reduce telemetry
 Hace: turns off the service that sends data to Microsoft and its tasks (disk and power diagnostics, error queue, MAR backup, startup measurement and maps), and sets the level Windows asks for to get new versions sooner.
 Favor: fewer background processes using disk and CPU, and you get 26H2 first, which uses less RAM.
 Contra: it's not a total shutdown of data: it's the middle ground to keep getting new things. Task Manager stops measuring the startup impact of programs.
@@ -158,19 +158,19 @@ Favor: a cleaner taskbar.
 Contra: you open Task View with Win+Tab.
 
 [Debloat do]
-Titulo: Stop sharing updates with other PCs
+Titulo: Don't share updates
 Hace: your PC stops sending updates to other PCs over the internet.
 Favor: it doesn't use your upload bandwidth and there's less risk of lag in matches.
 Contra: none for you.
 
 [Debloat wud]
-Titulo: Stop Windows Update from installing drivers
+Titulo: No drivers from Windows Update
 Hace: Windows Update stops installing drivers.
 Favor: it won't change the graphics driver you chose or install old drivers.
 Contra: you update drivers yourself, from the NVIDIA, AMD or manufacturer app.
 
 [Debloat wup]
-Titulo: Allow pausing Windows updates for a long time
+Titulo: Pause updates for longer
 Hace: lets you choose a pause of many years in Windows Update.
 Favor: it won't update or restart during a tournament or an important match.
 Contra: if you leave it paused for a long time, you miss security patches.
@@ -188,13 +188,13 @@ Favor: Start search only looks in your PC, faster and without ads.
 Contra: Start search no longer searches the internet.
 
 [Debloat sv]
-Titulo: Disable services and features almost nobody uses
+Titulo: Remove old features
 Hace: turns off Fax, Maps, demo mode, geolocation and error report services, and removes Internet Explorer, Fax and Scan and the old Media Player.
 Favor: fewer services and features loaded in Windows.
 Contra: if you use the Windows scanner or the old Media Player, they're gone.
 
 [Debloat rsv]
-Titulo: Turn off more services to free RAM
+Titulo: Turn off services
 Hace: turns off the Phone, Wallet, NFC payments, mobile hotspot, parental controls, smart cards, Insider and shortcut tracking services. It doesn't touch the Xbox services or Gaming Services.
 Favor: fewer services loaded: frees some RAM and background processes.
 Contra: the mobile hotspot, smart card readers and Microsoft parental controls stop working.
@@ -206,13 +206,13 @@ Favor: a few MB less: these services are almost always stopped if you don't use 
 Contra: Game Pass, Minecraft (Bedrock and the Launcher), Store games with cloud saves, Xbox chat and Xbox controller settings stop working until you reset it.
 
 [Debloat dia]
-Titulo: Set the diagnostic services to manual
+Titulo: Diagnostics on manual
 Hace: sets the Diagnostic Policy Service (DPS) to manual; it also starts the diagnostic hosts and the resource usage monitor.
 Favor: one to three fewer background processes: a few tens of MB of RAM (estimated, not measured).
 Contra: Windows stops detecting problems on its own, and app history, battery usage per app and data usage per app in Settings stop updating. If a troubleshooter says the diagnostic service isn't running, reset this option.
 
 [Debloat svh]
-Titulo: Merge Windows services into fewer processes
+Titulo: Group service processes
 Hace: makes Windows group its services into a few svchost processes instead of one per service (SvcHostSplitThresholdInKB).
 Favor: saves several hundred MB of RAM and lowers the process count.
 Contra: if one service hangs it can take down the ones sharing its process. Applies on restart.
@@ -290,7 +290,7 @@ Favor: less data sent.
 Contra: none in normal use.
 
 [Debloat hst]
-Titulo: Block Microsoft telemetry servers
+Titulo: Block telemetry in hosts
 Hace: adds 38 telemetry servers to the hosts file so they don't respond.
 Favor: cuts data sending even if Windows turns something back on later.
 Contra: Defender sometimes warns about hosts changes and some Microsoft diagnostics may fail.
@@ -308,7 +308,7 @@ Favor: a lighter Brave without crypto ads.
 Contra: you lose those features if you used them.
 
 [Debloat su]
-Titulo: Stop automatic updates of Store apps
+Titulo: Pause Store app updates
 Hace: Store apps only update when you ask for it.
 Favor: they don't download anything in the middle of a match.
 Contra: you have to update them manually now and then. It also stops updates for Game Pass games, Minecraft and Gaming Services: some games won't let you play online until you update them from the Xbox app or the Store.
@@ -332,19 +332,19 @@ Favor: fewer AI features and more privacy in your documents.
 Contra: you lose Copilot in Word and Excel.
 
 [Debloat cam]
-Titulo: Allow multiple apps to use the camera
+Titulo: Shared camera
 Hace: turns on "Allow multiple apps to use camera at the same time" (Frame Server).
 Favor: you can use the camera in OBS, Discord, Teams, etc. at once without one blocking the other.
 Contra: some camera controls can only be changed from the camera settings page.
 
 [Debloat db]
-Titulo: Delete bloatware apps
+Titulo: Remove apps
 Hace: deletes OneDrive, Copilot, the AI packages and the apps that come preinstalled.
 Favor: more space, less RAM and fewer processes.
 Contra: it can't be reset: if you want one back, reinstall it from the Store. Your OneDrive files on the PC are not deleted.
 
 [Debloat edge]
-Titulo: Remove Edge, Bing and Get Started
+Titulo: Remove Edge and Bing
 Hace: uninstalls Edge, Bing and Get Started, but keeps WebView2, which other programs use.
 Favor: fewer background processes and Edge stops opening by itself.
 Contra: a big Windows update can bring it back.
@@ -366,19 +366,31 @@ Favor: the same hand movement always moves the same: better aim.
 Contra: on the desktop the mouse may feel different until you get used to it.
 
 [Gaming tk]
-Titulo: Disable accessibility shortcuts
+Titulo: No accessibility shortcuts
 Hace: turns off the accessibility shortcuts that turn on by accident while gaming: Shift 5 times, right Shift for 8 seconds, Num Lock for 5 seconds, Alt+Shift+Num Lock (mouse keys), Alt+Shift+Print Screen (high contrast) and Win+Ctrl+Enter (Narrator).
 Favor: it doesn't kick you out of the game mid-match or change the colors of the whole screen.
 Contra: if you use any of these features for accessibility, turn it on manually from Settings.
 
+[Gaming dtk]
+Titulo: Unstick keyboard
+Hace: a small background program releases Alt, Ctrl, Shift and Windows when they stay pressed without you touching anything, and adds the Ctrl + Alt + K shortcut to release them and restart text input (ctfmon) whenever you want.
+Favor: if the keyboard gets stuck mid-match (shortcuts pop up while typing, the mouse selects too much), it fixes itself or with the shortcut, without leaving the game.
+Contra: a key held for more than 30 seconds with no other input is released by itself.
+
+[Gaming foc]
+Titulo: Focus mode
+Hace: a small background program ignores the Windows key while a game is in full screen. With Ctrl + Alt + F it ignores it always, until you repeat the shortcut (it beeps).
+Favor: an accidental tap on the Windows key no longer kicks you out of the match or opens the Start menu.
+Contra: with the game in full screen, shortcuts that use Windows (Win + D, Win + Shift + S...) don't work either.
+
 [Gaming du]
-Titulo: Stop Windows from lowering the volume during calls
+Titulo: Fixed volume during calls
 Hace: Windows stops lowering the game volume when there's a call, for example on Discord.
 Favor: the game always sounds the same.
 Contra: none.
 
 [Gaming mm]
-Titulo: Give games multimedia priority
+Titulo: Game priority
 Hace: the Windows multimedia scheduler gives games more priority. The network limit stays at 10, the Windows value, because removing it can make latency worse.
 Favor: a bit more CPU for the game and less stutter.
 Contra: the effect is small.
@@ -390,7 +402,7 @@ Favor: less stutter when you have things open in the background, like Discord, t
 Contra: if the CPU reaches 100 percent, background stuff may stutter a bit (for example, the OBS stream).
 
 [Gaming afi]
-Titulo: Use CPU affinity for your games
+Titulo: CPU affinity
 Hace: a small background program puts your games on the best cores and moves Discord, Spotify and the browser to others.
 Favor: background stuff doesn't steal cores from the game: steadier frametimes and less stutter, especially in Minecraft.
 Contra: while you play, background stuff runs a bit slower.
@@ -408,8 +420,8 @@ Favor: the battery lasts quite a bit longer and the laptop runs cooler and quiet
 Contra: on battery it performs a bit less; plug it in to play.
 
 [Gaming cpu]
-Titulo: Turn on the processor Nitro Mode
-Hace: keeps all cores active, turbo at maximum and in aggressive mode, fast speed ramp-up and fans before slowing down, with the PC plugged in; also Windows stops throttling background programs.
+Titulo: Nitro Mode
+Hace: keeps all cores active, turbo at maximum and in aggressive mode, fast speed ramp-up and fans before slowing down, with the PC plugged in; also Windows stops throttling background programs (aka QuickCPU).
 Favor: less stutter when the game suddenly asks for more CPU.
 Contra: more power use, heat and fan noise.
 
@@ -420,7 +432,7 @@ Favor: Start, menus and apps open faster, especially on low-end PCs.
 Contra: short spikes of power use and heat; Microsoft is still testing it and on powerful PCs it's barely noticeable.
 
 [Gaming idle]
-Titulo: Disable processor idle states (C-states)
+Titulo: Cores always awake
 Hace: turns on the hidden "Processor idle disable" setting of the active power plan, plugged in and on battery: the cores stop going to sleep (C-states) when they have no work. It saves your current values first so you can go back.
 Favor: the processor doesn't take time to wake up: a bit less latency and fewer micro-stutters in competitive games.
 Contra: the processor never rests: much more power use and heat even when you're not gaming, fans get louder, some processors lower their turbo because of temperature, and on laptops the battery lasts much less.
@@ -468,7 +480,7 @@ Favor: less latency in windowed and borderless, and Auto HDR and variable refres
 Contra: in some old game it can change how the image looks.
 
 [Gaming fso]
-Titulo: Disable fullscreen optimizations and DPI scaling on your games
+Titulo: No fullscreen optimizations
 Hace: for each installed game it ticks "Disable fullscreen optimizations" and "Override high DPI scaling behavior: Application" (Properties > Compatibility).
 Favor: less input latency in fullscreen, and the game handles its own scaling without Windows stretching it.
 Contra: it only touches games detected automatically (Steam, Epic, EA, etc.); if a game loses modern borderless mode, R undoes it. Close and reopen the game.
@@ -480,25 +492,25 @@ Favor: fixes flickering, black screens and invisible cursor on some PCs.
 Contra: if you didn't have those problems, GPU use in windowed mode may go up a bit.
 
 [Gaming msi]
-Titulo: Turn on MSI mode on the graphics and network cards
+Titulo: MSI mode
 Hace: the cards notify the processor with messages (MSI) instead of using the old shared line.
 Favor: a bit less latency and micro-stutter. Many new cards already come like this, in that case nothing changes.
 Contra: if the driver doesn't support it well, after restarting you may see a black screen or lose internet.
 
 [Gaming pca]
-Titulo: Disable the Compatibility Assistant
+Titulo: Turn off the compatibility assistant
 Hace: turns off the Program Compatibility Assistant.
 Favor: avoids windows that steal focus during a match.
 Contra: it doesn't warn you about problems with old programs.
 
 [Gaming tr]
-Titulo: Lock the system timer at the minimum
-Hace: keeps the Windows timer fixed at 0.5 ms for the whole system.
+Titulo: System timer
+Hace: keeps the Windows timer fixed at 0.5 ms for the whole system (aka TimerResolution).
 Favor: less latency and steadier frame times.
 Contra: more power use and heat, especially on laptops.
 
 [Gaming ram]
-Titulo: Turn on automatic standby RAM cleaning
+Titulo: Automatic RAM cleanup
 Hace: empties standby memory when less than 1024 MB are free.
 Favor: avoids stutter when RAM fills up.
 Contra: what was cached is read from disk again.
@@ -522,7 +534,7 @@ Favor: can avoid micro-stutters with graphics cards or SSDs that don't get along
 Contra: at idle the PC uses a few more watts and the graphics card and NVMe SSDs can run a bit hotter; on laptops the battery lasts less.
 
 [Gaming dsk]
-Titulo: Keep disks from turning off when plugged in
+Titulo: Disks always on
 Hace: with the PC plugged in, disks no longer turn off when idle (on battery nothing changes).
 Favor: avoids the few-second stutters when an HDD spins back up.
 Contra: HDDs keep spinning while the PC is on: a bit more noise and power use.
@@ -546,37 +558,37 @@ Favor: WiFi stops disconnecting by itself on PCs that have WiFi and Ethernet (li
 Contra: slightly more power use, because both connections stay on.
 
 [Gaming nag]
-Titulo: Disable Nagle's algorithm
+Titulo: No packet delay (Nagle)
 Hace: turns off Nagle's algorithm on your network connections: Windows sends each small packet right away instead of bundling them and waiting.
 Favor: it can lower ping by a few milliseconds in games that use TCP, like Minecraft or MMO and strategy games.
 Contra: most modern shooters use UDP and notice no change; on slow connections network use may go up a bit.
 
 [Gaming dns]
-Titulo: Switch DNS to the fastest one for your connection
+Titulo: Fastest DNS
 Hace: measures Cloudflare, Google, Quad9 and OpenDNS from your connection and sets the fastest.
 Favor: logins, matchmaking and web pages load faster.
 Contra: it doesn't lower in-game ping.
 
 [Gaming mi]
-Titulo: Disable Memory integrity
-Hace: turns off Windows Memory integrity.
+Titulo: Disable memory integrity
+Hace: turns off Windows Memory integrity (aka Core Isolation / HVCI).
 Favor: more FPS in some games.
 Contra: less protection against malicious drivers.
 
 [Gaming avl]
-Titulo: Make the antivirus use less CPU
+Titulo: Lighter antivirus
 Hace: limits Defender scans to 5 percent of CPU, with low priority.
 Favor: scans don't lower your FPS.
 Contra: scans take longer to finish.
 
 [Gaming vbs]
 Titulo: Disable VBS
-Hace: turns off virtualization-based security.
+Hace: turns off virtualization-based security (aka Virtualization-Based Security).
 Favor: between 5 and 10 percent more FPS.
 Contra: WSL, Docker, Hyper-V and virtual machines stop working.
 
 [Gaming spc]
-Titulo: Disable Spectre and Meltdown protections
+Titulo: Disable Spectre and Meltdown
 Hace: turns off Windows' protections against Spectre (variant 2) and Meltdown, two processor flaws, using Microsoft's official method (FeatureSettingsOverride = 3 and FeatureSettingsOverrideMask = 3). Only available if your processor has those protections turned on.
 Favor: on older processors (Intel 8th gen or earlier) it can give a few more FPS and less stutter in games that use the processor or the disk a lot. On newer processors the difference is usually almost zero.
 Contra: your PC is left exposed: a malicious web page or program could read data from memory, like passwords. Don't use it on a PC with important data or one shared by several people. Some anti-cheats or work programs may complain.
@@ -606,7 +618,7 @@ Favor: you find folders like AppData, where games keep configs and saves.
 Contra: you see hidden system files: don't delete them if you don't know what they are.
 
 [Gaming md]
-Titulo: Remove the menu delay
+Titulo: No menu delay
 Hace: lowers the wait when opening menus from 400 to 0 ms.
 Favor: Windows feels faster.
 Contra: none.
@@ -646,7 +658,7 @@ Favor: fewer programs running in the background and a bit of RAM freed.
 Contra: you can't print or save to PDF from Print until you restore it.
 
 [Debloat rnet]
-Titulo: Turn off network discovery and casting to the TV
+Titulo: Turn off local network and casting
 Hace: turns off the services that make your PC show up on the local network and let you cast to the TV, the web folder service (WebClient), media sharing and work folders.
 Favor: fewer programs running in the background and a bit of RAM freed.
 Contra: your PC doesn't show up on the local network and you can't cast to the TV until you restore it.
@@ -658,25 +670,25 @@ Favor: fewer services loaded and one less way into your PC.
 Contra: nobody can get into this PC through Remote Desktop until you restore it.
 
 [Debloat nvl]
-Titulo: Turn off the extra NVIDIA services and tasks
+Titulo: Turn off NVIDIA extras
 Hace: sets to manual and stops the service used by the NVIDIA app, the overlay and ShadowPlay recording, and turns off the one that sends usage data plus the tasks that look for drivers and updates. It doesn't touch the display service: without it the NVIDIA Control Panel doesn't open and colors and G-Sync aren't kept.
 Favor: fewer NVIDIA processes open and a bit of RAM freed, without losing the driver.
 Contra: the overlay, ShadowPlay and the NVIDIA app filters don't work until the service runs. If the app doesn't open well, restore the option. You update the drivers yourself.
 
 [Debloat nvt]
-Titulo: Remove the NVIDIA icon from the system tray
+Titulo: Remove the NVIDIA tray icon
 Hace: stops the NVIDIA tray icon (NvTray) from opening by itself at sign-in. The driver, Control Panel and NVIDIA app stay installed and open from the Start menu. You'll notice it after a restart.
 Favor: the annoying tray icon goes away and the RAM its process uses is freed.
 Contra: you lose the quick access from the tray; open the app or Control Panel from Start or the desktop.
 
 [Debloat upd]
-Titulo: Set the Edge, Chrome and Brave updaters to manual
+Titulo: Browser updaters on manual
 Hace: makes the programs that update Edge, Chrome and Brave stop running all the time: Windows starts them only when needed.
 Favor: fewer processes open all the time and a bit of RAM freed.
 Contra: none you'd notice: the browsers still update on their own. If you don't have one of those browsers, it does nothing for it.
 
 [Debloat tsk]
-Titulo: Turn off background maintenance and diagnostic tasks
+Titulo: Turn off diagnostic tasks
 Hace: turns off automatic Windows tasks that wake up the processor and disk without you noticing: program and device inventory, Family Safety, media sharing, Maps, network diagnostics and sending disk and system data.
 Favor: fewer processor and disk spikes when you're not doing anything.
 Contra: Windows stops doing that automatic maintenance. It doesn't touch Windows Update, restore points or SSD optimization.
@@ -694,7 +706,7 @@ Favor: what you copy, like passwords, isn't kept in the history or sent to other
 Contra: Win+V stops showing what you copied before and the clipboard doesn't move to your phone or other PCs.
 
 [Debloat fsb]
-Titulo: Stop the disk from noting when you open each file
+Titulo: Fewer disk writes
 Hace: makes Windows stop writing to the disk the date you opened each file.
 Favor: less is written to the disk and a bit less background work, mostly on hard drives.
 Contra: Explorer stops showing the real last-access date of files. Some old backup programs use it.
@@ -706,13 +718,13 @@ Favor: the PC shuts down faster.
 Contra: frozen services and programs are closed after 2 seconds; Windows still warns you if something is unsaved.
 
 [Debloat sud]
-Titulo: Remove the startup programs delay
+Titulo: Startup programs without delay
 Hace: removes the roughly 10-second delay Windows puts on startup programs when you reach the desktop.
 Favor: startup programs open sooner.
 Contra: when you reach the desktop they all start at once and the PC can take a moment to respond.
 
 [Debloat sx]
-Titulo: Turn off even more services almost nobody uses
+Titulo: Turn off extreme services
 Hace: turns off rarely used services: biometric sign-in (Windows Hello with fingerprint or face), Sensors, Wi-Fi Direct and Windows Connect Now, Telephony (TAPI), iSCSI, File History, Windows Backup, Remote events, the ActiveX installer, Enterprise App Management, guided troubleshooting, the RPC locator and more.
 Favor: fewer services open and fewer Windows processes in the background.
 Contra: Windows Hello (fingerprint or face), sensors (auto brightness or rotation), Wi-Fi Direct and File History stop working. If something fails, restore the option.
@@ -724,19 +736,19 @@ Favor: fewer services loaded.
 Contra: Bluetooth headphones, mouse, keyboard and controllers stop working until you restore it.
 
 [Debloat str]
-Titulo: Turn off the Microsoft Store install services
-Hace: turns off the service that installs Store apps, the one that checks their licenses and the one that prepares them.
+Titulo: Turn off Store installs
+Hace: turns off the service that installs Store apps and the one that prepares them. The license service (LicenseManager) stays on: Windows activation uses it.
 Favor: fewer services open and a bit of RAM freed.
 Contra: you can't install or update Microsoft Store apps (nor Xbox or Game Pass games). Some Store apps may stop opening because they can't check their license.
 
 [Debloat wus]
-Titulo: Turn off Windows Update completely
+Titulo: Turn off Windows Update
 Hace: turns off the Windows Update service and the update orchestrator, and blocks automatic updates by policy.
 Favor: no background downloads or installs, no surprise restarts and less RAM, CPU and disk.
 Contra: the PC gets no security or driver patches and is exposed to known flaws. Restore it every so often to update.
 
 [Debloat thm]
-Titulo: Show icons instead of thumbnails in Explorer
+Titulo: Icons instead of thumbnails
 Hace: Explorer always shows icons, doesn't make thumbnails and doesn't keep the thumbnail cache.
 Favor: Explorer uses less RAM and opens photo and video folders faster.
 Contra: you don't see the preview of images or videos in folders.
@@ -760,7 +772,7 @@ Favor: less background work after a crash and less data sent.
 Contra: if a program crashes often, there's no report to help find the cause.
 
 [Debloat old]
-Titulo: Remove all the old Windows components nobody uses
+Titulo: Remove legacy components
 Hace: turns off Internet Explorer, Fax and Scan, the old Media Player, SMBv1 (the old, insecure network protocol), PowerShell 2.0, Telnet, TFTP, Work Folders, the XPS viewer and services, Remote Differential Compression, DirectPlay and the legacy components, and removes WordPad, Steps Recorder and the Math Recognizer.
 Favor: fewer features loaded and less attack surface (SMBv1 and PowerShell 2 are classic targets), and frees disk space.
 Contra: very old games that need DirectPlay don't work, and you can't share files with very old computers (SMBv1) or use Telnet. Going back needs internet.
@@ -772,49 +784,49 @@ Favor: fewer processes, less RAM and nothing from the Store updating apps in the
 Contra: you can't install or update Store apps (nor Game Pass, Xbox or Minecraft Bedrock). Getting it back needs internet (it's reinstalled with wsreset -i).
 
 [Debloat usv]
-Titulo: Turn off the contacts, calendar, messages and sync user services
-Hace: turns off the services Windows starts for each user: contacts and calendar (UserDataSvc, Unistore, PimIndex), sync (OneSync), messages, Connected Devices, cloud clipboard, user printing and Web Defense.
+Titulo: Turn off per-user services
+Hace: turns off the services Windows starts for each user: contacts and calendar (UserDataSvc, Unistore, PimIndex), sync (OneSync), messages, Connected Devices, user printing and Web Defense. The clipboard service (cbdhsvc) stays on: Snipping Tool and Win+Shift+S need it.
 Favor: fewer svchost processes per session and a bit less RAM.
-Contra: the Mail, Calendar and People apps don't sync, the cloud clipboard and Nearby Sharing stop working, and Defender web protection doesn't run. WARNING: it also turns off the clipboard service that Snipping Tool and Win+Shift+S need, so screenshots stop working. To get them back, restore this option and sign out and in again.
+Contra: the Mail, Calendar and People apps don't sync, Nearby Sharing stops working and Defender web protection doesn't run.
 
 [Debloat dold]
-Titulo: Delete the old Windows apps and keep only the modern ones
+Titulo: Remove legacy apps
 Hace: removes the classic versions Windows has always shipped, installed apart from the modern ones: the system Notepad (Windows has two), classic Paint, WordPad, classic Windows Media Player, Steps Recorder, PowerShell ISE, Internet Explorer, the XPS viewer and Fax and Scan. The modern apps (new Notepad and Photos, Paint, Calculator, Snipping Tool) stay, and if one is missing it's installed with winget (needs internet). Then it trims the space that's no longer used. It can't be ticked together with "Delete the modern apps".
 Favor: you keep a single version of each app, the new one, and free space and loaded components.
 Contra: if you also delete the modern ones, you're left without Notepad or Paint. Getting the old ones back needs internet (the restore button downloads them again).
 
 [Debloat dball]
-Titulo: Delete the modern Windows apps and keep only the old ones
+Titulo: Remove modern apps
 Hace: uninstalls for all users and removes from new accounts every modern Windows app that can be deleted, except the Store, the app installer (winget), Terminal, Xbox and Gaming Services, and what Windows needs to work. If you're missing an old one (system Notepad, classic Paint, WordPad, classic Media Player) it installs it first, then trims the space that's no longer used. Calculator, screen capture (Win+Shift+S), video and image codecs and your manufacturer's audio and video panels stay. It's the opposite of "Delete the old apps" and can't be ticked together with it.
 Favor: fewer processes, less RAM and a lot of free disk space.
 Contra: IT CAN'T BE RESTORED: Photos, Notepad, Paint and the others go away. Some can be reinstalled by hand from the Store or with winget; if something breaks, you have to reinstall Windows.
 
 [Debloat rbs]
-Titulo: Delete the Windows update backups
+Titulo: Delete update backups
 Hace: runs DISM with ResetBase: deletes from the component store (WinSxS) the old versions of each component that updates left behind.
 Favor: frees several GB of disk.
 Contra: IT CAN'T BE RESTORED: you can no longer uninstall the updates you have installed or go back to an earlier version of a component. If an update breaks something, the only way out is reinstalling Windows. It takes several minutes.
 
 [Debloat drs]
-Titulo: Delete old drivers and drivers for hardware you no longer use
+Titulo: Delete old drivers
 Hace: deletes from the driver store every third-party driver that no installed device is using: old driver versions and drivers for hardware you no longer have. Windows won't delete the ones in use.
 Favor: frees 1 to several GB and removes old drivers that can cause conflicts.
 Contra: IT CAN'T BE RESTORED: if you plug in an old printer, controller or other device again, you have to download its driver again (or Windows Update looks for it). The driver of the graphics card in use isn't touched. Don't use it together with Windows Update driver search turned off: a new device would be left without a driver.
 
 [Debloat wre]
-Titulo: Delete the Windows recovery environment
+Titulo: Delete the recovery environment
 Hace: turns off the Windows Recovery Environment (WinRE) and deletes its image (Winre.wim).
 Favor: frees about 500 MB to 1 GB of disk.
 Contra: IT CAN'T BE RESTORED: if Windows doesn't start, it no longer has the repair menu or "Reset this PC": the only way out is reinstalling Windows from a USB drive.
 
 [Debloat lang]
-Titulo: Delete language packs you don't use
+Titulo: Delete unused languages
 Hace: removes the language components (handwriting, text recognition, speech and read-aloud) of every language that isn't in your language list or English.
 Favor: frees space and removes components you never use.
 Contra: IT CAN'T BE RESTORED: if you later add another language, Windows downloads it again over the internet, but what was deleted doesn't come back by itself. Your language and English aren't touched.
 
 [Debloat acc]
-Titulo: Delete accessibility and speech aids
+Titulo: Delete accessibility and speech
 Hace: uninstalls from Windows the speech components (screen reader and dictation), handwriting recognition, the text-in-image reader (OCR) and Braille support, for every language including yours. It also turns off the Sticky Keys, Filter Keys and Toggle Keys pop-ups that appear when you press Shift 5 times.
 Favor: frees space and removes components you don't use if you don't need those aids.
 Contra: IT CAN'T BE RESTORED from the app: if you ever need them (Narrator, voice dictation, pen), you have to download them again from Settings > Accessibility / Language. Not for people who use these aids.
@@ -826,7 +838,7 @@ Favor: more FPS and less stutter, mostly if background recording was on.
 Contra: you can't record clips with Win+Alt+G or with the Game Bar.
 
 [Gaming fgb]
-Titulo: Give more processor time to the program you're using
+Titulo: More CPU for the active window
 Hace: changes how Windows splits processor time (Win32PrioritySeparation = 38): the window you're in, such as the game, gets longer turns and goes ahead of background programs.
 Favor: the game responds more evenly when there are programs open in the background.
 Contra: background programs (downloads, browser) run a bit slower while you play.
