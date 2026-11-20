@@ -2,6 +2,8 @@
 
 # Brío
 
+> Antes se llamaba **xuca-optimizer (Xuca Optimizer)**: si lo buscabas con ese nombre, es esta app.
+
 Optimizador gratis para **Windows 10 y 11**. Es una app con casillas: marcás lo que querés y tocás **Aplicar**. Antes de tocar nada lee tu PC: te muestra lo que ya tenés aplicado y deja en gris lo que no es compatible. Cada opción te explica qué hace, qué ganás y qué perdés.
 
 ## Instalar

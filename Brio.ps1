@@ -439,27 +439,27 @@ function Titulo-Corto([string]$q) {
 # Nombres cortos y claros en la app (la pregunta larga de los scripts se sigue usando en la consola y en los logs).
 # El ingles de cada uno esta en lang\en-en\opciones.txt (Titulo), por el Id.
 $TitulosCortos = @{
-    'Debloat|ini' = 'Limpiar arranque'; 'Debloat|db' = 'Borrar apps'; 'Debloat|rsv' = 'Apagar servicios'; 'Debloat|sx' = 'Apagar servicios extremos'
+    'Debloat|ini' = 'Limpiar arranque'; 'Debloat|db' = 'Apps del Sistema'; 'Debloat|eb' = 'Reducir bloat del navegador'; 'Debloat|rsv' = 'Servicios del Sistema'
     'Debloat|sv' = 'Quitar funciones viejas'; 'Debloat|av' = 'Apagar el antivirus'; 'Debloat|apps' = 'Bloquear apps en segundo plano'
-    'Debloat|tel' = 'Reducir la telemetria'; 'Debloat|inv' = 'Apagar el inventario de compatibilidad'; 'Debloat|nvd' = 'Apagar el contenedor de NVIDIA'
+    'Debloat|tel' = 'Reducir la telemetria'
     'Debloat|ofb' = 'Apagar la precarga de Office'; 'Debloat|do' = 'No compartir actualizaciones'; 'Debloat|wud' = 'Sin drivers por Windows Update'
     'Debloat|wup' = 'Pausar actualizaciones por mas tiempo'; 'Debloat|wus' = 'Apagar Windows Update'; 'Debloat|str' = 'Apagar instalaciones de la Store'
     'Debloat|nvl' = 'Apagar extras de NVIDIA'; 'Debloat|nvt' = 'Quitar el icono de NVIDIA'; 'Debloat|upd' = 'Actualizadores de navegadores en manual'
     'Debloat|tsk' = 'Apagar tareas de diagnostico'; 'Debloat|fsb' = 'Menos escrituras en disco'; 'Debloat|sud' = 'Programas de inicio sin espera'
     'Debloat|thm' = 'Iconos en vez de miniaturas'; 'Debloat|old' = 'Quitar componentes viejos'; 'Debloat|usv' = 'Apagar servicios de usuario'
-    'Debloat|tkb' = 'Apagar cuentas web'; 'Debloat|aif' = 'Apagar el servicio de IA'; 'Debloat|cdps' = 'Apagar Dispositivos conectados'
+    'Debloat|tkb' = 'Apagar cuentas web'; 'Debloat|cdps' = 'Apagar Dispositivos conectados'
     'Debloat|dold' = 'Borrar apps antiguas'; 'Debloat|dball' = 'Borrar apps modernas'; 'Debloat|rbs' = 'Borrar respaldos de actualizaciones'
     'Debloat|drs' = 'Borrar drivers viejos'; 'Debloat|wre' = 'Borrar el entorno de recuperacion'; 'Debloat|lang' = 'Borrar idiomas sin usar'
     'Debloat|acc' = 'Borrar accesibilidad y voz'; 'Debloat|dia' = 'Diagnostico en manual'; 'Debloat|svh' = 'Juntar procesos de servicios'
     'Debloat|hst' = 'Bloquear telemetria en hosts'; 'Debloat|su' = 'Frenar actualizaciones de la Store'; 'Debloat|cam' = 'Camara compartida'
-    'Debloat|edge' = 'Quitar Edge y Bing'; 'Debloat|et' = 'Finalizar tarea en la barra'; 'Debloat|rnet' = 'Apagar red local y transmitir'
+    'Debloat|edge' = 'Quitar Edge y Bing'; 'Debloat|et' = 'Finalizar tarea en la barra'
     'Gaming|cpu' = 'Modo Nitro'; 'Gaming|tr' = 'Temporizador del sistema'; 'Gaming|mi' = 'Desactivar integridad de memoria'
     'Gaming|fgb' = 'Mas CPU a la ventana activa'; 'Gaming|mm' = 'Prioridad para juegos'; 'Gaming|afi' = 'Afinidad de CPU'
     'Gaming|idle' = 'Nucleos siempre despiertos'; 'Gaming|fso' = 'Sin optimizacion de pantalla completa'; 'Gaming|msi' = 'Modo MSI'
     'Gaming|pca' = 'Apagar el Asistente de compatibilidad'; 'Gaming|ram' = 'Limpieza automatica de RAM'; 'Gaming|dsk' = 'Discos siempre encendidos'
     'Gaming|nag' = 'Paquetes sin espera (Nagle)'; 'Gaming|dns' = 'DNS mas rapido'; 'Gaming|avl' = 'Antivirus con menos CPU'
     'Gaming|spc' = 'Desactivar Spectre y Meltdown'; 'Gaming|du' = 'Volumen fijo en llamadas'; 'Gaming|tk' = 'Sin atajos de accesibilidad'
-    'Gaming|md' = 'Menus sin retraso'; 'Gaming|dtk' = 'Destrabar teclado'; 'Gaming|foc' = 'Modo foco'
+    'Gaming|md' = 'Menus sin retraso'; 'Gaming|dtk' = 'Destrabar teclado'; 'Gaming|foc' = 'Modo foco'; 'Gaming|fsm' = 'Modo foco sin programa (antitrampas)'; 'Gaming|vpf' = 'Velocidad del puntero fija'; 'Gaming|esc' = 'Escala segun la resolucion'
 }
 # Favoritas de la comunidad: llevan una estrella y el nombre con el que se las conoce
 $Favoritas = @{
@@ -563,22 +563,60 @@ function Leer-Dup {
 
 # Contadores para las opciones que borran o apagan varias cosas: "50/62 borradas" en vez de "Ya aplicado".
 # Total = todo lo que la opcion borra o apaga; Hechas = lo que ya no esta (o esta apagado), sea por el script o porque nunca vino.
-function Apps-Conteo {
-    if (-not $AppsBasura) { return $null }
-    # Solo cuenta lo que aplica a esta PC: lo que sigue instalado y se puede quitar (Quedan) + lo que la app ya borro (apps_borradas.txt).
-    # Lo que nunca vino, o es parte fija de Windows (NonRemovable), no suma ni al total ni a lo hecho.
+# Paquete que Windows ya marco para quitar (para el sistema figura "pending removal"; al usuario le llega al reiniciar)
+function Appx-PendienteQuitar($p) {
+    foreach ($u in @($p.PackageUserInformation)) { if (([string]$u.InstallState -match 'Pending|Staged') -or ([string]$u -match 'pending removal')) { return $true } }
+    return $false
+}
+# Restos de OneDrive cuando el programa ya no esta (solo lectura): paquete OneDriveSync, carpetas tecnicas y accesos del menu Inicio
+function Od-Restos($inst) {
+    $r = @()
+    if (@($inst) -contains 'Microsoft.OneDriveSync') { $r += 'paquete' }
+    foreach ($p in @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive'), (Join-Path $env:ProgramData 'Microsoft OneDrive'), (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'), (Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'))) { if (Test-Path -LiteralPath $p) { $r += $p } }
+    return $r
+}
+function Apps-Estado($basura, $inst, $fijas, $extras, $protOk, $pend) {
+    # UNA sola fuente para la lista de "Apps del Sistema" y para su contador. La verdad es lo instalado (Get-AppxPackage):
+    # 'pendiente' = sigue instalada y se puede quitar; 'borrada' = ya no esta y la app anoto que la borro (apps_borradas.txt);
+    # 'reinicio' = Windows ya la marco para quitar y termina al reiniciar (cuenta como borrada, no se ofrece de nuevo).
+    # Lo protegido solo cuenta si esta en la lista blanca ($protOk); lo que nunca vino, es parte fija de Windows o se borro por otro medio sin quedar anotado, no se cuenta ni se muestra.
     $reg = @(); $arch = Join-Path $env:ProgramData 'Brio\apps_borradas.txt'
     if (Test-Path -LiteralPath $arch) { $reg = @(Get-Content -LiteralPath $arch -ErrorAction SilentlyContinue | Where-Object { $_ }) }
-    $quedan = 0; $hechas = 0; $nom = @()
-    foreach ($n in $AppsBasura) {
-        $esta = @($global:XAppx | Where-Object { ($_ -like $n) -and ($global:XAppxFijas -notcontains $_) }).Count -gt 0
-        if ($esta) { $quedan++; $nom += ($n -replace '^\*|\*$', '' -replace '^Microsoft\.', '') }
-        elseif (@($reg | Where-Object { ($_ -like $n) -and ($global:XAppx -notcontains $_) }).Count -gt 0) { $hechas++ }
+    $r = @()
+    $pats = @($basura) + @($extras | Where-Object { (@('OneDrive', 'EDGE', 'WEBVIEW2') -notcontains $_) -and ($basura -notcontains $_) })
+    foreach ($n in $pats) {
+        $esta = @($inst | Where-Object { ($_ -like $n) -and (($fijas -notcontains $_) -or ($protOk -contains $n)) }).Count -gt 0
+        if ($esta -and (@($inst | Where-Object { ($_ -like $n) -and ($pend -contains $_) }).Count -gt 0)) { $r += @{ Id = $n; Estado = 'reinicio' } }
+        elseif ($esta) { $r += @{ Id = $n; Estado = 'pendiente' } }
+        elseif (@($reg | Where-Object { ($_ -like $n) -and ($inst -notcontains $_) }).Count -gt 0) { $r += @{ Id = $n; Estado = 'borrada' } }
+        elseif (@($inst | Where-Object { $_ -like $n }).Count -gt 0) { }   # esta instalada pero es parte fija de Windows: ni se ofrece ni se cuenta
+        else { $r += @{ Id = $n; Estado = 'noinst' } }   # ya no esta en la PC (la quito Brio sin anotarlo, otra version o vos): cuenta como fuera de tu PC
     }
-    $od = @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'))
-    if (@($od | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0) { $quedan++; $nom += 'OneDrive' }
-    elseif ($reg -contains 'OneDrive') { $hechas++ }
-    return @{ Hechas = $hechas; Total = ($hechas + $quedan); Que = 'borradas'; Quedan = $quedan; Nombres = $nom }
+    $od = @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'), (Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive\OneDrive.App.exe'))
+    if (@($od | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0) { $r += @{ Id = 'OneDrive'; Estado = 'pendiente' } }
+    elseif (@(Od-Restos $inst).Count -gt 0) { $r += @{ Id = 'OneDrive'; Estado = 'pendiente' } }   # el programa ya no esta pero quedan restos: se puede marcar para limpiarlos
+    elseif ($reg -contains 'OneDrive') { $r += @{ Id = 'OneDrive'; Estado = 'borrada' } }
+    else { $r += @{ Id = 'OneDrive'; Estado = 'noinst' } }
+    if ($extras -contains 'EDGE') {
+        if (Test-Path -LiteralPath (${env:ProgramFiles(x86)} + '\Microsoft\Edge\Application\msedge.exe')) { $r += @{ Id = 'EDGE'; Estado = 'pendiente' } }
+        elseif ($reg -contains 'EDGE') { $r += @{ Id = 'EDGE'; Estado = 'borrada' } }
+        else { $r += @{ Id = 'EDGE'; Estado = 'noinst' } }
+    }
+    # WebView2 Runtime no es Appx: esta si existe su programa (instalacion del sistema)
+    if ($extras -contains 'WEBVIEW2') {
+        if (Test-Path -Path (${env:ProgramFiles(x86)} + '\Microsoft\EdgeWebView\Application\*\msedgewebview2.exe')) { $r += @{ Id = 'WEBVIEW2'; Estado = 'pendiente' } }
+        elseif ($reg -contains 'WEBVIEW2') { $r += @{ Id = 'WEBVIEW2'; Estado = 'borrada' } }
+        else { $r += @{ Id = 'WEBVIEW2'; Estado = 'noinst' } }
+    }
+    return $r
+}
+function Apps-Conteo($extras, $protOk) {
+    if (-not $AppsBasura) { return $null }
+    $est = @(Apps-Estado $AppsBasura $global:XAppx $global:XAppxFijas $extras $protOk $global:XAppxPend)
+    $q = @($est | Where-Object { $_.Estado -eq 'pendiente' })
+    # Hechas = todo lo conocido que YA NO esta en la PC (borrado por Brio o que ya no estaba): la verdad es lo instalado, sin afirmar quien la quito
+    $h = @($est | Where-Object { $_.Estado -ne 'pendiente' }).Count
+    return @{ Hechas = $h; Total = ($h + $q.Count); Que = 'fuera de tu PC'; Celeste = $true; Nota = 'Incluye las que ya no estaban instaladas.'; Quedan = $q.Count; Nombres = @($q | ForEach-Object { ([string]$_.Id) -replace '^\*|\*$', '' -replace '^Microsoft\.', '' }) }
 }
 # Programitas de Gaming (tarea + .exe en ProgramData\Brio): $false si no esta, $true si es el de esta version,
 # 'vieja' si lo instalo una version anterior del script (la app lo muestra como "Desactualizada").
@@ -600,18 +638,33 @@ function Inicio-Conteo {
     $act = @($basura | Where-Object { $_.Activo })
     return @{ Hechas = ($basura.Count - $act.Count); Total = $basura.Count; Que = 'quitadas del arranque'; Quedan = $act.Count; Nombres = @($act | ForEach-Object { [string]$_.Nombre } | Sort-Object -Unique) }
 }
-# Servicios de una lista ("Apagar servicios"): cuenta solo los que existen en esta PC. Apagado = deshabilitado, o manual y detenido.
-function Svc-Conteo([string[]]$ids) {
-    $hechas = 0; $quedan = 0; $nom = @()
-    foreach ($s in $ids) {
-        $v = Leer-Svc $s
-        if ($null -eq $v) { continue }
-        $ya = ($v -eq 4)
-        if ((-not $ya) -and ($v -eq 3)) { try { $ya = ([string](New-Object ServiceProcess.ServiceController $s).Status -eq 'Stopped') } catch { } }
-        if ($ya) { $hechas++ } else { $quedan++; $nom += $s }
+# Servicios de una lista ("Servicios del Sistema"): cuenta solo los que existen en esta PC.
+# $null = no existe en esta PC; 'dis' = deshabilitado (el UNICO estado "apagado"); 'man' = Manual (Windows lo inicia si hace falta); 'act' = Automatico
+function Svc-Estado([string]$s) {
+    $v = Leer-Svc $s
+    if ($null -eq $v) { return $null }
+    if ($v -eq 4) { return 'dis' }
+    if ($v -eq 3) { return 'man' }
+    return 'act'
+}
+# Apagado = SOLO deshabilitado (Manual o Automatico, corra o no, no es apagado). N/M = deshabilitados / todos los que ofrece la lista en esta PC.
+# Quedan = Seguros sin deshabilitar: es lo que decide el verde ("Ya aplicada").
+function Svc-Conteo([string[]]$seg, [string[]]$ext) {
+    $hechas = 0; $total = 0; $nom = @()
+    foreach ($s in $seg) {
+        $e = Svc-Estado $s
+        if ($null -eq $e) { continue }
+        $total++
+        if ($e -eq 'dis') { $hechas++ } else { $nom += $s }
     }
-    if (($hechas + $quedan) -eq 0) { return $null }
-    return @{ Hechas = $hechas; Total = ($hechas + $quedan); Que = 'apagados'; Quedan = $quedan; Nombres = $nom }
+    foreach ($s in $ext) {
+        $e = Svc-Estado $s
+        if ($null -eq $e) { continue }
+        $total++
+        if ($e -eq 'dis') { $hechas++ }
+    }
+    if ($total -eq 0) { return $null }
+    return @{ Hechas = $hechas; Total = $total; Que = 'apagados'; Celeste = $true; Quedan = $nom.Count; Nombres = $nom; Tip = 'Todos los Seguros ya estan apagados.' }
 }
 '@
 . ([scriptblock]::Create($FuncLectura))
@@ -632,6 +685,8 @@ try {
 } catch { }
 # Funciones que dicen que apps de inicio son basura (las usa el chequeo de "Apps basura de inicio" en la lectura de fondo)
 try {
+    $FuncNav = [regex]::Match([IO.File]::ReadAllText($Rutas.Debloat), '(?s)# >>> XUCA-NAV.*?# <<< XUCA-NAV').Value
+    if ($FuncNav) { $FuncLectura += ("`n" + $FuncNav); . ([scriptblock]::Create($FuncNav)) }
     $FuncInicio = [regex]::Match([IO.File]::ReadAllText($Rutas.Debloat), '(?s)# >>> XUCA-INICIO.*?# <<< XUCA-INICIO').Value
     if ($FuncInicio) { $FuncLectura += ("`n" + $FuncInicio) }
     # Lista de apps basura (para el contador de "Borrar las apps basura")
@@ -798,13 +853,10 @@ $Chequeos = @{
     'Debloat|ad'    = { ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SystemPaneSuggestionsEnabled') -eq 0) -and ((Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo' 'Enabled') -eq 0) }
     'Debloat|bng'   = { ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch') -eq 1) -and ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'EnableDynamicContentInWSB') -eq 0) }
     'Debloat|sv'    = { ((Leer-Svc 'MapsBroker') -eq 4) -and ((Leer-Svc 'WerSvc') -eq 4) }
-    'Debloat|rsv'   = { ((Leer-Svc 'WalletService') -eq 4) -and ((Leer-Svc 'TrkWks') -eq 4) }
     'Debloat|rmin'  = { (Leer-Svc 'Spooler') -eq 4 }
-    'Debloat|rnet'  = { (Leer-Svc 'SSDPSRV') -eq 4 }
-    'Debloat|rdp'   = { (Leer-Svc 'TermService') -eq 4 }
-    'Debloat|sx'    = { ((Leer-Svc 'RpcLocator') -eq 4) -and ((Leer-Svc 'TapiSrv') -eq 4) }
     'Debloat|bt'    = { $v = Leer-Svc 'bthserv'; if ($null -eq $v) { return $true }; $v -eq 4 }
     'Debloat|str'   = { ((Leer-Svc 'InstallService') -eq 4) -and ((Leer-Svc 'AppReadiness') -eq 4) }
+    'Debloat|rsv'   = { Svc-Conteo @('WalletService') @() }   # se reemplaza mas abajo por el contador de la lista
     'Debloat|wus'   = { ((Leer-Svc 'wuauserv') -eq 4) -and ((Leer-Svc 'UsoSvc') -eq 4) }
     'Debloat|thm'   = { (Leer-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'IconsOnly') -eq 1 }
     'Debloat|leg'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance' 'fAllowToGetHelp') -eq 0 }
@@ -840,12 +892,8 @@ $Chequeos = @{
     'Debloat|xbs'   = { ((Leer-Svc 'XblAuthManager') -eq 4) -and ((Leer-Svc 'XblGameSave') -eq 4) }
     'Debloat|dia'   = { (Leer-Svc 'DPS') -eq 3 }
     'Debloat|mc'    = { [bool](Get-MMAgent -ErrorAction Stop).MemoryCompression -and ((Leer-Svc 'SysMain') -ne 4) }
-    'Debloat|nvd'   = { (Leer-Svc 'NVDisplay.ContainerLocalSystem') -eq 4 }
-    'Debloat|inv'   = { @('InventorySvc', 'whesvc' | ForEach-Object { Leer-Svc $_ } | Where-Object { ($null -ne $_) -and ($_ -ne 4) }).Count -eq 0 }
-    'Debloat|tem'   = { (Leer-Svc 'Themes') -eq 4 }
     'Debloat|tim'   = { (Leer-Svc 'TextInputManagementService') -eq 4 }
     'Debloat|tkb'   = { (Leer-Svc 'TokenBroker') -eq 4 }
-    'Debloat|aif'   = { (Leer-Svc 'WSAIFabricSvc') -eq 4 }
     'Debloat|cdps'  = { (Leer-Svc 'CDPSvc') -eq 4 }
     'Debloat|ofb'   = {
         $s = New-Object -ComObject Schedule.Service; $s.Connect()
@@ -868,8 +916,18 @@ $Chequeos = @{
     'Debloat|tpn'   = { if (-not (Test-Path -LiteralPath 'HKLM:\SOFTWARE\NVIDIA Corporation')) { return $true }; (Leer-Reg 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\FTS' 'EnableRID44231') -eq 0 }
     'Debloat|tps'   = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' 'POWERSHELL_TELEMETRY_OPTOUT') -eq '1' }
     'Debloat|hst'   = { [bool](Select-String -LiteralPath (Join-Path $env:SystemRoot 'System32\drivers\etc\hosts') -SimpleMatch -Pattern '# xuca-telemetria' -Quiet) }
-    'Debloat|eb'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled') -eq 0 }
-    'Debloat|ebb'   = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled') -eq 1 }
+    # Edge y Brave en una sola opcion: aplicada cuando cada navegador instalado ya tiene sus politicas (lo marcado con las opciones viejas eb y ebb cuenta igual: son las mismas claves)
+    'Debloat|eb'    = {
+        $nv = @(Navegadores-Instalados)
+        $ed = ((Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled') -eq 0)
+        $br = ((Leer-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled') -eq 1)
+        if ($nv.Count -eq 0) { return ($ed -or $br) }
+        $hechas = 0; $nom = @()
+        if ($nv -contains 'edge') { if ($ed) { $hechas++ } else { $nom += 'Edge' } }
+        if ($nv -contains 'brave') { if ($br) { $hechas++ } else { $nom += 'Brave' } }
+        if ($nv.Count -eq 1) { return ($nom.Count -eq 0) }
+        return @{ Hechas = $hechas; Total = 2; Que = 'navegadores'; Quedan = $nom.Count; Nombres = $nom }
+    }
     'Debloat|cam'   = { (Leer-Reg 'HKLM:\SOFTWARE\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode') -eq 1 }
     'Debloat|su'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload') -eq 2 }
     'Debloat|ia'    = { (Leer-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableClickToDo') -eq 1 }
@@ -920,6 +978,10 @@ $Chequeos = @{
     'Gaming|ram'    = { Prog-Estado 'BrioRAM' 'BrioRAM.exe' $CodRam }
     'Gaming|dtk'    = { Prog-Estado 'BrioTeclado' 'BrioTeclado.exe' $CodBrioTeclado }
     'Gaming|foc'    = { Prog-Estado 'BrioFoco' 'BrioFoco.exe' $CodBrioFoco }
+    # Las dos teclas Windows (scancode E05B y E05C) mapeadas a nada en el Scancode Map (entradas de 4 bytes desde el byte 12)
+    'Gaming|fsm'    = { $m = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layout' -ErrorAction SilentlyContinue).'Scancode Map'; if ($m -isnot [byte[]]) { return $false }; $o = @(for ($i = 12; $i -lt ($m.Count - 4); $i += 4) { if ([BitConverter]::ToUInt16($m, $i) -eq 0) { [int][BitConverter]::ToUInt16($m, $i + 2) } }); ($o -contains 0xE05B) -and ($o -contains 0xE05C) }
+    'Gaming|vpf'    = { Prog-Estado 'BrioPuntero' 'BrioPuntero.exe' $CodBrioPuntero }
+    'Gaming|esc'    = { Prog-Estado 'BrioEscala' 'BrioEscala.exe' $CodBrioEscala }
     'Gaming|sm'     = { (Leer-Svc 'SysMain') -eq 4 }
     'Gaming|pe'     = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\2a737441-1930-4402-8d77-b2bebba308a3\48e6b7a6-50f5-4782-a5d4-53bb8f07e226') 'ACSettingIndex') -eq 0 }
     'Gaming|pci'    = { if (-not $global:XPlan) { return $null }; (Leer-Reg ('HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $global:XPlan + '\501a4d13-42af-4429-9fd1-a8218c268e20\ee12f906-d277-404b-b6da-e5fa1a576df5') 'ACSettingIndex') -eq 0 }
@@ -956,11 +1018,15 @@ $Chequeos = @{
     'Gaming|md'     = { (Leer-Reg 'HKCU:\Control Panel\Desktop' 'MenuShowDelay') -eq '0' }
     'Gaming|v4'     = { (Leer-Reg 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters' 'DisabledComponents') -eq 32 }
 }
-# Contador "N/M apagados" de "Apagar servicios" y "Servicios extremos": sale de los servicios que existen en esta PC (lista de Debloat.ps1)
-foreach ($sid in 'rsv', 'sx') {
-    $ids = @($script:Elegibles[$sid] | Where-Object { -not $_.Prot } | ForEach-Object { "'" + $_.Id + "'" })
-    if ($ids.Count -gt 0) { $Chequeos['Debloat|' + $sid] = [scriptblock]::Create('Svc-Conteo @(' + ($ids -join ',') + ')') }
-}
+# Contador "N/M apagados" de "Servicios del Sistema": sale de los servicios que existen en esta PC (lista de Debloat.ps1)
+# Contador de "Apps del Sistema": las apps basura + las extras del submenu (Paint, Camara, protegidas opcionales...): lista y contador salen de lo mismo
+$ex = @($script:Elegibles.db | ForEach-Object { "'" + $_.Id + "'" })
+$exp = @($script:Elegibles.db | Where-Object { $_.Prot } | ForEach-Object { "'" + $_.Id + "'" })
+if ($ex.Count -gt 0) { $Chequeos['Debloat|db'] = [scriptblock]::Create('Apps-Conteo @(' + ($ex -join ',') + ') @(' + ($exp -join ',') + ')') }
+# Contador de "Servicios del Sistema": apagados / todos los que ofrece la lista; "Ya aplicada" (verde) = todos los Seguros apagados
+$ids = @($script:Elegibles.rsv | Where-Object { -not $_.Ext } | ForEach-Object { "'" + $_.Id + "'" })
+$idsX = @($script:Elegibles.rsv | Where-Object { $_.Ext } | ForEach-Object { "'" + $_.Id + "'" })
+if ($ids.Count -gt 0) { $Chequeos['Debloat|rsv'] = [scriptblock]::Create('Svc-Conteo @(' + ($ids -join ',') + ') @(' + ($idsX -join ',') + ')') }
 
 # Lo que corre en el hilo de fondo: carga las apps y el plan de energia, y despues hace cada chequeo
 # avisando por $Sync cuantos lleva, asi la barra avanza mientras la ventana sigue fluida.
@@ -976,7 +1042,7 @@ $Previo = {
     param($Funcs, $Sync, $Plan)
     $ErrorActionPreference = 'Stop'
     . ([scriptblock]::Create($Funcs))
-    $global:XPlan = $Plan; $global:XAppx = @(); $global:XAppxFijas = @(); $global:XCpuClase = ''
+    $global:XPlan = $Plan; $global:XAppx = @(); $global:XAppxFijas = @(); $global:XAppxPend = @(); $global:XCpuClase = ''
     # Cuanto tarda cada parte (queda en ProgramData\Brio\tiempos_lectura.txt para ver que conviene acelerar)
     $global:LapSw = [Diagnostics.Stopwatch]::StartNew()
     function Lap([string]$n) { $Sync.Tiempos[$n] = $global:LapSw.ElapsedMilliseconds; $global:LapSw.Restart() }
@@ -1226,8 +1292,10 @@ try {
     # Mientras tanto, en este hilo: las apps instaladas (lo mas lento en muchas PCs)
     $global:XAppx = @()
     $global:XAppxFijas = @()
+    $global:XAppxPend = @()
     try {
         $pkx = @(Get-AppxPackage -AllUsers -ErrorAction Stop)
+        $global:XAppxPend = @($pkx | Where-Object { Appx-PendienteQuitar $_ } | ForEach-Object { $_.Name })
         $global:XAppx = @($pkx | ForEach-Object { $_.Name })
         $global:XAppxFijas = @($pkx | Where-Object { $_.NonRemovable } | ForEach-Object { $_.Name })
     } catch { }
@@ -2357,9 +2425,19 @@ function Iconos-Siguiente {
     if ($script:IconosPend.Count -gt 0) { $ho.Dispatcher.BeginInvoke([Windows.Threading.DispatcherPriority]::Background, [Action] { Iconos-Siguiente }) | Out-Null }
 }
 
-function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaExtra, $defecto, [bool]$sinAgregar = $false) {
+function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaExtra, $defecto, [bool]$sinAgregar = $false, [bool]$columnas = $false) {
     $w = Nuevo-Dialogo 700
     $w.SizeToContent = 'Manual'; $w.Height = 680
+    # Modo columnas (lo usa "Apps del Sistema"): ventana grande, 80-90 % del area de trabajo, y la lista en columnas que bajan primero
+    $colW = 300; $ncol = 2
+    if ($columnas) {
+        $wa = $(if ($script:AreaTrabajo) { $script:AreaTrabajo } else { [Windows.SystemParameters]::WorkArea })
+        $aw = [math]::Min([math]::Max($wa.Width * 0.86, 720), $wa.Width - 24)
+        $ah = [math]::Min([math]::Max($wa.Height * 0.88, 520), $wa.Height - 24)
+        $w.Width = $aw; $w.Height = $ah
+        $ncol = [int][math]::Max(2, [math]::Min(5, [math]::Floor(($aw - 160) / $colW)))
+        $colW = [math]::Floor(($aw - 160) / $ncol)
+    }
     $dock = New-Object Windows.Controls.DockPanel
     $cab = New-Object Windows.Controls.StackPanel
     [Windows.Controls.DockPanel]::SetDock($cab, 'Top')
@@ -2392,25 +2470,34 @@ function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaE
     $abajo.Children.Add((Fila-Botones @($bTodo, $bNada, $bDef) @($bc1, $bok))) | Out-Null
     $dock.Children.Add($abajo) | Out-Null
 
-    $grilla = New-Object Windows.Controls.Primitives.UniformGrid
-    $grilla.Columns = 2; $grilla.VerticalAlignment = 'Top'
+    if ($columnas) { $grilla = New-Object Windows.Controls.StackPanel; $grilla.VerticalAlignment = 'Top' }
+    else { $grilla = New-Object Windows.Controls.Primitives.UniformGrid; $grilla.Columns = 2; $grilla.VerticalAlignment = 'Top' }
     $caja = New-Object Windows.Controls.Border
     $caja.CornerRadius = 10; $caja.Background = (Pincel '#14161B'); $caja.Padding = '12,8'
     $sv = New-Object Windows.Controls.ScrollViewer
-    $sv.VerticalScrollBarVisibility = 'Auto'
+    $sv.VerticalScrollBarVisibility = 'Auto'; $sv.HorizontalScrollBarVisibility = 'Auto'
     Scroll-Suave $sv
     $sv.Content = $grilla
     $caja.Child = $sv
     $dock.Children.Add($caja) | Out-Null
 
-    $script:Lst = @{ Grilla = $grilla; Texto = $tx; Scroll = $sv; Casillas = (New-Object System.Collections.Generic.List[object]); Defecto = $defecto }
+    $script:Lst = @{ Grilla = $grilla; Texto = $tx; Scroll = $sv; Casillas = (New-Object System.Collections.Generic.List[object]); Defecto = $defecto; Cols = $columnas; ColW = $colW; NCol = $ncol; ItemH = 112; Destino = $null }
     $script:IconosPend = New-Object System.Collections.Queue
-    foreach ($it in $items) { Lista-Agregar $it.Nombre $it.Procs ([bool]$it.Marcado) $it }
+    if ($columnas) {
+        # Secciones con titulo (fila completa); dentro de cada una, columnas que se llenan de arriba hacia abajo
+        $secs = @(@('pend', 'Pendientes (se pueden borrar)', '#81C995'), @('prot', 'Protegidas por Windows (se pueden borrar con cuidado)', '#E5B567'), @('hecha', 'Ya borradas', '#9AA0A6'), @('noinst', 'Ya no estan en tu PC (cuentan en el contador)', '#9AA0A6'), @('seg', 'Seguros de apagar', '#81C995'), @('ext', 'Extremos (se pierde una funcion)', '#E5B567'), @('apag', 'Apagados (marca para volver a prender)', '#9AA0A6'))
+        foreach ($sc in $secs) {
+            $grp = @($items | Where-Object { $_.Seccion -eq $sc[0] })
+            if ($grp.Count -eq 0) { continue }
+            Lista-Seccion $sc[1] $grp.Count $sc[2]
+            foreach ($it in $grp) { Lista-Agregar $it.Nombre $it.Procs ([bool]$it.Marcado) $it }
+        }
+    } else { foreach ($it in $items) { Lista-Agregar $it.Nombre $it.Procs ([bool]$it.Marcado) $it } }
     if ($script:IconosPend.Count -gt 0) { $w.Dispatcher.BeginInvoke([Windows.Threading.DispatcherPriority]::Background, [Action] { Iconos-Siguiente }) | Out-Null }
 
     $bAg.Add_Click({ Lista-AgregarTexto })
     $tx.Add_KeyDown({ if ($_.Key -eq 'Return') { Lista-AgregarTexto; $_.Handled = $true } })
-    $bTodo.Add_Click({ foreach ($c in $script:Lst.Casillas) { $c.IsChecked = $true } })
+    $bTodo.Add_Click({ foreach ($c in $script:Lst.Casillas) { if ($c.IsEnabled -and ($c.Uid -ne 'enc')) { $c.IsChecked = $true } } })
     $bNada.Add_Click({ foreach ($c in $script:Lst.Casillas) { $c.IsChecked = $false } })
     $bDef.Add_Click({ Lista-Defecto })
     $bok.Add_Click({ Lista-AgregarTexto; [Windows.Window]::GetWindow($this).DialogResult = $true })
@@ -2419,7 +2506,20 @@ function Elegir-Lista([string]$titulo, [string]$mensaje, $items, [string]$ayudaE
     $cas = $script:Lst.Casillas
     $script:Lst = $null
     if (-not $ok) { return $null }
-    return (@($cas | Where-Object { $_.IsChecked -eq $true } | ForEach-Object { ([string]$_.Tag) -split ',' }) -join ',')
+    return (@($cas | Where-Object { ($_.IsChecked -eq $true) -and $_.IsEnabled } | ForEach-Object { ([string]$_.Tag) -split ',' }) -join ',')
+}
+
+# Titulo de seccion (fila completa) y el panel donde caen sus items: columnas que se llenan de arriba hacia abajo
+function Lista-Seccion([string]$titulo, [int]$n, [string]$color) {
+    $L = $script:Lst
+    $h = Nuevo-Texto ((Con-Enie $titulo) + ' (' + $n + ')') 14 $color $true
+    $h.Margin = '4,16,0,6'
+    $L.Grilla.Children.Add($h) | Out-Null
+    $wp = New-Object Windows.Controls.WrapPanel
+    $wp.Orientation = 'Vertical'
+    $wp.Height = [math]::Ceiling($n / [double]$L.NCol) * $L.ItemH
+    $L.Grilla.Children.Add($wp) | Out-Null
+    $L.Destino = $wp
 }
 
 # $it (opcional, submenus): Desc = descripcion corta al lado, Icono = imagen o glifo, Etiqueta + EtiColor = cartelito (seguro, driver...)
@@ -2436,7 +2536,7 @@ function Lista-Agregar([string]$nombre, $procs, [bool]$marcado, $it = $null) {
         $ic = $null
         if ($it.Img) { $ic = New-Object Windows.Controls.Image; $ic.Source = $it.Img; $ic.Width = 22; $ic.Height = 22 }
         else {
-            $ic = Nuevo-Texto ([string][char]$(if ($it.Icono) { [int]$it.Icono } else { 0xE71D })) 18 '#60A5FA' $false; $ic.FontFamily = 'Segoe MDL2 Assets'
+            $ic = Nuevo-Texto ([string][char]$(if ($it.Icono) { [int]$it.Icono } else { 0xE71D })) 18 $(if ($it.Prot) { '#E5B567' } else { '#60A5FA' }) $false; $ic.FontFamily = 'Segoe MDL2 Assets'
             # Apps con paquete o .exe: el glifo queda de respaldo y el icono real se carga despues (ver Iconos-Siguiente)
             if ($it.PSObject.Properties['Loc'] -and ($it.Loc -or $it.Exe)) {
                 $ho = New-Object Windows.Controls.Border; $ho.Width = 22; $ho.Height = 22; $ho.Child = $ic; $ho.Tag = $it
@@ -2452,7 +2552,25 @@ function Lista-Agregar([string]$nombre, $procs, [bool]$marcado, $it = $null) {
         if ($it.Desc) { $t.Inlines.Add((New-Object Windows.Documents.LineBreak)); $r2 = New-Object Windows.Documents.Run((Con-Enie $it.Desc)); $r2.Foreground = (Pincel '#9AA0A6'); $r2.FontSize = 11.5; $t.Inlines.Add($r2) }
         $fila.Children.Add($t) | Out-Null
         $cb.Content = $fila
-        $script:Lst.Grilla.Children.Add($cb) | Out-Null
+        # Ya borrada: queda a la vista pero en gris y sin poder marcarse (no se vuelve a ejecutar)
+        if ($it.PSObject.Properties['Hecha'] -and $it.Hecha) { $cb.IsChecked = $false; $cb.IsEnabled = $false; $cb.Opacity = 0.6 }
+        if ($it.PSObject.Properties['Enc'] -and $it.Enc) {
+            # Ya apagado, se puede marcar para volver a prenderlo: tenue hasta marcarlo, y la etiqueta cambia
+            $cb.Uid = 'enc'; $cb.Opacity = 0.6
+            $reEnc = $re; $txtOff = (Con-Enie $it.Etiqueta); $colOff = $it.EtiColor; $txtOn = (Con-Enie 'Volver a prender')
+            $cb.Add_Checked({ $cb.Opacity = 1; $reEnc.Text = '  ' + $txtOn; $reEnc.Foreground = (Pincel (Tema-Letra '#81C995')) }.GetNewClosure())
+            $cb.Add_Unchecked({ $cb.Opacity = 0.6; $reEnc.Text = '  ' + $txtOff; $reEnc.Foreground = (Pincel (Tema-Letra $colOff)) }.GetNewClosure())
+        }
+        if ($script:Lst.Cols) {
+            # Columnas: cada item mide lo mismo; el texto se acomoda en varias lineas (si aun asi no entra, se corta con "...") y el detalle completo esta en el tooltip
+            $cb.Width = $script:Lst.ColW - 8; $cb.Height = $script:Lst.ItemH - 8; $cb.VerticalContentAlignment = 'Top'
+            $fila.Width = $script:Lst.ColW - 46
+            $t.TextTrimming = 'CharacterEllipsis'; $t.MaxHeight = $script:Lst.ItemH - 10
+            $tip = (Con-Enie $nombre) + $(if ($it.Etiqueta) { "`n" + (Con-Enie $it.Etiqueta) } else { '' }) + $(if ($it.Desc) { "`n" + (Con-Enie $it.Desc) } else { '' }) + $(if ($it.PSObject.Properties['Tip'] -and $it.Tip) { "`n" + $it.Tip } else { '' })
+            $cb.ToolTip = $tip
+        }
+        $dest = $(if ($script:Lst.Destino) { $script:Lst.Destino } else { $script:Lst.Grilla })
+        $dest.Children.Add($cb) | Out-Null
         $script:Lst.Casillas.Add($cb)
         return
     }
@@ -2562,14 +2680,22 @@ function Poner-Vieja($pb) {
     $pb.ToolTip = (Con-Enie 'La pusiste con una version vieja del script. Aplicala de nuevo para tener la nueva.')
 }
 
-# "5/13 borradas": verde si no queda nada, gris si todavia quedan
+# "5/13 borradas": verde si no queda nada, gris si todavia quedan. Los de Apps y Servicios del Sistema (Celeste): verde solo si estan todos, celeste si falta alguno.
 function Poner-Conteo($pb, $c) {
-    $todo = ([int]$c.Quedan -eq 0)
+    $cel = ($c.ContainsKey('Celeste') -and $c.Celeste)
+    $todo = $(if ($cel) { ([int]$c.Hechas -ge [int]$c.Total) } else { ([int]$c.Quedan -eq 0) })
     $pb.Visibility = 'Visible'
-    $pb.Background = (Pincel $(if ($todo) { '#1E3A2B' } else { '#35353C' }))
-    $pb.Child.Foreground = (Pincel (Tema-Letra $(if ($todo) { '#81C995' } else { '#9AA0A6' })))
+    if ($cel -and (-not $todo)) {
+        # Celeste bien legible: letra muy clara sobre celeste saturado en el tema oscuro (contraste 7:1) y letra azul oscura sobre celeste claro en el claro
+        $pb.Background = (Pincel $(if ($script:Claro) { '#CFE6FA' } else { '#1F4E79' }))
+        $pb.Child.Foreground = (Pincel $(if ($script:Claro) { '#0B3A66' } else { '#DCEEFF' }))
+    } else {
+        $pb.Background = (Pincel $(if ($todo) { '#1E3A2B' } else { '#35353C' }))
+        $pb.Child.Foreground = (Pincel (Tema-Letra $(if ($todo) { '#81C995' } else { '#9AA0A6' })))
+    }
     $pb.Child.Text = ([string]$c.Hechas + '/' + [string]$c.Total + ' ' + (Con-Enie ([string]$c.Que)))
-    $pb.ToolTip = $(if ($todo) { (Con-Enie 'No queda ninguna.') } elseif (@($c.Nombres).Count -gt 0) { (Con-Enie 'Todavia quedan:') + ' ' + (@($c.Nombres) -join ', ') } else { (Con-Enie 'Todavia quedan:') + ' ' + $c.Quedan })
+    $pb.ToolTip = $(if ($todo -and $c.ContainsKey('Tip')) { (Con-Enie ([string]$c.Tip)) } elseif ($todo) { (Con-Enie 'No queda ninguna.') } elseif (@($c.Nombres).Count -gt 0) { (Con-Enie 'Todavia quedan:') + ' ' + (@($c.Nombres) -join ', ') } else { (Con-Enie 'Todavia quedan:') + ' ' + $c.Quedan })
+    if ($c.ContainsKey('Nota')) { $pb.ToolTip = ([string]$pb.ToolTip + "`n" + (Con-Enie ([string]$c.Nota))) }
 }
 
 function Nota([string]$t, [string]$color, [string]$margen) {
@@ -2591,25 +2717,20 @@ $Aviso = [string][char]0x26A0
 
 # Opciones que se sabe que en algunas PCs pueden dar problemas: llevan el icono de advertencia
 $Advertencias = @{
-    'Debloat|tem' = 'Los programas clasicos se ven con el estilo basico hasta restablecer.'
     'Debloat|tim' = 'Puede que no puedas escribir en el Inicio, Configuracion ni apps de la Store, ni usar emojis, Win+V o IME. Proba Win+L antes de reiniciar.'
     'Debloat|tkb' = 'No podes iniciar sesion con cuenta de Microsoft en Store, Office, OneDrive ni Xbox.'
-    'Debloat|aif' = 'Las funciones de IA local de Windows no andan.'
     'Debloat|cdps' = 'Sin Vincular con el telefono ni Compartir cerca.'
-    'Debloat|nvd'  = 'El Panel de control de NVIDIA no abre hasta restablecer esta opcion.'
     # Las que pueden impedir que Windows Update te ofrezca la 26H2 (evaluan si tu PC es compatible con la version nueva)
-    'Debloat|inv'  = 'Puede impedir actualizar a Windows 11 26H2: sin el inventario de compatibilidad Windows Update no sabe si tu PC puede recibirla. Restablecelo antes de actualizar.'
     'Debloat|tsk'  = 'Puede impedir actualizar a Windows 11 26H2: apaga las tareas de diagnostico, inventario de dispositivos y configuracion de funciones (Flighting) que Windows usa para ofrecer la version nueva. Restablecelo antes de actualizar.'
     'Debloat|wup'  = 'Mientras tengas las actualizaciones en pausa no llega Windows 11 26H2.'
     'Debloat|rpo'  = 'Ya no vas a poder volver atras con un punto de restauracion.'
-    'Debloat|av'   = 'Si la Proteccion contra alteraciones sigue encendida, falla. Smart App Control no vuelve sin reinstalar Windows. Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
-    'Debloat|bl'   = 'Descifrar el disco puede tardar bastante en segundo plano. Si cambia algo, borra Riot Vanguard.'
+    'Debloat|av'   = 'Si la Proteccion contra alteraciones sigue encendida, falla. Smart App Control no vuelve sin reinstalar Windows. Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot). REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.'
+    'Debloat|bl'   = 'Descifrar el disco puede tardar bastante en segundo plano. Si cambia algo, borra Riot Vanguard. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.'
     'Debloat|db'   = 'No tiene restablecimiento las apps borradas se reinstalan a mano desde la Store.'
     'Debloat|edge' = 'Si no tenes otro navegador, te quedas sin uno. Una actualizacion grande de Windows puede traerlo de vuelta.'
     'Debloat|hst'  = 'Defender a veces lo marca como amenaza porque toca el archivo hosts. Puede impedir actualizar a Windows 11 26H2: bloquea el servidor de compatibilidad que Windows Update consulta antes de ofrecerla.'
     'Debloat|ter'  = 'Puede romper el chat de grupo de Xbox y el NAT en juegos de Xbox en PC.'
     'Debloat|xbs'  = 'Game Pass, Minecraft y el guardado en la nube de los juegos de la Store dejan de andar hasta que la restablezcas.'
-    'Debloat|sx'   = 'Windows Hello (huella o cara), los sensores y el Historial de archivos dejan de andar hasta que lo restablezcas.'
     'Debloat|bt'   = 'Auriculares, mouse, teclado y joysticks Bluetooth dejan de andar hasta que lo restablezcas.'
     'Debloat|str'  = 'No se instalan ni actualizan apps de la Microsoft Store (ni de Game Pass) hasta que lo restablezcas.'
     'Debloat|wus'  = 'PELIGRO: la PC deja de recibir parches de seguridad y de drivers, y no podes actualizar a Windows 11 26H2 hasta restablecerlo.'
@@ -2623,18 +2744,17 @@ $Advertencias = @{
     'Debloat|msx'  = 'PELIGRO: sin la Store no instalas ni actualizas apps de la Store, Game Pass ni Minecraft. Se reinstala con wsreset -i (hace falta internet).'
     'Debloat|usv'  = 'Correo, Calendario y Contactos dejan de sincronizar y Compartir cerca no anda. La captura de pantalla (Recortes y Win+Shift+S) sigue andando: el portapapeles ya no se apaga.'
     'Debloat|rmin' = 'No vas a poder imprimir ni guardar en PDF desde Imprimir hasta que lo restablezcas.'
-    'Debloat|rnet' = 'No vas a poder transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.'
-    'Debloat|rdp'  = 'Nadie puede entrar a esta PC por Escritorio remoto hasta que lo restablezcas.'
     'Debloat|nvl'  = 'El overlay, ShadowPlay y los filtros de la NVIDIA App dejan de andar. Si la NVIDIA App no abre bien, restablecelo.'
     'Gaming|xbt'   = 'BORRA XBOX ENTERO, Gaming Services incluido: Game Pass, Minecraft Bedrock y su Launcher y los juegos de la Microsoft Store dejan de funcionar y no podes jugar online con tu cuenta Xbox. Restablecer reinstala lo principal con winget, pero algunas cosas se reinstalan a mano.'
     'Gaming|afi'   = 'Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.'
-    'Gaming|foc'   = 'Algunos antitrampas (Valorant, Fortnite, FACEIT) desconfian de los programas que miran el teclado: si un juego te da problemas, restablecelo.'
-    'Gaming|pw'    = 'Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos.'
-    'Gaming|cpu'   = 'Mas consumo y calor; con undervolt u overclock puede volverse inestable.'
+    'Gaming|foc'   = 'Algunos antitrampas (Valorant/Vanguard, Fortnite, FACEIT) desconfian de los programas que miran el teclado: si un juego te da problemas, restablecelo y usa el Modo foco sin programa.'
+    'Gaming|fsm'   = 'Las teclas Windows quedan apagadas siempre y para todos los usuarios, no solo en los juegos. Para que vuelvan, restablecela y reinicia.'
+    'Gaming|pw'    = 'Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos. Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), dejala sin marcar: el driver de AMD necesita el plan Equilibrado para estacionar el bloque sin V-Cache.'
+    'Gaming|cpu'   = 'Mas consumo y calor; con undervolt u overclock puede volverse inestable. Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), dejala sin marcar: el driver de AMD necesita el plan Equilibrado para estacionar el bloque sin V-Cache.'
     'Gaming|gf'    = 'En algunas PCs viejas puede dar problemas.'
     'Gaming|wgo'   = 'En algun juego viejo puede cambiar como se ve la imagen en ventana.'
     'Gaming|ll'    = 'Es una funcion oculta que Microsoft todavia esta probando: si notas algo raro, restablecelo.'
-    'Gaming|idle'  = 'Mucho mas consumo y calor todo el tiempo, no solo jugando. En notebooks o con mala refrigeracion el procesador puede bajar el turbo por temperatura y rendir menos. Si no notas mejora, restablecelo.'
+    'Gaming|idle'  = 'Mucho mas consumo y calor todo el tiempo, no solo jugando. En notebooks o con mala refrigeracion el procesador puede bajar el turbo por temperatura y rendir menos. Si no notas mejora, restablecelo. Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), dejala sin marcar: el driver de AMD necesita el plan Equilibrado para estacionar el bloque sin V-Cache.'
     'Gaming|msi'   = 'Si el driver no lo soporta, al reiniciar podes ver pantalla negra o quedarte sin internet (se arregla restableciendolo desde Modo seguro).'
     'Gaming|tr'    = 'Mas consumo y calor; con undervolt u overclock puede colgarse en juegos.'
     'Gaming|pe'    = 'Con mouse o auriculares inalambricos sin driver propio, la bateria puede durar menos. En notebooks la bateria baja mas rapido, incluso suspendida.'
@@ -2642,8 +2762,8 @@ $Advertencias = @{
     'Gaming|dsk'   = 'Los discos HDD quedan girando mientras la PC esta prendida: un poco mas de ruido y consumo.'
     'Gaming|nic'   = 'En placas madre de baja calidad puede cortar el internet.'
     'Gaming|dup'   = 'Si tu internet es de mas de 1 Gbps vas a tener menos velocidad. Con 1 Gbps o menos (casi todos los planes) no cambia nada.'
-    'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).'
-    'Gaming|vbs'   = 'Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.'
+    'Gaming|mi'    = 'Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot). REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.'
+    'Gaming|vbs'   = 'Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.'
     'Gaming|spc'   = 'BAJA MUCHO LA SEGURIDAD: un programa o una pagina web maliciosa podria leer contrasenas y otros datos de la memoria. Usalo solo en una PC para jugar, sin datos importantes, y restablecelo si la vas a usar para otra cosa.'
 }
 
@@ -2652,7 +2772,6 @@ $Advertencias = @{
 $AdvDisp = @{
     'Gaming|mm'   = 'Con interfaces de audio o instrumentos MIDI puede cambiar la latencia. Al aplicar, la app te avisa si detecta uno.'
     'Gaming|tr'   = 'Con interfaces de audio o instrumentos MIDI puede cambiar la latencia. Al aplicar, la app te avisa si detecta uno.'
-    'Debloat|rsv' = 'Si usas lector de tarjetas inteligentes o NFC, destildalo en la lista. Al aplicar, la app te avisa si detecta uno.'
     'Debloat|drs' = 'Borra los drivers de impresoras, joysticks, camaras o interfaces de audio desenchufados. Al aplicar, la app te avisa si detecta alguno.'
 }
 
@@ -2707,6 +2826,13 @@ function Icono-EnTitulo($tb, $el) {
     $tb.Inlines.Add($c)
 }
 
+# Icono al final del titulo pegado a la ultima palabra con espacios sin corte: si el titulo baja de renglon, el icono baja con ella y nunca queda solo en otra linea
+function Icono-Pegado($tb, [string]$glifo, [string]$fuente, [string]$color, [string]$tip) {
+    $r = New-Object Windows.Documents.Run(([string][char]0x00A0 + [char]0x00A0 + $glifo))
+    $r.FontFamily = $fuente; $r.Foreground = $script:bc.ConvertFromString((Tema-Letra $color)); $r.FontWeight = 'Bold'; $r.ToolTip = $tip
+    $tb.Inlines.Add($r)
+}
+
 function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
     $clave = $pagina + '|' + $it.Id
     $adv = $Advertencias[$clave]
@@ -2735,14 +2861,10 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
         Icono-EnTitulo $tit $script:XbIcono
     }
     if ($adv) {
-        $ic = Nuevo-Texto $Aviso 15 '#E5B567' $true
-        $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'; $ic.ToolTip = (Con-Enie $adv)
-        Icono-EnTitulo $tit $ic
+        Icono-Pegado $tit $Aviso 'Segoe UI Symbol' '#E5B567' (Con-Enie $adv)
     }
     if ($drv) {
-        $id = Nuevo-Texto ([string][char]0xE896) 14 $ColorDrv $false
-        $id.FontFamily = 'Segoe MDL2 Assets'; $id.Margin = '8,1,0,0'; $id.ToolTip = (Con-Enie $drv)
-        Icono-EnTitulo $tit $id
+        Icono-Pegado $tit ([string][char]0xE896) 'Segoe MDL2 Assets' $ColorDrv (Con-Enie $drv)
     }
     $cb.Content = $tit; $cb.VerticalContentAlignment = 'Center'; $cb.IsChecked = $marcada
     $cb.Tag = $it.Id
@@ -2773,9 +2895,11 @@ function Nueva-Tarjeta($it, $casillas, [bool]$marcada, [string]$pagina) {
         $r1 = New-Object Windows.Documents.Run((' ' + (Con-Enie 'Necesita drivers: '))); $r1.Foreground = (Pincel $ColorDrv); $r1.FontWeight = 'SemiBold'
         $d.Inlines.Add($ri); $d.Inlines.Add($r1); $d.Inlines.Add((New-Object Windows.Documents.Run((Con-Enie $drv))))
     }
-    if ($adv) { Agregar-Linea $d ($Aviso + ' Puede dar problemas: ') '#E5B567' $adv }
-    if ($SinVuelta.Contains($clave)) { Agregar-Linea $d ($Aviso + ' SIN VUELTA ATRAS: ') '#F28B82' ($SinVuelta[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
-    if ($AvisosXbox.Contains($clave)) { Agregar-Linea $d ($Aviso + ' Xbox, Game Pass y Minecraft: ') '#E5B567' ($AvisosXbox[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
+    if ($adv) { Agregar-Linea $d 'Puede dar problemas: ' '#E5B567' $adv }
+    # Si el titulo ya lleva el icono de alerta, las lineas de aviso no lo repiten
+    $ia = $(if ($adv -or (($pagina -eq 'Gaming') -and ($it.Id -eq 'xb'))) { '' } else { $Aviso + ' ' })
+    if ($SinVuelta.Contains($clave)) { Agregar-Linea $d ($ia + 'SIN VUELTA ATRAS: ') '#F28B82' ($SinVuelta[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
+    if ($AvisosXbox.Contains($clave)) { Agregar-Linea $d ($ia + 'Xbox, Game Pass y Minecraft: ') '#E5B567' ($AvisosXbox[$clave] + ' ' + 'Antes de aplicarla, la app te pregunta.') }
     if ($d.Inlines.Count -gt 0) { $d.Inlines.Add((New-Object Windows.Documents.LineBreak)) }
     Agregar-Linea $d 'Que hace: ' '#60A5FA' $it.Hace
     Agregar-Linea $d 'A favor: ' '#81C995' $it.Favor
@@ -3036,7 +3160,7 @@ $OrdenSec = @{
 $OrdenOpc = @{
     Debloat = @(
         # Apps y procesos en segundo plano: primero lo que se abre solo y mas RAM ocupa
-        'ini', 'apps', 'svh', 'ofb', 'nvl', 'upd', 'tsk', 'dia', 'inv', 'nvd', 'nvt',
+        'ini', 'apps', 'svh', 'ofb', 'nvl', 'upd', 'tsk', 'dia', 'nvt',
         # Efectos visuales y fluidez
         'fx', 'trn', 'thm', 'rap', 'sud',
         # Almacenamiento y memoria
@@ -3044,11 +3168,11 @@ $OrdenOpc = @{
         # Actualizaciones y Store: lo que descarga en medio de una partida primero; lo peligroso al final
         'do', 'su', 'wud', 'wup', 'wus', 'str', 'msx',
         # Servicios y funciones: lo comun y seguro primero, los extremos al final
-        'sv', 'rsv', 'old', 'xbs', 'rmin', 'rnet', 'rdp', 'bt', 'leg', 'apl', 'ter', 'sx', 'usv', 'cdps', 'aif', 'tkb', 'tem', 'tim',
+        'sv', 'rsv', 'old', 'xbs', 'rmin', 'bt', 'leg', 'apl', 'ter', 'usv', 'cdps', 'tkb', 'tim',
         # Seguridad
         'av', 'bl',
         # Apps, navegadores e IA: borrar apps basura es lo que mas libera
-        'db', 'eb', 'ebb', 'ia', 'iap', 'iao', 'rc', 'edge', 'chr',
+        'db', 'eb', 'ia', 'iap', 'iao', 'rc', 'edge', 'chr',
         # Privacidad y telemetria: primero lo que ademas corre en segundo plano (servicios y tareas)
         'tel', 'tp', 'tpn', 'tps', 'hst', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'cdp', 'clh', 'wer',
         # Interfaz y comodidad
@@ -3070,9 +3194,9 @@ $OrdenOpc = @{
         # Seguridad: VBS e integridad de memoria son las que mas FPS dan; Spectre solo en procesadores viejos y es la mas peligrosa
         'vbs', 'mi', 'avl', 'spc',
         # Latencia, red, mouse y DNS
-        'tr', 'pe', 'nic', 'dup', 'wf', 'nag', 'v4', 'pci', 'dsk', 'ms', 'dns',
+        'tr', 'pe', 'nic', 'dup', 'wf', 'nag', 'v4', 'pci', 'dsk', 'ms', 'vpf', 'esc', 'dns',
         # Comodidad
-        'tk', 'dtk', 'foc', 'du', 'wsr', 'stg', 'ext', 'hid', 'md'
+        'tk', 'dtk', 'foc', 'fsm', 'du', 'wsr', 'stg', 'ext', 'hid', 'md'
     )
 }
 foreach ($k in 'Debloat', 'Gaming') {
@@ -3120,6 +3244,8 @@ $Conflictos = @(
     @('Debloat|mc',  'Gaming|sm',   'La compresion de memoria necesita SysMain prendido, y la otra opcion lo apaga.', 'C'),
     @('Debloat|av',  'Gaming|avl',  'Una apaga Defender del todo y la otra solo le baja el uso de CPU: con Defender apagado no sirve de nada.'),
     @('Gaming|xb', 'Gaming|dvr', 'Borrar la Game Bar ya apaga las grabaciones en segundo plano.'),
+    @('Gaming|ms', 'Gaming|vpf', 'Mouse competitivo deja la velocidad fija en 10 y la otra la ajusta sola segun la resolucion: se pisan.', 'C'),
+    @('Gaming|foc', 'Gaming|fsm', 'Las dos apagan la tecla Windows: una con un programa solo en juegos y la otra desde el registro, siempre. Con una alcanza.', 'C'),
     @('Gaming|nb', 'Gaming|idle', 'Una prioriza la bateria y la otra impide que los nucleos duerman, tambien a bateria.', 'C'),
     @('Gaming|nb', 'Gaming|tr', 'Una prioriza la bateria y la otra deja el reloj de Windows en 0.5 ms, lo que gasta mas bateria.', 'C'),
     @('Gaming|nb', 'Gaming|pw', 'Una prioriza la bateria y la otra usa el plan Alto rendimiento: objetivos opuestos.', 'C')
@@ -3229,12 +3355,11 @@ function Calcular-NoDisp($i, $cpu) {
     }
     # Con poca RAM el limite de 1024 MB libres se alcanza todo el tiempo: vaciaria el cache sin parar y todo se relee del disco (tirones)
     if (([int]$i.RamGB -gt 0) -and ([int]$i.RamGB -lt 12)) { $r['Gaming|ram'] = ('Con poca RAM (tenes ' + $i.RamGB + ' GB) vaciaria el cache todo el tiempo y causaria tirones: hace falta 12 GB o mas.') }
-    if ($null -eq (Leer-Svc 'NVDisplay.ContainerLocalSystem')) { $r['Debloat|nvd'] = 'No hace falta: tu PC no tiene el contenedor de pantalla de NVIDIA.' }
-    if (($null -eq (Leer-Svc 'InventorySvc')) -and ($null -eq (Leer-Svc 'whesvc'))) { $r['Debloat|inv'] = 'No hace falta: tu Windows no tiene estos servicios.' }
-    foreach ($p in @(@('tem', 'Themes'), @('tim', 'TextInputManagementService'), @('tkb', 'TokenBroker'), @('aif', 'WSAIFabricSvc'), @('cdps', 'CDPSvc'))) {
+    foreach ($p in @(@('tim', 'TextInputManagementService'), @('tkb', 'TokenBroker'), @('cdps', 'CDPSvc'))) {
         if ($null -eq (Leer-Svc $p[1])) { $r['Debloat|' + $p[0]] = ('No hace falta: tu Windows no tiene el servicio ' + $p[1] + '.') }
     }
     if (-not $i.Bateria) { $r['Gaming|nb'] = 'No hace falta: es para notebooks y tu PC no tiene bateria.' }
+    if (@(Navegadores-Instalados).Count -eq 0) { $r['Debloat|eb'] = 'No hace falta: no tenes Edge ni Brave instalados.' }
     if ($i.BtConectado -and @($i.BtConectado).Count -gt 0) { $r['Debloat|bt'] = 'No se puede ahora: tenes conectado por Bluetooth ' + (@($i.BtConectado) -join ', ') + '. Desconectalo (o usa otro) y volve a leer los ajustes.' }
     if ($i.AvOff) { $r['Gaming|avl'] = 'No hace falta: tu antivirus ya esta apagado.' }
     if ([int]$i.Lan -eq 0) { $r['Gaming|dup'] = 'No hace falta: tu PC no tiene placa de cable.' }
@@ -3416,7 +3541,7 @@ function Actualizar-Windows {
     if ($b -ge 26300) { Avisar 'Actualizar Windows' 'Ya tenes Windows 11 26H2 o mas nuevo: no hace falta actualizar.'; return }
     if (-not [Environment]::Is64BitOperatingSystem) { Avisar 'Actualizar Windows' 'Tu Windows es de 32 bits: Windows 11 solo existe en 64 bits, asi que no se puede actualizar desde aca.'; return }
     # Opciones de la app que frenan la actualizacion: se restablecen en la misma pasada
-    $frenos = @('Debloat|wus', 'Debloat|wup', 'Debloat|inv', 'Debloat|tsk', 'Debloat|hst') | Where-Object { $script:Estados[$_] -eq $true }
+    $frenos = @('Debloat|wus', 'Debloat|wup', 'Debloat|tsk', 'Debloat|hst') | Where-Object { $script:Estados[$_] -eq $true }
     $vR = @{ XR_rep = 'S'; XREP_RAPIDO = '1'; XREP_WU = '1' }
     foreach ($k in $frenos) { $vR['XR_' + ($k -split '\|')[1]] = 'R' }
     $txtF = $(if ($frenos.Count -gt 0) { "`n`n" + (Con-Enie 'Tambien se restablecen estas opciones que frenan la actualizacion:') + ' ' + (@($frenos | ForEach-Object { Titulo-De ($_ -split '\|')[0] ($_ -split '\|')[1] }) -join ', ') + '.' } else { '' })
@@ -4908,25 +5033,40 @@ $cHola = Inicio-Caja '' $hola
 Caja-Borde $cHola '#60A5FA'
 $spI.Children.Add($cHola) | Out-Null
 
-# Novedades: los cambios de esta version, sacados de CHANGELOG.md (la seccion "## v<version del version.txt>").
+# Novedades: los cambios de la ultima version, sacados de CHANGELOG.md.
 # El changelog esta en espanol y se muestra tal cual (no pasa por la traduccion).
 $UrlChangelog = 'https://github.com/011Xuca/brio/blob/main/CHANGELOG.md'
+# Tope de caracteres de texto de la version que se muestra en el inicio (lo que pase se corta y se enlaza a GitHub)
+$NovedadesTope = 2000
 function Leer-Novedades {
-    $fc = Join-Path $Root 'CHANGELOG.md'
+    $fc = Join-Path $Root 'CHANGELOG.md'; $urlC = $UrlChangelog
     $ver = ''
     try { $ver = ((([IO.File]::ReadAllText($VersionLocal) -replace '^\uFEFF', '') -split "`r?`n")[0].Trim()) -replace '^[vV]', '' } catch { }
     # En otro idioma: el CHANGELOG traducido de lang\<idioma> (si tiene esta version); si no, el de siempre
     $ft = Join-Path (Join-Path $LangDir $script:Idioma) 'CHANGELOG.md'
-    if (($script:Idioma -ne 'es-mx') -and $ver -and (Test-Path -LiteralPath $ft) -and ([IO.File]::ReadAllText($ft) -match ('(?m)^##\s+[vV]?' + [regex]::Escape($ver) + '\s*$'))) { $fc = $ft }
+    if (($script:Idioma -ne 'es-mx') -and $ver -and (Test-Path -LiteralPath $ft) -and ([IO.File]::ReadAllText($ft) -match ('(?m)^##\s+[vV]?' + [regex]::Escape($ver) + '\s*$'))) { $fc = $ft; $urlC = $UrlChangelog -replace 'CHANGELOG\.md$', ('lang/' + $script:Idioma + '/CHANGELOG.md') }
     if ((-not $ver) -or (-not (Test-Path -LiteralPath $fc))) { return $null }
+    # Se muestra SOLO la ultima version (la primera seccion "## v..." con sus "###"). Si pasa del tope, se corta en el ultimo limite de
+    # linea o de vineta que entra (nunca a mitad de una vineta ni de una palabra) y se avisa; siempre queda al menos una vineta entera.
+    $todas = [IO.File]::ReadAllLines($fc, [Text.Encoding]::UTF8)
+    $sec = New-Object Collections.ArrayList
     $dentro = $false
-    $lineas = New-Object Collections.ArrayList
-    foreach ($ln in [IO.File]::ReadAllLines($fc, [Text.Encoding]::UTF8)) {
-        if ($ln -match '^##\s+[vV]?(\S+)\s*$') { if ($dentro) { break }; $dentro = ($Matches[1] -eq $ver); continue }
-        if ($dentro -and $ln.Trim()) { [void]$lineas.Add($ln.TrimEnd()) }
+    foreach ($ln in $todas) {
+        if ($ln -match '^##\s') { if ($dentro) { break }; $dentro = $true }
+        if ($dentro -and $ln.Trim()) { [void]$sec.Add($ln.TrimEnd()) }
     }
-    if ($lineas.Count -eq 0) { return $null }
-    return @{ Version = $ver; Lineas = $lineas }
+    if ($sec.Count -eq 0) { return $null }
+    $lineas = New-Object Collections.ArrayList
+    $cont = 0; $hayVineta = $false; $parcial = $false
+    foreach ($l in $sec) {
+        $esVineta = ($l -notmatch '^#{2,3}\s')
+        if ((($cont + $l.Length + 1) -gt $NovedadesTope) -and $hayVineta) { $parcial = $true; break }
+        [void]$lineas.Add($l); $cont += ($l.Length + 1)
+        if ($esVineta) { $hayVineta = $true }
+    }
+    # Un titulo de seccion ("### Nuevo") sin vinetas debajo no se deja colgado al final
+    while (($lineas.Count -gt 1) -and ($lineas[$lineas.Count - 1] -match '^#{3}\s')) { $lineas.RemoveAt($lineas.Count - 1) }
+    return @{ Version = $ver; Lineas = $lineas; Parcial = $parcial; Url = $urlC; Largo = $cont }
 }
 
 # Texto con las **negritas** del Markdown (sin traducir)
@@ -4947,7 +5087,12 @@ $novedades = Leer-Novedades
 if ($novedades) {
     $spNov = New-Object Windows.Controls.StackPanel
     foreach ($ln in $novedades.Lineas) {
-        if ($ln -match '^###\s+(.+)$') {
+        if ($ln -match '^##\s+(.+)$') {
+            # Titulo de version, en negrita
+            $tVer = Nuevo-Texto $Matches[1].Trim() 15 '#FFFFFF' $true
+            $tVer.Margin = $(if ($spNov.Children.Count -gt 0) { '0,18,0,4' } else { '0,0,0,4' })
+            $spNov.Children.Add($tVer) | Out-Null
+        } elseif ($ln -match '^###\s+(.+)$') {
             # "Nuevo" en verde y "Cambios" en celeste
             $subNov = $Matches[1].Trim()
             $tSub = Nuevo-Texto $subNov 13 $(if ($subNov -match '(?i)nuevo') { '#81C995' } else { '#60A5FA' }) $true
@@ -4971,9 +5116,12 @@ if ($novedades) {
             $spNov.Children.Add($tNov) | Out-Null
         }
     }
+    $resto = Nuevo-Texto $(if ($novedades.Parcial) { 'El resto de esta version y el historial completo estan en GitHub.' } else { 'Las versiones anteriores estan en GitHub.' }) 12.5 '#7D8590' $false
+    $resto.Margin = '0,14,0,0'
+    $spNov.Children.Add($resto) | Out-Null
     $verTodo = Nuevo-Texto 'Ver todos los cambios en GitHub' 12.5 '#60A5FA' $true
-    $verTodo.Margin = '0,12,0,0'; $verTodo.Cursor = [Windows.Input.Cursors]::Hand; $verTodo.TextDecorations = [Windows.TextDecorations]::Underline
-    $verTodo.Add_MouseLeftButtonDown({ param($sd, $e) $e.Handled = $true; Abrir-Normal $UrlChangelog })
+    $verTodo.Margin = '0,4,0,0'; $verTodo.Cursor = [Windows.Input.Cursors]::Hand; $verTodo.TextDecorations = [Windows.TextDecorations]::Underline
+    $verTodo.Add_MouseLeftButtonDown({ param($sd, $e) $e.Handled = $true; Abrir-Normal $novedades.Url })
     $spNov.Children.Add($verTodo) | Out-Null
     $spI.Children.Add((Inicio-Caja ('Novedades de la version ' + $novedades.Version) $spNov)) | Out-Null
 }
@@ -5357,12 +5505,10 @@ $Divididas = [ordered]@{
     'Debloat|sch'  = @('sns')
     'Debloat|fx'   = @('trn')
     'Debloat|wg'   = @('tvb')
-    'Debloat|rmin' = @('rnet', 'rdp')
     'Debloat|cdp'  = @('clh')
     'Debloat|rap'  = @('sud')
     'Debloat|leg'  = @('apl', 'wer')
     'Debloat|tp'   = @('tpn', 'tps')
-    'Debloat|eb'   = @('ebb')
     'Debloat|ia'   = @('iap', 'iao')
     'Gaming|gf'    = @('wgo')
     'Gaming|ext'   = @('hid')
@@ -5375,7 +5521,7 @@ $Perfiles = @(
         Ideal = 'cualquier PC, incluso la de alguien que no sabe de esto.'
         NoToca = 'la seguridad, el procesador ni tus programas: solo borra lo que viene de fabrica (WhatsApp, Xbox y la Store quedan).'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Sin los servicios que casi nadie usa, el escaner de Windows y el Media Player viejo dejan de estar.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'db')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ia', 'iap', 'iao', 'sv', 'db')
         G = @('tk', 'du', 'gm', 'ext', 'hid', 'md')
     },
     [pscustomobject]@{
@@ -5384,7 +5530,7 @@ $Perfiles = @(
         Ideal = 'cualquier PC que queres que ande mas rapida y liviana, sin tocar la seguridad ni los ajustes de juego.'
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo (mouse, procesador, plan de energia, temporizador y red).'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store. Los drivers los actualizas vos (Herramientas > Buscar drivers, o la app de tu placa de video).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'db', 'hib', 'fx', 'trn', 'sch', 'sns', 'wud', 'ini', 'tsk', 'fsb', 'upd')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ia', 'iap', 'iao', 'sv', 'db', 'hib', 'fx', 'trn', 'sch', 'sns', 'wud', 'ini', 'tsk', 'fsb', 'upd')
         G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'sm', 'pca', 'stg')
     },
     [pscustomobject]@{
@@ -5403,7 +5549,7 @@ $Perfiles = @(
         NoToca = 'el antivirus, BitLocker, la integridad de memoria ni VBS, ni los ajustes de juego competitivo. Tampoco apaga los servicios de Xbox ni Gaming Services: Game Pass y Minecraft siguen andando.'
         Adv = 'la zona wifi movil deja de andar y Windows deja de buscar problemas solo. Borrar las apps basura no tiene restablecimiento. Juntar los servicios se aplica al reiniciar. En reposo ronda los 2,5 a 3 GB: bajar de ahi solo se logra con una imagen de Windows recortada.'
         Estima = '2,5 a 3,5 GB de RAM y 0 a 2 % de CPU, sin nada abierto en Windows 11 (estimado, no medido; depende del hardware y los drivers).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'fx', 'trn', 'sch', 'sns', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ia', 'iap', 'iao', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'fx', 'trn', 'sch', 'sns', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd')
         G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'pca', 'stg')
     },
     [pscustomobject]@{
@@ -5413,8 +5559,10 @@ $Perfiles = @(
         NoToca = 'los ajustes de juego competitivo, ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
         Adv = 'la PC queda sin antivirus, sin parches de seguridad (Windows Update apagado), sin Store ni Bluetooth, y dejan de andar WSL, Docker y las maquinas virtuales. Si el disco estaba cifrado con BitLocker, la PC va mas lenta hasta que termine de descifrarse. Para pasar de ahi hace falta una ISO recortada (tiny11 o NTLite): desde una Windows instalada no se llega a 0,5 GB.'
         Estima = 'alrededor de 3 GB de RAM en uso, sin nada abierto en Windows 11 (medido en una PC real; varia con el hardware y los drivers). Para bajar de ahi hace falta una ISO recortada (tiny11 o NTLite).'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'trn', 'sch', 'sns', 'av', 'bl', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd', 'rmin', 'rnet', 'rdp', 'nvl', 'nvt', 'sx', 'thm', 'leg', 'apl', 'wer', 'bt', 'msx', 'old', 'usv', 'wus')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ia', 'iap', 'iao', 'sv', 'rsv', 'dia', 'svh', 'mc', 'ofb', 'db', 'hib', 'fx', 'trn', 'sch', 'sns', 'av', 'bl', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd', 'rmin', 'nvl', 'nvt', 'thm', 'leg', 'apl', 'wer', 'bt', 'msx', 'old', 'usv', 'wus')
         G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'pca', 'stg', 'mi', 'vbs', 'wsr', 'dvr')
+        # Opciones sueltas que pasaron a ser servicios de "Servicios del Sistema" (De en $Elegibles.rsv): el perfil los sigue apagando
+        Rsv = @('rnet', 'rdp')
     },
     [pscustomobject]@{
         Id = 'nbdeb'; Nombre = 'Debloat - Notebook'; Color = '#60A5FA'
@@ -5422,7 +5570,7 @@ $Perfiles = @(
         Ideal = 'una notebook para estudiar, trabajar o usar todos los dias: la bateria dura mas y anda mas liviana.'
         NoToca = 'la seguridad, la hibernacion (la notebook la usa cuando se queda sin bateria), los drivers de Windows Update, tus programas ni el rendimiento enchufada.'
         Adv = 'borrar las apps basura no tiene restablecimiento: si queres alguna, la reinstalas desde la Store.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'ia', 'iap', 'iao', 'sv', 'db', 'fx', 'trn', 'ini', 'tsk', 'upd')
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ia', 'iap', 'iao', 'sv', 'db', 'fx', 'trn', 'ini', 'tsk', 'upd')
         G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'nb')
     },
     [pscustomobject]@{
@@ -5439,8 +5587,8 @@ $Perfiles = @(
         Hace = 'Windows lo mas liviano posible: todo el debloat y la optimizacion del sistema, y ademas apaga el antivirus y BitLocker, bloquea la telemetria en hosts y apaga Teredo y Windows Search. No toca la integridad de memoria ni VBS.'
         Ideal = 'una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.'
         NoToca = 'la integridad de memoria ni VBS, los ajustes de juego competitivo (mouse, prioridad, afinidad, plan de energia, temporizador y red), ni Edge ni Chrome. Crea un punto de restauracion antes de empezar.'
-        Adv = 'la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales.'
-        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'ebb', 'su', 'ia', 'iap', 'iao', 'hib', 'fx', 'trn', 'sch', 'sns', 'sv', 'wud', 'db', 'av', 'bl', 'hst', 'ter', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd', 'old')
+        Adv = 'la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.'
+        D = @('rc', 'et', 'apps', 'tel', 'wg', 'tvb', 'do', 'ad', 'bng', 'pv', 'pvu', 'pvw', 'pvs', 'pve', 'pvv', 'pvm', 'pvl', 'tp', 'tpn', 'tps', 'eb', 'su', 'ia', 'iap', 'iao', 'hib', 'fx', 'trn', 'sch', 'sns', 'sv', 'wud', 'db', 'av', 'bl', 'hst', 'ter', 'ini', 'tsk', 'cdp', 'clh', 'fsb', 'rap', 'sud', 'upd', 'old')
         G = @('tk', 'du', 'gm', 'ext', 'hid', 'md', 'mm', 'xb', 'gf', 'wgo', 'pca', 'ram', 'sm', 'stg', 'wsr')
     }
 )
@@ -5467,9 +5615,7 @@ foreach ($pf in $Perfiles) {
     $tit = Nuevo-Texto $pf.Nombre 15 '#FFFFFF' $true
     if (($pf.Id -like 'full*' -or $pf.Id -eq 'tiny')) {
         $porque = ('Tiene la alerta porque apaga el antivirus (Defender, SmartScreen y Smart App Control): la PC queda sin proteccion contra virus.' + "`n" + 'Tambien apaga BitLocker, la integridad de memoria y VBS, y desinstala Riot Vanguard (lo reinstalas abriendo el cliente de Riot).')
-        $ic = Nuevo-Texto $Aviso 17 '#E5B567' $true
-        $ic.FontFamily = 'Segoe UI Symbol'; $ic.Margin = '8,0,0,0'
-        Icono-EnTitulo $tit $ic
+        Icono-Pegado $tit $Aviso 'Segoe UI Symbol' '#E5B567' ''
         $card.ToolTip = (Con-Enie $porque)
         [Windows.Controls.ToolTipService]::SetShowDuration($card, 30000)
     }
@@ -5488,7 +5634,7 @@ foreach ($pf in $Perfiles) {
     # Tarjeta corta: lo importante a la vista y el texto completo al pasar el mouse
     Agregar-Linea $d 'Que hace: ' '#60A5FA' (Recortar $pf.Hace 420)
     Agregar-Linea $d 'Ideal para: ' '#81C995' (Recortar $pf.Ideal 200)
-    if ($pf.Adv) { Agregar-Linea $d ($Aviso + ' Ojo: ') '#E5B567' (Recortar $pf.Adv 320) }
+    if ($pf.Adv) { Agregar-Linea $d $(if ($pf.Id -like 'full*' -or $pf.Id -eq 'tiny' -or $pf.Id -like 'nb*') { 'Ojo: ' } else { $Aviso + ' Ojo: ' }) '#E5B567' (Recortar $pf.Adv 320) }
     if ($pf.Estima) { Agregar-Linea $d 'Consumo estimado en reposo: ' '#60A5FA' $pf.Estima }
     $tipPf = $(if ($pf.Estima) { 'Consumo estimado en reposo: ' + $pf.Estima + "`n`n" } else { '' }) + ('Que hace: ' + $pf.Hace + "`n`n" + 'Ideal para: ' + $pf.Ideal + "`n`n" + 'No toca: ' + $pf.NoToca) + $(if ($pf.Adv) { "`n`n" + 'Ojo: ' + $pf.Adv } else { '' })
     if ($card.ToolTip) { $tipPf = ([string]$card.ToolTip) + "`n`n" + (Con-Enie $tipPf) } else { $tipPf = (Con-Enie $tipPf) }
@@ -5649,6 +5795,27 @@ function Marcar-Perfil([string]$id, [bool]$directo = $false) {
     return $n
 }
 
+# Preguntas cortas de "Aplicar perfil": si decis que lo usas, se deja (se desmarca la opcion o se la saca de la lista de apps a borrar).
+# Solo se pregunta lo que ese perfil realmente iba a sacar. Cerrar el cartel con Esc = seguir con el perfil como esta.
+$script:PerfilDejar = @()
+$PreguntasPerfil = @(
+    @{ Req = 'Debloat|db'; Titulo = 'OneDrive'; Q = 'Usas OneDrive para guardar o sincronizar tus archivos?'; Dejar = @('OneDrive') }
+    @{ Req = 'Debloat|db'; Titulo = 'Apps de fabrica'; Q = 'Usas Spotify, Netflix, Teams u Outlook de los que vienen con Windows?'; Dejar = @('Spotify', 'Netflix', 'Teams', 'Outlook') }
+    @{ Req = 'Debloat|ia'; Titulo = 'Copilot y la IA'; Q = 'Queres seguir usando Copilot y las funciones de IA de Windows?'; Dejar = @('Copilot'); Desmarcar = @('Debloat|ia', 'Debloat|iap', 'Debloat|iao') }
+    @{ Req = 'Debloat|bt'; Titulo = 'Bluetooth'; Q = 'Usas auriculares, mouse, teclado o joystick Bluetooth?'; Desmarcar = @('Debloat|bt') }
+)
+function Preguntar-Perfil {
+    $script:PerfilDejar = @()
+    foreach ($q in $PreguntasPerfil) {
+        $p0, $i0 = $q.Req -split '\|'
+        if (-not ($Casillas[$p0][$i0] -and $Casillas[$p0][$i0].IsChecked)) { continue }
+        if (Confirmar $q.Titulo (Con-Enie ($q.Q + "`n`n" + 'Si lo dejas, el perfil se aplica igual con todo lo demas.')) 'Dejarlo' '#60A5FA' 'Sacarlo') {
+            foreach ($k in $q.Desmarcar) { $a, $b = $k -split '\|'; if ($Casillas[$a][$b]) { $Casillas[$a][$b].IsChecked = $false } }
+            $script:PerfilDejar += $q.Dejar
+        }
+    }
+    Actualizar-Contador
+}
 function Aplicar-Perfil([string]$id) {
     $pf = Perfil-De $id
     if (-not (Perfil-ConDrivers $pf)) { return }
@@ -5657,13 +5824,14 @@ function Aplicar-Perfil([string]$id) {
         if (-not (Confirmar ($Aviso + ' ' + $pf.Nombre) ($que + "`n`n" + 'Seguir?') 'Si, aplicar' '#B3412F' 'Cancelar')) { return }
     }
     if ((Marcar-Perfil $id $true) -eq 0) { return }
+    Preguntar-Perfil
     Aplicar-Seleccion $id
 }
 
 $IconosPag = @{ Inicio = 0xE80F; Perfiles = 0xE77B; Debloat = 0xE72E; Gaming = 0xE7FC; Limpieza = 0xE74D; Herr = 0xE90F; Apps = 0xE7B8; Adicional = 0xE713 }
 $Textos = @{
     Inicio    = @('Bienvenido a Brio', 'Que hace la app y como se usa. Cuando quieras, elegi una seccion a la izquierda.')
-    Perfiles  = @('Perfiles', 'Elegi un perfil armado: "Aplicar perfil" lo aplica directo, sin carteles de choques ni listas para elegir. "Marcar y revisar" te deja ajustar las opciones antes. Si al perfil le faltan drivers, no se aplica hasta que los instales. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.')
+    Perfiles  = @('Perfiles', 'Elegi un perfil armado: "Aplicar perfil" lo aplica directo, con 2 o 3 preguntas cortas (OneDrive, Copilot, Bluetooth...) para dejar lo que uses, y sin carteles de choques ni listas para elegir. "Marcar y revisar" te deja ajustar las opciones antes. Si al perfil le faltan drivers, no se aplica hasta que los instales. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.')
     Debloat   = @('Debloat y privacidad', 'Lo que se puede sacar o apagar de Windows. Lo que marques aca y en Gaming se aplica junto con un solo Aplicar.')
     Gaming    = @('Zona gamer', 'Ajustes para mas FPS y menos latencia. Lo que marques aca y en Debloat se aplica junto con un solo Aplicar.')
     Limpieza  = @('Limpiar cache', 'Libera espacio. Lo de arriba se limpia siempre; lo de abajo solo si lo marcas.')
@@ -5673,6 +5841,7 @@ $Textos = @{
 }
 $Nav = @{ Perfiles = $ui.NavPerfiles; Debloat = $ui.NavDebloat; Gaming = $ui.NavGaming; Limpieza = $ui.NavLimpieza; Herr = $ui.NavHerr; Apps = $ui.NavApps; Adicional = $ui.NavAdicional }
 $script:Pagina = 'Debloat'
+$script:AreaTrabajo = $null   # solo para pruebas: fuerza el area de trabajo (ver Elegir-Lista)
 $script:Ocupado = $false
 
 # Paginas donde se ve el mensaje de "Windows leido" (las que tienen ajustes)
@@ -6280,7 +6449,7 @@ function Aplicar-Lectura($s) {
         if ($res -and $res.ContainsKey($k)) { $est = $res[$k] }
         # Contador: queda aplicada cuando no falta nada
         $cont = $null
-        if ($est -is [hashtable]) { $cont = $est; $est = ([int]$cont.Quedan -eq 0) }
+        if ($est -is [hashtable]) { $cont = $est; $est = $(if ($cont.ContainsKey('Celeste') -and $cont.Celeste) { [int]$cont.Hechas -ge [int]$cont.Total } else { ([int]$cont.Quedan -eq 0) }) }
         # Desactualizada = la puso una version vieja del script: cuenta como sin aplicar, asi al aplicarla se pone la nueva
         $vieja = (($est -is [string]) -and ($est -eq 'vieja'))
         if ($vieja) { $est = $false; $viejos += $k }
@@ -6905,6 +7074,10 @@ function Fin-Tarea {
             $m = [regex]::Match($txt, '(?m)^XRES\|libre\|(\d+)')
             if ($m.Success) { $C.Libre += [int64]$m.Groups[1].Value }
             foreach ($m in [regex]::Matches($txt, '(?m)^XRES\|app\|(.+?)\s*$')) { $C.Apps.Add($m.Groups[1].Value) }
+            foreach ($m in [regex]::Matches($txt, '(?m)^XRES\|reinicio\|(.+?)\s*$')) { if (-not $C.ContainsKey('Reinicia')) { $C['Reinicia'] = @() }; $C['Reinicia'] += $m.Groups[1].Value }
+            foreach ($m in [regex]::Matches($txt, '(?m)^XRES\|op\|(\w+)\|(\w+)')) { if (-not $C.ContainsKey('Ops')) { $C['Ops'] = @() }; $C['Ops'] += (@($(if ($t.Ruta -eq $Rutas.Gaming) { 'Gaming' } else { 'Debloat' }), $m.Groups[1].Value, $m.Groups[2].Value) -join '|') }
+            foreach ($m in [regex]::Matches($txt, '(?m)^XRES\|aviso\|(.+?)\s*$')) { if (-not $C.ContainsKey('Avisos')) { $C['Avisos'] = @() }; $C['Avisos'] += $m.Groups[1].Value }
+            foreach ($m in [regex]::Matches($txt, '(?m)^XRES\|omitida\|(.+?)\s*$')) { if (-not $C.ContainsKey('Omitidas')) { $C['Omitidas'] = @() }; $C['Omitidas'] += $m.Groups[1].Value }
             foreach ($m in [regex]::Matches($txt, '(?m)^\s*Apagado al inicio: (.+?)\s*$')) { $C.Inicio.Add($m.Groups[1].Value) }
             $m = [regex]::Match($txt, '(?m)^\s*El mas rapido para tu conexion: (\S+) \(([^)]*)\)')
             if ($m.Success) { $C.Dns = $m.Groups[1].Value + ' (' + $m.Groups[2].Value + ')' }
@@ -6930,7 +7103,7 @@ function Fin-Tarea {
             try {
                 $d = Join-Path $Scripts 'logs'
                 if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
-                Set-Content -LiteralPath (Join-Path $d ('limpieza_' + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + '.txt')) -Value (($txt -split "`r?`n" | Where-Object { $_ -notmatch ': no se toc(o|aron)' }) -join "`r`n") -Encoding UTF8
+                [IO.File]::WriteAllText((Join-Path $d ('limpieza_' + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + '.txt')), (($txt -split "`r?`n" | Where-Object { $_ -notmatch ': no se toc(o|aron)' }) -join "`r`n"), (New-Object Text.UTF8Encoding $true))
             } catch { }
         }
         Remove-Item -LiteralPath $t.Salida -Force -ErrorAction SilentlyContinue
@@ -7061,19 +7234,32 @@ function Terminar-Corrida {
             Avisar ([string]$script:HerrTitulo) ((@($lin | ForEach-Object { '- ' + (Con-Enie $_) }) -join "`n") + "`n`n" + (Con-Enie 'El detalle quedo en la carpeta de logs.'))
             return
         }
+        $omit = $(if ($C.ContainsKey('Omitidas')) { @($C.Omitidas | Select-Object -Unique | ForEach-Object { Nombre-App $_ }) } else { @() })
+        if (($omit.Count -gt 0) -and (-not $C.Reinicio)) { Avisar 'Algunas apps no se pudieron quitar' ((Con-Enie 'La necesita Windows y no se quito: ') + ($omit -join ', ') + "`n`n" + (Con-Enie 'Por eso el contador no sube.')); return }
         if (-not $C.Reinicio) { return }
         $m = $(if ($C.Fallos -gt 0) { 'Termino, pero ' + $C.Fallos + ' cambios fallaron (mira la carpeta de logs).' } else { 'Se aplico todo bien.' })
         # Resumen: cuantos ajustes, cuales, y lo que cambio de verdad (disco, apps, inicio, DNS)
+        # Solo lo que se hizo de verdad: las opciones que ya estaban asi o no aplican no se listan (quedan en el log)
         $res = @()
-        $res += ('Ajustes procesados: ' + $C.Total + ' (' + ([math]::Max([int]$C.Total - [int]$C.Fallos, 0)) + ' bien, ' + $C.Fallos + ' con fallos)')
-        $tit = @($C.Titulos)
+        $tit = @($C.Titulos); $titF = @()
+        if ($C.ContainsKey('Ops')) {
+            $tit = @(); $titF = @()
+            foreach ($op in @($C.Ops)) { $q = $op -split '\|'; $ti = Titulo-De $q[0] $q[1]; if ($ti) { if ($q[2] -eq 'fallo') { $titF += $ti } elseif (($q[2] -eq 'ok') -and ($tit -notcontains $ti)) { $tit += $ti } } }
+        }
         if ($tit.Count -gt 0) { $res += ('Que se aplico: ' + (@($tit | Select-Object -First 10 | ForEach-Object { Con-Enie $_ }) -join ', ') + $(if ($tit.Count -gt 10) { ' (+' + ($tit.Count - 10) + ')' } else { '' })) }
         if ($C.Libre -gt 0) { $res += 'Espacio liberado: ' + $(if ($C.Libre -ge 1GB) { '{0:N1} GB' -f ($C.Libre / 1GB) } else { '{0:N0} MB' -f ($C.Libre / 1MB) }) + ' (' + $env:SystemDrive + ')' }
         if ($C.Apps.Count -gt 0) { $res += 'Apps borradas (' + $C.Apps.Count + '): ' + (@($C.Apps | Select-Object -First 12) -join ', ') + $(if ($C.Apps.Count -gt 12) { ' (+' + ($C.Apps.Count - 12) + ')' } else { '' }) }
+        if ($omit.Count -gt 0) { $res += 'No se pudo quitar (la necesita Windows): ' + ($omit -join ', ') }
+        if ($C.ContainsKey('Reinicia') -and @($C.Reinicia).Count -gt 0) { $res += 'Reinicia para terminar de quitar: ' + ((@($C.Reinicia | Select-Object -Unique | ForEach-Object { Nombre-App $_ })) -join ', ') }
         if ($C.Inicio.Count -gt 0) { $res += 'Ya no arrancan con Windows (' + $C.Inicio.Count + '): ' + (@($C.Inicio | Select-Object -First 8) -join ', ') + $(if ($C.Inicio.Count -gt 8) { ' (+' + ($C.Inicio.Count - 8) + ')' } else { '' }) }
         if ($C.Dns) { $res += 'DNS elegido: ' + $C.Dns }
-        $res += 'Todo lo que tiene restablecimiento se deshace marcandolo y tocando "Restablecer seleccionadas".'
-        $m += "`n`n" + ($res -join "`n")
+        if ($C.ContainsKey('Avisos')) { foreach ($av in @($C.Avisos | Select-Object -Unique)) { $res += ('Ojo: ' + (Con-Enie $av)) } }
+        if ($titF.Count -gt 0) { $res += 'No se pudo aplicar: ' + (@($titF | ForEach-Object { Con-Enie $_ }) -join ', ') }
+        if ($res.Count -eq 0) { $m = $(if ($C.Fallos -gt 0) { $m } else { 'No hizo falta cambiar nada: ya estaba todo asi.' }) }
+        else {
+            if ($tit.Count -gt 0) { $res += 'Todo lo que tiene restablecimiento se deshace marcandolo y tocando "Restablecer seleccionadas".' }
+            $m += "`n`n" + ($res -join "`n")
+        }
         if ($C.PideReinicio) {
             if (Confirmar 'Listo' ($m + "`n`n" + 'Algunos de estos cambios necesitan reiniciar la PC. Reiniciar ahora?') 'Reiniciar' '#60A5FA' 'Despues') { & shutdown.exe /r /t 10 }
         } else {
@@ -7215,7 +7401,7 @@ function Mostrar-Drivers {
 }
 
 # ------------------------------------------------------------
-# Submenus de "Limpiar arranque", "Borrar apps", "Apagar servicios" (y extremos) y apps antiguas/modernas.
+# Submenus de "Limpiar arranque", "Apps del Sistema", "Servicios del Sistema" (y extremos) y apps antiguas/modernas.
 # Al tocar Aplicar (a mano, no en los perfiles) se abre uno por cada una de estas opciones marcadas, uno detras del otro:
 # elegis exactamente que tocar, confirmas y la app sigue sola con el resto de la cola.
 # ------------------------------------------------------------
@@ -7233,11 +7419,11 @@ function Icono-Exe([string]$cmd) {
     } catch { return $null }
 }
 # Nombre legible de un paquete: "king.com.CandyCrushSaga" -> "Candy Crush Saga"
-$NombresApp = @{ 'Microsoft.549981C3F5F10' = 'Cortana'; 'Disney.37853FC22B2CE' = 'Disney+'; '4DF9E0F8.Netflix' = 'Netflix'; 'MSTeams' = 'Teams'; 'Microsoft.YourPhone' = 'Vincular con el telefono'; 'Microsoft.MSPaint' = 'Paint 3D'; 'Microsoft.MicrosoftSolitaireCollection' = 'Solitario'; 'Microsoft.MicrosoftOfficeHub' = 'Office (Microsoft 365)'; 'Microsoft.Getstarted' = 'Primeros pasos'; 'Microsoft.GetHelp' = 'Obtener ayuda'; 'Microsoft.WindowsFeedbackHub' = 'Centro de opiniones'; 'Microsoft.Todos' = 'To Do'; 'MicrosoftCorporationII.MicrosoftFamily' = 'Microsoft Family'; 'Microsoft.OutlookForWindows' = 'Outlook (nuevo)'; 'Microsoft.WindowsSoundRecorder' = 'Grabadora de sonido'; 'Microsoft.WindowsMaps' = 'Mapas'; 'MicrosoftWindows.CrossDevice' = 'Experiencia entre dispositivos'; '*LinkedIn*' = 'LinkedIn'; 'AdobeSystemsIncorporated.AdobePhotoshopExpress' = 'Photoshop Express'; 'PandoraMediaInc.29680B314EFC2' = 'Pandora'; 'Microsoft.BingSearch' = 'Bing'; 'Microsoft.BingNews' = 'Noticias'; 'Microsoft.BingWeather' = 'El tiempo'; 'Microsoft.PowerAutomateDesktop' = 'Power Automate'; 'Microsoft.Copilot' = 'Copilot' }
+$NombresApp = @{ 'Microsoft.549981C3F5F10' = 'Cortana'; 'Disney.37853FC22B2CE' = 'Disney+'; '4DF9E0F8.Netflix' = 'Netflix'; 'MSTeams' = 'Teams'; 'Microsoft.YourPhone' = 'Vincular con el telefono'; 'Microsoft.MSPaint' = 'Paint 3D'; 'Microsoft.MicrosoftSolitaireCollection' = 'Solitario de Microsoft'; 'Microsoft.MicrosoftOfficeHub' = 'Office (Microsoft 365)'; 'Microsoft.Getstarted' = 'Primeros pasos'; 'Microsoft.GetHelp' = 'Obtener ayuda'; 'Microsoft.WindowsFeedbackHub' = 'Centro de opiniones'; 'Microsoft.Todos' = 'To Do'; 'MicrosoftCorporationII.MicrosoftFamily' = 'Microsoft Family'; 'Microsoft.OutlookForWindows' = 'Outlook (nuevo)'; 'Microsoft.WindowsSoundRecorder' = 'Grabadora de sonido'; 'Microsoft.WindowsMaps' = 'Mapas'; 'MicrosoftWindows.CrossDevice' = 'Experiencia entre dispositivos'; '*LinkedIn*' = 'LinkedIn'; 'AdobeSystemsIncorporated.AdobePhotoshopExpress' = 'Photoshop Express'; 'PandoraMediaInc.29680B314EFC2' = 'Pandora'; 'Microsoft.BingSearch' = 'Bing'; 'Microsoft.BingNews' = 'Noticias'; 'Microsoft.BingWeather' = 'El tiempo'; 'Microsoft.PowerAutomateDesktop' = 'Power Automate'; 'Microsoft.Copilot' = 'Copilot'; 'Microsoft.Microsoft3DViewer' = 'Visor 3D'; 'Microsoft.3DBuilder' = '3D Builder'; 'Microsoft.Print3D' = 'Print 3D'; 'Microsoft.Appconnector' = 'App Connector'; 'Duolingo-LearnLanguagesforFree' = 'Duolingo'; 'HULULLC.HULUPLUS' = 'Hulu'; 'Microsoft.SkypeApp' = 'Skype'; 'king.com.BubbleWitch3Saga' = 'Bubble Witch 3 Saga'; 'Microsoft.MixedReality.Portal' = 'Portal de realidad mixta' }
 function Nombre-App([string]$n) {
     if ($NombresApp.ContainsKey($n)) { return $NombresApp[$n] }
     $c = ($n -replace '\*', '') -replace '^.*\.', ''
-    return (($c -creplace '([a-z])([A-Z])', '$1 $2') -replace '^Bing', 'Bing ').Trim()
+    return (($c -creplace '([a-z])([A-Z])', '$1 $2') -replace '^Bing', 'Bing ' -replace '\s{2,}', ' ').Trim()
 }
 
 # Arma los items del submenu de una opcion. Devuelve $null si no hay nada para elegir.
@@ -7245,7 +7431,7 @@ function Items-Submenu([string]$id) {
     $its = New-Object System.Collections.Generic.List[object]
     $nb = [bool]$script:EsNotebook
     function Item($idx, $nombre, $desc, $marcado, $icono, $img, $eti, $col, $prot) {
-        [pscustomobject]@{ Nombre = $nombre; Procs = @([string]$idx); Marcado = [bool]$marcado; Desc = $desc; Icono = $icono; Img = $img; Etiqueta = $eti; EtiColor = $col; Prot = [bool]$prot; Clave = ''; Loc = ''; Exe = '' }
+        [pscustomobject]@{ Nombre = $nombre; Procs = @([string]$idx); Marcado = [bool]$marcado; Desc = $desc; Icono = $icono; Img = $img; Etiqueta = $eti; EtiColor = $col; Prot = [bool]$prot; Clave = ''; Loc = ''; Exe = ''; Hecha = $false; Seccion = 'pend'; Tip = ''; Aviso = ''; Enc = $false }
     }
     switch ($id) {
         'ini' {
@@ -7261,35 +7447,81 @@ function Items-Submenu([string]$id) {
             }
         }
         'db' {
-            $pk = @{}
-            foreach ($a in @(try { Get-AppxPackage -AllUsers -ErrorAction Stop } catch { Get-AppxPackage -ErrorAction SilentlyContinue })) { if (-not $pk.ContainsKey($a.Name)) { $pk[$a.Name] = [string]$a.InstallLocation } }
+            $pk = @{}; $fijas = @(); $pendRem = @()
+            foreach ($a in @(try { Get-AppxPackage -AllUsers -ErrorAction Stop } catch { Get-AppxPackage -ErrorAction SilentlyContinue })) {
+                if (-not $pk.ContainsKey($a.Name)) { $pk[$a.Name] = [string]$a.InstallLocation }
+                if ($a.NonRemovable) { $fijas += $a.Name }
+                if (Appx-PendienteQuitar $a) { $pendRem += $a.Name }
+            }
             $inst = @($pk.Keys)
             $locDe = { param($pat) $k = @($pk.Keys | Where-Object { $_ -like $pat } | Select-Object -First 1); if ($k.Count -gt 0) { $pk[$k[0]] } else { '' } }
             $bas = @()
             try { $bas = & { . ([scriptblock]::Create(($args[0] -replace '(?m)^\s+', ''))); $AppsBasura } $FuncApps } catch { }
-            # OneDrive y las apps basura que tenes (marcadas), despues las que se pueden sumar y las protegidas
-            $od = $script:Elegibles.db | Where-Object { $_.Id -eq 'OneDrive' }
-            if (@(@(($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe')) | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0) {
-                $x = Item $its.Count $od.Nombre $od.Desc $true 0xE753 $null 'Seguro de quitar' '#81C995' $false; $x.Clave = 'OneDrive'; $x.Exe = [string](@(@(($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe')) | Where-Object { Test-Path -LiteralPath $_ })[0]); $its.Add($x)
+            $extras = @($script:Elegibles.db | ForEach-Object { $_.Id })
+            $protOk = @($script:Elegibles.db | Where-Object { $_.Prot } | ForEach-Object { $_.Id })
+            # La misma funcion que usa el contador de la tarjeta: lo pendiente primero y, al final, lo ya borrado (gris, sin poder marcarse)
+            $est = @(Apps-Estado $bas $inst $fijas $extras $protOk $pendRem)
+            $estDe = @{}; foreach ($e0 in $est) { $estDe[[string]$e0.Id] = [string]$e0.Estado }
+            $odExe = @(@(($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'), ($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.App.exe')) | Where-Object { Test-Path -LiteralPath $_ })
+            $etiProt = 'Protegida por Windows: no se revierte facil'
+            $arma = {
+                param($n, $estado)
+                $e = @($script:Elegibles.db | Where-Object { $_.Id -eq $n })[0]
+                $esProt = [bool]($e -and $e.Prot -and ((@('EDGE', 'WEBVIEW2') -contains $n) -or ($fijas -contains $n)))
+                if ($n -eq 'OneDrive') {
+                    $x = Item $its.Count $e.Nombre $e.Desc $true 0xE753 $null 'Seguro de quitar' '#81C995' $false; $x.Clave = 'OneDrive'
+                    if ($odExe.Count -gt 0) { $x.Exe = [string]$odExe[0] }
+                    elseif ($estado -eq 'pendiente') { $x.Etiqueta = 'Quedan restos'; $x.EtiColor = '#E5B567'; $x.Desc = 'OneDrive ya no esta instalado pero quedan restos (paquete, carpetas tecnicas, accesos). Marcalo para limpiarlos. Tu carpeta de archivos no se toca.' }
+                }
+                elseif ($esProt) {
+                    $x = Item $its.Count $e.Nombre $e.Desc $false 0xE7BA $null $etiProt '#F28B82' $true
+                    $x.Clave = $e.Id; $x.Seccion = 'prot'   # sin icono de la app: se ve el de alerta
+                }
+                elseif ($bas -contains $n) { $x = Item $its.Count (Nombre-App $n) 'App que viene de fabrica.' $true 0xE71D $null 'Seguro de quitar' '#81C995' $false; $x.Clave = $n; $x.Loc = [string](& $locDe $n) }
+                else { $x = Item $its.Count $e.Nombre $e.Desc $e.Def 0xE71D $null '' '' $false; $x.Clave = $e.Id; $x.Loc = [string](& $locDe $e.Id) }
+                if ($estado -ne 'pendiente') {
+                    $x.Hecha = $true; $x.Seccion = 'hecha'; $x.Marcado = $false; $x.Prot = $false; $x.Loc = ''; $x.Exe = ''; $x.Icono = 0xE74D
+                    if ($estado -eq 'reinicio') { $x.Etiqueta = 'Se quita al reiniciar'; $x.EtiColor = '#E5B567' }
+                    elseif ($estado -eq 'noinst') { $x.Etiqueta = 'Ya no esta en tu PC'; $x.EtiColor = '#9AA0A6'; $x.Seccion = 'noinst' }
+                    else { $x.Etiqueta = 'Ya borrada'; $x.EtiColor = '#9AA0A6' }
+                }
+                $its.Add($x)
             }
-            foreach ($n in $bas) {
-                if (@($inst | Where-Object { $_ -like $n }).Count -eq 0) { continue }
-                $x = Item $its.Count (Nombre-App $n) 'App que viene de fabrica.' $true 0xE71D $null 'Seguro de quitar' '#81C995' $false; $x.Clave = $n; $x.Loc = [string](& $locDe $n); $its.Add($x)
-            }
-            foreach ($e in @($script:Elegibles.db | Where-Object { $_.Id -ne 'OneDrive' })) {
-                $hay = $(if ($e.Id -eq 'EDGE') { Test-Path -LiteralPath (${env:ProgramFiles(x86)} + '\Microsoft\Edge\Application\msedge.exe') } else { @($inst | Where-Object { $_ -like $e.Id }).Count -gt 0 })
-                if ((-not $hay) -or ($bas -contains $e.Id)) { continue }
-                $x = Item $its.Count $e.Nombre $e.Desc $e.Def $(if ($e.Prot) { 0xE72E } else { 0xE71D }) $null $(if ($e.Prot) { 'Protegida por Windows: no se puede revertir facil' } else { '' }) '#F28B82' $e.Prot
-                $x.Clave = $e.Id; $x.Loc = [string](& $locDe $e.Id); if ($e.Id -eq 'EDGE') { $x.Exe = (${env:ProgramFiles(x86)} + '\Microsoft\Edge\Application\msedge.exe') }; $its.Add($x)
-            }
+            # Orden: OneDrive y las apps basura (marcadas), las que se pueden sumar, las protegidas y, al final, lo ya borrado
+            $orden = @('OneDrive') + @($bas) + @($extras | Where-Object { ($bas -notcontains $_) -and ($protOk -notcontains $_) }) + @($extras | Where-Object { $protOk -contains $_ })
+            foreach ($n in $orden) { if ($estDe.ContainsKey($n) -and ($estDe[$n] -eq 'pendiente') -and (-not ($its | Where-Object { $_.Clave -eq $n }))) { & $arma $n 'pendiente' } }
+            foreach ($n in $orden) { if ($estDe.ContainsKey($n) -and ($estDe[$n] -ne 'pendiente') -and ($estDe[$n] -ne 'noinst') -and (-not ($its | Where-Object { $_.Clave -eq $n }))) { & $arma $n $estDe[$n] } }
+            foreach ($n in $orden) { if ($estDe.ContainsKey($n) -and ($estDe[$n] -eq 'noinst') -and (-not ($its | Where-Object { $_.Clave -eq $n }))) { & $arma $n 'noinst' } }
         }
-        { $_ -in 'rsv', 'sx' } {
-            foreach ($e in @($script:Elegibles[$id])) {
-                if ($null -eq (Leer-Svc $e.Id)) { continue }
+        'rsv' {
+            # Seguros (marcados), Extremos (con riesgo, sin marcar) y los Apagados. Apagado = SOLO deshabilitado.
+            # Activo o Manual: se puede marcar para apagarlo. Deshabilitado: se puede marcar para volver a prenderlo (Enc).
+            $dis = @()
+            foreach ($e in @($script:Elegibles.rsv)) {
+                $est = Svc-Estado $e.Id
+                if ($null -eq $est) { continue }
                 $cuida = ($e.Nb -and $nb)
-                $x = Item $its.Count $e.Nombre ($e.Desc + ' (' + $e.Id + ')') ($e.Def -and -not $cuida) 0xE713 $null $(if ($cuida) { 'Notebook: mejor dejarlo' } else { '' }) '#E5B567' $false
-                $x.Clave = $e.Id; $its.Add($x)
+                $d = $e.Desc + ' (' + $e.Id + ')'
+                if ($est -eq 'dis') {
+                    $x = Item $its.Count $e.Nombre ('Estado: Apagado (deshabilitado). ' + $d) $false 0xE74D $null 'Apagado (deshabilitado)' '#9AA0A6' $false
+                    $x.Seccion = 'apag'; $x.Enc = $true
+                    $dis += $x
+                    $x.Clave = $e.Id
+                    continue
+                }
+                $ed = $(if ($est -eq 'man') { 'Estado: Manual (Windows lo inicia si hace falta). ' } else { 'Estado: Activo. ' })
+                if ($e.Ext) {
+                    $x = Item $its.Count $e.Nombre ($ed + $d) $false 0xE7BA $null $(if ($e.Aviso) { $e.Aviso } else { 'Extremo: se pierde una funcion' }) $(if ($e.Aviso) { '#F28B82' } else { '#E5B567' }) $false
+                    $x.Seccion = 'ext'; $x.Aviso = [string]$e.Aviso
+                }
+                else {
+                    $x = Item $its.Count $e.Nombre ($ed + $d) ($e.Def -and -not $cuida) 0xE713 $null $(if ($cuida) { 'Notebook: mejor dejarlo' } else { 'Seguro de apagar' }) $(if ($cuida) { '#E5B567' } else { '#81C995' }) $false
+                    $x.Seccion = 'seg'
+                }
+                $x.Clave = $e.Id
+                $its.Add($x)
             }
+            foreach ($x in $dis) { $its.Add($x) }
         }
         'dold' {
             foreach ($e in @($script:Elegibles.dold)) { $x = Item $its.Count $e.Nombre $e.Desc $true 0xE74D $null '' '' $false; $x.Clave = $e.Id; $its.Add($x) }
@@ -7305,9 +7537,8 @@ function Items-Submenu([string]$id) {
 
 $TextosSubmenu = @{
     ini   = @('Limpiar arranque', 'Marca los programas que NO queres que se abran solos al prender la PC. Se apagan igual que desde el Administrador de tareas: se vuelven a prender con Restablecer. Los de drivers y perifericos (audio, mouse, RGB) mejor dejalos.')
-    db    = @('Borrar apps', 'Marca las apps que queres borrar. Las protegidas por Windows (Edge, Bing, Primeros pasos) se borran a la fuerza y no se pueden revertir facil: la app te avisa antes.')
-    rsv   = @('Apagar servicios', 'Marca los servicios que queres apagar. Ninguno de estos afecta Windows Hello ni la activacion de Windows.')
-    sx    = @('Apagar servicios extremos', 'Marca los servicios que queres apagar. Biometria apaga Windows Hello con huella o cara; en notebooks conviene dejar wifi, sensores y biometria.')
+    db    = @('Apps del Sistema', 'Marca las apps del sistema que queres borrar. Las protegidas por Windows (Edge, Bing, Cross-device, Widgets, Copilot y otras opcionales) llevan un icono de alerta: se borran a la fuerza y no se revierten facil, y la app te avisa antes de aplicar. Las que ya se borraron salen en gris, las que ya no estan en tu PC (las borraste antes, con Brio o sin el) van aparte en "Ya no estan en tu PC" y SI cuentan en el contador, y las que Windows termina de quitar al reiniciar dicen "Se quita al reiniciar".')
+    rsv   = @('Servicios del Sistema', 'Cada servicio muestra su estado: Activo, Manual (Windows lo inicia si hace falta) o Apagado (deshabilitado). Marca los que queres apagar: los Seguros vienen marcados; los Extremos (con alerta) los marcas vos y cada uno dice que se pierde. Un servicio en Manual o Activo NO esta apagado hasta que lo apagues aca. Los Apagados salen en gris: marcalos para volver a prenderlos uno por uno. Ninguno toca Windows Hello ni el PIN.')
     dold  = @('Borrar apps antiguas', 'Marca las apps antiguas que queres BORRAR. Lo que dejes sin marcar se queda.')
     dball = @('Borrar apps modernas', 'Marca las apps modernas que queres BORRAR. Lo que dejes sin marcar se queda.')
 }
@@ -7316,26 +7547,50 @@ function Submenu-Opcion([string]$id) {
     $its = Items-Submenu $id
     if ($its.Count -eq 0) { return @{ Valor = ''; Prot = @() } }
     $tx = $TextosSubmenu[$id]
-    $r = Elegir-Lista (Con-Enie $tx[0]) (Con-Enie $tx[1]) $its '' $null $true
+    $txd = $tx[1]
+    # Avisa si una version vieja de Brio dejo apagado el servicio de biometria (Windows Hello huella/cara)
+    if (($id -eq 'rsv') -and ((Leer-Svc 'WbioSrvc') -eq 4)) { $txd += "`n`n" + 'Atencion: Windows Hello (huella y cara) esta apagado por una version anterior de Brio. Restablecer esta opcion lo devuelve.' }
+    $r = Elegir-Lista (Con-Enie $tx[0]) (Con-Enie $txd) $its '' $null $true (@('db', 'rsv') -contains $id)
     if ($null -eq $r) { return $null }
     $idx = @(([string]$r -split ',') | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ })
     $sel = @($idx | ForEach-Object { $its[$_] })
-    return @{ Valor = (@($sel | ForEach-Object { $_.Clave }) -join "`t"); Prot = @($sel | Where-Object { $_.Prot } | ForEach-Object { $_.Nombre }) }
+    return @{ Valor = (@($sel | Where-Object { -not $_.Enc } | ForEach-Object { $_.Clave }) -join "`t"); On = @($sel | Where-Object { $_.Enc } | ForEach-Object { $_.Clave }); Prot = @($sel | Where-Object { $_.Prot } | ForEach-Object { $_.Nombre }); ProtIds = @($sel | Where-Object { $_.Prot } | ForEach-Object { $_.Clave }); Av = @($sel | Where-Object { $_.Aviso }) }
 }
 
+# Proteccion contra alteraciones, con mas de una senal: ip = Get-MpComputerStatus.IsTamperProtected ($true, $false o $null si no existe o fallo)
+# y reg = HKLM\SOFTWARE\Microsoft\Windows Defender\Features\TamperProtection (en Windows 11 build 26300 con la proteccion encendida vale 1 y
+# IsTamperProtected da True; la documentacion de Microsoft usa 5 = encendida y 4 = apagada, y 0 tambien se ve apagada).
+# Devuelve 'on', 'off' o 'desconocido'. Cualquier duda cuenta como encendida: nunca se sigue en silencio.
+function Tamper-Estado($ip, $reg) {
+    $regOn = (($null -ne $reg) -and (@(1, 5) -contains [int]$reg))
+    $regOff = (($null -ne $reg) -and (@(0, 4) -contains [int]$reg))
+    if ($ip -eq $true) { return 'on' }
+    if ($regOn) { return 'on' }
+    if (($ip -eq $false) -and ($regOff -or ($null -eq $reg))) { return 'off' }
+    if (($null -eq $ip) -and $regOff) { return 'off' }
+    return 'desconocido'
+}
+function Tamper-Leer {
+    $ip = $null; $reg = $null
+    try { $v = (Get-MpComputerStatus -ErrorAction Stop).IsTamperProtected; if ($null -ne $v) { $ip = [bool]$v } } catch { }
+    try { $r = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features' -Name 'TamperProtection' -ErrorAction Stop).TamperProtection; if ($null -ne $r) { $reg = [int]$r } } catch { }
+    return (Tamper-Estado $ip $reg)
+}
 # Antes de apagar Defender: la Proteccion contra alteraciones solo la puede apagar la persona. La app abre Seguridad de
-# Windows, espera a que la apagues y recien sigue cuando confirmas (y revisa que de verdad este apagada).
+# Windows, espera a que la apagues y recien sigue cuando confirmas. Si no se puede saber como esta, se pide igual que la apague.
 function Pausa-Tamper {
-    $tp = $false
-    try { $tp = [bool](Get-MpComputerStatus -ErrorAction Stop).IsTamperProtected } catch { return $true }
-    while ($tp) {
+    $e = Tamper-Leer
+    if ($e -eq 'off') { return $true }
+    while ($true) {
         Abrir-Normal 'windowsdefender://threatsettings'
-        $m = 'Para apagar el antivirus, primero apaga vos la "Proteccion contra alteraciones" (Windows no deja que un programa la apague).' + "`n`n" + '1. Se abrio Seguridad de Windows, en Configuracion de antivirus y proteccion contra amenazas.' + "`n" + '2. Apaga "Proteccion contra alteraciones" y acepta el cartel de Windows.' + "`n" + '3. Volve aca y toca "Ya la apague".' + "`n`n" + 'Mientras tanto la app espera: todavia no se aplico nada.'
+        $m = $(if ($e -eq 'desconocido') { (Con-Enie 'No pude comprobar si la Proteccion contra alteraciones esta encendida. Por las dudas, apagala vos antes de seguir.') + "`n`n" } else { '' }) + 'Para apagar el antivirus, primero apaga vos la "Proteccion contra alteraciones" (Windows no deja que un programa la apague).' + "`n`n" + '1. Se abrio Seguridad de Windows, en Configuracion de antivirus y proteccion contra amenazas.' + "`n" + '2. Apaga "Proteccion contra alteraciones" y acepta el cartel de Windows.' + "`n" + '3. Volve aca y toca "Ya la apague".' + "`n`n" + 'Mientras tanto la app espera: todavia no se aplico nada.'
         if (-not (Confirmar 'Antivirus: falta un paso tuyo' $m 'Ya la apague' '#60A5FA' 'Cancelar')) { return $false }
-        try { $tp = [bool](Get-MpComputerStatus -ErrorAction Stop).IsTamperProtected } catch { $tp = $false }
-        if ($tp) { Avisar ($Aviso + ' Sigue encendida') 'La Proteccion contra alteraciones todavia esta encendida. Se vuelve a abrir Seguridad de Windows para que la apagues.' }
+        $e = Tamper-Leer
+        if ($e -eq 'off') { return $true }
+        # Si no se puede comprobar, se sigue con tu palabra (ya la apagaste y lo confirmaste); si se ve encendida, se vuelve a pedir
+        if ($e -eq 'desconocido') { return $true }
+        Avisar ($Aviso + ' Sigue encendida') 'La Proteccion contra alteraciones todavia esta encendida. Se vuelve a abrir Seguridad de Windows para que la apagues.'
     }
-    return $true
 }
 
 # ------------------------------------------------------------
@@ -7378,8 +7633,6 @@ $DispRiesgo = [ordered]@{
     'Gaming|pe'   = @{ Cat = @('audio', 'midi'); Por = 'cambia la energia de los puertos USB: una interfaz o un instrumento USB puede comportarse distinto.' }
     'Debloat|bt'  = @{ Cat = @('bt'); Por = 'apaga el Bluetooth: estos aparatos dejan de andar.' }
     'Debloat|rmin' = @{ Cat = @('imp'); Por = 'apaga la cola de impresion: no vas a poder imprimir.' }
-    'Debloat|sx'  = @{ Cat = @('bio', 'cam'); Por = 'apaga la biometria y los sensores: Windows Hello y los lectores dejan de andar.' }
-    'Debloat|rsv' = @{ Cat = @('tarj'); Por = 'puede apagar el servicio de tarjetas inteligentes y NFC: el lector deja de andar.' }
     'Debloat|drs' = @{ Cat = @('audio', 'midi', 'imp', 'joy', 'cam', 'bt'); Por = 'borra los drivers de lo que no esta en uso: si desenchufaste este aparato, hay que bajar su driver de nuevo.' }
 }
 # Devuelve @{ Claves; Texto }: las opciones marcadas con riesgo para algun dispositivo detectado y el texto del cartel
@@ -7406,6 +7659,47 @@ $PerfilesRend = @('opt', 'comp', 'nbcomp', 'ramlow', 'tiny', 'full')
 
 # Aplica lo marcado en Debloat y Gaming, en una sola pasada (lo usan Aplicar y los perfiles).
 # $perfil: con un perfil no hay carteles de choques ni submenus: se aplica la seleccion armada del perfil.
+# Carpetas de Windows (Escritorio, Documentos...) que hoy viven dentro de OneDrive, con su tamano (cuenta con tope de 4 segundos: si no llega, avisa "o mas")
+function Od-Resumen-UI {
+    $r = @()
+    $usf = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction SilentlyContinue
+    if (-not $usf) { return $r }
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    foreach ($k in @(@('Desktop', 'Desktop'), @('Personal', 'Documents'), @('My Pictures', 'Pictures'), @('My Music', 'Music'), @('My Video', 'Videos'), @('{374DE290-123F-4565-9164-39C4925E467B}', 'Downloads'))) {
+        $v = [string]$usf.($k[0]); if (-not $v) { continue }
+        $o = [Environment]::ExpandEnvironmentVariables($v).TrimEnd('\')
+        if ($o -notmatch '\\OneDrive[^\\]*(\\|$)') { continue }
+        $n = 0; $b = [long]0; $parcial = $false
+        if (Test-Path -LiteralPath $o) {
+            try {
+                foreach ($f in [IO.Directory]::EnumerateFiles($o, '*', [IO.SearchOption]::AllDirectories)) {
+                    $n++; try { $b += (New-Object IO.FileInfo $f).Length } catch { }
+                    if ((($n % 200) -eq 0) -and ($sw.ElapsedMilliseconds -gt 4000)) { $parcial = $true; break }
+                }
+            } catch { $parcial = $true }
+        }
+        $r += @{ Normal = $k[1]; Origen = $o; Destino = (Join-Path $env:USERPROFILE $k[1]); Archivos = $n; Bytes = $b; Parcial = $parcial }
+    }
+    return $r
+}
+# Cartel de mover las carpetas de OneDrive (Escritorio, Documentos, Imagenes) a su lugar normal antes de desinstalarlo: devuelve $true si el usuario confirma
+function Preguntar-Mover-OneDrive {
+    $odc = @(Od-Resumen-UI)
+    if ($odc.Count -eq 0) { return $false }
+    $tn = 0; $tb = [long]0; $tp = $false; $lin = @()
+    foreach ($c in $odc) {
+        $tn += $c.Archivos; $tb += $c.Bytes; if ($c.Parcial) { $tp = $true }
+        $lin += ([string]::Format((Con-Enie 'Carpeta {0}: de {1} a {2} ({3} archivos, {4} GB)'), $c.Normal, $c.Origen, $c.Destino, $c.Archivos, [math]::Round($c.Bytes / 1GB, 2)))
+    }
+    $msg = (Con-Enie 'OneDrive no se puede quitar mientras tus carpetas Escritorio, Documentos o Imagenes esten adentro. Brio puede devolverlas a su lugar normal moviendo TODO su contenido (es lo mismo que Propiedades > Ubicacion > Restaurar valores predeterminados > Mover):') + "`n`n" + ($lin -join "`n") + "`n" +
+        [string]::Format((Con-Enie $(if ($tp) { 'Total: {0} archivos, {1} GB o mas' } else { 'Total: {0} archivos, {1} GB' })), $tn, [math]::Round($tb / 1GB, 2)) + "`n`n" +
+        (Con-Enie 'SIN VUELTA AUTOMATICA: Restablecer no deshace este movimiento.') + "`n`n" +
+        (Con-Enie 'Los programas con rutas dentro de OneDrive (repos git, proyectos, accesos directos, saves de juegos, editores abiertos) van a cambiar de ruta. Antes de seguir, cerra editores, terminales, Claude Code, git y juegos que usen esas carpetas.') + "`n`n" +
+        (Con-Enie 'Antes de mover, Brio revisa que no haya archivos solo en la nube, que haya espacio libre, rutas largas, enlaces y archivos abiertos; si algo falla, no se mueve nada. Si el destino ya tiene un archivo con el mismo nombre no se pisa: el de OneDrive queda como "nombre (desde OneDrive)".') + "`n`n" +
+        (Con-Enie 'Si no confirmas, OneDrive no se desinstala y todo queda como esta.')
+    return [bool](Confirmar (Con-Enie 'Mover tus carpetas fuera de OneDrive') $msg (Con-Enie 'Mover y quitar OneDrive') '#F87171' (Con-Enie 'No mover'))
+}
+
 function Aplicar-Seleccion([string]$perfil = '') {
     if (-not $perfil) { Revisar-Conflictos '' }
     $selD = Elegidas 'Debloat'
@@ -7474,28 +7768,86 @@ function Aplicar-Seleccion([string]$perfil = '') {
         }
     }
 
+    if ($selG -contains 'vpf') {
+        # Velocidad base del puntero a la resolucion nativa (10 = la de Windows)
+        $bv = $null
+        while ($true) {
+            $t = Pedir-Texto (Con-Enie 'Velocidad base del puntero') (Con-Enie 'Escribi un numero de 1 a 20: la velocidad que queres a la resolucion nativa de tu monitor (10 es la de Windows). Al cambiar de resolucion, Brio ajusta la velocidad solo para que se sienta igual.') '10'
+            if ($null -eq $t) { break }
+            if (($t.Trim() -match '^\d{1,2}$') -and ([int]$t.Trim() -ge 1) -and ([int]$t.Trim() -le 20)) { $bv = [int]$t.Trim(); break }
+            Avisar 'Velocidad base del puntero' 'Escribi un numero entero entre 1 y 20.'
+        }
+        if ($null -eq $bv) {
+            $Casillas.Gaming['vpf'].IsChecked = $false; $vG.Remove('XR_vpf')
+            Actualizar-Contador
+            $selD = Elegidas 'Debloat'; $selG = Elegidas 'Gaming'
+            if (($selD.Count + $selG.Count) -eq 0) { return }
+        } else { $vG['PTRBASE'] = [string]$bv }
+    }
+
+    if ($selG -contains 'esc') {
+        # Resolucion base: de ahi para arriba se sube la escala de Windows
+        $eb = $null
+        while ($true) {
+            $t = Pedir-Texto (Con-Enie 'Resolucion base') (Con-Enie 'Escribi la resolucion base, por ejemplo 1920x1080 (o solo el ancho, 1920). Cuando uses una resolucion mayor, Brio sube la escala de Windows para que todo se vea del mismo tamano; con la misma o una menor no toca nada.') '1920x1080'
+            if ($null -eq $t) { break }
+            if ($t.Trim() -match '^(\d{3,5})\s*(?:[xX*]\s*\d{3,5})?$') { $w = [int]$Matches[1]; if (($w -ge 640) -and ($w -le 15360)) { $eb = $w; break } }
+            Avisar 'Resolucion base' 'Escribi algo como 1920x1080 o solo 1920.'
+        }
+        if ($null -eq $eb) {
+            $Casillas.Gaming['esc'].IsChecked = $false; $vG.Remove('XR_esc')
+            Actualizar-Contador
+            $selD = Elegidas 'Debloat'; $selG = Elegidas 'Gaming'
+            if (($selD.Count + $selG.Count) -eq 0) { return }
+        } else { $vG['ESCBASE'] = [string]$eb }
+    }
+
     $vD = @{}
+    if ($perfil -and ($selD -contains 'db') -and ($script:PerfilDejar.Count -gt 0)) { $vD['XKEEP_db'] = ($script:PerfilDejar -join "`t") }
     if (-not $perfil) {
         # Submenus en cadena: uno por cada opcion con lista. Cancelar uno solo desmarca esa opcion y sigue con el resto.
-        $prot = @()
-        foreach ($sid in 'ini', 'db', 'rsv', 'sx', 'dold', 'dball') {
+        $prot = @(); $protIds = @(); $avSvc = @()
+        foreach ($sid in 'ini', 'db', 'rsv', 'dold', 'dball') {
             if ($selD -notcontains $sid) { continue }
             $r = Submenu-Opcion $sid
-            if (($null -eq $r) -or (-not $r.Valor)) {
+            if (($null -eq $r) -or ((-not $r.Valor) -and (-not $r.On))) {
                 $Casillas.Debloat[$sid].IsChecked = $false
                 continue
             }
-            $vD['XSEL_' + $sid] = $r.Valor
-            $prot += $r.Prot
+            if ($r.On) {
+                # Servicios que se vuelven a prender: resumen y confirmacion (no hace falta el cartel de 3 botones)
+                $nOff = @(([string]$r.Valor) -split "`t" | Where-Object { $_ }).Count
+                if (-not (Confirmar 'Servicios del Sistema' ((Con-Enie 'Servicios a prender') + ' (' + @($r.On).Count + '): ' + (@($r.On) -join ', ') + '. ' + (Con-Enie 'Servicios a apagar') + ': ' + $nOff + '.' + "`n`n" + (Con-Enie 'Cada uno vuelve a como estaba antes de apagarlo (o a como lo deja Windows).')) 'Aplicar' '#60A5FA' 'Cancelar')) { $Casillas.Debloat[$sid].IsChecked = $false; continue }
+                $vD['XSEL_rsvon'] = (@($r.On) -join "`t")
+            }
+            $vD['XSEL_' + $sid] = $(if ($r.Valor) { $r.Valor } else { '-' })
+            $prot += $r.Prot; $protIds += $r.ProtIds
+            if ($r.Av) { $avSvc += $r.Av }
+        }
+        # OneDrive en Apps del Sistema con las carpetas dentro de OneDrive: se ofrece moverlas a su lugar normal (con todo su contenido) antes de desinstalar
+        if ($vD['XSEL_db'] -and ((([string]$vD['XSEL_db']) -split "`t") -contains 'OneDrive')) {
+            if (Preguntar-Mover-OneDrive) { $vD['ODMOVER'] = '1' }
         }
         if ($prot.Count -gt 0) {
             $q = (Con-Enie 'Elegiste borrar apps protegidas por Windows:') + ' ' + ($prot -join ', ') + "`n`n" + (Con-Enie 'Se quitan con el metodo que usa Windows para retirar apps (las marca como fin de vida para todos los usuarios). NO se pueden revertir facil: para recuperarlas puede hacer falta una actualizacion grande de Windows o reinstalarlo.')
+            if ($protIds -contains 'WEBVIEW2') { $q += "`n`n" + (Con-Enie 'PELIGRO con WebView2: lo usan Teams nuevo, Office, los Widgets, el inicio de sesion con cuenta Microsoft de algunas apps y muchos programas de escritorio. Sin WebView2 esas apps pueden fallar o no abrir. Brio ademas bloquea que Edge Update lo reinstale solo: para volver a tenerlo hay que borrar esa politica (el comando queda en el log) y usar el instalador Evergreen de Microsoft.') }
             $r3 = Preguntar-Tres ($Aviso + ' Apps protegidas') ($q + ' ' + (Con-Enie 'Aca "Todo menos esto" aplica todo lo demas pero no borra las apps protegidas.')) @() $perfil
             if ($r3 -eq 'salir') { return }
             if ($r3 -eq 'menos') {
-                $quitar = @($script:Elegibles.db | Where-Object { $_.Prot } | ForEach-Object { $_.Id })
+                $quitar = @($protIds)
                 $vD['XSEL_db'] = (@(([string]$vD['XSEL_db']) -split "`t" | Where-Object { $_ -and ($quitar -notcontains $_) }) -join "`t")
                 if (-not $vD['XSEL_db']) { $vD.Remove('XSEL_db'); $Casillas.Debloat['db'].IsChecked = $false }
+            }
+        }
+        if ($avSvc.Count -gt 0) {
+            # Servicios que tocan el inicio de sesion, las llaves de seguridad, la camara de Hello o el celular
+            $q = (Con-Enie 'Marcaste servicios que pueden afectar el inicio de sesion o el celular:') + "`n" + (@($avSvc | ForEach-Object { '- ' + (Con-Enie $_.Nombre) + ': ' + (Con-Enie $_.Aviso) }) -join "`n") + "`n`n" + (Con-Enie 'Si apagas esto, esas funciones dejan de andar hasta que restablezcas "Servicios del Sistema" (y reinicies). El PIN de Windows y la huella no dependen de ellos.')
+            $r3 = Preguntar-Tres ($Aviso + ' Servicios') ($q + ' ' + (Con-Enie 'Aca "Todo menos esto" aplica todo lo demas pero no apaga estos servicios.')) @() $perfil
+            if ($r3 -eq 'salir') { return }
+            if ($r3 -eq 'menos') {
+                $quitar = @($avSvc | ForEach-Object { $_.Clave })
+                $vD['XSEL_rsv'] = (@(([string]$vD['XSEL_rsv']) -split "`t" | Where-Object { $_ -and ($quitar -notcontains $_) }) -join "`t")
+                if (-not $vD['XSEL_rsv']) { $vD.Remove('XSEL_rsv'); $Casillas.Debloat['rsv'].IsChecked = $false }
             }
         }
         Actualizar-Contador
@@ -7503,7 +7855,15 @@ function Aplicar-Seleccion([string]$perfil = '') {
         $selG = Elegidas 'Gaming'
         if (($selD.Count + $selG.Count) -eq 0) { return }
     } elseif (($PerfilesRend -contains $perfil) -and ($selD -contains 'ini')) {
-        $vD['XINI_EXTRA'] = 'SecurityHealth|OneDrive'
+        $vD['XINI_EXTRA'] = $(if ($script:PerfilDejar -contains 'OneDrive') { 'SecurityHealth' } else { 'SecurityHealth|OneDrive' })
+    }
+    # Los perfiles tambien sacan OneDrive (salvo que hayas elegido dejarlo): mismo cartel de mover las carpetas
+    if ($perfil -and ($selD -contains 'db') -and ($script:PerfilDejar -notcontains 'OneDrive') -and (Preguntar-Mover-OneDrive)) { $vD['ODMOVER'] = '1' }
+    if (($perfil -eq 'tiny') -and ($selD -contains 'rsv')) {
+        # RAM minima apagaba tambien los servicios extremos: ahora son los Seguros y los Extremos que NO tocan el inicio de sesion, las tarjetas, la camara ni el celular.
+        # Los que antes eran opciones sueltas (De) solo si el perfil tenia esa opcion (campo Rsv)
+        $deTiny = @((Perfil-De 'tiny').Rsv)
+        $vD['XSEL_rsv'] = (@($script:Elegibles.rsv | Where-Object { (-not $_.Aviso) -and (-not ($_.Nb -and $script:EsNotebook)) -and ((-not $_.De) -or ($deTiny -contains $_.De)) } | ForEach-Object { $_.Id }) -join "`t")
     }
     foreach ($id in $selD) { $vD['XR_' + $id] = 'S' }
     if (($selD -contains 'av') -and (-not (Pausa-Tamper))) { return }
@@ -7903,7 +8263,7 @@ try { Actualizar-Insignias } catch { }
 Ir-A 'Inicio'
 $ui.Estado.Text = ''
 Marca-Inicio 'app armada (antes de mostrar la ventana)'
-$win.ShowDialog() | Out-Null
+ $win.ShowDialog() | Out-Null
 # Si se estaba leyendo Windows de fondo, se corta (que no quede andando con la app cerrada)
 if ($script:Lectura) { try { [void]$script:Lectura.PS.BeginStop($null, $null) } catch { } }
 

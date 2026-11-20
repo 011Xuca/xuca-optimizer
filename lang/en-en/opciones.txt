@@ -17,13 +17,13 @@ Contra: if something goes wrong you won't be able to go back with a restore poin
 Titulo: Turn off the antivirus
 Hace: turns off Defender, SmartScreen and Smart App Control (aka turning off Defender).
 Favor: less CPU and disk use, and no scans in the middle of a match.
-Contra: the PC is left without virus protection and Smart App Control can't be turned back on without reinstalling Windows.
+Contra: the PC is left without virus protection and Smart App Control can't be turned back on without reinstalling Windows. If you have Riot Vanguard, it gets removed: RESTART THE PC WITHOUT FAIL before reinstalling it (or opening VALORANT or LoL), or errors and install loops can happen.
 
 [Debloat bl]
 Titulo: Disable BitLocker
 Hace: decrypts the disk and stops Windows from encrypting it again on its own.
 Favor: a bit more disk speed and it won't lock you out if you change hardware or the BIOS.
-Contra: if your PC is stolen, they can read your files.
+Contra: if your PC is stolen, they can read your files. If you have Riot Vanguard, it gets removed: RESTART THE PC WITHOUT FAIL before reinstalling it (or opening VALORANT or LoL), or errors and install loops can happen.
 
 [Debloat hib]
 Titulo: Disable hibernation
@@ -37,24 +37,6 @@ Hace: turns on memory compression: Windows compresses what is in RAM and not bei
 Favor: with 4 to 8 GB of RAM more programs fit open and there is less stutter from using the page file.
 Contra: uses a bit of CPU to compress. With 16 GB or more it barely changes anything. It needs SysMain turned on, so it cannot be used together with "Disable SysMain and Prefetch".
 
-[Debloat nvd]
-Titulo: Turn off the NVIDIA container
-Hace: disables and stops the NVIDIA Display Container service (NVDisplay.ContainerLocalSystem), which keeps the NVDisplay.Container processes open.
-Favor: the NVDisplay.Container processes close and RAM is freed, without touching the driver.
-Contra: the NVIDIA Control Panel and its icon will not open until restored. Updating the driver may turn it back on.
-
-[Debloat inv]
-Titulo: Turn off the compatibility inventory
-Hace: disables the InventorySvc (inventory and compatibility assessment) and whesvc (Windows health and optimized experiences) services.
-Favor: two fewer processes always open and less background CPU use.
-Contra: Windows does not assess whether your PC is compatible with a new version until restored.
-
-[Debloat tem]
-Titulo: Turn off the Themes service
-Hace: disables and stops the Themes service.
-Favor: one service less; it saves little RAM.
-Contra: classic programs lose the Windows 11 visual style (flat, old-looking buttons and windows), and dynamic themes and backgrounds stop applying. Restoring fixes it.
-
 [Debloat tim]
 Titulo: Turn off modern text input
 Hace: disables and stops the Text Input Management Service (TextInputManagementService), which handles ctfmon and typing in modern apps.
@@ -66,12 +48,6 @@ Titulo: Turn off web accounts
 Hace: disables and stops the Token Broker service (TokenBroker).
 Favor: one service less in the background.
 Contra: you cannot sign in with your Microsoft account in the Store, Office, OneDrive, Xbox, Teams, the new Outlook or Settings > Accounts. Your Windows session and programs that do not use a Microsoft account keep working.
-
-[Debloat aif]
-Titulo: Turn off the AI service
-Hace: disables and stops WSAIFabricSvc, the service that runs the local AI models of Windows.
-Favor: one service less always on.
-Contra: local AI features (Click to Do, semantic search, AI effects in Photos and Paint) do not work until restored.
 
 [Debloat cdps]
 Titulo: Turn off Connected Devices
@@ -194,10 +170,10 @@ Favor: fewer services and features loaded in Windows.
 Contra: if you use the Windows scanner or the old Media Player, they're gone.
 
 [Debloat rsv]
-Titulo: Turn off services
-Hace: turns off the Phone, Wallet, NFC payments, mobile hotspot, parental controls, smart cards, Insider and shortcut tracking services. It doesn't touch the Xbox services or Gaming Services.
+Titulo: System services
+Hace: turns off or back on the system services you choose in a list, each with its state (Active, Manual or Off). The Safe ones (Wallet, NFC, mobile hotspot, parental controls, Insider, remote management and others) come checked; the Extreme ones (phone, smart cards, camera, sensors, Wi-Fi Direct, File History, folder sharing, Hyper-V, local network, Remote Desktop, Themes, the NVIDIA container, the compatibility inventory, Windows AI and more) you check yourself and each one says what you lose. You can also turn single services back on: the Off (disabled) ones show in gray and you check them. Only a disabled service counts as off: one on Manual or Active is turned off only when you check it. It never touches the Xbox services, Windows Hello or the PIN.
 Favor: fewer services loaded: frees some RAM and background processes.
-Contra: the mobile hotspot, smart card readers and Microsoft parental controls stop working.
+Contra: each service you turn off removes its feature (the list says which). Restore puts each one back as it was before.
 
 [Debloat xbs]
 Titulo: Turn off the Xbox services
@@ -296,15 +272,9 @@ Favor: cuts data sending even if Windows turns something back on later.
 Contra: Defender sometimes warns about hosts changes and some Microsoft diagnostics may fail.
 
 [Debloat eb]
-Titulo: Reduce Edge bloat
-Hace: turns off in Edge the sidebar, shopping, rewards, recommendations, running in the background and AI: removes Copilot (it doesn't read your pages or your history), AI writing, AI themes, DevTools AI and downloading local AI models.
-Favor: a lighter Edge without ads.
-Contra: you lose those features if you used them.
-
-[Debloat ebb]
-Titulo: Reduce Brave bloat
-Hace: turns off in Brave the rewards (Brave Rewards), the crypto wallet, the VPN and the AI chat (Leo). If you don't have Brave, it's ready in case you install it.
-Favor: a lighter Brave without crypto ads.
+Titulo: Reduce browser bloat
+Hace: in Edge it turns off the sidebar, shopping, rewards, recommendations, running in the background and AI (Copilot without reading your pages or history, AI writing, AI themes, DevTools AI and local AI models); in Brave it turns off the rewards, the crypto wallet, the VPN and the AI chat (Leo). It only acts on the browser you have installed and does not uninstall them.
+Favor: lighter Edge and Brave without ads.
 Contra: you lose those features if you used them.
 
 [Debloat su]
@@ -333,15 +303,15 @@ Contra: you lose Copilot in Word and Excel.
 
 [Debloat cam]
 Titulo: Shared camera
-Hace: turns on "Allow multiple apps to use camera at the same time" (Frame Server).
+Hace: turns on Windows' general Frame Server mode and opens your camera page so you turn on "Allow multiple apps to use camera at the same time" there (on recent Windows 11 it is a per-camera switch and Brio cannot change it by itself).
 Favor: you can use the camera in OBS, Discord, Teams, etc. at once without one blocking the other.
-Contra: some camera controls can only be changed from the camera settings page.
+Contra: you have to turn your camera's switch on by hand in the window that opens (Settings > Bluetooth & devices > Cameras > your camera > Advanced camera options). If you don't, it may not work.
 
 [Debloat db]
-Titulo: Remove apps
-Hace: deletes OneDrive, Copilot, the AI packages and the apps that come preinstalled.
+Titulo: System apps
+Hace: deletes system apps: OneDrive, Copilot, the AI packages and the apps that come preinstalled.
 Favor: more space, less RAM and fewer processes.
-Contra: it can't be reset: if you want one back, reinstall it from the Store. Your OneDrive files on the PC are not deleted.
+Contra: it can't be reset: if you want one back, reinstall it from the Store. Your OneDrive files on the PC are not deleted. If your Desktop, Documents or Pictures folders are inside OneDrive, Brio asks you to confirm moving them back to their normal place before removing it (no automatic undo: your programs' paths change).
 
 [Debloat edge]
 Titulo: Remove Edge and Bing
@@ -365,6 +335,18 @@ Hace: removes mouse acceleration and the pointer trail, and sets the speed to th
 Favor: the same hand movement always moves the same: better aim.
 Contra: on the desktop the mouse may feel different until you get used to it.
 
+[Gaming vpf]
+Titulo: Fixed pointer speed
+Hace: a small background program adjusts the Windows pointer speed every time you change resolution, so the mouse moves the same as at your monitor's native resolution. You choose the base speed from 1 to 20 (10 is the Windows one) and it turns off mouse acceleration. It only affects the Windows pointer: games with direct input (raw input) are not touched.
+Favor: old games, launchers and emulators that use the Windows pointer feel similar to the native resolution.
+Contra: the speed changes by itself when you change resolution, on the desktop too; it is not used together with Competitive mouse.
+
+[Gaming esc]
+Titulo: Scale by resolution
+Hace: a small background program watches each monitor's resolution. You choose a base resolution (for example 1920x1080): when you use a higher one, it raises that monitor's Windows scale (the one in Settings > Display > Scale) to match, for example 2560x1440 with a 1920x1080 base is 133 % and ends up at the nearest step Windows offers (125 %), so icons, text, folders, windows and the cursor look the same physical size. With the same or a lower resolution it touches nothing. It only goes up: it never exceeds the maximum Windows offers for that monitor and never goes below the scale you already had. It waits a few seconds for the resolution to settle and changes nothing while a game is fullscreen. If the change fails, it goes back to the previous scale.
+Favor: you can play at a high resolution without the desktop and programs looking tiny.
+Contra: it raises the scale when you use a resolution higher than your base; it cannot shrink anything below the normal size. Programs that were already open may not resize until you close and reopen them, and sometimes Windows asks you to sign out to fully apply the change (Brio does not sign you out for you).
+
 [Gaming tk]
 Titulo: No accessibility shortcuts
 Hace: turns off the accessibility shortcuts that turn on by accident while gaming: Shift 5 times, right Shift for 8 seconds, Num Lock for 5 seconds, Alt+Shift+Num Lock (mouse keys), Alt+Shift+Print Screen (high contrast) and Win+Ctrl+Enter (Narrator).
@@ -381,7 +363,13 @@ Contra: a key held for more than 30 seconds with no other input is released by i
 Titulo: Focus mode
 Hace: a small background program ignores the Windows key while a game is in full screen. With Ctrl + Alt + F it ignores it always, until you repeat the shortcut (it beeps).
 Favor: an accidental tap on the Windows key no longer kicks you out of the match or opens the Start menu.
-Contra: with the game in full screen, shortcuts that use Windows (Win + D, Win + Shift + S...) don't work either.
+Contra: with the game in full screen, shortcuts that use Windows (Win + D, Win + Shift + S...) don't work either. Some anti-cheats (Valorant/Vanguard, FACEIT) may not get along with a program that watches the keyboard: for those games there is Focus mode without a program.
+
+[Gaming fsm]
+Titulo: Focus mode without a program (anti-cheat)
+Hace: turns off both Windows keys from the registry (Scancode Map), with no program or keyboard hook. If you already had other keys remapped, they are kept.
+Favor: no program is left running or watching the keyboard: the anti-cheat sees nothing.
+Contra: the Windows keys stay off ALWAYS, also outside games and for every user of the PC (no Start from the keyboard nor shortcuts like Win + D). You have to restart for it to apply and for them to come back.
 
 [Gaming du]
 Titulo: Fixed volume during calls
@@ -475,7 +463,7 @@ Contra: it can cause problems on some old PCs.
 
 [Gaming wgo]
 Titulo: Turn on optimizations for windowed games
-Hace: turns on "Optimizations for windowed games": DirectX 10 and 11 games in windowed or borderless mode use the modern presentation mode.
+Hace: turns on "Optimizations for windowed games": DirectX 10 and 11 games in windowed or borderless mode use the modern presentation mode. Tip: if Alt+Tab from a fullscreen game turns the screen black for a moment, try playing in borderless windowed mode with this turned on.
 Favor: less latency in windowed and borderless, and Auto HDR and variable refresh rate (G-Sync or FreeSync) also work there.
 Contra: in some old game it can change how the image looks.
 
@@ -573,7 +561,7 @@ Contra: it doesn't lower in-game ping.
 Titulo: Disable memory integrity
 Hace: turns off Windows Memory integrity (aka Core Isolation / HVCI).
 Favor: more FPS in some games.
-Contra: less protection against malicious drivers.
+Contra: less protection against malicious drivers. If you have Riot Vanguard, it gets removed: RESTART THE PC WITHOUT FAIL before reinstalling it (or opening VALORANT or LoL), or errors and install loops can happen.
 
 [Gaming avl]
 Titulo: Lighter antivirus
@@ -585,7 +573,7 @@ Contra: scans take longer to finish.
 Titulo: Disable VBS
 Hace: turns off virtualization-based security (aka Virtualization-Based Security).
 Favor: between 5 and 10 percent more FPS.
-Contra: WSL, Docker, Hyper-V and virtual machines stop working.
+Contra: WSL, Docker, Hyper-V and virtual machines stop working. If you have Riot Vanguard, it gets removed: RESTART THE PC WITHOUT FAIL before reinstalling it (or opening VALORANT or LoL), or errors and install loops can happen.
 
 [Gaming spc]
 Titulo: Disable Spectre and Meltdown
@@ -657,18 +645,6 @@ Hace: turns off the printing services (print spooler and printer notifications).
 Favor: fewer programs running in the background and a bit of RAM freed.
 Contra: you can't print or save to PDF from Print until you restore it.
 
-[Debloat rnet]
-Titulo: Turn off local network and casting
-Hace: turns off the services that make your PC show up on the local network and let you cast to the TV, the web folder service (WebClient), media sharing and work folders.
-Favor: fewer programs running in the background and a bit of RAM freed.
-Contra: your PC doesn't show up on the local network and you can't cast to the TV until you restore it.
-
-[Debloat rdp]
-Titulo: Turn off Remote Desktop
-Hace: turns off the Remote Desktop services (TermService, SessionEnv and UmRdpService).
-Favor: fewer services loaded and one less way into your PC.
-Contra: nobody can get into this PC through Remote Desktop until you restore it.
-
 [Debloat nvl]
 Titulo: Turn off NVIDIA extras
 Hace: sets to manual and stops the service used by the NVIDIA app, the overlay and ShadowPlay recording, and turns off the one that sends usage data plus the tasks that look for drivers and updates. It doesn't touch the display service: without it the NVIDIA Control Panel doesn't open and colors and G-Sync aren't kept.
@@ -722,12 +698,6 @@ Titulo: Startup programs without delay
 Hace: removes the roughly 10-second delay Windows puts on startup programs when you reach the desktop.
 Favor: startup programs open sooner.
 Contra: when you reach the desktop they all start at once and the PC can take a moment to respond.
-
-[Debloat sx]
-Titulo: Turn off extreme services
-Hace: turns off rarely used services: biometric sign-in (Windows Hello with fingerprint or face), Sensors, Wi-Fi Direct and Windows Connect Now, Telephony (TAPI), iSCSI, File History, Windows Backup, Remote events, the ActiveX installer, Enterprise App Management, guided troubleshooting, the RPC locator and more.
-Favor: fewer services open and fewer Windows processes in the background.
-Contra: Windows Hello (fingerprint or face), sensors (auto brightness or rotation), Wi-Fi Direct and File History stop working. If something fails, restore the option.
 
 [Debloat bt]
 Titulo: Turn off Bluetooth

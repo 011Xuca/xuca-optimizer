@@ -109,61 +109,114 @@ $HostsTelemetria = @(
 $HostsTelemetria = @($HostsTelemetria | Where-Object { $_ -notmatch '(?i)(^|\.)(sls|licensing|activation|validation|displaycatalog|purchase|login\.live)\.' })
 
 # ------------------------------------------------------------
-# Submenus de la app: que se puede elegir en "Apagar servicios", "Servicios extremos", "Borrar apps" y en las apps
+# Submenus de la app: que se puede elegir en "Servicios del Sistema" (seguros y extremos), "Apps del Sistema" y en las apps
 # antiguas y modernas. Id = lo que recibe el script (XSEL_<opcion>), Nombre y Desc = lo que ve la persona,
 # Def = marcado de entrada, Nb = en notebooks queda desmarcado (wifi, sensores, biometria), Prot = protegido por Windows.
 # ------------------------------------------------------------
-function Elegible([string]$id, [string]$nombre, [string]$desc, [bool]$def = $true, [bool]$nb = $false, [bool]$prot = $false) {
-    [pscustomobject]@{ Id = $id; Nombre = $nombre; Desc = $desc; Def = $def; Nb = $nb; Prot = $prot }
+# Ext = servicio extremo (se pierde una funcion; nunca marcado de entrada). Aviso = lo que deja de andar con el inicio de sesion, el PIN, las llaves de seguridad o el celular (se muestra en la fila y avisa al aplicar).
+# De = la opcion suelta de la que salio el servicio (v1.0.13): los perfiles que la tenian lo siguen apagando (campo Rsv del perfil en Brio.ps1).
+function Elegible([string]$id, [string]$nombre, [string]$desc, [bool]$def = $true, [bool]$nb = $false, [bool]$prot = $false, [bool]$ext = $false, [string]$aviso = '', [string]$de = '') {
+    [pscustomobject]@{ Id = $id; Nombre = $nombre; Desc = $desc; Def = $def; Nb = $nb; Prot = $prot; Ext = $ext; Aviso = $aviso; De = $de }
 }
 $Elegibles = @{
+    # Seguros: marcados de entrada. Extremos: desmarcados de entrada, se pierde una funcion. Ninguno es de Windows Hello ni del PIN
+    # (WbioSrvc, NgcSvc, NgcCtnrSvc, KeyIso, VaultSvc, TokenBroker, bthserv no estan en esta lista a proposito).
     rsv = @(
-        (Elegible 'PhoneSvc' 'Telefono' 'llamadas desde la PC con Vincular con el telefono.'),
-        (Elegible 'WalletService' 'Billetera' 'billetera de Windows (pagos guardados).'),
-        (Elegible 'SEMgrSvc' 'Pagos y NFC' 'pagos con NFC y elementos seguros. No afecta Windows Hello.'),
-        (Elegible 'icssvc' 'Zona wifi movil' 'compartir el internet de la PC por wifi.' $true $true),
-        (Elegible 'wisvc' 'Windows Insider' 'programa de versiones de prueba de Windows.'),
-        (Elegible 'WpcMonSvc' 'Control parental' 'limites de Microsoft Family. No afecta Windows Hello.'),
-        (Elegible 'SCardSvr' 'Tarjeta inteligente' 'lectores de tarjetas inteligentes (DNI, tokens de empresa).'),
-        (Elegible 'ScDeviceEnum' 'Lectores de tarjetas' 'detecta lectores de tarjetas inteligentes.'),
-        (Elegible 'SCPolicySvc' 'Retiro de tarjeta' 'bloquea la PC al sacar la tarjeta inteligente.'),
-        (Elegible 'TrkWks' 'Seguimiento de accesos directos' 'arregla accesos directos a archivos movidos en red.')
-    )
-    sx = @(
-        (Elegible 'WbioSrvc' 'Biometria' 'Windows Hello con huella o cara.' $true $true),
-        (Elegible 'SensorDataService' 'Datos de sensores' 'datos de los sensores de la PC.' $true $true),
-        (Elegible 'SensrSvc' 'Monitor de sensores' 'brillo automatico segun la luz.' $true $true),
-        (Elegible 'SensorService' 'Sensores' 'rotacion de pantalla y sensores de notebooks y tablets.' $true $true),
-        (Elegible 'wcncsvc' 'Windows Connect Now' 'conectar al wifi con el boton WPS.' $true $true),
-        (Elegible 'WFDSConMgrSvc' 'Wi-Fi Direct' 'proyectar y conectar aparatos por Wi-Fi Direct.' $true $true),
-        (Elegible 'TapiSrv' 'Telefonia (TAPI)' 'modems y telefonia vieja.'),
-        (Elegible 'MSiSCSI' 'iSCSI' 'discos de red de empresa.'),
-        (Elegible 'fhsvc' 'Historial de archivos' 'copias automaticas de tus archivos.'),
-        (Elegible 'SDRSVC' 'Copias de seguridad' 'copias de seguridad de Windows 7.'),
-        (Elegible 'Wecsvc' 'Eventos remotos' 'junta eventos de otras PCs.'),
-        (Elegible 'AxInstSV' 'Instalador ActiveX' 'instala controles ActiveX de paginas viejas.'),
-        (Elegible 'EntAppSvc' 'Apps de empresa' 'apps que instala una empresa.'),
-        (Elegible 'TroubleshootingSvc' 'Solucion de problemas' 'arreglos que Windows sugiere solo.'),
-        (Elegible 'RpcLocator' 'Localizador RPC' 'programas de red muy viejos.'),
-        (Elegible 'ALG' 'Puerta de enlace' 'compartir internet con el metodo viejo (ICS).'),
-        (Elegible 'CertPropSvc' 'Certificados de tarjeta' 'certificados de tarjetas inteligentes.'),
-        (Elegible 'SmsRouter' 'Mensajes SMS' 'mensajes de texto en PCs con chip.'),
-        (Elegible 'lmhosts' 'NetBIOS' 'nombres de red local del metodo viejo.')
+        (Elegible 'WalletService' 'Billetera' 'Que es: la billetera de Windows (pagos guardados). Apagarlo: + libera algo de RAM / - no podes usar la billetera.'),
+        (Elegible 'SEMgrSvc' 'Pagos y NFC' 'Que es: pagos con NFC desde la PC. Apagarlo: + un servicio menos / - no andan esos pagos. No afecta el PIN, la huella ni la cara.'),
+        (Elegible 'icssvc' 'Zona wifi movil' 'Que es: compartir el internet de la PC por wifi. Apagarlo: + un servicio menos / - la PC no sirve de zona wifi.' $true $true),
+        (Elegible 'wisvc' 'Windows Insider' 'Que es: el programa de versiones de prueba de Windows. Apagarlo: + un servicio menos / - no recibis versiones Insider.'),
+        (Elegible 'WpcMonSvc' 'Control parental' 'Que es: los limites de Microsoft Family. Apagarlo: + un servicio menos / - no se aplican esos limites. No afecta Windows Hello.'),
+        (Elegible 'TrkWks' 'Seguimiento de accesos directos' 'Que es: arregla accesos directos a archivos movidos en la red. Apagarlo: + un servicio menos / - esos accesos se pueden romper.'),
+        (Elegible 'AJRouter' 'Router AllJoyn' 'Que es: aparatos de hogar inteligente viejos (AllJoyn). Apagarlo: + un servicio menos / - esos aparatos no se ven.'),
+        (Elegible 'CscService' 'Archivos sin conexion' 'Que es: carpetas de red disponibles sin conexion. Apagarlo: + un servicio menos / - no tenes esas carpetas sin red.'),
+        (Elegible 'diagnosticshub.standardcollector.service' 'Recolector de diagnosticos' 'Que es: diagnostico para programadores. Apagarlo: + un servicio menos / - Visual Studio no mide el rendimiento.'),
+        (Elegible 'WinRM' 'Administracion remota' 'Que es: controlar la PC por PowerShell remoto. Apagarlo: + una puerta de entrada menos / - no se administra a distancia.'),
+        (Elegible 'PhoneSvc' 'Telefono' 'Que es: las llamadas con Vincular con el telefono. Apagarlo: + un servicio menos / - pueden dejar de andar las llamadas.' $false $false $false $true 'Puede afectar a Vincular con el telefono (llamadas)'),
+        (Elegible 'SCardSvr' 'Tarjeta inteligente' 'Que es: lectores de tarjetas inteligentes (DNI, tokens de empresa). Apagarlo: + un servicio menos / - no andan las llaves tipo tarjeta.' $false $false $false $true 'Afecta a las llaves de seguridad y tarjetas inteligentes (no al PIN, la huella ni la cara)'),
+        (Elegible 'ScDeviceEnum' 'Lectores de tarjetas' 'Que es: detecta lectores de tarjetas inteligentes. Apagarlo: + un servicio menos / - no se detectan los lectores.' $false $false $false $true 'Afecta a las llaves de seguridad y tarjetas inteligentes (no al PIN, la huella ni la cara)'),
+        (Elegible 'SCPolicySvc' 'Retiro de tarjeta' 'Que es: bloquea la PC al sacar la tarjeta inteligente. Apagarlo: + un servicio menos / - no se bloquea al sacarla.' $false $false $false $true 'Afecta a las llaves de seguridad y tarjetas inteligentes (no al PIN, la huella ni la cara)'),
+        (Elegible 'CertPropSvc' 'Certificados de tarjeta' 'Que es: copia los certificados de las tarjetas inteligentes. Apagarlo: + un servicio menos / - no andan los accesos con certificado.' $false $false $false $true 'Afecta a las llaves de seguridad y tarjetas inteligentes (no al PIN, la huella ni la cara)'),
+        (Elegible 'FrameServer' 'Camara compartida' 'Que es: deja que varias apps usen la camara. Apagarlo: + un servicio menos / - la webcam no anda en la app Camara ni en apps modernas.' $false $false $false $true 'Puede afectar a Windows Hello con la cara (usa la camara)'),
+        (Elegible 'SensorDataService' 'Datos de sensores' 'Que es: los datos de los sensores de la PC. Apagarlo: + un servicio menos / - se pierden el brillo automatico y la rotacion.' $false $true $false $true),
+        (Elegible 'SensrSvc' 'Monitor de sensores' 'Que es: el brillo automatico segun la luz. Apagarlo: + un servicio menos / - se pierde el brillo automatico.' $false $true $false $true),
+        (Elegible 'SensorService' 'Sensores' 'Que es: rotacion de pantalla y sensores de notebooks y tablets. Apagarlo: + un servicio menos / - se pierde la rotacion.' $false $true $false $true),
+        (Elegible 'wcncsvc' 'Windows Connect Now' 'Que es: conectar al wifi con el boton WPS. Apagarlo: + un servicio menos / - no anda el boton WPS.' $false $true $false $true),
+        (Elegible 'WFDSConMgrSvc' 'Wi-Fi Direct' 'Que es: proyectar y conectar aparatos por Wi-Fi Direct. Apagarlo: + un servicio menos / - no podes proyectar asi.' $false $true $false $true),
+        (Elegible 'TapiSrv' 'Telefonia (TAPI)' 'Que es: modems y telefonia vieja. Apagarlo: + un servicio menos / - no andan los programas de telefonia viejos.' $false $false $false $true),
+        (Elegible 'MSiSCSI' 'iSCSI' 'Que es: discos de red de empresa (iSCSI). Apagarlo: + un servicio menos / - se pierden esos discos.' $false $false $false $true),
+        (Elegible 'fhsvc' 'Historial de archivos' 'Que es: copias automaticas de tus archivos. Apagarlo: + menos uso de disco / - se dejan de hacer esas copias.' $false $false $false $true),
+        (Elegible 'SDRSVC' 'Copias de seguridad' 'Que es: las copias de seguridad de Windows 7. Apagarlo: + un servicio menos / - no podes usar esas copias.' $false $false $false $true),
+        (Elegible 'Wecsvc' 'Eventos remotos' 'Que es: junta eventos de otras PCs. Apagarlo: + un servicio menos / - solo importa en redes de empresa.' $false $false $false $true),
+        (Elegible 'AxInstSV' 'Instalador ActiveX' 'Que es: instala controles ActiveX de paginas viejas. Apagarlo: + un servicio menos / - no se instalan esos controles.' $false $false $false $true),
+        (Elegible 'EntAppSvc' 'Apps de empresa' 'Que es: apps que instala una empresa. Apagarlo: + un servicio menos / - solo importa en PCs de empresa.' $false $false $false $true),
+        (Elegible 'TroubleshootingSvc' 'Solucion de problemas' 'Que es: arreglos que Windows sugiere solo. Apagarlo: + un servicio menos / - se pierden esas sugerencias.' $false $false $false $true),
+        (Elegible 'RpcLocator' 'Localizador RPC' 'Que es: ayuda a programas de red muy viejos. Apagarlo: + un servicio menos / - esos programas no andan.' $false $false $false $true),
+        (Elegible 'ALG' 'Puerta de enlace' 'Que es: compartir internet con el metodo viejo (ICS). Apagarlo: + un servicio menos / - no anda ese metodo.' $false $false $false $true),
+        (Elegible 'SmsRouter' 'Mensajes SMS' 'Que es: mensajes de texto en PCs con chip. Apagarlo: + un servicio menos / - no andan los SMS.' $false $false $false $true),
+        (Elegible 'lmhosts' 'NetBIOS' 'Que es: nombres de red local del metodo viejo. Apagarlo: + un servicio menos / - PCs viejas pueden no verse en la red.' $false $false $false $true),
+        (Elegible 'stisvc' 'Escaneres y camaras (WIA)' 'Que es: escanear e importar fotos desde Windows. Apagarlo: + un servicio menos / - no escaneas con Windows ni andan algunas camaras.' $false $false $false $true),
+        (Elegible 'LanmanServer' 'Compartir archivos y carpetas' 'Que es: comparte carpetas de esta PC en la red. Apagarlo: + una puerta de entrada menos / - nadie ve tus carpetas compartidas.' $false $false $false $true),
+        (Elegible 'HvHost' 'Host de Hyper-V' 'Que es: contadores de Hyper-V. Apagarlo: + un servicio menos / - solo importa si usas maquinas virtuales de Hyper-V.' $false $false $false $true),
+        (Elegible 'vmicheartbeat' 'Hyper-V: latido' 'Que es: el host ve si la maquina virtual sigue viva. Apagarlo: + un servicio menos / - si usas maquinas virtuales o WSL, dejalo.' $false $false $false $true),
+        (Elegible 'vmicshutdown' 'Hyper-V: apagado' 'Que es: apagar maquinas virtuales desde el host. Apagarlo: + un servicio menos / - si usas maquinas virtuales o WSL, dejalo.' $false $false $false $true),
+        (Elegible 'vmictimesync' 'Hyper-V: hora' 'Que es: pone en hora las maquinas virtuales. Apagarlo: + un servicio menos / - si usas maquinas virtuales o WSL, dejalo.' $false $false $false $true),
+        (Elegible 'spectrum' 'Percepcion de Windows' 'Que es: visores de Realidad Mixta de Windows. Apagarlo: + un servicio menos / - no andan esos visores.' $false $false $false $true),
+        (Elegible 'SharedRealitySvc' 'Datos espaciales' 'Que es: datos espaciales de Realidad Mixta. Apagarlo: + un servicio menos / - no andan esos visores.' $false $false $false $true),
+        # Antes eran opciones sueltas (De): se apagan y se restablecen igual que antes (Restablecer las devuelve a su inicio original o al de Windows, ver $SvcIniDef)
+        (Elegible 'NVDisplay.ContainerLocalSystem' 'Contenedor de NVIDIA' 'Que es: mantiene listo el Panel de control de NVIDIA. Apagarlo: + libera RAM / - el Panel de NVIDIA no abre. Puede volver al actualizar el driver.' $false $false $false $true '' 'nvd'),
+        (Elegible 'InventorySvc' 'Inventario de compatibilidad' 'Que es: revisa si tu PC puede pasar a una version nueva de Windows. Apagarlo: + menos CPU de fondo / - puede frenar la 26H2.' $false $false $false $true '' 'inv'),
+        (Elegible 'whesvc' 'Salud de Windows' 'Que es: ayuda a Windows Update a evaluar tu PC. Apagarlo: + un proceso menos / - puede frenar la 26H2. Antes de actualizar, prendelo.' $false $false $false $true '' 'inv'),
+        (Elegible 'SSDPSRV' 'Descubrimiento SSDP' 'Que es: encuentra teles y aparatos en la red local. Apagarlo: + un servicio menos / - no podes transmitir a la tele.' $false $false $false $true '' 'rnet'),
+        (Elegible 'upnphost' 'Aparatos UPnP' 'Que es: deja que la PC se vea como aparato UPnP en la red. Apagarlo: + un servicio menos / - no podes transmitir a la tele.' $false $false $false $true '' 'rnet'),
+        (Elegible 'lltdsvc' 'Mapa de red' 'Que es: arma el mapa de la red local. Apagarlo: + un servicio menos / - el mapa de red de Windows queda vacio.' $false $false $false $true '' 'rnet'),
+        (Elegible 'FDResPub' 'Tu PC en la red' 'Que es: hace que tu PC aparezca en la red local. Apagarlo: + un servicio menos / - las otras PCs no ven la tuya.' $false $false $false $true '' 'rnet'),
+        (Elegible 'fdPHost' 'Buscar en la red' 'Que es: busca otras PCs y aparatos en la red local. Apagarlo: + un servicio menos / - Red del Explorador queda vacia.' $false $false $false $true '' 'rnet'),
+        (Elegible 'WMPNetworkSvc' 'Compartir medios' 'Que es: comparte musica y videos de Media Player en la red. Apagarlo: + un servicio menos / - no se comparten.' $false $false $false $true '' 'rnet'),
+        (Elegible 'workfolderssvc' 'Carpetas de trabajo' 'Que es: sincroniza las Carpetas de trabajo de una empresa. Apagarlo: + un servicio menos / - solo importa en PCs de empresa.' $false $false $false $true '' 'rnet'),
+        (Elegible 'WebClient' 'Carpetas web (WebDAV)' 'Que es: abre carpetas web (WebDAV) en el Explorador. Apagarlo: + un servicio menos / - no podes abrir esas carpetas.' $false $false $false $true '' 'rnet'),
+        (Elegible 'TermService' 'Escritorio remoto' 'Que es: deja entrar a esta PC con Escritorio remoto. Apagarlo: + una puerta de entrada menos / - nadie puede entrar asi.' $false $false $false $true '' 'rdp'),
+        (Elegible 'SessionEnv' 'Escritorio remoto: sesiones' 'Que es: prepara las sesiones de Escritorio remoto. Apagarlo: + un servicio menos / - no anda Escritorio remoto.' $false $false $false $true '' 'rdp'),
+        (Elegible 'UmRdpService' 'Escritorio remoto: aparatos' 'Que es: pasa impresoras y discos a Escritorio remoto. Apagarlo: + un servicio menos / - no anda Escritorio remoto.' $false $false $false $true '' 'rdp'),
+        (Elegible 'Themes' 'Temas' 'Que es: el estilo visual de Windows (temas y fondos). Apagarlo: + ahorra poca RAM / - los programas clasicos se ven viejos y planos.' $false $false $false $true '' 'tem'),
+        (Elegible 'WSAIFabricSvc' 'IA de Windows (AI Fabric)' 'Que es: corre los modelos de IA locales de Windows. Apagarlo: + un servicio menos / - no andan Click to Do ni la IA de Fotos y Paint.' $false $false $false $true '' 'aif')
     )
     # Apps: las basura (marcadas) salen de $AppsBasura; estas son las que se pueden sumar a mano
     db = @(
-        (Elegible 'OneDrive' 'OneDrive' 'cierra OneDrive, lo desinstala y lo saca del Explorador y del inicio. Tus archivos no se borran.'),
-        (Elegible 'AdobeSystemsIncorporated.AdobeCreativeCloudExpress' 'Adobe Express' 'editor de imagenes de Adobe que viene de fabrica.' $false),
-        (Elegible 'MicrosoftCorporationII.QuickAssist' 'Asistencia rapida' 'que otra persona controle tu PC para ayudarte.' $false),
-        (Elegible 'Microsoft.StartExperiencesApp' 'Start Experiences' 'recomendaciones y paneles del menu Inicio.' $false),
-        (Elegible 'Microsoft.Paint' 'Paint' 'el Paint moderno.' $false),
-        (Elegible 'Microsoft.MicrosoftStickyNotes' 'Notas rapidas' 'notas adhesivas.' $false),
-        (Elegible 'Microsoft.WindowsAlarms' 'Reloj' 'alarmas, temporizador y sesiones de concentracion.' $false),
-        (Elegible 'Microsoft.WindowsCamera' 'Camara' 'la app de camara de Windows.' $false),
-        (Elegible 'Microsoft.ZuneMusic' 'Reproductor multimedia' 'el reproductor de musica y video moderno.' $false),
-        (Elegible 'EDGE' 'Microsoft Edge' 'el navegador de Windows (WebView2 se queda).' $false $false $true),
-        (Elegible 'Microsoft.BingSearch' 'Bing' 'busqueda web de Bing en Windows.' $false $false $true),
-        (Elegible 'Microsoft.Getstarted' 'Primeros pasos' 'consejos y presentacion de Windows.' $false $false $true)
+        (Elegible 'OneDrive' 'OneDrive' 'Que es: la nube de Microsoft. Quitarlo: + menos procesos / - deja de sincronizar. Si tus carpetas estan en OneDrive, te ofrece moverlas antes. Tus archivos no se borran.'),
+        (Elegible 'AdobeSystemsIncorporated.AdobeCreativeCloudExpress' 'Adobe Express' 'Que es: editor de imagenes de Adobe que viene de fabrica. Quitarla: + mas espacio / - si la queres, vuelve desde la Store.' $false),
+        (Elegible 'MicrosoftCorporationII.QuickAssist' 'Asistencia rapida' 'Que es: que otra persona controle tu PC para ayudarte. Quitarla: + una puerta de entrada menos / - no recibis ayuda asi.' $false),
+        (Elegible 'Microsoft.StartExperiencesApp' 'Start Experiences' 'Que es: recomendaciones y paneles del menu Inicio. Quitarla: + Inicio mas limpio / - se pierden esos paneles.' $false),
+        (Elegible 'Microsoft.Paint' 'Paint' 'Que es: el Paint moderno. Quitarla: + mas espacio / - te quedas sin Paint (vuelve desde la Store).' $false),
+        (Elegible 'Microsoft.MicrosoftStickyNotes' 'Notas rapidas' 'Que es: notas adhesivas. Quitarla: + mas espacio / - se pierden las notas que no esten sincronizadas.' $false),
+        (Elegible 'Microsoft.WindowsAlarms' 'Reloj' 'Que es: alarmas, temporizador y sesiones de concentracion. Quitarla: + mas espacio / - te quedas sin alarmas de Windows.' $false),
+        (Elegible 'Microsoft.WindowsCamera' 'Camara' 'Que es: la app de camara de Windows. Quitarla: + mas espacio / - las otras apps siguen usando la webcam, sin esta app.' $false),
+        (Elegible 'Microsoft.ZuneMusic' 'Reproductor multimedia' 'Que es: el reproductor de musica y video moderno. Quitarla: + mas espacio / - necesitas otro reproductor.' $false),
+        (Elegible 'EDGE' 'Microsoft Edge' 'Que es: el navegador de Windows (WebView2 se queda). Quitarla: + menos procesos / - sin otro navegador, te quedas sin uno.' $false $false $true),
+        # No es un paquete Appx: se quita con su propio desinstalador (WEBVIEW2_REMOVE). Solo si lo tildas; quitar solo Edge lo conserva.
+        (Elegible 'WEBVIEW2' 'Microsoft Edge WebView2 Runtime' 'Que es: el motor web que usan Teams, Office, Widgets y muchas apps. Quitarla: + un programa menos / - esas apps pueden fallar o no abrir.' $false $false $true),
+        (Elegible 'Microsoft.BingSearch' 'Bing' 'Que es: busqueda web de Bing en Windows. Quitarla: + Inicio sin resultados web / - la busqueda no muestra resultados de internet.' $false $false $true),
+        (Elegible 'Microsoft.Getstarted' 'Primeros pasos' 'Que es: consejos y presentacion de Windows. Quitarla: + menos avisos / - ninguno importante.' $false $false $true),
+        # Protegidas OPCIONALES: Windows las marca como no quitables pero no hacen falta para arrancar ni para el Inicio, la busqueda o Configuracion.
+        # Es una lista BLANCA: cualquier otro paquete protegido (Shell, Inicio, Configuracion, busqueda, cuenta, frameworks y runtimes) nunca se ofrece.
+        (Elegible 'MicrosoftWindows.CrossDevice' 'Cross-device experience' 'Que es: compartir y seguir con el telefono y otras PCs. Quitarla: + menos procesos / - se pierde usar el celular desde la PC.' $false $false $true),
+        (Elegible 'MicrosoftWindows.Client.WebExperience' 'Widgets (Web Experience Pack)' 'Que es: el panel de Widgets y las noticias. Quitarla: + menos RAM y procesos / - sin Widgets ni clima en la barra.' $false $false $true),
+        (Elegible 'Microsoft.Windows.Ai.Copilot.Provider' 'Proveedor de Copilot' 'Que es: la base de Copilot en Windows. Quitarla: + menos IA de fondo / - dejan de andar las funciones de Copilot.' $false $false $true),
+        (Elegible 'MicrosoftWindows.Client.CoPilot' 'Copilot (sistema)' 'Que es: el Copilot integrado en Windows. Quitarla: + menos IA de fondo / - te quedas sin Copilot del sistema.' $false $false $true),
+        (Elegible 'Microsoft.Windows.NarratorQuickStart' 'Narrador (guia)' 'Que es: la guia de inicio del lector de pantalla. Quitarla: + un paquete menos / - el Narrador sigue, sin la guia.' $false $false $true),
+        (Elegible 'Microsoft.Windows.ParentalControls' 'Controles parentales' 'Que es: el panel de control parental viejo. Quitarla: + un paquete menos / - no podes usar ese panel.' $false $false $true),
+        (Elegible 'Microsoft.Windows.SecureAssessmentBrowser' 'Navegador de examenes' 'Que es: navegador para examenes en escuelas. Quitarla: + un paquete menos / - no anda en examenes que lo piden.' $false $false $true),
+        (Elegible 'Microsoft.ECApp' 'Control con la mirada' 'Que es: controlar la PC con la mirada. Quitarla: + un paquete menos / - se pierde el control con la mirada.' $false $false $true),
+        (Elegible 'Microsoft.Windows.AssignedAccessLockApp' 'Modo quiosco' 'Que es: la pantalla de bloqueo del modo quiosco. Quitarla: + un paquete menos / - no podes usar el modo quiosco.' $false $false $true),
+        (Elegible 'Windows.PrintDialog' 'Dialogo de impresion' 'Que es: la ventana moderna de imprimir. Quitarla: + un paquete menos / - las apps de la Store usan la clasica.' $false $false $true),
+        (Elegible 'Microsoft.Windows.PrintQueueActionCenter' 'Cola de impresion' 'Que es: el panel moderno de la cola de impresion. Quitarla: + un paquete menos / - se pierde ese panel.' $false $false $true),
+        (Elegible 'Microsoft.Windows.PeopleExperienceHost' 'Contactos de Windows' 'Que es: el panel de contactos de la barra de tareas. Quitarla: + un paquete menos / - se pierde ese panel.' $false $false $true),
+        (Elegible 'Microsoft.Windows.XGpuEjectDialog' 'Expulsar placa externa' 'Que es: el aviso al sacar una placa de video externa. Quitarla: + un paquete menos / - te quedas sin ese aviso.' $false $false $true),
+        (Elegible 'Microsoft.Windows.PinningConfirmationDialog' 'Anclar a Inicio' 'Que es: la confirmacion al anclar apps al Inicio o a la barra. Quitarla: + un paquete menos / - las apps no te piden anclarse.' $false $false $true),
+        (Elegible 'Microsoft.Windows.CapturePicker' 'Selector de captura' 'Que es: la ventana para elegir que grabar o capturar. Quitarla: + un paquete menos / - algunas apps no pueden grabar la pantalla.' $false $false $true),
+        (Elegible 'Microsoft.Windows.ContentDeliveryManager' 'Contenido de Windows' 'Que es: sugerencias, anuncios y apps recomendadas en Inicio y bloqueo. Quitarla: + menos anuncios / - se pierde Windows destacado.' $false $false $true),
+        (Elegible 'Microsoft.MicrosoftEdgeDevToolsClient' 'Herramientas de Edge' 'Que es: las herramientas de desarrollo de Edge. Quitarla: + un paquete menos / - ninguno si no programas paginas web.' $false $false $true),
+        (Elegible 'Microsoft.XboxGameCallableUI' 'Ventanas de juegos de Xbox' 'Que es: avisos de la Game Bar y juegos de Xbox. Quitarla: + un paquete menos / - no aparecen los avisos de inicio de sesion ni logros.' $false $false $true)
     )
     dold = @(
         (Elegible 'Microsoft.Windows.Notepad.System*' 'Bloc de notas clasico' 'el Bloc de notas de siempre (queda el moderno).'),
@@ -181,6 +234,40 @@ $Elegibles = @{
 # Apps modernas que "Borrar las apps modernas" nunca toca (codecs, captura, Store, Xbox, paneles de audio y video, partes de Windows)
 $KeepModernas = '^(Microsoft\.\w*(Video|Image|Media)Extension|Microsoft\.ScreenSketch|AppUp\.|AdvancedMicroDevices|RealtekSemiconductor|DolbyLaboratories|WavesAudio|B9ECED6F\.|Microsoft\.WindowsCalculator|Microsoft\.WindowsStore|Microsoft\.StorePurchaseApp|Microsoft\.DesktopAppInstaller|Microsoft\.SecHealthUI|Microsoft\.WindowsTerminal|Microsoft\.Xbox|Microsoft\.Gaming|Microsoft\.UI\.Xaml|Microsoft\.VCLibs|Microsoft\.NET\.|Microsoft\.WindowsAppRuntime|Microsoft\.Windows\.|MicrosoftWindows\.|Microsoft\.MicrosoftEdge|Microsoft\.LockApp|Microsoft\.AAD|Microsoft\.AccountsControl|Microsoft\.CredDialogHost|Microsoft\.BioEnrollment|Microsoft\.AsyncTextService|Microsoft\.Win32WebViewHost|Microsoft\.XboxIdentityProvider|NVIDIACorp|windows\.)'
 
+# Inicio original de cada servicio de "Servicios del Sistema": se anota antes de apagarlo y Restablecer lo devuelve tal cual estaba
+# Sin anotar (lo apago otra version o una opcion vieja), vuelven a su inicio de Windows: estos automaticos y el resto en Manual
+$SvcIniDef = @{ TrkWks = 'auto'; LanmanServer = 'auto'; 'NVDisplay.ContainerLocalSystem' = 'auto'; Themes = 'auto'; WSAIFabricSvc = 'auto'; InventorySvc = 'delayed-auto'; whesvc = 'delayed-auto' }
+function Svc-Archivo { return (Join-Path (Join-Path $env:ProgramData 'Brio') 'svc_orig.txt') }
+function Svc-Inicio([string]$n) {
+    $p = Get-ItemProperty -LiteralPath ('HKLM:\SYSTEM\CurrentControlSet\Services\' + $n) -ErrorAction SilentlyContinue
+    if ((-not $p) -or ($null -eq $p.Start)) { return $null }
+    return $p
+}
+function Svc-Guardar([string]$n) {
+    $p = Svc-Inicio $n
+    if ((-not $p) -or ([int]$p.Start -eq 4)) { return }
+    $f = Svc-Archivo
+    $ya = @(); if (Test-Path -LiteralPath $f) { $ya = @(Get-Content -LiteralPath $f -ErrorAction SilentlyContinue) }
+    if (@($ya | Where-Object { $_ -like ($n + '|*') }).Count -gt 0) { return }
+    $d = $(if ($p.PSObject.Properties['DelayedAutostart'] -and ([int]$p.DelayedAutostart -eq 1)) { 1 } else { 0 })
+    $dir = Split-Path -Parent $f; if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    Add-Content -LiteralPath $f -Value ($n + '|' + [int]$p.Start + '|' + $d)
+}
+function Svc-Devolver([string]$n) {
+    $p = Svc-Inicio $n
+    if (-not $p) { return }
+    $f = Svc-Archivo
+    $reg = $null; if (Test-Path -LiteralPath $f) { $reg = @(Get-Content -LiteralPath $f -ErrorAction SilentlyContinue | Where-Object { $_ -like ($n + '|*') })[0] }
+    if ([int]$p.Start -ne 4) { if ($reg) { Set-Content -LiteralPath $f -Value @(Get-Content -LiteralPath $f | Where-Object { $_ -notlike ($n + '|*') }) }; return }   # no estaba apagado: no se toca
+    $modo = 'demand'; $ini = '3'
+    if ($reg) { $q = $reg -split '\|'; if ($q[1] -eq '2') { $modo = $(if ($q[2] -eq '1') { 'delayed-auto' } else { 'auto' }); $ini = '2' } }
+    elseif ($SvcIniDef.ContainsKey($n)) { $modo = $SvcIniDef[$n]; $ini = '2'; Log 'INFO' ($n + ' estaba deshabilitado y Brio no lo habia anotado: se pone el valor por defecto de Windows (Automatico)') }
+    else { Log 'INFO' ($n + ' estaba deshabilitado y Brio no lo habia anotado: se pone el valor por defecto de Windows (Manual)') }
+    Svc $n $modo $ini
+    if ($modo -ne 'demand') { Svc-Arrancar $n }
+    if ($reg) { Set-Content -LiteralPath $f -Value @(Get-Content -LiteralPath $f | Where-Object { $_ -notlike ($n + '|*') }) }
+}
+
 # Lista de servicios para una opcion: lo elegido en el submenu o, sin submenu, los de siempre (en notebook sin wifi, sensores ni biometria)
 function Svc-Lista([string]$opt) {
     $sel = Elegidos $opt
@@ -188,19 +275,45 @@ function Svc-Lista([string]$opt) {
     return @($Elegibles[$opt] | Where-Object { $_.Def -and -not ($_.Nb -and (Es-Notebook)) } | ForEach-Object { $_.Id })
 }
 
+# Paquetes que NUNCA se quitan. La lista blanca ($Elegibles.db) manda: lo que esta ahi se puede quitar aunque el nombre se parezca a uno critico
+# (AssignedAccessLockApp no es Microsoft.LockApp, BingSearch no es la busqueda de Windows). La expresion solo frena nombres que NO estan en la lista.
+function Paquete-Critico([string]$n) {
+    if (@($Elegibles.db | ForEach-Object { $_.Id }) -contains $n) { return $false }
+    return [bool]($n -match '(?i)ShellExperienceHost|StartMenuExperienceHost|ImmersiveControlPanel|SystemSettings|^Microsoft\.Windows\.(Search|Cortana)|^Microsoft\.549981C3F5F10$|CloudExperienceHost|AAD\.|AccountsControl|BioEnrollment|CredDialogHost|NcsiUwpApp|^Microsoft\.LockApp$|VCLibs|NET\.Native|WinAppRuntime|WindowsAppRuntime|UI\.Xaml|^Microsoft\.(WindowsStore|StorePurchaseApp)$|Apprep|Win32WebViewHost|SecHealthUI|AsyncTextService|DesktopAppInstaller')
+}
+
 # Borra un paquete que Windows marca como del sistema (Edge, Bing, Primeros pasos...). Mismo metodo que usa Windows al
 # retirar una app: se anota como "fin de vida" y "desaprovisionada" para todos los usuarios y recien ahi se desinstala.
 function Quitar-Protegida([string]$n) {
     $base = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
     $pk = @(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue)
-    if ($pk.Count -eq 0) { Log 'OMITIDO' ($n + ' no estaba instalada'); return }
+    if ($pk.Count -eq 0) { Log 'OMITIDO' ($n + ' no estaba instalada'); return $false }
+    # Seguro extra: nunca se toca un framework/runtime ni un paquete critico (ver Paquete-Critico)
+    if ((Paquete-Critico $n) -or (@($pk | Where-Object { $_.IsFramework }).Count -gt 0)) {
+        Log 'OMITIDO' ($n + ' es necesaria para Windows: no se toca')
+        Say ('  No se pudo quitar ' + $n + ': la necesita Windows.') 'Yellow'
+        $script:OmitidasApps = @($script:OmitidasApps | Where-Object { $_ }) + $n
+        return $false
+    }
     $sids = @('S-1-5-18') + @(Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special } | ForEach-Object { [string]$_.SID })
+    $errRem = $false
     foreach ($p in $pk) {
         foreach ($s in $sids) { New-Item -Path ($base + '\EndOfLife\' + $s + '\' + $p.PackageFullName) -Force -ErrorAction SilentlyContinue | Out-Null }
         New-Item -Path ($base + '\Deprovisioned\' + $p.PackageFamilyName) -Force -ErrorAction SilentlyContinue | Out-Null
-        try { Remove-AppxPackage -Package $p.PackageFullName -AllUsers -ErrorAction Stop } catch { try { Remove-AppxPackage -Package $p.PackageFullName -ErrorAction Stop } catch { } }
+        try { Remove-AppxPackage -Package $p.PackageFullName -AllUsers -ErrorAction Stop } catch { try { Remove-AppxPackage -Package $p.PackageFullName -ErrorAction Stop } catch { $errRem = $true } }
     }
-    Res (@(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue).Count -eq 0) ('app protegida quitada: ' + $n)
+    $quedan = @(Get-AppxPackage -AllUsers -Name $n -ErrorAction SilentlyContinue)
+    if ($quedan.Count -eq 0) { Res $true ('app protegida quitada: ' + $n); return $true }
+    # Windows la marca como "pendiente de quitar" para el sistema y para el usuario termina al reiniciar o cerrar sesion: eso NO es un fallo
+    $marcada = $false
+    foreach ($q in $quedan) {
+        foreach ($u in @($q.PackageUserInformation)) { if (([string]$u.InstallState -match 'Pending|Staged') -or ([string]$u -match 'pending removal')) { $marcada = $true } }
+        if ((-not $errRem) -and (Test-Path -LiteralPath ($base + '\EndOfLife\S-1-5-18\' + $q.PackageFullName))) { $marcada = $true }
+    }
+    if ($marcada) {
+        $script:Reinicio = $true; $script:ReinicioApps = @($script:ReinicioApps | Where-Object { $_ }) + $n
+        Res $true ('app protegida quitada: ' + $n + ' (se completa al reiniciar)'); return $true
+    } else { Res $false ('app protegida no se pudo quitar: ' + $n); return $true }
 }
 
 function Hosts-Tiene([string]$h) {
@@ -537,6 +650,24 @@ function Inicio-Poner($e, [bool]$prender) {
 }
 # <<< XUCA-INICIO
 
+# >>> XUCA-NAV (la app copia todo lo que esta entre estas dos marcas para saber que navegadores hay instalados)
+# Navegadores con ajustes de Brio: mira App Paths (HKLM y HKCU) y las carpetas de instalacion, no solo el predeterminado.
+function Navegadores-Instalados {
+    $r = @()
+    $pf = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA) | Where-Object { $_ }
+    foreach ($n in @(@('edge', 'msedge.exe', 'Microsoft\Edge\Application\msedge.exe'), @('brave', 'brave.exe', 'BraveSoftware\Brave-Browser\Application\brave.exe'))) {
+        $esta = $false
+        foreach ($h in 'HKLM', 'HKCU') {
+            try { $v = (Get-ItemProperty -LiteralPath ($h + ':\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\' + $n[1]) -ErrorAction Stop).'(default)'; if ($v -and (Test-Path -LiteralPath ([string]$v).Trim('"'))) { $esta = $true } } catch { }
+        }
+        if (-not $esta) { foreach ($d in $pf) { if (Test-Path -LiteralPath (Join-Path $d $n[2])) { $esta = $true } } }
+        if ($esta) { $r += $n[0] }
+    }
+    return $r
+}
+# <<< XUCA-NAV
+
+
 # ------------------------------------------------------------
 # Las acciones (antes cada una abria su propio PowerShell desde el .bat). Devuelven un codigo:
 # 0 = hecho, 1 = fallo, 2 = no aplica, 3 = instalador lanzado, 4 = cancelado, 5 = ya estaba, 6 = queda un paso para despues.
@@ -692,8 +823,9 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                 @{ N = 'acceso controlado a carpetas'; S = { Set-MpPreference -EnableControlledFolderAccess Disabled -ErrorAction Stop } },
                 @{ N = 'bloqueo de apps no deseadas'; S = { Set-MpPreference -PUAProtection Disabled -ErrorAction Stop } }
             )
+            $script:AvFallos = 0
             foreach ($o in $ops) {
-                try { & $o.S } catch { Log 'FALLO' ($o.N + ': ' + $_.Exception.Message); $code = 1 }
+                try { & $o.S } catch { Log 'FALLO' ($o.N + ': ' + $_.Exception.Message); $code = 1; $script:AvFallos++ }
             }
             Start-Sleep -Seconds 2
             $s = Get-MpComputerStatus
@@ -710,7 +842,7 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
             )
             foreach ($c in $vf) {
                 if ($c.V) { Log 'OK' ('verificado: ' + $c.N + ' apagada') }
-                else { Log 'FALLO' ($c.N + ' sigue encendida (probablemente por la Proteccion contra alteraciones)'); $code = 1 }
+                else { Log 'FALLO' ($c.N + ' sigue encendida (probablemente por la Proteccion contra alteraciones)'); $code = 1; $script:AvFallos++ }
             }
         }
     }
@@ -1233,32 +1365,62 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
     }
 
     'DEBLOAT' {
-        # Lo elegido en el submenu "Borrar apps" (sin submenu: OneDrive y las apps basura, como siempre)
+        # Lo elegido en el submenu "Apps del Sistema" (sin submenu: OneDrive y las apps basura, como siempre)
         $selDb = Elegidos 'db'
-        $quiereOd = ($null -eq $selDb) -or ($selDb -contains 'OneDrive')
+        # Lo que la persona dijo que usa al aplicar un perfil (XKEEP_db): no se borra
+        $keepDb = @(([string]$env:XKEEP_db) -split "`t" | Where-Object { $_ })
+        $quiereOd = (($null -eq $selDb) -or ($selDb -contains 'OneDrive')) -and ($keepDb -notcontains 'OneDrive')
         Stop-Process -Name "ms-teams", "msteams" -Force -ErrorAction SilentlyContinue
         if ($quiereOd) { Stop-Process -Name 'OneDrive' -Force -ErrorAction SilentlyContinue }
         Esperar-Cierre 'OneDrive', 'ms-teams', 'msteams' 2000
-        $odExes = @(($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'))
+        $odExes = @(($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.exe'), ($env:ProgramFiles + '\Microsoft OneDrive\OneDrive.exe'), (${env:ProgramFiles(x86)} + '\Microsoft OneDrive\OneDrive.exe'), ($env:LOCALAPPDATA + '\Microsoft\OneDrive\OneDrive.App.exe'))
         $odHabia = $quiereOd -and (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0)
-        # Si Escritorio/Documentos/Imagenes viven en OneDrive o hay archivos solo en la nube, no se desinstala (se perderia el acceso)
-        $odProtege = ''
-        if ($odHabia) {
+        # Si Escritorio/Documentos/Imagenes viven en OneDrive o hay archivos solo en la nube, no se desinstala ni se limpia nada (se perderia el acceso)
+        $odProtege = ''; $odRedirigidas = $false
+        if ($quiereOd) {
             try {
                 $usf = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction SilentlyContinue
-                foreach ($n in 'Desktop', 'Personal', 'My Pictures') { if ([string]$usf.$n -match 'OneDrive') { $odProtege = 'tus carpetas (Escritorio, Documentos o Imagenes) estan guardadas en OneDrive' } }
-                if ((-not $odProtege) -and $env:OneDrive -and (Test-Path -LiteralPath $env:OneDrive)) {
-                    $nube = Get-ChildItem -LiteralPath $env:OneDrive -Recurse -File -Force -ErrorAction SilentlyContinue | Select-Object -First 30000 | Where-Object { ([int]$_.Attributes -band 0x440000) -ne 0 } | Select-Object -First 1
+                foreach ($n in 'Desktop', 'Personal', 'My Pictures') { if ([string]$usf.$n -match 'OneDrive') { $odProtege = 'tus carpetas (Escritorio, Documentos o Imagenes) estan guardadas en OneDrive'; $odRedirigidas = $true } }
+                # Si el usuario lo confirmo en la app (ODMOVER=1), las carpetas vuelven a su lugar normal con todo su contenido; si algo falla no se mueve nada o se deja como estaba
+                if ($odRedirigidas -and ($env:ODMOVER -eq '1')) {
+                    $uk = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'; $sk = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'
+                    Say '  Moviendo tus carpetas de OneDrive a su lugar normal (esto puede tardar)...' 'Cyan'
+                    $mv = Od-Proceso $uk $sk $env:USERPROFILE $env:OneDrive
+                    foreach ($m in @($mv.Movidas)) { Say ('  Movida: ' + $m.Carpeta + ' (' + $m.Archivos + ' archivos, ' + [math]::Round($m.Bytes / 1GB, 2) + ' GB) -> ' + $m.Destino) 'Green'; Log 'OK' ('verificado: ' + $m.Carpeta + ' movida a ' + $m.Destino + ' (' + $m.Archivos + ' archivos)') }
+                    foreach ($f in @($mv.Fallos)) { Say ('  No se movio: ' + $f) 'Yellow'; Log 'FALLO' ('mover carpetas de OneDrive: ' + $f) }
+                    if ($mv.Movidas.Count -gt 0) {
+                        Od-Avisar-Shell
+                        if ($env:XR_XRES -eq '1') { Say 'XRES|aviso|Se movieron de OneDrive a su lugar normal las carpetas de Windows que estaban adentro (Escritorio, Documentos, etc.). Las rutas cambiaron (por ejemplo C:\Users\<usuario>\Documents en vez de ...\OneDrive\Documents): reabri los programas y revisa repos git, proyectos, accesos directos y saves de juegos que apuntaban a la ruta vieja.' }
+                    }
+                    if (($mv.Fallos.Count -gt 0) -and ($env:XR_XRES -eq '1')) {
+                        if (@($mv.Causas) -contains 'nube') { Say 'XRES|aviso|No se movieron tus carpetas de OneDrive porque hay archivos que solo estan en la nube (no estan en tu PC). En OneDrive hace clic derecho en la carpeta > Mantener siempre en este dispositivo, espera a que termine de sincronizar y volve a elegir OneDrive. OneDrive queda instalado.' }
+                        if (@($mv.Causas) -contains 'enlaces') { Say 'XRES|aviso|No se movieron tus carpetas de OneDrive porque hay enlaces reales (junction o acceso simbolico) adentro: moverlos podria tocar archivos de otro lugar. OneDrive queda instalado; el detalle esta en el log.' }
+                        if (@($mv.Causas) -contains 'uso') { Say 'XRES|aviso|No se movieron tus carpetas de OneDrive porque hay archivos abiertos por otros programas. Cerra editores, terminales, Claude Code, git y juegos que usen esas carpetas y volve a elegir OneDrive. OneDrive queda instalado.' }
+                        if (@($mv.Causas) -contains 'espacio') { Say 'XRES|aviso|No se movieron tus carpetas de OneDrive porque no hay espacio libre suficiente en el disco de destino. Libera espacio y volve a elegir OneDrive. OneDrive queda instalado.' }
+                        if (@($mv.Causas) -contains 'larga') { Say 'XRES|aviso|No se movieron tus carpetas de OneDrive porque hay archivos con rutas demasiado largas. Acortales el nombre o la ruta y volve a elegir OneDrive. OneDrive queda instalado.' }
+                        if (@($mv.Causas) -contains 'otro') { Say 'XRES|aviso|No se movieron todas las carpetas de OneDrive: OneDrive queda instalado y lo que no se movio sigue como estaba. El detalle esta en el log.' }
+                    }
+                    $odProtege = ''; $odRedirigidas = $false
+                    $usf = Get-ItemProperty -Path $uk -ErrorAction SilentlyContinue
+                    foreach ($n in 'Desktop', 'Personal', 'My Pictures', 'My Music', 'My Video', '{374DE290-123F-4565-9164-39C4925E467B}') { if ([string]$usf.$n -match 'OneDrive') { $odProtege = 'tus carpetas (Escritorio, Documentos o Imagenes) siguen guardadas en OneDrive (no se pudieron mover: mira los FALLO de arriba)'; $odRedirigidas = $true } }
+                }
+                if ($odHabia -and (-not $odProtege) -and $env:OneDrive -and (Test-Path -LiteralPath $env:OneDrive)) {
+                    $nube = Get-ChildItem -LiteralPath $env:OneDrive -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { ([int]$_.Attributes -band 0x440000) -ne 0 } | Select-Object -First 1 | Select-Object -First 1
                     if ($nube) { $odProtege = 'hay archivos que estan solo en la nube' }
                 }
             } catch { }
         }
         if (-not $quiereOd) {
-            Log 'INFO' 'OneDrive se deja: no lo elegiste'
-        } elseif (-not $odHabia) {
-            Log 'OMITIDO' 'OneDrive no estaba instalado'
+            Log 'INFO' 'OneDrive se deja: no esta entre lo elegido (si ya estaba quitado, la lista no lo ofrece)'
         } elseif ($odProtege) {
-            Log 'OMITIDO' ('OneDrive no se desinstalo: ' + $odProtege)
+            Log 'OMITIDO' ('OneDrive no se desinstalo ni se limpio: ' + $odProtege)
+            if ($odRedirigidas) {
+                Say '  OneDrive NO se toca: tus carpetas Escritorio, Documentos o Imagenes estan guardadas dentro de OneDrive.' 'Yellow'
+                Say '  Para que Brio las mueva por vos, elegi OneDrive otra vez en Apps del Sistema y confirma el movimiento. O hacelo a mano: clic derecho en la carpeta (por ejemplo Documentos) > Propiedades > Ubicacion > Restaurar valores predeterminados > Mover.' 'Yellow'
+                if ($env:XR_XRES -eq '1') { Say 'XRES|aviso|OneDrive no se toco porque tus carpetas Escritorio, Documentos o Imagenes estan guardadas dentro de OneDrive. Para quitarlo, elegi OneDrive otra vez en Apps del Sistema y confirma que Brio las mueva, o hacelo a mano: clic derecho en la carpeta (por ejemplo Documentos) > Propiedades > Ubicacion > Restaurar valores predeterminados > Mover. Despues volve a elegir OneDrive en Apps del Sistema.' }
+            }
+        } elseif (-not $odHabia) {
+            Log 'INFO' 'OneDrive ya no esta instalado: se revisan sus restos'
         } else {
             # El desinstalador oficial, el de 64 y el de 32 bits (System32 y SysWOW64), y si no esta, el que anoto el propio OneDrive
             $setups = @(@(("$env:SystemRoot\System32\OneDriveSetup.exe"), ("$env:SystemRoot\SysWOW64\OneDriveSetup.exe")) | Where-Object { Test-Path -LiteralPath $_ } | ForEach-Object { , @($_, '/uninstall') })
@@ -1271,7 +1433,8 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
             if ($setups.Count -eq 0) { Log 'INFO' 'no se encontro el desinstalador de OneDrive' }
             foreach ($s in $setups) {
                 if (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0) { break }
-                Start-Process -FilePath $s[0] -ArgumentList $s[1] -Wait -WindowStyle Hidden
+                # Como mucho 2 minutos: si el desinstalador se cuelga, la app no queda esperando para siempre
+                try { $pu = Start-Process -FilePath $s[0] -ArgumentList $s[1] -WindowStyle Hidden -PassThru -ErrorAction Stop; if (-not $pu.WaitForExit(120000)) { Log 'INFO' ('el desinstalador de OneDrive sigue abierto: ' + $s[0]) } } catch { Log 'INFO' ('desinstalador de OneDrive: ' + $_.Exception.Message) }
                 Esperar-Cierre 'OneDrive', 'OneDriveSetup' 2000
             }
             if (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0) {
@@ -1283,10 +1446,45 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
         }
         if ($quiereOd -and (-not $odProtege)) {
             # Fuera del Explorador (panel de la izquierda, 64 y 32 bits) y fuera del inicio
-            foreach ($cl in 'HKCR\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}', 'HKCR\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}') { if (Reg-Existe $cl) { Reg-Set $cl 'System.IsPinnedToNameSpaceTree' 'REG_DWORD' '0' } }
+            foreach ($cl in 'HKCR\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}', 'HKCR\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}', 'HKCU\Software\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}', 'HKCU\Software\Classes\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}') { if (Reg-Existe $cl) { Reg-Set $cl 'System.IsPinnedToNameSpaceTree' 'REG_DWORD' '0' } }
             foreach ($rk in 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run', 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run') {
                 foreach ($vn in 'OneDrive', 'OneDriveSetup') { if (Reg-Leer $rk $vn) { Reg-Del $rk $vn } }
             }
+        }
+
+        # Restos de OneDrive (solo con el programa ya fuera): paquete OneDriveSync, carpetas tecnicas, tareas programadas y accesos del menu Inicio.
+        # NUNCA se toca la carpeta de tus archivos (%OneDrive%, por ejemplo C:\Users\<usuario>\OneDrive) ni nada dentro de ella.
+        $odRestosHechos = 0; $odRestosQuedan = @()
+        if ($quiereOd -and (-not $odProtege) -and (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0)) {
+            $pkOd = @(Get-AppxPackage -AllUsers -Name 'Microsoft.OneDriveSync' -ErrorAction SilentlyContinue)
+            if ($pkOd.Count -gt 0) {
+                [void](Quitar-Protegida 'Microsoft.OneDriveSync')
+                if (@(Get-AppxPackage -AllUsers -Name 'Microsoft.OneDriveSync' -ErrorAction SilentlyContinue).Count -eq 0) { $odRestosHechos++ } else { $odRestosQuedan += 'paquete Microsoft.OneDriveSync (se termina al reiniciar)' }
+            }
+            $raizUsr = $(if ($env:OneDrive) { ([string]$env:OneDrive).TrimEnd('\') } else { '' })
+            foreach ($dr in @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive'), (Join-Path $env:ProgramData 'Microsoft OneDrive'))) {
+                if (-not (Test-Path -LiteralPath $dr)) { continue }
+                $itd = Get-Item -LiteralPath $dr -Force -ErrorAction SilentlyContinue
+                $enUsr = ($raizUsr -and (($dr.TrimEnd('\') + '\').StartsWith($raizUsr + '\', [StringComparison]::OrdinalIgnoreCase)))
+                $conLinks = @(Get-ChildItem -LiteralPath $dr -Recurse -Force -Attributes ReparsePoint -ErrorAction SilentlyContinue).Count
+                if (($itd.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $enUsr -or ($conLinks -gt 0)) {
+                    Log 'INFO' ('resto de OneDrive no se borra (es un acceso directo o esta junto a tus archivos): ' + $dr); $odRestosQuedan += $dr; continue
+                }
+                & cmd.exe /c ('rd /s /q "' + $dr + '"') 2>&1 | Out-Null
+                if (Test-Path -LiteralPath $dr) { $odRestosQuedan += $dr; Res $false ('resto de OneDrive en uso: ' + $dr) } else { $odRestosHechos++; Res $true ('resto de OneDrive borrado: ' + $dr) }
+            }
+            foreach ($lk in @((Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'), (Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'))) {
+                if (Test-Path -LiteralPath $lk) { Remove-Item -LiteralPath $lk -Force -ErrorAction SilentlyContinue; if (Test-Path -LiteralPath $lk) { $odRestosQuedan += $lk } else { $odRestosHechos++; Res $true ('acceso de OneDrive quitado del menu Inicio: ' + $lk) } }
+            }
+            foreach ($tk in @(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like 'OneDrive*' })) {
+                try { Unregister-ScheduledTask -TaskName $tk.TaskName -TaskPath $tk.TaskPath -Confirm:$false -ErrorAction Stop; $odRestosHechos++; Res $true ('tarea programada de OneDrive borrada: ' + $tk.TaskName) } catch { $odRestosQuedan += ('tarea ' + $tk.TaskName); Res $false ('tarea de OneDrive no se pudo borrar: ' + $tk.TaskName) }
+            }
+            if ($odRestosQuedan.Count -gt 0) {
+                Log 'INFO' ('quedan restos de OneDrive: ' + ($odRestosQuedan -join ' | '))
+                Say ('  Quedan restos de OneDrive: ' + ($odRestosQuedan -join ', ')) 'Yellow'
+                if ($env:XR_XRES -eq '1') { Say 'XRES|aviso|Quedan restos de OneDrive que no se pudieron borrar (estan en uso o son accesos directos). Reinicia y volve a elegir OneDrive en Apps del Sistema para limpiarlos. Tu carpeta de archivos no se toca.' }
+            } elseif ($odRestosHechos -gt 0) { Log 'OK' ('verificado: restos de OneDrive limpiados (' + $odRestosHechos + '); tu carpeta de archivos no se toco') }
+            else { Ya-Estaba }
         }
 
         # >>> XUCA-APPS (la app copia esta lista para contar cuantas apps basura se borraron y cuantas quedan)
@@ -1310,23 +1508,36 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                  'AdobeSystemsIncorporated.AdobePhotoshopExpress', 'PandoraMediaInc.29680B314EFC2')
         # <<< XUCA-APPS
         # Con submenu: las apps elegidas (basura y extras); las protegidas y Edge van aparte
-        $protDb = @($Elegibles.db | Where-Object { $_.Prot } | ForEach-Object { $_.Id })
+        # Protegidas de verdad: Edge y las de la lista blanca que Windows tiene como no quitables ahora mismo (si se pueden quitar normal, van por el camino comun)
+        $fijasAhora = @(Get-AppxPackage -AllUsers | Where-Object { $_.NonRemovable } | ForEach-Object { $_.Name })
+        $protDb = @($Elegibles.db | Where-Object { $_.Prot -and ((@('EDGE', 'WEBVIEW2') -contains $_.Id) -or ($fijasAhora -contains $_.Id)) } | ForEach-Object { $_.Id })
         $lista = $(if ($null -eq $selDb) { $AppsBasura } else { @($selDb | Where-Object { ($_ -ne 'OneDrive') -and ($protDb -notcontains $_) }) })
+        if ($keepDb.Count -gt 0) { $lista = @($lista | Where-Object { $n = $_; -not @($keepDb | Where-Object { $n -like ('*' + $_ + '*') }).Count }) }
         $antes = @(Get-AppxPackage -AllUsers | Where-Object { -not $_.NonRemovable } | ForEach-Object { $_.Name })
         $global:tocadas = 0
         if (@($lista).Count -gt 0) { Quitar-Apps $lista }
-        if ($odHabia) { $global:tocadas++ }
+        if ($odHabia -or ($odRestosHechos -gt 0)) { $global:tocadas++ }
         if ($null -ne $selDb) {
-            foreach ($p in @($selDb | Where-Object { $protDb -contains $_ })) {
-                $global:tocadas++
-                if ($p -eq 'EDGE') { Resps (Act 'EDGE_REMOVE'); Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate' 'Install{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}' 'REG_DWORD' '0' }
-                else { Quitar-Protegida $p }
+            # WebView2 va al final: EDGE_REMOVE verifica que WebView2 siga instalado despues de quitar Edge
+            foreach ($p in @($selDb | Where-Object { $protDb -contains $_ } | Sort-Object { $_ -eq 'WEBVIEW2' })) {
+                if ($p -eq 'EDGE') { $global:tocadas++; Resps (Act 'EDGE_REMOVE'); Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate' 'Install{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}' 'REG_DWORD' '0' }
+                elseif ($p -eq 'WEBVIEW2') { $global:tocadas++; Resps (Act 'WEBVIEW2_REMOVE'); Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate' 'Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' 'REG_DWORD' '0' }
+                elseif (Quitar-Protegida $p) { $global:tocadas++ }
             }
         }
         # Se anota lo que se borro, para que la app muestre el contador "5/13 borradas"
         $despues = @(Get-AppxPackage -AllUsers | Where-Object { -not $_.NonRemovable } | ForEach-Object { $_.Name })
         $borradas = @(foreach ($n in $lista) { $antes | Where-Object { ($_ -like $n) -and ($despues -notcontains $_) } })
-        if ($odHabia -and (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0)) { $borradas += 'OneDrive' }
+        if ($quiereOd -and (-not $odProtege) -and ($odHabia -or ($odRestosHechos -gt 0)) -and ($odRestosQuedan.Count -eq 0) -and (@($odExes | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 0)) { $borradas += 'OneDrive' }
+        # Las protegidas que se quitaron (ya no figuran instaladas) tambien se anotan: la lista las muestra como Ya borrada
+        $ahoraTodas = @(Get-AppxPackage -AllUsers | ForEach-Object { $_.Name })
+        if ($null -ne $selDb) {
+            foreach ($p in @($selDb | Where-Object { $protDb -contains $_ })) {
+                if (($p -eq 'EDGE') -and (-not (Test-Path -LiteralPath (${env:ProgramFiles(x86)} + '\Microsoft\Edge\Application\msedge.exe')))) { $borradas += 'EDGE' }
+                elseif ($p -eq 'WEBVIEW2') { if (-not (Test-Path -Path (${env:ProgramFiles(x86)} + '\Microsoft\EdgeWebView\Application\*\msedgewebview2.exe'))) { $borradas += 'WEBVIEW2' } }
+                elseif (($p -ne 'EDGE') -and ($ahoraTodas -notcontains $p)) { $borradas += $p }
+            }
+        }
         if ($borradas.Count -gt 0) {
             $archApps = Join-Path $env:ProgramData 'Brio\apps_borradas.txt'
             try {
@@ -1356,7 +1567,9 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
     }
 
     'IA_PAQ' {
-        Quitar-Apps @('Microsoft.Windows.Ai.Copilot.Provider', 'Microsoft.Copilot', 'Microsoft.WindowsAiFoundation', 'Microsoft.Windows.Recall')
+        # Copilot y su proveedor se ofrecen en Apps del Sistema: si los dejaste sin marcar, no se borran
+        $selIa = Elegidos 'db'
+        Quitar-Apps @(@('Microsoft.Windows.Ai.Copilot.Provider', 'Microsoft.Copilot', 'Microsoft.WindowsAiFoundation', 'Microsoft.Windows.Recall') | Where-Object { ($null -eq $selIa) -or ($selIa -contains $_) -or (@('Microsoft.Windows.Ai.Copilot.Provider', 'Microsoft.Copilot') -notcontains $_) })
         if ($global:tocadas -eq 0) { $code = 5 }
     }
 
@@ -1512,6 +1725,34 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
         if ((-not $hizo) -and ($code -eq 0 -or $code -eq $null)) {
             Say '  Edge, Bing y Primeros pasos ya estaban quitados.' 'Yellow'
             $code = 5
+        }
+    }
+
+    # WebView2 Runtime (instalacion del sistema): solo si lo tildaste en Apps del Sistema y confirmaste el aviso de apps protegidas.
+    # Se usa su propio desinstalador (el mismo que corre "Desinstalar" de Windows, forzado) y se verifica que ya no este.
+    'WEBVIEW2_REMOVE' {
+        $wvDir = ${env:ProgramFiles(x86)} + '\Microsoft\EdgeWebView\Application'
+        $setup = @(Get-ChildItem -Path ($wvDir + '\*\Installer\setup.exe') -ErrorAction SilentlyContinue | Sort-Object { try { [version]$_.Directory.Parent.Name } catch { [version]'0.0' } } -Descending | Select-Object -First 1)
+        if ($setup.Count -eq 0) {
+            if (Test-Path -Path ($wvDir + '\*\msedgewebview2.exe')) { Log 'FALLO' ('WebView2 esta instalado pero no se encontro su desinstalador en ' + $wvDir); $code = 1 }
+            else { Log 'OMITIDO' 'WebView2 Runtime no esta instalado (no hay setup.exe)'; $code = 5 }
+        } else {
+            Say '  Quitando WebView2 Runtime (puede tardar un minuto)...'
+            try {
+                $pu = Start-Process -FilePath $setup[0].FullName -ArgumentList '--uninstall --msedgewebview --system-level --verbose-logging --force-uninstall' -WindowStyle Hidden -PassThru -ErrorAction Stop
+                if ($pu.WaitForExit(180000)) { Log 'INFO' ('el desinstalador de WebView2 termino con codigo ' + $pu.ExitCode) }
+                else { Log 'INFO' 'el desinstalador de WebView2 sigue abierto despues de 3 minutos' }
+            } catch { Log 'FALLO' ('desinstalador de WebView2: ' + $_.Exception.Message) }
+            Log 'INFO' 'para reinstalarlo: reg delete "HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate" /v "Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" /f y despues el instalador Evergreen de WebView2 (developer.microsoft.com/microsoft-edge/webview2)'
+            if (Test-Path -Path ($wvDir + '\*\msedgewebview2.exe')) {
+                Log 'FALLO' 'WebView2 Runtime sigue instalado: msedgewebview2.exe todavia existe'
+                Say '  WebView2 sigue instalado, no se pudo quitar (puede que una app lo este usando: cerrala y repeti).' 'Red'
+                $code = 1
+            } else {
+                Log 'OK' 'verificado: WebView2 Runtime ya no esta instalado (msedgewebview2.exe no existe)'
+                Say '  WebView2 quitado. Si una app deja de abrir, reinstalalo con el instalador Evergreen de Microsoft (antes borra la politica que lo bloquea, ver el log).' 'Yellow'
+                $code = 0
+            }
         }
     }
 
@@ -2182,6 +2423,8 @@ $ListaOpciones = @(
                     $v = Reg-Leer ('HKLM\SYSTEM\CurrentControlSet\Services\' + $s[0]) 'Start'
                     if ($v -and ([int64]$v.Valor -eq 4)) { Svc $s[0] $s[1] $s[2] }
                 }
+                # El inventario de compatibilidad y Salud de Windows (Servicios del Sistema): sin ellos Windows Update no evalua la version nueva
+                foreach ($s in 'InventorySvc', 'whesvc') { Svc-Devolver $s }
                 # Cache de Windows Update y catalogo de firmas: se renombran (no se borran) para que Windows los arme de nuevo
                 foreach ($s in 'wuauserv', 'bits', 'cryptsvc') { Stop-Service -Name $s -Force -ErrorAction SilentlyContinue }
                 foreach ($dd in @((Join-Path $env:SystemRoot 'SoftwareDistribution'), (Join-Path $env:SystemRoot 'System32\catroot2'))) {
@@ -2322,9 +2565,9 @@ $ListaOpciones = @(
         Q = '- Desea apagar TODO el antivirus? (Defender, SmartScreen y Smart App Control; la PC queda sin proteccion)'
         Hace = 'apaga Defender, SmartScreen y Smart App Control.'
         Favor = 'menos uso de CPU y disco, y ningun analisis en medio de una partida.'
-        Contra = 'la PC queda sin proteccion contra virus y Smart App Control no se vuelve a encender sin reinstalar Windows.'
+        Contra = 'la PC queda sin proteccion contra virus y Smart App Control no se vuelve a encender sin reinstalar Windows. Si tenes Riot Vanguard, se borra: REINICIA LA PC SIN FALTA antes de volver a instalarlo (o abrir VALORANT o LoL), o pueden salir errores y bucles de instalacion.'
         Antes = {
-            'AVISO: si tenes Riot Vanguard, se borra solo si una opcion de seguridad cambia algo de verdad (si ya la tenias asi, no se toca); se desinstala del todo, se cierra Riot y lo volves a instalar abriendo el cliente de Riot.'
+            'AVISO: si tenes Riot Vanguard, se borra solo si una opcion de seguridad cambia algo de verdad (si ya la tenias asi, no se toca); se desinstala del todo, se cierra Riot y lo volves a instalar abriendo el cliente de Riot. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.'
             ''
             'AVISO: Smart App Control no se puede volver a encender sin reinstalar Windows.'
             'AVISO: la Proteccion contra alteraciones la apagas vos; el script abre la pagina.'
@@ -2343,10 +2586,19 @@ $ListaOpciones = @(
             Say '  Apaga ahora la Proteccion contra alteraciones: se abre la pagina de Seguridad de Windows.'
             Say '  Cuando la apagues, volve aca.'
             Av-RegsOff
+            $script:AvFallos = 0
             Resps (Act 'AV_OFF')
-            Opt-Fin 'Antivirus, SmartScreen y Smart App Control desactivados'
-            if ($script:OptF -gt 0) { Say '  Si algo fallo, casi seguro la Proteccion contra alteraciones sigue encendida: apagala y repeti.' 'Red' }
-            Vanguard-Check
+            # Cada ajuste que no se pudo apagar cuenta como un fallo (antes 3 lineas FALLO se informaban como 1)
+            if ($script:AvFallos -gt 1) { $script:OptF += ($script:AvFallos - 1); $script:OptT += ($script:AvFallos - 1) }
+            Opt-Fin $(if ($script:OptF -gt 0) { 'Antivirus: NO se pudo apagar, sigue encendido' } else { 'Antivirus, SmartScreen y Smart App Control desactivados' })
+            if ($script:OptF -gt 0) {
+                Say '  EL ANTIVIRUS SIGUE ENCENDIDO: casi seguro la Proteccion contra alteraciones esta encendida. Apagala en Seguridad de Windows y repeti.' 'Red'
+                Log 'ATENCION' 'el antivirus sigue encendido (no esta desactivado): apagar la Proteccion contra alteraciones en Seguridad de Windows y volver a aplicar'
+                if ($env:XR_XRES -eq '1') { Say 'XRES|aviso|El antivirus SIGUE ENCENDIDO: Windows no dejo apagarlo, casi seguro porque la Proteccion contra alteraciones esta encendida. Apagala en Seguridad de Windows > Proteccion antivirus y contra amenazas > Configuracion de antivirus y proteccion contra amenazas > Proteccion contra alteraciones, y volve a aplicar.' }
+            } else {
+                # Solo si el antivirus de verdad se apago se avisa lo de reiniciar antes de jugar Valorant y se toca Vanguard
+                Vanguard-Check
+            }
         }
         R = {
             Opt-Ini 'Antivirus de Windows (restaurar)'
@@ -2360,7 +2612,7 @@ $ListaOpciones = @(
         Q = '- Desea desactivar BitLocker? (Descifra el disco; con R solo se quita el bloqueo)'
         Hace = 'descifra el disco y evita que Windows lo vuelva a cifrar solo.'
         Favor = 'un poco mas de velocidad de disco y no te bloquea el acceso si cambias hardware o la BIOS.'
-        Contra = 'si te roban la PC, pueden leer tus archivos.'
+        Contra = 'si te roban la PC, pueden leer tus archivos. Si tenes Riot Vanguard, se borra: REINICIA LA PC SIN FALTA antes de volver a instalarlo (o abrir VALORANT o LoL), o pueden salir errores y bucles de instalacion.'
         S = {
             Opt-Ini 'BitLocker'
             Resps (Act 'BL_OFF')
@@ -2420,40 +2672,6 @@ $ListaOpciones = @(
             Opt-Ini 'Compresion de memoria (restaurar)'
             Ya-Estaba
             Opt-Fin 'Compresion de memoria como viene en Windows (prendida)'
-        }
-    },
-    @{
-        Id = 'nvd'; Seccion = 'APPS Y PROCESOS EN SEGUNDO PLANO'
-        Q = '- Desea apagar el contenedor de pantalla de NVIDIA? (Libera RAM; el Panel de control de NVIDIA deja de abrir)'
-        Hace = 'deshabilita y detiene el servicio NVIDIA Display Container (NVDisplay.ContainerLocalSystem), que mantiene abiertos los procesos NVDisplay.Container.'
-        Favor = 'se cierran los procesos NVDisplay.Container y se libera RAM, sin tocar el driver.'
-        Contra = 'el Panel de control de NVIDIA y su icono no abren hasta restablecer. Al actualizar el driver puede volver a prenderse.'
-        S = {
-            Opt-Ini 'Contenedor de pantalla de NVIDIA'
-            Svc 'NVDisplay.ContainerLocalSystem' 'disabled' '4'; Svc-Parar 'NVDisplay.ContainerLocalSystem'
-            Opt-Fin 'Contenedor de pantalla de NVIDIA apagado'
-        }
-        R = {
-            Opt-Ini 'Contenedor de pantalla de NVIDIA (restaurar)'
-            Svc 'NVDisplay.ContainerLocalSystem' 'auto' '2'; Svc-Arrancar 'NVDisplay.ContainerLocalSystem'
-            Opt-Fin 'Contenedor de pantalla de NVIDIA restaurado'
-        }
-    },
-    @{
-        Id = 'inv'; Seccion = 'APPS Y PROCESOS EN SEGUNDO PLANO'
-        Q = '- Desea apagar el Inventario de compatibilidad y Salud de Windows? (Libera algo de RAM y CPU)'
-        Hace = 'deshabilita los servicios InventorySvc (inventario y evaluacion de compatibilidad) y whesvc (Salud y experiencias optimizadas de Windows).'
-        Favor = 'dos procesos menos siempre abiertos y menos uso de CPU en segundo plano.'
-        Contra = 'Windows no evalua si tu PC es compatible con una version nueva hasta restablecer.'
-        S = {
-            Opt-Ini 'Inventario y Salud de Windows'
-            foreach ($s in 'InventorySvc', 'whesvc') { Svc $s 'disabled' '4'; Svc-Parar $s }
-            Opt-Fin 'Inventario y Salud de Windows apagados'
-        }
-        R = {
-            Opt-Ini 'Inventario y Salud de Windows (restaurar)'
-            foreach ($s in 'InventorySvc', 'whesvc') { Svc $s 'delayed-auto' '2'; Svc-Arrancar $s }
-            Opt-Fin 'Inventario y Salud de Windows restaurados'
         }
     },
     @{
@@ -2927,35 +3145,40 @@ $ListaOpciones = @(
     },
     @{
         Id = 'rsv'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
-        Q = '- Desea apagar mas servicios para liberar RAM? (Telefono, Billetera, NFC, zona wifi, control parental, tarjetas inteligentes; no toca Xbox)'
-        Hace = 'apaga los servicios de Telefono, Billetera, pagos NFC, zona wifi movil, control parental, tarjetas inteligentes, Insider y seguimiento de accesos directos. No toca los servicios de Xbox ni Gaming Services.'
+        Q = '- Desea apagar servicios del sistema que casi nadie usa para liberar RAM? (Elegis en la lista: Seguros marcados; Extremos, con riesgo, los marcas vos; no toca Xbox ni Windows Hello)'
+        Hace = 'apaga o vuelve a prender los servicios del sistema que elijas en una lista, cada uno con su estado (Activo, Manual o Apagado). Los Seguros (Billetera, NFC, zona wifi movil, control parental, Insider, administracion remota y otros) vienen marcados; los Extremos (telefono, tarjetas inteligentes, camara, sensores, Wi-Fi Direct, Historial de archivos, compartir carpetas, Hyper-V, red local, Escritorio remoto, Temas, el contenedor de NVIDIA, el inventario de compatibilidad, la IA de Windows y mas) los marcas vos y cada uno dice que se pierde. Tambien podes volver a prender servicios sueltos: los Apagados (deshabilitados) salen en gris y los marcas. Solo cuenta como apagado un servicio deshabilitado: uno en Manual o Activo se apaga recien cuando lo marcas. Nunca toca los servicios de Xbox, Windows Hello ni el PIN.'
         Favor = 'menos servicios cargados: libera algo de RAM y procesos en segundo plano.'
-        Contra = 'la zona wifi movil, los lectores de tarjetas inteligentes y el control parental de Microsoft dejan de andar.'
+        Contra = 'cada servicio que apagues quita su funcion (la lista dice cual). Restablecer devuelve cada uno a como estaba antes.'
         S = {
-            Opt-Ini 'Mas servicios apagados para liberar RAM'
+            Opt-Ini 'Servicios apagados para liberar RAM'
             foreach ($n in (Svc-Lista 'rsv')) {
+                Svc-Guardar $n
                 Svc $n 'disabled' '4'
                 Svc-Parar $n
             }
-            Opt-Fin 'Servicios extra desactivados'
+            # Los que se marcaron en el submenu como "volver a prender" (cada uno vuelve a su inicio original)
+            $on = Elegidos 'rsvon'
+            if ($null -ne $on) { foreach ($n in @($on)) { Svc-Devolver $n } }
+            Opt-Fin 'Servicios desactivados'
         }
         R = {
-            Opt-Ini 'Mas servicios apagados (restaurar)'
-            foreach ($n in 'PhoneSvc', 'WalletService', 'SEMgrSvc', 'icssvc', 'wisvc', 'WpcMonSvc', 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc') {
-                Svc $n 'demand' '3'
-            }
-            Svc 'TrkWks' 'auto' '2'
+            Opt-Ini 'Servicios apagados (restaurar)'
+            foreach ($e in @($Elegibles.rsv)) { Svc-Devolver $e.Id }
+            # Versiones anteriores apagaban aca la biometria (Windows Hello con huella o cara): si quedo apagada vuelve a Manual
+            $wb = Svc-Inicio 'WbioSrvc'
+            if ($wb -and ([int]$wb.Start -eq 4)) { Log 'INFO' 'WbioSrvc estaba deshabilitado (version anterior): vuelve a Manual'; Svc 'WbioSrvc' 'demand' '3'; Svc-Arrancar 'WbioSrvc' }
             # La v1.0.11 apagaba aca los servicios de Xbox: si siguen deshabilitados vuelven a Manual (como vienen en Windows).
             # Si estan bien, no se tocan. Para tenerlos apagados a proposito esta la opcion "xbs".
             foreach ($n in $ServiciosXbox) {
                 $v = Reg-Leer ('HKLM\SYSTEM\CurrentControlSet\Services\' + $n) 'Start'
                 if ($v -and ($v.Valor -eq 4)) { Log 'INFO' ($n + ' estaba deshabilitado (v1.0.11): vuelve a Manual'); Svc $n 'demand' '3' }
             }
-            Opt-Fin 'Servicios extra restaurados'
+            Opt-Fin 'Servicios restaurados'
         }
     },
     @{
-        # v1.0.13: "Impresion, compartir en red y Escritorio remoto" se dividio en rmin (impresion), rnet (red local) y rdp (Escritorio remoto)
+        # v1.0.13: "Impresion, compartir en red y Escritorio remoto" se dividio en rmin (impresion), rnet (red local) y rdp (Escritorio remoto).
+        # Despues rnet y rdp pasaron a ser servicios de "rsv" (De = 'rnet' / 'rdp'). rmin queda suelta por el aviso de impresoras conectadas.
         Id = 'rmin'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
         Q = '- Desea apagar la impresion? (Extremo: menos procesos y RAM; no podras imprimir ni guardar en PDF desde Imprimir)'
         Hace = 'apaga los servicios de impresion (cola de impresion y avisos de la impresora).'
@@ -2972,50 +3195,6 @@ $ListaOpciones = @(
             Svc 'Spooler' 'auto' '2'; Svc-Arrancar 'Spooler'
             Svc 'PrintNotify' 'demand' '3'
             Opt-Fin 'Impresion restaurada'
-        }
-    },
-    @{
-        Id = 'rnet'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
-        Q = '- Desea apagar el descubrimiento de red y transmitir a la tele? (Extremo: tu PC deja de aparecer en la red local)'
-        Hace = 'apaga los servicios que hacen que tu PC aparezca en la red local y se pueda transmitir a la tele, la carpeta web (WebClient), el compartir medios y los archivos de trabajo.'
-        Favor = 'hay menos programas cargados en segundo plano y se libera algo de RAM.'
-        Contra = 'tu PC no aparece en la red local y no podes transmitir a la tele hasta que lo restablezcas.'
-        S = {
-            Opt-Ini 'Descubrimiento de red y transmitir'
-            foreach ($n in 'SSDPSRV', 'upnphost', 'lltdsvc', 'FDResPub', 'fdPHost', 'WMPNetworkSvc', 'workfolderssvc', 'WebClient') {
-                Svc $n 'disabled' '4'
-                Svc-Parar $n
-            }
-            Opt-Fin 'Descubrimiento de red y transmitir apagados'
-        }
-        R = {
-            Opt-Ini 'Descubrimiento de red y transmitir (restaurar)'
-            foreach ($n in 'SSDPSRV', 'upnphost', 'lltdsvc', 'FDResPub', 'fdPHost', 'WMPNetworkSvc', 'workfolderssvc', 'WebClient') {
-                Svc $n 'demand' '3'
-            }
-            Opt-Fin 'Descubrimiento de red y transmitir restaurados'
-        }
-    },
-    @{
-        Id = 'rdp'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
-        Q = '- Desea apagar el Escritorio remoto? (Extremo: nadie puede entrar a esta PC por Escritorio remoto)'
-        Hace = 'apaga los servicios de Escritorio remoto (TermService, SessionEnv y UmRdpService).'
-        Favor = 'menos servicios cargados y una puerta de entrada menos a tu PC.'
-        Contra = 'nadie puede entrar a esta PC por Escritorio remoto hasta que lo restablezcas.'
-        S = {
-            Opt-Ini 'Escritorio remoto'
-            foreach ($n in 'TermService', 'SessionEnv', 'UmRdpService') {
-                Svc $n 'disabled' '4'
-                Svc-Parar $n
-            }
-            Opt-Fin 'Escritorio remoto apagado'
-        }
-        R = {
-            Opt-Ini 'Escritorio remoto (restaurar)'
-            foreach ($n in 'TermService', 'SessionEnv', 'UmRdpService') {
-                Svc $n 'demand' '3'
-            }
-            Opt-Fin 'Escritorio remoto restaurado'
         }
     },
     @{
@@ -3184,29 +3363,6 @@ $ListaOpciones = @(
             Opt-Ini 'Espera de los programas de inicio (restaurar)'
             Reg-Del 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize' 'StartupDelayInMSec'
             Opt-Fin 'Espera de los programas de inicio como la deja Windows'
-        }
-    },
-    @{
-        Id = 'sx'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
-        Q = '- Desea apagar todavia mas servicios que casi nadie usa? (Extremo: Biometria, Sensores, Wi-Fi Direct, Telefonia, iSCSI, Respaldo y mas)'
-        Hace = 'apaga servicios poco usados: Inicio de sesion biometrico (Windows Hello con huella o cara), Sensores, Wi-Fi Direct y Windows Connect Now, Telefonia (TAPI), iSCSI, Historial de archivos, Copias de seguridad de Windows, Eventos remotos, Instalador de ActiveX, Enterprise App Management, Solucion de problemas guiada, Localizador RPC y mas.'
-        Favor = 'hay menos servicios abiertos y menos procesos de Windows en segundo plano.'
-        Contra = 'dejan de andar Windows Hello (huella o cara), los sensores (brillo automatico o rotacion), Wi-Fi Direct y el Historial de archivos. Si algo falla, restablece la opcion.'
-        S = {
-            Opt-Ini 'Servicios extra apagados'
-            foreach ($n in (Svc-Lista 'sx')) {
-                Svc $n 'disabled' '4'
-                Svc-Parar $n
-            }
-            Opt-Fin 'Servicios extra apagados'
-        }
-        R = {
-            Opt-Ini 'Servicios extra apagados (restaurar)'
-            foreach ($n in 'WbioSrvc', 'SensorDataService', 'SensrSvc', 'SensorService', 'wcncsvc', 'WFDSConMgrSvc', 'TapiSrv', 'MSiSCSI', 'fhsvc', 'SDRSVC', 'Wecsvc', 'AxInstSV', 'EntAppSvc', 'TroubleshootingSvc', 'RpcLocator', 'ALG', 'CertPropSvc', 'SmsRouter', 'lmhosts') {
-                Svc $n 'demand' '3'
-            }
-            Svc-Arrancar 'WbioSrvc'
-            Opt-Fin 'Servicios extra restaurados'
         }
     },
     @{
@@ -3474,15 +3630,6 @@ $ListaOpciones = @(
         }
     },
     @{
-        Id = 'tem'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
-        Q = '- Desea apagar el servicio de Temas? (EXTREMO: Windows se ve con el estilo basico)'
-        Hace = 'deshabilita y detiene el servicio Temas (Themes).'
-        Favor = 'un servicio menos; ahorra poca RAM.'
-        Contra = 'los programas clasicos pierden el estilo visual de Windows 11 (botones y ventanas planos y viejos), y los temas y fondos dinamicos dejan de aplicarse. Se arregla restableciendo.'
-        S = { Opt-Ini 'Temas'; Svc 'Themes' 'disabled' '4'; Svc-Parar 'Themes'; Opt-Fin 'Temas apagado' }
-        R = { Opt-Ini 'Temas (restaurar)'; Svc 'Themes' 'auto' '2'; Svc-Arrancar 'Themes'; Opt-Fin 'Temas restaurado' }
-    },
-    @{
         Id = 'tim'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
         Q = '- Desea apagar la Entrada de texto moderna? (EXTREMO: puede que no puedas escribir en el Inicio ni en Configuracion)'
         Hace = 'deshabilita y detiene el Servicio de administracion de entrada de texto (TextInputManagementService), que maneja ctfmon y la escritura en las apps modernas.'
@@ -3499,15 +3646,6 @@ $ListaOpciones = @(
         Contra = 'no podes iniciar sesion con tu cuenta de Microsoft en la Store, Office, OneDrive, Xbox, Teams, el Outlook nuevo ni en Configuracion > Cuentas. Tu sesion de Windows y los programas que no usan cuenta de Microsoft siguen.'
         S = { Opt-Ini 'Cuentas web'; Svc 'TokenBroker' 'disabled' '4'; Svc-Parar 'TokenBroker'; Opt-Fin 'Cuentas web apagado' }
         R = { Opt-Ini 'Cuentas web (restaurar)'; Svc 'TokenBroker' 'demand' '3'; Opt-Fin 'Cuentas web restaurado' }
-    },
-    @{
-        Id = 'aif'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
-        Q = '- Desea apagar el servicio de IA de Windows (AI Fabric)? (Funciones de IA de Copilot+)'
-        Hace = 'deshabilita y detiene WSAIFabricSvc, el servicio que corre los modelos de IA locales de Windows.'
-        Favor = 'un servicio menos siempre prendido.'
-        Contra = 'las funciones de IA local (Click to Do, busqueda semantica, efectos de IA en Fotos y Paint) no andan hasta restablecer.'
-        S = { Opt-Ini 'IA de Windows (servicio)'; Svc 'WSAIFabricSvc' 'disabled' '4'; Svc-Parar 'WSAIFabricSvc'; Opt-Fin 'IA de Windows (servicio) apagado' }
-        R = { Opt-Ini 'IA de Windows (servicio) (restaurar)'; Svc 'WSAIFabricSvc' 'auto' '2'; Svc-Arrancar 'WSAIFabricSvc'; Opt-Fin 'IA de Windows (servicio) restaurado' }
     },
     @{
         Id = 'cdps'; Seccion = 'SERVICIOS Y FUNCIONES QUE CASI NADIE USA'
@@ -4114,40 +4252,49 @@ $ListaOpciones = @(
         }
     },
     @{
-        # v1.0.13: "Bloat de Edge y Brave" se dividio en eb (Edge) y ebb (Brave)
+        # v1.0.13: una sola opcion para Edge y Brave: actua solo sobre el que este instalado (antes eran eb y ebb)
         Id = 'eb'; Seccion = 'APPS, NAVEGADORES E IA'
-        Q = '- Desea reducir el bloat de Edge? (Sin barra lateral, compras, rewards ni IA; no lo desinstala)'
-        Hace = 'apaga en Edge la barra lateral, compras, rewards, recomendaciones, el arranque en segundo plano e IA: saca Copilot (no lee tus paginas ni tu historial), la escritura con IA, los temas con IA, la IA de DevTools y la descarga de modelos de IA locales.'
-        Favor = 'Edge mas liviano y sin publicidad.'
+        Q = '- Desea reducir el bloat del navegador? (Edge y Brave: sin barra lateral, compras, rewards, cripto ni IA; no los desinstala)'
+        Hace = 'en Edge apaga la barra lateral, compras, rewards, recomendaciones, el arranque en segundo plano e IA (Copilot sin leer tus paginas ni tu historial, escritura con IA, temas con IA, IA de DevTools y modelos de IA locales); en Brave apaga las recompensas, la billetera de cripto, la VPN y el chat con IA (Leo). Solo actua sobre el navegador que tengas instalado y no los desinstala.'
+        Favor = 'Edge y Brave mas livianos y sin publicidad.'
         Contra = 'perdes esas funciones si las usabas.'
         S = {
-            Opt-Ini 'Bloat de Edge'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeShoppingAssistantEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ShowMicrosoftRewards' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'PersonalizationReportingEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'MetricsReportingEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'StartupBoostEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'BackgroundModeEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeFollowEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ShowRecommendationsEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'SpotlightExperiencesAndRecommendationsEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'PromotionalTabsEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'CopilotPageContext' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'CopilotCDPPageContext' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeEntraCopilotPageContext' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'Microsoft365CopilotChatIconEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeHistoryAISearchEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ComposeInlineEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'GenAILocalFoundationalModelSettings' 'REG_DWORD' '1'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'BuiltInAIAPIsEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'AIGenThemesEnabled' 'REG_DWORD' '0'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'DevToolsGenAiSettings' 'REG_DWORD' '2'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ShareBrowsingHistoryWithCopilotSearchAllowed' 'REG_DWORD' '0'
-            Opt-Fin 'Bloat de Edge reducido'
+            Opt-Ini 'Bloat del navegador'
+            $nav = @(Navegadores-Instalados)
+            if ($nav -contains 'edge') {
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeShoppingAssistantEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ShowMicrosoftRewards' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'PersonalizationReportingEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'MetricsReportingEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'StartupBoostEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'BackgroundModeEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeFollowEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ShowRecommendationsEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'SpotlightExperiencesAndRecommendationsEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'PromotionalTabsEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'CopilotPageContext' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'CopilotCDPPageContext' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeEntraCopilotPageContext' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'Microsoft365CopilotChatIconEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeHistoryAISearchEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ComposeInlineEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'GenAILocalFoundationalModelSettings' 'REG_DWORD' '1'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'BuiltInAIAPIsEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'AIGenThemesEnabled' 'REG_DWORD' '0'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'DevToolsGenAiSettings' 'REG_DWORD' '2'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ShareBrowsingHistoryWithCopilotSearchAllowed' 'REG_DWORD' '0'
+            }
+            if ($nav -contains 'brave') {
+                Reg-Set 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled' 'REG_DWORD' '1'
+                Reg-Set 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveWalletDisabled' 'REG_DWORD' '1'
+                Reg-Set 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveVPNDisabled' 'REG_DWORD' '1'
+                Reg-Set 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveAIChatEnabled' 'REG_DWORD' '0'
+            }
+            if ($nav.Count -eq 0) { Opt-Fin 'No hay Edge ni Brave instalados: no habia nada que reducir' } else { Opt-Fin ('Bloat del navegador reducido: ' + ($nav -join ' y ')) }
         }
         R = {
-            Opt-Ini 'Bloat de Edge (restaurar)'
+            Opt-Ini 'Bloat del navegador (restaurar)'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'EdgeShoppingAssistantEnabled'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ShowMicrosoftRewards'
@@ -4170,30 +4317,11 @@ $ListaOpciones = @(
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'AIGenThemesEnabled'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'DevToolsGenAiSettings'
             Reg-Del 'HKLM\SOFTWARE\Policies\Microsoft\Edge' 'ShareBrowsingHistoryWithCopilotSearchAllowed'
-            Opt-Fin 'Politicas de Edge restauradas'
-        }
-    },
-    @{
-        Id = 'ebb'; Seccion = 'APPS, NAVEGADORES E IA'
-        Q = '- Desea reducir el bloat de Brave? (Sin rewards, billetera, VPN ni IA; no lo desinstala)'
-        Hace = 'apaga en Brave las recompensas (Brave Rewards), la billetera de cripto, la VPN y el chat con IA (Leo). Si no tenes Brave, queda listo por si lo instalas.'
-        Favor = 'Brave mas liviano y sin publicidad de cripto.'
-        Contra = 'perdes esas funciones si las usabas.'
-        S = {
-            Opt-Ini 'Bloat de Brave'
-            Reg-Set 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled' 'REG_DWORD' '1'
-            Reg-Set 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveWalletDisabled' 'REG_DWORD' '1'
-            Reg-Set 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveVPNDisabled' 'REG_DWORD' '1'
-            Reg-Set 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveAIChatEnabled' 'REG_DWORD' '0'
-            Opt-Fin 'Bloat de Brave reducido'
-        }
-        R = {
-            Opt-Ini 'Bloat de Brave (restaurar)'
             Reg-Del 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled'
             Reg-Del 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveWalletDisabled'
             Reg-Del 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveVPNDisabled'
             Reg-Del 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveAIChatEnabled'
-            Opt-Fin 'Politicas de Brave restauradas'
+            Opt-Fin 'Politicas de Edge y Brave restauradas'
         }
     },
     @{
@@ -4216,14 +4344,15 @@ $ListaOpciones = @(
     @{
         Id = 'cam'; Seccion = 'INTERFAZ Y COMODIDAD'
         Q = '- Desea permitir que varias apps usen la camara a la vez? (Opcion avanzada de la camara de Windows)'
-        Hace = 'activa "Permitir que varias aplicaciones usen la camara al mismo tiempo" (Frame Server).'
+        Hace = 'activa el modo Frame Server general de Windows y abre la pagina de tu camara para que actives ahi "Permitir que varias aplicaciones usen la camara al mismo tiempo" (en Windows 11 reciente es un interruptor por camara y Brio no lo puede cambiar solo).'
         Favor = 'podes usar la camara en OBS, Discord, Teams, etc. a la vez sin que una bloquee a la otra.'
-        Contra = 'algunos controles de la camara solo se pueden cambiar desde la pagina de ajustes de la camara.'
+        Contra = 'el interruptor de tu camara lo tenes que activar vos a mano en la ventana que se abre (Configuracion > Bluetooth y dispositivos > Camaras > tu camara > Opciones avanzadas). Si no lo activas, puede no funcionar.'
         S = {
             Opt-Ini 'Camara en varias apps'
             Reg-Set 'HKLM\SOFTWARE\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode' 'REG_DWORD' '1'
             Reg-Set 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows Media Foundation\Platform' 'EnableFrameServerMode' 'REG_DWORD' '1'
-            Opt-Fin 'Varias apps pueden usar la camara a la vez (reinicia las apps que usan la camara)'
+            Abrir-Pagina 'ms-settings:camera'
+            Opt-Fin 'Se abrio la pagina de camaras: elegi tu camara > Opciones avanzadas y activa "Permitir que varias aplicaciones usen la camara al mismo tiempo" (reinicia las apps que usan la camara)'
         }
         R = {
             Opt-Ini 'Camara en varias apps (restaurar)'
@@ -4306,19 +4435,25 @@ $ListaOpciones = @(
     },
     @{
         Id = 'db'; Seccion = 'APPS, NAVEGADORES E IA'
-        Q = '- Desea borrar las apps basura? (OneDrive, Copilot, IA y apps de fabrica como Spotify, Netflix, Teams u Outlook; no toca WhatsApp, Xbox ni la Store)'
-        Hace = 'borra OneDrive, Copilot, los paquetes de IA y las apps que vienen de fabrica.'
+        Q = '- Desea borrar apps del sistema (apps basura)? (OneDrive, Copilot, IA y apps de fabrica como Spotify, Netflix, Teams u Outlook; no toca WhatsApp, Xbox ni la Store)'
+        Hace = 'borra apps del sistema: OneDrive, Copilot, los paquetes de IA y las apps que vienen de fabrica.'
         Favor = 'mas espacio, menos RAM y menos procesos.'
-        Contra = 'no tiene R: si queres alguna, la reinstalas desde la Store. Tus archivos de OneDrive en la PC no se borran.'
+        Contra = 'no tiene R: si queres alguna, la reinstalas desde la Store. Tus archivos de OneDrive en la PC no se borran. Si tus carpetas Escritorio, Documentos o Imagenes estan dentro de OneDrive, Brio te pide confirmar que las mueve a su lugar normal antes de quitarlo (sin vuelta automatica: las rutas de tus programas cambian).'
         S = {
             Opt-Ini 'Apps basura'
             Say '  Revisando y desinstalando, un momento...'
-            Reg-Set 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 'REG_DWORD' '1'
-            Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 'REG_DWORD' '1'
-            Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowCopilotButton' 'REG_DWORD' '0'
+            # Si al aplicar un perfil dijiste que seguis usando Copilot y la IA (XKEEP_db), no se tocan
+            $conIa = (@(([string]$env:XKEEP_db) -split "`t") -notcontains 'Copilot')
+            if ($conIa) {
+                Reg-Set 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 'REG_DWORD' '1'
+                Reg-Set 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 'REG_DWORD' '1'
+                Reg-Set 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowCopilotButton' 'REG_DWORD' '0'
+            } else { Log 'INFO' 'Copilot y la IA de Windows se dejan: dijiste que los usas' }
             Resps (Act 'DEBLOAT')
-            Resps (Act 'IA_PAQ')
-            Resps (Act 'IA_ARCH')
+            if ($conIa) {
+                Resps (Act 'IA_PAQ')
+                Resps (Act 'IA_ARCH')
+            }
             Opt-Fin 'Apps basura quitadas'
         }
     },

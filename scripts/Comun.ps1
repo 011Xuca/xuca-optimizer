@@ -28,6 +28,7 @@ $QAct = ''                  # opcion que se esta aplicando
 $Reinicio = $false          # alguna opcion que necesita reiniciar cambio algo de verdad
 $ReinIds = @()
 $VgAviso = $false           # se apago algo de seguridad: hay que reiniciar antes de jugar Valorant
+$VgBorrado = $false          # se quito Vanguard en esta corrida: reinicio obligatorio
 $VgHecho = $false           # Vanguard ya se reviso (o se borro) en una opcion anterior
 $Build = 0; $RamGB = 0; $EsHdd = $false; $Stamp = ''
 $XCarpeta = ''              # carpeta scripts (donde estan los .ps1, Edge.txt y logs)
@@ -37,9 +38,21 @@ $Parar = $false             # una opcion pidio cortar aca (por ejemplo, se abrio
 # ------------------------------------------------------------
 # Salida y log
 # ------------------------------------------------------------
+# Los logs se escriben en UTF-8 con BOM (las tildes se leen bien en cualquier lector). Si el archivo ya existe sin BOM (de una version
+# vieja, en ANSI) se sigue escribiendo igual que lo que ya tiene, para no mezclar dos codificaciones en el mismo archivo.
+$XLogRuta = ''; $XLogEnc = $null
 function Log([string]$tag, [string]$msg) {
     if (-not $script:XLog) { return }
-    try { [IO.File]::AppendAllText($script:XLog, ('[{0}] [{1}] {2}' -f (Get-Date -Format 'HH:mm:ss.fff'), $tag, $msg) + "`r`n", [Text.Encoding]::Default) } catch { }
+    try {
+        if ($script:XLogRuta -ne $script:XLog) {
+            $script:XLogRuta = $script:XLog; $script:XLogEnc = (New-Object Text.UTF8Encoding $true)
+            if ((Test-Path -LiteralPath $script:XLog) -and ((Get-Item -LiteralPath $script:XLog).Length -gt 0)) {
+                $b3 = [byte[]](Get-Content -LiteralPath $script:XLog -Encoding Byte -TotalCount 3)
+                if (-not (($b3.Count -ge 3) -and ($b3[0] -eq 0xEF) -and ($b3[1] -eq 0xBB) -and ($b3[2] -eq 0xBF))) { $script:XLogEnc = [Text.Encoding]::Default }
+            }
+        }
+        [IO.File]::AppendAllText($script:XLog, ('[{0}] [{1}] {2}' -f (Get-Date -Format 'HH:mm:ss.fff'), $tag, $msg) + "`r`n", $script:XLogEnc)
+    } catch { }
 }
 # Lo que antes se veia en la ventana negra: ahora va al archivo que lee la app (el color no se usa).
 # En la ventana de PowerShell a la vista se muestra ahi, con su color.
@@ -111,6 +124,11 @@ function Opt-Ini([string]$nombre) {
 
 function Opt-Fin([string]$msg) {
     if (($script:OptT -gt 0) -and ($script:ReinIds -contains $script:QAct)) { $script:Reinicio = $true }
+    # Para el cartel final de la app: solo cuenta como "aplicada" la que cambio algo de verdad (ok), no las que ya estaban o no aplican
+    if ($env:XR_XRES -eq '1') {
+        $est = $(if ($script:OptF -gt 0) { 'fallo' } elseif (($script:OptP -gt 0) -or ($script:OptT -gt 0)) { 'ok' } elseif ($script:OptS -gt 0) { 'ya' } else { 'noap' })
+        Say ('XRES|op|' + $script:QAct + '|' + $est)
+    }
     if ($script:OptF -gt 0) {
         Say ('  ERROR: ' + $msg + ' - fallaron ' + $script:OptF + ' de ' + $script:OptT + ' cambios, mira el log.')
         Log 'ATENCION' ($msg + ' - fallaron ' + $script:OptF + ' de ' + $script:OptT + ' cambios')
@@ -347,14 +365,15 @@ function Svc-Parar([string]$nombre) {
     $s = Get-Service -Name $nombre -ErrorAction SilentlyContinue
     if ((-not $s) -or ($s.Status -ne 'Running')) { return }
     & sc.exe stop $nombre 2>&1 | Out-Null
-    Log 'INFO' ('servicio ' + $nombre + ' detenido')
+    # El inicio ya quedo cambiado: si no se deja parar ahora (dependencias, protegido), se nota al reiniciar
+    if ($LASTEXITCODE -eq 0) { Log 'INFO' ('servicio ' + $nombre + ' detenido') } else { Log 'INFO' ('servicio ' + $nombre + ' no se pudo detener ahora (sc.exe ' + $LASTEXITCODE + '): queda asi al reiniciar') }
 }
 
 function Svc-Arrancar([string]$nombre) {
     $s = Get-Service -Name $nombre -ErrorAction SilentlyContinue
     if ((-not $s) -or ($s.Status -ne 'Stopped')) { return }
     & sc.exe start $nombre 2>&1 | Out-Null
-    Log 'INFO' ('servicio ' + $nombre + ' iniciado')
+    if ($LASTEXITCODE -eq 0) { Log 'INFO' ('servicio ' + $nombre + ' iniciado') } else { Log 'INFO' ('servicio ' + $nombre + ' no se pudo iniciar ahora (sc.exe ' + $LASTEXITCODE + '): arranca al reiniciar') }
 }
 
 # Tareas programadas ($modo = disable o enable)
@@ -463,6 +482,213 @@ function Refrescar-Explorer {
     } catch { Log 'INFO' ('no se pudo avisar al Explorador: ' + $_.Exception.Message) }
 }
 
+# ------------------------------------------------------------
+# Devolver las carpetas de Windows (Escritorio, Documentos, Imagenes...) de OneDrive a su lugar normal, moviendo TODO su contenido.
+# Es lo mismo que "Propiedades > Ubicacion > Restaurar valores predeterminados > Mover". Mueve datos del usuario, asi que:
+#   - todo se revisa ANTES y si falla algo no se mueve nada
+#   - nunca se borra nada del destino (sin /PURGE ni /MIR) ni se pisa un archivo: si el nombre ya existe, el de OneDrive se renombra "(desde OneDrive)"
+#   - el registro de una carpeta solo cambia cuando todo su contenido llego y se verifico por conteo y tamano
+#   - jamas se toca la carpeta raiz de OneDrive ni nada fuera de estas carpetas conocidas
+# Las rutas y las claves de registro se reciben como parametros para poder probarlo en carpetas y claves falsas.
+# ------------------------------------------------------------
+$OdConocidas = @(@('Desktop', 'Desktop'), @('Personal', 'Documents'), @('My Pictures', 'Pictures'), @('My Music', 'Music'), @('My Video', 'Videos'), @('{374DE290-123F-4565-9164-39C4925E467B}', 'Downloads'))
+$OdSufijo = ' (desde OneDrive)'
+
+# Carpetas conocidas que hoy estan dentro de OneDrive: @{ Clave; Normal; Origen; Destino }
+function Od-Carpetas([string]$usfKey, [string]$perfil, [string]$raizOd) {
+    $r = @()
+    $usf = Get-ItemProperty -Path $usfKey -ErrorAction SilentlyContinue
+    if (-not $usf) { return $r }
+    foreach ($k in $OdConocidas) {
+        $v = [string]$usf.($k[0]); if (-not $v) { continue }
+        $o = [Environment]::ExpandEnvironmentVariables($v).TrimEnd('\')
+        $dentro = ($o -match '\\OneDrive[^\\]*(\\|$)') -or ($raizOd -and $o.StartsWith($raizOd.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase))
+        if (-not $dentro) { continue }
+        $r += @{ Clave = $k[0]; Normal = $k[1]; Origen = $o; Destino = (Join-Path $perfil $k[1]) }
+    }
+    return $r
+}
+
+# Tipo de reparse point de un archivo o carpeta (lo lee de WIN32_FIND_DATA.dwReserved0). 0 = no tiene, -1 = no se pudo leer
+function Od-Tag([string]$ruta) {
+    try {
+        if (-not ('OdTag' -as [type])) {
+            Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class OdTag { [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] struct FD { public uint attr; public System.Runtime.InteropServices.ComTypes.FILETIME c, a, w; public uint hi, lo, res0, res1; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string name; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 14)] public string alt; } [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern IntPtr FindFirstFileW(string p, out FD d); [DllImport("kernel32.dll")] static extern bool FindClose(IntPtr h); public static long Tag(string path) { FD d; IntPtr h = FindFirstFileW(path, out d); if (h == (IntPtr)(-1)) return -1; FindClose(h); return ((d.attr & 0x400) != 0) ? (long)d.res0 : 0; } }' -Language CSharp -ErrorAction Stop
+        }
+        return [long][OdTag]::Tag($ruta)
+    } catch { return -1 }
+}
+# Que es de verdad un archivo o carpeta con el atributo ReparsePoint (0x400), segun su ETIQUETA y no solo el atributo:
+#   'enlace' = junction (0xA0000003) o enlace simbolico (0xA000000C): bloquean, se siguen hacia afuera
+#   'nube'   = marcador de OneDrive / Files On-Demand (0x9000X01A, por ejemplo 0x9000701A): es un archivo o carpeta normal de OneDrive, se recorre
+#   'otro'   = cualquier otra etiqueta (compresion de Windows, etc.): se trata como normal
+#   'normal' = sin atributo ReparsePoint
+function Od-Clase([int]$at, [long]$tag) {
+    if (-not ($at -band 0x400)) { return 'normal' }
+    if (($tag -eq 0xA0000003L) -or ($tag -eq 0xA000000CL)) { return 'enlace' }
+    if (($tag -band 0xFFFF0FFFL) -eq 0x9000001AL) { return 'nube' }
+    if ($tag -gt 0) { return 'otro' }
+    if ($at -band 0x441000) { return 'nube' }    # etiqueta ilegible pero con marcas de nube
+    return 'enlace'                                # sin etiqueta y sin marcas de nube: por prudencia se trata como enlace
+}
+
+# Recorre una carpeta sin seguir enlaces reales. Devuelve archivos, bytes, y lo que impide moverla (nube, enlaces, en uso, rutas largas)
+function Od-Revisar($c, [string]$raizOd) {
+    $res = @{ Archivos = 0; Bytes = [long]0; Motivos = @(); Causas = @(); Nube = @(); Enlaces = @(); EnUso = @() }
+    $src = [string]$c.Origen
+    if (-not (Test-Path -LiteralPath $src -PathType Container)) { $res.Motivos += ('la carpeta de origen no existe: ' + $src); $res.Causas += 'otro'; return $res }
+    $dst = [string]$c.Destino
+    if ($raizOd -and ($src.TrimEnd('\') -eq $raizOd.TrimEnd('\'))) { $res.Motivos += ('la carpeta es la raiz de OneDrive, no se mueve: ' + $src); $res.Causas += 'otro'; return $res }
+    if (($dst.TrimEnd('\') -eq $src.TrimEnd('\')) -or ($dst -like ($src.TrimEnd('\') + '\*')) -or ($src -like ($dst.TrimEnd('\') + '\*'))) { $res.Motivos += ('origen y destino estan uno dentro del otro: ' + $src + ' -> ' + $dst); $res.Causas += 'otro'; return $res }
+    if ((Test-Path -LiteralPath $dst) -and (-not (Test-Path -LiteralPath $dst -PathType Container))) { $res.Motivos += ('el destino existe y no es una carpeta: ' + $dst); $res.Causas += 'otro'; return $res }
+    $pila = New-Object System.Collections.Generic.Stack[string]; $pila.Push($src); $largas = 0
+    while ($pila.Count -gt 0) {
+        $d = $pila.Pop()
+        try { $hijos = @((New-Object IO.DirectoryInfo $d).GetFileSystemInfos()) } catch { $res.EnUso += ($d + ' (no se pudo leer)'); continue }
+        foreach ($h in $hijos) {
+            $at = [int]$h.Attributes
+            $tag = [long]0; if ($at -band 0x400) { $tag = Od-Tag $h.FullName }
+            $cl = Od-Clase $at $tag
+            if ($cl -eq 'enlace') { $res.Enlaces += $h.FullName; continue }
+            if ($at -band 0x10) { $pila.Push($h.FullName); continue }
+            if ($h.Name -ieq 'desktop.ini') { continue }
+            # Solo en la nube (RECALL_ON_DATA_ACCESS 0x400000, RECALL_ON_OPEN 0x40000 u OFFLINE 0x1000): moverlo no lo descargaria y se perderia el acceso
+            if (($at -band 0x441000) -ne 0) { $res.Nube += $h.FullName; continue }
+            $res.Archivos++; $res.Bytes += [long]$h.Length
+            if (($h.FullName.Length - $src.Length + $dst.Length) -gt 240) { $largas++ }
+            try { $fs = [IO.File]::Open($h.FullName, 'Open', 'Read', 'None'); $fs.Close() } catch { $res.EnUso += $h.FullName }
+        }
+    }
+    if ($res.Nube.Count -gt 0) { $res.Motivos += ('hay ' + $res.Nube.Count + ' archivos que solo estan en la nube dentro de ' + $src + ': ' + (($res.Nube | Select-Object -First 3) -join ', ') + $(if ($res.Nube.Count -gt 3) { ' ...' } else { '' }) + ' (en OneDrive: clic derecho > Mantener siempre en este dispositivo, y espera a que termine de sincronizar)'); $res.Causas += 'nube' }
+    if ($res.Enlaces.Count -gt 0) { $res.Motivos += ('hay enlaces reales (junction o acceso simbolico) dentro de ' + $src + ': ' + (($res.Enlaces | Select-Object -First 3) -join ', ')); $res.Causas += 'enlaces' }
+    if ($largas -gt 0) { $res.Motivos += ('hay ' + $largas + ' archivos con ruta demasiado larga en ' + $src); $res.Causas += 'larga' }
+    if ($res.EnUso.Count -gt 0) { $res.Motivos += ('hay archivos abiertos por algun programa o sin permiso en ' + $src + ': ' + (($res.EnUso | Select-Object -First 3) -join ', ')); $res.Causas += 'uso' }
+    return $res
+}
+
+function Od-Libre([string]$raiz) { return (New-Object IO.DriveInfo $raiz).AvailableFreeSpace }
+# Cuenta archivos y bytes de un arbol (sin desktop.ini)
+function Od-Contar([string]$ruta) {
+    $n = 0; $b = [long]0
+    if (Test-Path -LiteralPath $ruta -PathType Container) {
+        foreach ($f in @(Get-ChildItem -LiteralPath $ruta -Recurse -File -Force -ErrorAction SilentlyContinue)) { if ($f.Name -ine 'desktop.ini') { $n++; $b += [long]$f.Length } }
+    }
+    return @{ Archivos = $n; Bytes = $b }
+}
+
+# Si el destino ya tiene algo con el mismo nombre, lo de OneDrive se renombra (en OneDrive) para que robocopy nunca pise nada
+function Od-Renombrar-Choques([string]$src, [string]$dst) {
+    $n = 0
+    foreach ($h in @(Get-ChildItem -LiteralPath $src -Force -ErrorAction SilentlyContinue)) {
+        if ($h.Name -ieq 'desktop.ini') { continue }
+        $dp = Join-Path $dst $h.Name; $actual = $h.FullName
+        if (Test-Path -LiteralPath $dp) {
+            $dirS = $h.PSIsContainer; $dirD = (Test-Path -LiteralPath $dp -PathType Container)
+            # Carpeta con carpeta se junta sin problema; todo lo demas es un choque
+            if (-not ($dirS -and $dirD)) {
+                $base = $(if ($dirS) { $h.Name } else { [IO.Path]::GetFileNameWithoutExtension($h.Name) }); $ext = $(if ($dirS) { '' } else { $h.Extension })
+                $nom = $base + $OdSufijo + $ext; $i = 2
+                while ((Test-Path -LiteralPath (Join-Path $dst $nom)) -or (Test-Path -LiteralPath (Join-Path $src $nom))) { $nom = $base + $OdSufijo + ' ' + $i + $ext; $i++ }
+                Rename-Item -LiteralPath $h.FullName -NewName $nom -ErrorAction Stop
+                $n++; $actual = Join-Path $src $nom; $dp = Join-Path $dst $nom
+            }
+        }
+        if ($h.PSIsContainer -and (Test-Path -LiteralPath $dp -PathType Container)) { $n += (Od-Renombrar-Choques $actual $dp) }
+    }
+    return $n
+}
+
+# Apunta la carpeta a su lugar normal en el registro (como lo deja Windows): User Shell Folders con variable, Shell Folders con la ruta completa
+function Od-Registro($c, [string]$usfKey, [string]$sfKey) {
+    Set-ItemProperty -Path $usfKey -Name $c.Clave -Value ('%USERPROFILE%\' + $c.Normal) -Type ExpandString -ErrorAction Stop
+    if ($sfKey) { Set-ItemProperty -Path $sfKey -Name $c.Clave -Value $c.Destino -Type String -ErrorAction Stop }
+}
+
+# Mueve por renombrado cada archivo y carpeta (mismo volumen: es un cambio de metadatos, no copia ni descarga nada, y no hace falta espacio). Si la carpeta ya existe en el destino, se juntan. Devuelve los errores.
+function Od-Mover-Directo([string]$src, [string]$dst) {
+    $malos = @()
+    foreach ($h in @(Get-ChildItem -LiteralPath $src -Force -ErrorAction SilentlyContinue)) {
+        if ($h.Name -ieq 'desktop.ini') { continue }
+        $dp = Join-Path $dst $h.Name
+        try {
+            if ($h.PSIsContainer) {
+                if (Test-Path -LiteralPath $dp -PathType Container) { $malos += @(Od-Mover-Directo $h.FullName $dp) } else { [IO.Directory]::Move($h.FullName, $dp) }
+            } else { [IO.File]::Move($h.FullName, $dp) }
+        } catch { $malos += ($h.FullName + ': ' + $_.Exception.Message) }
+    }
+    return $malos
+}
+
+# Mueve una carpeta (ya revisada). Mismo volumen: renombrado; otro volumen: robocopy /MOVE. Devuelve @{ Ok; Archivos; Bytes; Motivo }
+function Od-Mover-Una($c, [string]$usfKey, [string]$sfKey) {
+    $src = [string]$c.Origen; $dst = [string]$c.Destino
+    $antes = Od-Contar $src; $ant = Od-Contar $dst
+    try {
+        if (-not (Test-Path -LiteralPath $dst)) { New-Item -ItemType Directory -Path $dst -ErrorAction Stop | Out-Null }
+        [void](Od-Renombrar-Choques $src $dst)
+    } catch { return @{ Ok = $false; Archivos = 0; Bytes = [long]0; Motivo = ('no se pudo preparar el destino: ' + $_.Exception.Message) } }
+    $mismoVol = ([IO.Path]::GetPathRoot($src) -ieq [IO.Path]::GetPathRoot($dst)) -and (-not $script:OdForzarRobocopy)
+    $rc = 0; $errs = @()
+    if ($mismoVol) { $errs = @(Od-Mover-Directo $src $dst) }
+    else {
+        # /XJ: no sigue enlaces. Sin /PURGE ni /MIR: nunca borra nada del destino. desktop.ini se deja (cada carpeta ya tiene el suyo).
+        $sal = & robocopy.exe $src $dst /E /MOVE /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /XF desktop.ini /NFL /NDL /NP /NJH /NJS 2>&1
+        $rc = $LASTEXITCODE
+    }
+    $desp = Od-Contar $dst; $resto = Od-Contar $src
+    $okConteo = ((($desp.Archivos - $ant.Archivos) -eq $antes.Archivos) -and (($desp.Bytes - $ant.Bytes) -eq $antes.Bytes) -and ($resto.Archivos -eq 0))
+    if (($rc -ge 8) -or ($errs.Count -gt 0) -or (-not $okConteo)) {
+        return @{ Ok = $false; Archivos = ($desp.Archivos - $ant.Archivos); Bytes = ($desp.Bytes - $ant.Bytes); Motivo = ('no se pudo mover todo (' + $(if ($mismoVol) { 'renombrado' } else { 'robocopy codigo ' + $rc }) + '): quedaron ' + $resto.Archivos + ' archivos en ' + $src + ' y la carpeta sigue apuntando a OneDrive; los archivos ya movidos estan en ' + $dst + $(if ($errs.Count -gt 0) { '. Primer error: ' + $errs[0] } else { '' })) }
+    }
+    try { Od-Registro $c $usfKey $sfKey } catch { return @{ Ok = $false; Archivos = $antes.Archivos; Bytes = $antes.Bytes; Motivo = ('se movio todo a ' + $dst + ' pero no se pudo actualizar el registro: ' + $_.Exception.Message) } }
+    return @{ Ok = $true; Archivos = $antes.Archivos; Bytes = $antes.Bytes; Motivo = '' }
+}
+
+# Proceso completo: revisa todas las carpetas; si alguna falla, no mueve nada; si no, las mueve una por una.
+# Devuelve @{ Movidas = lista de @{Carpeta;Archivos;Bytes}; Fallos = textos; Revisado = $true/$false }
+function Od-Proceso([string]$usfKey, [string]$sfKey, [string]$perfil, [string]$raizOd) {
+    $out = @{ Movidas = @(); Fallos = @(); Causas = @(); Revisado = $false; Total = 0; Bytes = [long]0 }
+    $cs = @(Od-Carpetas $usfKey $perfil $raizOd)
+    if ($cs.Count -eq 0) { return $out }
+    $rev = @{}; $porDisco = @{}
+    foreach ($c in $cs) {
+        $r = Od-Revisar $c $raizOd; $rev[$c.Clave] = $r
+        $out.Fallos += $r.Motivos; $out.Causas += $r.Causas
+        $dr = [IO.Path]::GetPathRoot([string]$c.Destino).ToUpper()
+        $porDisco[$dr] = [long]$porDisco[$dr] + [long]$r.Bytes
+        $out.Total += $r.Archivos; $out.Bytes += [long]$r.Bytes
+    }
+    # Espacio libre en el disco de destino: lo que se mueve (robocopy copia y despues borra) mas 10 % y 256 MB de margen
+    foreach ($dr in @($porDisco.Keys)) {
+        try {
+            $libre = Od-Libre $dr
+            $necesita = [long]($porDisco[$dr] * 1.1) + 256MB
+            if ($libre -lt $necesita) { $out.Causas += 'espacio'; $out.Fallos += ('no hay espacio en ' + $dr + ': hacen falta ' + [math]::Round($necesita / 1GB, 2) + ' GB y hay ' + [math]::Round($libre / 1GB, 2) + ' GB libres') }
+        } catch { $out.Fallos += ('no se pudo medir el espacio libre de ' + $dr) }
+    }
+    $out.Revisado = $true
+    if ($out.Fallos.Count -gt 0) { $out.Causas = @($out.Causas | Select-Object -Unique); return $out }
+    foreach ($c in $cs) {
+        $m = Od-Mover-Una $c $usfKey $sfKey
+        if ($m.Ok) { $out.Movidas += @{ Carpeta = $c.Normal; Origen = $c.Origen; Destino = $c.Destino; Archivos = $m.Archivos; Bytes = $m.Bytes } }
+        else { $out.Causas += 'otro'; $out.Fallos += ($c.Normal + ': ' + $m.Motivo) }
+    }
+    $out.Causas = @($out.Causas | Select-Object -Unique)
+    return $out
+}
+
+# Avisa al Explorador para que el Escritorio y las carpetas ya aparezcan en su lugar nuevo (reinicia explorer.exe: Windows lo vuelve a abrir solo)
+function Od-Avisar-Shell {
+    try {
+        if (-not ('XucaShellN' -as [type])) { Add-Type -Namespace '' -Name 'XucaShellN' -MemberDefinition '[System.Runtime.InteropServices.DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, uint f, IntPtr a, IntPtr b);' }
+        [XucaShellN]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
+        Refrescar-Explorer
+        Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 1500
+        if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) { Start-Process explorer.exe }
+    } catch { Log 'INFO' ('no se pudo avisar al Explorador: ' + $_.Exception.Message) }
+}
+
 function Proto-Del([string]$p) {
     if (-not (Reg-Existe ('HKCR\' + $p))) { $script:OptS++; Log 'OK' ('el protocolo ' + $p + ' ya no existia'); return }
     $script:OptT++
@@ -563,11 +789,41 @@ function Vanguard-Borrar {
             try { $pv = Start-Process -FilePath $vgc -ArgumentList '/uninstall' -WindowStyle Hidden -PassThru -ErrorAction Stop; $pv.WaitForExit(60000) | Out-Null } catch { }
             Esperar-Cierre 'vgc', 'vgtray' 2000
         }
+        # Servicios vgc y vgk: se dejan en Deshabilitado (Start=4) para que no arranquen, se paran y se borran; cada paso se comprueba
+        $pasos = @()
         foreach ($sv in 'vgc', 'vgk') {
             $s = Get-Service -Name $sv -ErrorAction SilentlyContinue
-            if ($s) { & sc.exe stop $sv 2>&1 | Out-Null; & sc.exe delete $sv 2>&1 | Out-Null }
+            $kv = 'HKLM:\SYSTEM\CurrentControlSet\Services\' + $sv
+            if ((-not $s) -and (-not (Test-Path -LiteralPath $kv))) { continue }
+            if (Test-Path -LiteralPath $kv) { try { Set-ItemProperty -LiteralPath $kv -Name 'Start' -Value 4 -Type DWord -ErrorAction Stop } catch { } }
+            & sc.exe stop $sv 2>&1 | Out-Null
+            & sc.exe delete $sv 2>&1 | Out-Null
+            Start-Sleep -Milliseconds 500
+            if (Get-Service -Name $sv -ErrorAction SilentlyContinue) { Log 'INFO' ('servicio ' + $sv + ' sigue marcado para borrar: se termina al reiniciar'); $pasos += ('servicio ' + $sv + ': deshabilitado, se borra al reiniciar') }
+            else { Log 'OK' ('servicio ' + $sv + ' parado y borrado'); $pasos += ('servicio ' + $sv + ': borrado') }
         }
-        foreach ($e in $entradas) { if (Test-Path -LiteralPath $e.PSPath) { Remove-Item -LiteralPath $e.PSPath -Recurse -Force -ErrorAction SilentlyContinue } }
+        # Driver vgk registrado en el almacen de drivers de Windows
+        $pn = (& pnputil.exe /enum-drivers 2>&1 | Out-String)
+        foreach ($blq in @($pn -split '(?:\r?\n){2,}')) {
+            if ($blq -notmatch '(?im)^\s*[^:\r\n]+:\s*(oem\d+\.inf)\s*$') { continue }
+            $oem = $Matches[1]
+            if ($blq -match '(?i)\bvgk(\.sys|\.inf)?\b|riot vanguard') {
+                & pnputil.exe /delete-driver $oem /uninstall /force 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) { Log 'OK' ('driver de Vanguard quitado del almacen: ' + $oem); $pasos += 'driver vgk: quitado del almacen' }
+                else { Log 'INFO' ('driver de Vanguard (' + $oem + ') no se pudo quitar ahora: se reintenta al reiniciar con los restos') }
+            }
+        }
+        # Tareas programadas de Vanguard (no la del cliente de Riot)
+        foreach ($tk in @(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { ($_.TaskName -like '*Vanguard*') -or ($_.TaskPath -like '*Vanguard*') -or (@($_.Actions | Where-Object { [string]$_.Execute -like '*Riot Vanguard*' }).Count -gt 0) })) {
+            if ($tk.TaskName -eq 'BorrarRestosVanguard') { continue }
+            try { Unregister-ScheduledTask -TaskName $tk.TaskName -TaskPath $tk.TaskPath -Confirm:$false -ErrorAction Stop; Log 'OK' ('tarea programada de Vanguard borrada: ' + $tk.TaskName); $pasos += 'tarea programada de Vanguard: borrada' } catch { Log 'INFO' ('tarea de Vanguard ' + $tk.TaskName + ': ' + $_.Exception.Message) }
+        }
+        # Restos de claves de registro de los servicios (sin tocar el cliente de Riot ni los juegos)
+        foreach ($sv in 'vgc', 'vgk') {
+            $kv = 'HKLM:\SYSTEM\CurrentControlSet\Services\' + $sv
+            if (Test-Path -LiteralPath $kv) { Remove-Item -LiteralPath $kv -Recurse -Force -ErrorAction SilentlyContinue; if (-not (Test-Path -LiteralPath $kv)) { Log 'OK' ('clave del servicio ' + $sv + ' borrada') } }
+        }
+        foreach ($e in $entradas) { if (Test-Path -LiteralPath $e.PSPath) { Remove-Item -LiteralPath $e.PSPath -Recurse -Force -ErrorAction SilentlyContinue; if (-not (Test-Path -LiteralPath $e.PSPath)) { $pasos += 'entrada de Riot Vanguard en Programas: borrada' } } }
         # 4) Restos en el disco principal: carpetas "Riot Vanguard" (o "Vanguard" dentro de una carpeta de Riot) en
         #    Archivos de programa, ProgramData, AppData de cada usuario y Temp; el driver vgk.sys y el inicio automatico
         #    de la bandeja (vgtray). No toca el cliente de Riot ni los juegos.
@@ -636,16 +892,18 @@ function Vanguard-Borrar {
             } catch { Log 'INFO' ('no se pudo programar el borrado al reiniciar: ' + $_.Exception.Message) }
         }
         $nRestos = @($restos | Select-Object -Unique).Count - $quedan.Count
-        if ($nRestos -gt 0) { Say ('  Restos de Vanguard borrados del disco: ' + $nRestos + '.') }
+        if ($nRestos -gt 0) { Say ('  Restos de Vanguard borrados del disco: ' + $nRestos + '.'); $pasos += ('carpetas y archivos de Vanguard borrados: ' + $nRestos) }
+        foreach ($ps in @($pasos | Select-Object -Unique)) { Say ('  - ' + $ps) }
+        $script:VgBorrado = $true
         Start-Sleep -Seconds 1
         $queda = (Get-Service -Name 'vgc', 'vgk' -ErrorAction SilentlyContinue) -or (Test-Path $vgDir) -or ($quedan.Count -gt 0)
         if (-not $queda) {
             Log 'OK' 'Riot Vanguard desinstalado del todo, sin restos en el disco: abri el cliente de Riot y te pide instalarlo de nuevo'
-            Say '  Riot Vanguard desinstalado, sin restos. Reinicia, abri el cliente de Riot y te pide instalarlo de nuevo.' 'Yellow'
+            Say '  Riot Vanguard desinstalado, sin restos. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.' 'Yellow'
             $code = 0
         } else {
             Log 'PENDIENTE' 'Riot Vanguard quitado: quedan restos en uso que se borran al reiniciar'
-            Say '  Riot Vanguard quitado: los restos que estaban en uso se borran al reiniciar. Despues abri el cliente de Riot y te pide instalarlo.' 'Yellow'
+            Say '  Riot Vanguard quitado: los restos que estaban en uso se borran al reiniciar. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.' 'Yellow'
             $code = 6
         }
     } | Out-Null
@@ -694,7 +952,7 @@ function Correr-Opciones {
         Leer-Info
         $script:XCarpeta = $Carpeta
         $script:ReinIds = @($Rein)
-        $script:Reinicio = $false; $script:VgAviso = $false; $script:VgHecho = $false; $script:Parar = $false
+        $script:Reinicio = $false; $script:VgAviso = $false; $script:VgBorrado = $false; $script:VgHecho = $false; $script:Parar = $false
         $dir = Join-Path $Carpeta 'logs'
         if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
         if (-not (Test-Path -LiteralPath $dir)) { $dir = $env:TEMP }
@@ -788,6 +1046,12 @@ function Correr-Opciones {
         }
         Say ('  Log completo en: ' + $script:XLog)
         Log 'INFO' ('Fin. Cambios fallidos: ' + $nFallo + ', opciones con problemas: ' + $nAten)
+        if ($script:VgBorrado) {
+            Say ''
+            Say 'REINICIA LA PC SIN FALTA ANTES de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.' 'Yellow'
+            Log 'ATENCION' 'Vanguard quitado: hay que reiniciar la PC antes de reinstalarlo'
+            $script:Reinicio = $true
+        }
         if ($script:VgAviso) {
             Say ''
             Say 'OBLIGATORIO REINICIAR ANTES DE PODER JUGAR VALORANT YA QUE DESACTIVASTE LOS AJUSTES DE SEGURIDAD.'
@@ -795,6 +1059,8 @@ function Correr-Opciones {
             $script:Reinicio = $true
         }
         Say ''
+        foreach ($ra in @($script:ReinicioApps | Where-Object { $_ } | Select-Object -Unique)) { Say ('XRES|reinicio|' + $ra) }
+        foreach ($oa in @($script:OmitidasApps | Where-Object { $_ } | Select-Object -Unique)) { Say ('XRES|omitida|' + $oa) }
         if ($script:Reinicio) { Say 'Hace falta reiniciar la PC para terminar de aplicar algunos cambios.' }
         else { Say 'No hace falta reiniciar: los cambios ya quedaron aplicados.' }
     } finally {

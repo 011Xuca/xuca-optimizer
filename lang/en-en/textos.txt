@@ -33,8 +33,8 @@ en: Windows Update stops installing drivers.
 es: Borrar las apps basura
 en: Delete bloatware apps
 
-es: no tiene R: si queres alguna, la reinstalas desde la Store. Tus archivos de OneDrive en la PC no se borran.
-en: it has no R: if you want one back, reinstall it from the Store. Your OneDrive files on the PC are not deleted.
+es: no tiene R: si queres alguna, la reinstalas desde la Store. Tus archivos de OneDrive en la PC no se borran. Si tus carpetas Escritorio, Documentos o Imagenes estan dentro de OneDrive, Brio te pide confirmar que las mueve a su lugar normal antes de quitarlo (sin vuelta automatica: las rutas de tus programas cambian).
+en: it has no R: if you want one back, reinstall it from the Store. Your OneDrive files on the PC are not deleted. If your Desktop, Documents or Pictures folders are inside OneDrive, Brio asks you to confirm moving them back to their normal place before removing it (no automatic undo: your programs' paths change).
 
 es: Instalar Google Chrome
 en: Install Google Chrome
@@ -393,11 +393,11 @@ en: of
 es: Ya no vas a poder volver atras con un punto de restauracion.
 en: You won't be able to go back with a restore point anymore.
 
-es: Si la Proteccion contra alteraciones sigue encendida, falla. Smart App Control no vuelve sin reinstalar Windows. Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).
-en: If Tamper Protection is still on, it fails. Smart App Control doesn't come back without reinstalling Windows. If it changes anything, it deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client).
+es: Si la Proteccion contra alteraciones sigue encendida, falla. Smart App Control no vuelve sin reinstalar Windows. Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot). REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.
+en: If Tamper Protection is still on, it fails. Smart App Control doesn't come back without reinstalling Windows. If it changes anything, it deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client). RESTART THE PC WITHOUT FAIL before reinstalling Vanguard (or opening VALORANT or LoL): if you install it without restarting, errors and install loops can happen.
 
-es: Descifrar el disco puede tardar bastante en segundo plano. Si cambia algo, borra Riot Vanguard.
-en: Decrypting the disk can take quite a while in the background. If it changes anything, it deletes Riot Vanguard.
+es: Descifrar el disco puede tardar bastante en segundo plano. Si cambia algo, borra Riot Vanguard. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.
+en: Decrypting the disk can take quite a while in the background. If it changes anything, it deletes Riot Vanguard. RESTART THE PC WITHOUT FAIL before reinstalling Vanguard (or opening VALORANT or LoL): if you install it without restarting, errors and install loops can happen.
 
 es: No tiene restablecimiento las apps borradas se reinstalan a mano desde la Store.
 en: Has no reset: deleted apps are reinstalled manually from the Store.
@@ -414,11 +414,11 @@ en: It can break Xbox party chat and NAT in Xbox games on PC.
 es: Algunos antitrampas (Valorant, Fortnite) no dejan cambiar la afinidad: ese juego usa todos los nucleos, pero lo de fondo igual se mueve aparte.
 en: Some anti-cheats (Valorant, Fortnite) don't allow changing affinity: that game uses all cores, but background stuff is still moved aside.
 
-es: Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos.
-en: With undervolt, overclock or a borderline power supply, the PC can freeze or restart when opening games.
+es: Con undervolt, overclock o una fuente justa, la PC puede colgarse o reiniciarse al abrir juegos. Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), dejala sin marcar: el driver de AMD necesita el plan Equilibrado para estacionar el bloque sin V-Cache.
+en: With undervolt, overclock or a borderline power supply, the PC can freeze or restart when opening games. If you have a dual-CCD Ryzen X3D (7900X3D, 7950X3D, 9900X3D or 9950X3D), leave it unchecked: the AMD driver needs the Balanced plan to park the non-V-Cache CCD.
 
-es: Mas consumo y calor; con undervolt u overclock puede volverse inestable.
-en: More power use and heat; with undervolt or overclock it can become unstable.
+es: Mas consumo y calor; con undervolt u overclock puede volverse inestable. Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), dejala sin marcar: el driver de AMD necesita el plan Equilibrado para estacionar el bloque sin V-Cache.
+en: More power use and heat; with undervolt or overclock it can become unstable. If you have a dual-CCD Ryzen X3D (7900X3D, 7950X3D, 9900X3D or 9950X3D), leave it unchecked: the AMD driver needs the Balanced plan to park the non-V-Cache CCD.
 
 es: En algunas PCs viejas puede dar problemas.
 en: It can cause problems on some old PCs.
@@ -438,11 +438,11 @@ en: With wireless mice or headsets without their own driver, the battery may las
 es: En placas madre de baja calidad puede cortar el internet.
 en: On low-quality motherboards it can cut the internet.
 
-es: Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot).
-en: If it changes anything, it deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client).
+es: Si cambia algo, borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot). REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.
+en: If it changes anything, it deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client). RESTART THE PC WITHOUT FAIL before reinstalling Vanguard (or opening VALORANT or LoL): if you install it without restarting, errors and install loops can happen.
 
-es: Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard.
-en: WSL, Docker, Hyper-V and virtual machines stop working. If it changes anything, it deletes Riot Vanguard.
+es: Deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si cambia algo, borra Riot Vanguard. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.
+en: WSL, Docker, Hyper-V and virtual machines stop working. If it changes anything, it deletes Riot Vanguard. RESTART THE PC WITHOUT FAIL before reinstalling Vanguard (or opening VALORANT or LoL): if you install it without restarting, errors and install loops can happen.
 
 es: "Tu Windows no lo soporta: necesita "
 en: "Your Windows doesn't support it: it needs "
@@ -719,8 +719,8 @@ en: Windows as light as possible: all the debloat and system optimization, and i
 es: una PC justa o vieja que necesita todo el rendimiento del sistema, sabiendo lo que haces.
 en: a weak or old PC that needs all the system performance, knowing what you're doing.
 
-es: la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales.
-en: the PC is left without antivirus. It deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client), and WSL, Docker and virtual machines stop working.
+es: la PC queda sin antivirus. Borra Riot Vanguard y cierra Riot (lo reinstalas abriendo el cliente de Riot), y deja de andar WSL, Docker y las maquinas virtuales. REINICIA LA PC SIN FALTA antes de volver a instalar Vanguard (o abrir VALORANT o LoL): si lo instalas sin reiniciar pueden salir errores y bucles de instalacion.
+en: the PC is left without antivirus. It deletes Riot Vanguard and closes Riot (you reinstall it by opening the Riot client), and WSL, Docker and virtual machines stop working. RESTART THE PC WITHOUT FAIL before reinstalling Vanguard (or opening VALORANT or LoL): if you install it without restarting, errors and install loops can happen.
 
 es: todo, todo: cada opcion de Debloat y de Gaming. Es Full Optimizado mas todos los ajustes competitivos (mouse, prioridad y afinidad para tus juegos, plan Alto rendimiento, Modo Nitro, temporizador al minimo, red, DNS y notificaciones).
 en: everything, everything: every Debloat and Gaming option. It's Full Optimized plus all the competitive tweaks (mouse, priority and affinity for your games, High performance plan, Nitro Mode, timer at minimum, network, DNS and notifications).
@@ -2719,8 +2719,8 @@ es: busca "UMA Frame Buffer Size" (casi siempre en Advanced > AMD CBS > NBIO > G
 en: look for "UMA Frame Buffer Size" (almost always in Advanced > AMD CBS > NBIO > GFX Configuration)
 
 # --- Gaming: C-states y Spectre/Meltdown ---
-es: Mucho mas consumo y calor todo el tiempo, no solo jugando. En notebooks o con mala refrigeracion el procesador puede bajar el turbo por temperatura y rendir menos. Si no notas mejora, restablecelo.
-en: Much more power use and heat all the time, not only while gaming. On laptops or with poor cooling the processor can lower its turbo because of temperature and perform worse. If you don't notice an improvement, reset it.
+es: Mucho mas consumo y calor todo el tiempo, no solo jugando. En notebooks o con mala refrigeracion el procesador puede bajar el turbo por temperatura y rendir menos. Si no notas mejora, restablecelo. Si tenes un Ryzen X3D de dos bloques (7900X3D, 7950X3D, 9900X3D o 9950X3D), dejala sin marcar: el driver de AMD necesita el plan Equilibrado para estacionar el bloque sin V-Cache.
+en: Much more power use and heat all the time, not only while gaming. On laptops or with poor cooling the processor can lower its turbo because of temperature and perform worse. If you don't notice an improvement, reset it. If you have a dual-CCD Ryzen X3D (7900X3D, 7950X3D, 9900X3D or 9950X3D), leave it unchecked: the AMD driver needs the Balanced plan to park the non-V-Cache CCD.
 
 es: BAJA MUCHO LA SEGURIDAD: un programa o una pagina web maliciosa podria leer contrasenas y otros datos de la memoria. Usalo solo en una PC para jugar, sin datos importantes, y restablecelo si la vas a usar para otra cosa.
 en: IT LOWERS SECURITY A LOT: a malicious program or web page could read passwords and other data from memory. Use it only on a gaming PC with no important data, and reset it if you're going to use the PC for other things.
@@ -3013,14 +3013,8 @@ en: Don't apply it
 es: Si el disco estaba cifrado con BitLocker, la PC va mas lenta hasta que termine de descifrarse.
 en: If the disk was encrypted with BitLocker, the PC is slower until decryption finishes.
 
-es: El Panel de control de NVIDIA no abre hasta restablecer esta opcion.
-en: The NVIDIA Control Panel will not open until you restore this option.
 
-es: No hace falta: tu PC no tiene el contenedor de pantalla de NVIDIA.
-en: Not needed: your PC doesn't have the NVIDIA display container.
 
-es: No hace falta: tu Windows no tiene estos servicios.
-en: Not needed: your Windows doesn't have these services.
 
 es: Sin Panel de control de NVIDIA hasta restablecer la opcion de NVIDIA.
 en: No NVIDIA Control Panel until you restore the NVIDIA option.
@@ -3034,8 +3028,6 @@ en: "Not needed: your Windows does not have the service "
 es: Apagar las notificaciones de Windows ya incluye apagar los avisos emergentes.
 en: Turning off Windows notifications already includes turning off pop-up notices.
 
-es: Los programas clasicos se ven con el estilo basico hasta restablecer.
-en: Classic programs look basic until restored.
 
 es: Puede que no puedas escribir en el Inicio, Configuracion ni apps de la Store, ni usar emojis, Win+V o IME. Proba Win+L antes de reiniciar.
 en: You may not be able to type in Start, Settings or Store apps, or use emojis, Win+V or IME. Try Win+L before restarting.
@@ -3046,8 +3038,6 @@ en: You will not see any notification from Windows or your programs.
 es: No podes iniciar sesion con cuenta de Microsoft en Store, Office, OneDrive ni Xbox.
 en: You cannot sign in with a Microsoft account in the Store, Office, OneDrive or Xbox.
 
-es: Las funciones de IA local de Windows no andan.
-en: Local Windows AI features do not work.
 
 es: Sin Vincular con el telefono ni Compartir cerca.
 en: No Phone Link or Nearby Share.
@@ -3164,11 +3154,7 @@ en: AutoPlay stops working: when you plug in a USB the what-to-do menu doesn't s
 es: Si un programa se cuelga seguido, no queda el informe que sirve para encontrar la causa.
 en: If a program crashes often, there's no report to help find the cause.
 
-es: No vas a poder transmitir a la tele, y la PC deja de verse en la red local, hasta que lo restablezcas.
-en: You won't be able to cast to the TV, and the PC stops showing on the local network, until you restore it.
 
-es: Nadie puede entrar a esta PC por Escritorio remoto hasta que lo restablezcas.
-en: Nobody can get into this PC through Remote Desktop until you restore it.
 
 es: En algun juego viejo puede cambiar como se ve la imagen en ventana.
 en: In some old game the image can look different in windowed mode.
@@ -3318,18 +3304,14 @@ es: Limpiar arranque
 en: Clean up startup
 es: Marca los programas que NO queres que se abran solos al prender la PC. Se apagan igual que desde el Administrador de tareas: se vuelven a prender con Restablecer. Los de drivers y perifericos (audio, mouse, RGB) mejor dejalos.
 en: Check the programs you do NOT want to open by themselves when the PC starts. They are turned off just like from Task Manager: Restore turns them back on. Better leave the driver and peripheral ones (audio, mouse, RGB).
-es: Borrar apps
-en: Remove apps
-es: Marca las apps que queres borrar. Las protegidas por Windows (Edge, Bing, Primeros pasos) se borran a la fuerza y no se pueden revertir facil: la app te avisa antes.
-en: Check the apps you want to remove. The ones protected by Windows (Edge, Bing, Get Started) are forced out and cannot be easily reverted: the app warns you first.
-es: Apagar servicios
-en: Turn off services
-es: Marca los servicios que queres apagar. Ninguno de estos afecta Windows Hello ni la activacion de Windows.
-en: Check the services you want to turn off. None of these affect Windows Hello or Windows activation.
+es: Apps del Sistema
+en: System apps
+es: Marca las apps del sistema que queres borrar. Las protegidas por Windows (Edge, Bing, Cross-device, Widgets, Copilot y otras opcionales) llevan un icono de alerta: se borran a la fuerza y no se revierten facil, y la app te avisa antes de aplicar. Las que ya se borraron salen en gris, las que ya no estan en tu PC (las borraste antes, con Brio o sin el) van aparte en "Ya no estan en tu PC" y SI cuentan en el contador, y las que Windows termina de quitar al reiniciar dicen "Se quita al reiniciar".
+en: Check the system apps you want to delete. The ones protected by Windows (Edge, Bing, Cross-device, Widgets, Copilot and other optional ones) carry a warning icon: they are deleted by force and are not easy to undo, and the app warns you before applying. The ones already deleted show in gray, the ones that are already gone from your PC (you removed them before, with Brío or without it) go apart under "Already gone from your PC" and DO count in the counter, and the ones Windows finishes removing on restart say "Removed after restart".
+es: Servicios del Sistema
+en: System services
 es: Apagar servicios extremos
 en: Turn off extreme services
-es: Marca los servicios que queres apagar. Biometria apaga Windows Hello con huella o cara; en notebooks conviene dejar wifi, sensores y biometria.
-en: Check the services you want to turn off. Biometrics turns off Windows Hello with fingerprint or face; on laptops it is better to keep Wi-Fi, sensors and biometrics.
 es: Borrar apps antiguas
 en: Remove legacy apps
 es: Marca las apps antiguas que queres BORRAR. Lo que dejes sin marcar se queda.
@@ -3356,6 +3338,8 @@ es: Elegiste borrar apps protegidas por Windows:
 en: You chose to remove apps protected by Windows:
 es: Se quitan con el metodo que usa Windows para retirar apps (las marca como fin de vida para todos los usuarios). NO se pueden revertir facil: para recuperarlas puede hacer falta una actualizacion grande de Windows o reinstalarlo.
 en: They are removed with the method Windows uses to retire apps (it marks them as end of life for all users). They CANNOT be easily reverted: getting them back may need a major Windows update or a reinstall.
+es: PELIGRO con WebView2: lo usan Teams nuevo, Office, los Widgets, el inicio de sesion con cuenta Microsoft de algunas apps y muchos programas de escritorio. Sin WebView2 esas apps pueden fallar o no abrir. Brio ademas bloquea que Edge Update lo reinstale solo: para volver a tenerlo hay que borrar esa politica (el comando queda en el log) y usar el instalador Evergreen de Microsoft.
+en: DANGER with WebView2: it is used by the new Teams, Office, Widgets, Microsoft account sign-in in some apps and many desktop programs. Without WebView2 those apps may fail or not open. Brio also blocks Edge Update from reinstalling it by itself: to get it back you have to delete that policy (the command is in the log) and use Microsoft's Evergreen installer.
 es: Apps protegidas
 en: Protected apps
 es: Borrarlas igual
@@ -3384,8 +3368,6 @@ es: programa de versiones de prueba de Windows.
 en: Windows preview builds program.
 es: Control parental
 en: Parental controls
-es: limites de Microsoft Family. No afecta Windows Hello.
-en: Microsoft Family limits. Does not affect Windows Hello.
 es: Tarjeta inteligente
 en: Smart card
 es: lectores de tarjetas inteligentes (DNI, tokens de empresa).
@@ -3400,8 +3382,6 @@ es: bloquea la PC al sacar la tarjeta inteligente.
 en: locks the PC when the smart card is removed.
 es: Seguimiento de accesos directos
 en: Shortcut tracking
-es: arregla accesos directos a archivos movidos en red.
-en: fixes shortcuts to files moved over the network.
 es: Biometria
 en: Biometrics
 es: Windows Hello con huella o cara.
@@ -3470,8 +3450,6 @@ es: mensajes de texto en PCs con chip.
 en: text messages on PCs with a SIM.
 es: nombres de red local del metodo viejo.
 en: local network names, old method.
-es: cierra OneDrive, lo desinstala y lo saca del Explorador y del inicio. Tus archivos no se borran.
-en: closes OneDrive, uninstalls it and removes it from File Explorer and startup. Your files are not deleted.
 es: editor de imagenes de Adobe que viene de fabrica.
 en: preinstalled Adobe image editor.
 es: Asistencia rapida
@@ -3542,8 +3520,8 @@ es: escribir formulas a mano.
 en: handwrite formulas.
 es: Vincular con el telefono
 en: Phone Link
-es: Solitario
-en: Solitaire
+es: Solitario de Microsoft
+en: Microsoft Solitaire
 es: Obtener ayuda
 en: Get Help
 es: Centro de opiniones
@@ -3614,8 +3592,6 @@ es: Defender a veces lo marca como amenaza porque toca el archivo hosts. Puede i
 en: Defender sometimes flags it as a threat because it touches the hosts file. It can prevent updating to Windows 11 26H2: it blocks the compatibility server Windows Update checks before offering it.
 es: PELIGRO: la PC deja de recibir parches de seguridad y de drivers, y no podes actualizar a Windows 11 26H2 hasta restablecerlo.
 en: DANGER: the PC stops getting security and driver patches, and you cannot update to Windows 11 26H2 until you restore it.
-es: Puede impedir actualizar a Windows 11 26H2: sin el inventario de compatibilidad Windows Update no sabe si tu PC puede recibirla. Restablecelo antes de actualizar.
-en: It can prevent updating to Windows 11 26H2: without the compatibility inventory Windows Update does not know if your PC can get it. Restore it before updating.
 es: Puede impedir actualizar a Windows 11 26H2: apaga las tareas de diagnostico, inventario de dispositivos y configuracion de funciones (Flighting) que Windows usa para ofrecer la version nueva. Restablecelo antes de actualizar.
 en: It can prevent updating to Windows 11 26H2: it turns off the diagnostic, device inventory and feature configuration (Flighting) tasks Windows uses to offer the new version. Restore it before updating.
 es: Mientras tengas las actualizaciones en pausa no llega Windows 11 26H2.
@@ -3653,11 +3629,13 @@ en: Brio programs updated
 es: " a la version nueva (la vieja se cierra sola)..."
 en: " to the new version (the old one closes by itself)..."
 
-es: Algunos antitrampas (Valorant, Fortnite, FACEIT) desconfian de los programas que miran el teclado: si un juego te da problemas, restablecelo.
-en: Some anti-cheats (Valorant, Fortnite, FACEIT) distrust programs that watch the keyboard: if a game gives you trouble, reset it.
+es: Algunos antitrampas (Valorant/Vanguard, Fortnite, FACEIT) desconfian de los programas que miran el teclado: si un juego te da problemas, restablecelo y usa el Modo foco sin programa.
+en: Some anti-cheats (Valorant/Vanguard, Fortnite, FACEIT) distrust programs that watch the keyboard: if a game gives you trouble, reset it and use Focus mode without a program.
+es: Las teclas Windows quedan apagadas siempre y para todos los usuarios, no solo en los juegos. Para que vuelvan, restablecela y reinicia.
+en: The Windows keys stay off always and for every user, not only in games. To get them back, reset it and restart.
 
-es: Elegi un perfil armado: "Aplicar perfil" lo aplica directo, sin carteles de choques ni listas para elegir. "Marcar y revisar" te deja ajustar las opciones antes. Si al perfil le faltan drivers, no se aplica hasta que los instales. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.
-en: Pick a ready-made profile: "Apply profile" applies it directly, with no conflict prompts or lists to choose from. "Select and review" lets you adjust the options first. If the profile is missing drivers, it is not applied until you install them. What is not compatible with your PC or is already applied is skipped automatically.
+es: Elegi un perfil armado: "Aplicar perfil" lo aplica directo, con 2 o 3 preguntas cortas (OneDrive, Copilot, Bluetooth...) para dejar lo que uses, y sin carteles de choques ni listas para elegir. "Marcar y revisar" te deja ajustar las opciones antes. Si al perfil le faltan drivers, no se aplica hasta que los instales. Lo que no es compatible con tu PC o ya tenes aplicado se saltea solo.
+en: Pick a ready-made profile: "Apply profile" applies it directly, with 2 or 3 short questions (OneDrive, Copilot, Bluetooth...) so you can keep what you use, and with no conflict prompts or lists to choose from. "Select and review" lets you adjust the options first. If the profile is missing drivers, it is not applied until you install them. What is not compatible with your PC or is already applied is skipped automatically.
 
 es: Ya existe una cuenta que se llama "
 en: An account called "
@@ -3868,3 +3846,693 @@ en: off
 
 es: quitadas del arranque
 en: removed from startup
+
+es: No hace falta: no tenes Edge ni Brave instalados.
+en: Not needed: you don't have Edge or Brave installed.
+
+es: navegadores
+en: browsers
+
+es: Reducir bloat del navegador
+en: Reduce browser bloat
+
+es: Bloat del navegador
+en: Browser bloat
+
+es: Bloat del navegador (restaurar)
+en: Browser bloat (restore)
+
+es: No hay Edge ni Brave instalados: no habia nada que reducir
+en: Edge and Brave are not installed: there was nothing to reduce
+
+es: Bloat del navegador reducido:
+en: Browser bloat reduced:
+
+es: Politicas de Edge y Brave restauradas
+en: Edge and Brave policies restored
+
+es: Protegida por Windows: no se revierte facil
+en: Protected by Windows: not easy to undo
+
+es: Ya borrada
+en: Already removed
+
+es: Cross-device experience
+en: Cross-device features
+
+
+es: Widgets (Web Experience Pack)
+en: Widgets (Windows Web Experience Pack)
+
+es: el panel de Widgets y las noticias.
+en: the Widgets panel and the news.
+
+es: Proveedor de Copilot
+en: Copilot provider
+
+es: la base de Copilot en Windows.
+en: the base of Copilot in Windows.
+
+es: Copilot (sistema)
+en: Copilot (system)
+
+es: el Copilot integrado en Windows.
+en: the Copilot built into Windows.
+
+es: Narrador (guia)
+en: Narrator (guide)
+
+es: la guia de inicio del lector de pantalla.
+en: the getting-started guide of the screen reader.
+
+es: Controles parentales
+en: Parental controls
+
+es: el panel de control parental viejo.
+en: the old parental controls panel.
+
+es: Navegador de examenes
+en: Exam browser
+
+es: navegador para examenes en escuelas.
+en: browser for school exams.
+
+es: Control con la mirada
+en: Eye control
+
+es: controlar la PC con la mirada.
+en: control the PC with your eyes.
+
+es: Modo quiosco
+en: Kiosk mode
+
+es: pantalla de bloqueo del modo quiosco.
+en: lock screen of kiosk mode.
+
+
+
+
+es: Se quita al reiniciar
+en: Removed after restart
+
+es: Pendientes (se pueden borrar)
+en: Pending (can be deleted)
+
+es: Protegidas por Windows (se pueden borrar con cuidado)
+en: Protected by Windows (can be deleted with care)
+
+es: Ya borradas
+en: Already removed
+
+es: Reinicia para terminar de quitar:
+en: Restart to finish removing:
+
+es: Contenido de Windows
+en: Windows content
+
+es: sugerencias y fondos de Windows.
+en: Windows suggestions and wallpapers.
+
+es: Dialogo de impresion
+en: Print dialog
+
+es: la ventana para imprimir.
+en: the window used to print.
+
+es: Contactos de Windows
+en: Windows contacts
+
+es: panel de contactos del sistema.
+en: system contacts panel.
+
+es: Selector de captura
+en: Capture picker
+
+es: elegir que ventana grabar o capturar.
+en: choose which window to record or capture.
+
+es: Expulsar placa externa
+en: Eject external graphics card
+
+es: aviso al sacar una placa de video externa.
+en: notice when removing an external graphics card.
+
+es: Anclar a Inicio
+en: Pin to Start
+
+es: confirmar al anclar apps.
+en: confirm when pinning apps.
+
+es: Ya no estan en tu PC (cuentan en el contador)
+en: Already gone from your PC (they count in the counter)
+
+es: Ya no esta en tu PC
+en: Already gone from your PC
+
+
+es: Cola de impresion
+en: Print queue
+
+es: el panel moderno de la cola de impresion.
+en: the modern print queue panel.
+
+es: el panel de contactos de la barra de tareas.
+en: the taskbar contacts panel.
+
+es: el aviso al sacar una placa de video externa.
+en: the notice when removing an external graphics card.
+
+es: la confirmacion al anclar apps al Inicio o a la barra.
+en: the confirmation when pinning apps to Start or the taskbar.
+
+es: la ventana para elegir que grabar o capturar.
+en: the window to choose what to record or capture.
+
+es: sugerencias, anuncios y apps recomendadas en Inicio y bloqueo.
+en: suggestions, ads and recommended apps on Start and the lock screen.
+
+es: Herramientas de Edge
+en: Edge developer tools
+
+es: las herramientas de desarrollo de Edge.
+en: the Edge developer tools.
+
+es: Ventanas de juegos de Xbox
+en: Xbox game pop-ups
+
+
+es: Algunas apps no se pudieron quitar
+en: Some apps could not be removed
+
+es: La necesita Windows y no se quito: 
+en: Windows needs it and it was not removed: 
+
+es: Por eso el contador no sube.
+en: That is why the counter does not go up.
+
+es: No se pudo quitar (la necesita Windows):
+en: Could not remove (Windows needs it):
+
+es: Portal de realidad mixta
+en: Mixed reality portal
+
+es: Escribi un numero entero entre 1 y 20.
+en: Type a whole number from 1 to 20.
+
+es: Velocidad base del puntero
+en: Base pointer speed
+
+es: Resolucion base
+en: Base resolution
+
+es: Escribi la resolucion base, por ejemplo 1920x1080 (o solo el ancho, 1920). Cuando uses una resolucion mayor, Brio sube la escala de Windows para que todo se vea del mismo tamano; con la misma o una menor no toca nada.
+en: Type the base resolution, for example 1920x1080 (or just the width, 1920). When you use a higher resolution, Brio raises the Windows scale so everything looks the same size; with the same or a lower one it touches nothing.
+
+es: Escribi algo como 1920x1080 o solo 1920.
+en: Type something like 1920x1080 or just 1920.
+
+es: Escala segun la resolucion
+en: Scale by resolution
+
+es: Escribi un numero de 1 a 20: la velocidad que queres a la resolucion nativa de tu monitor (10 es la de Windows). Al cambiar de resolucion, Brio ajusta la velocidad solo para que se sienta igual.
+en: Type a number from 1 to 20: the speed you want at your monitor's native resolution (10 is the Windows one). When you change resolution, Brio adjusts the speed by itself so it feels the same.
+
+es: Mouse competitivo deja la velocidad fija en 10 y la otra la ajusta sola segun la resolucion: se pisan.
+en: Competitive mouse keeps the speed fixed at 10 and the other one adjusts it by itself according to the resolution: they override each other.
+es: Las dos apagan la tecla Windows: una con un programa solo en juegos y la otra desde el registro, siempre. Con una alcanza.
+en: Both turn off the Windows key: one with a program only in games and the other from the registry, always. One is enough.
+
+es: Cada servicio muestra su estado: Activo, Manual (Windows lo inicia si hace falta) o Apagado (deshabilitado). Marca los que queres apagar: los Seguros vienen marcados; los Extremos (con alerta) los marcas vos y cada uno dice que se pierde. Un servicio en Manual o Activo NO esta apagado hasta que lo apagues aca. Los Apagados salen en gris: marcalos para volver a prenderlos uno por uno. Ninguno toca Windows Hello ni el PIN.
+en: Each service shows its state: Active, Manual (Windows starts it if needed) or Off (disabled). Check the ones you want to turn off: the Safe ones come checked; the Extreme ones (with a warning) you check yourself and each one says what you lose. A service on Manual or Active is NOT off until you turn it off here. The Off ones show in gray: check them to turn them back on one by one. None of them touches Windows Hello or the PIN.
+
+es: Marcaste servicios que pueden afectar el inicio de sesion o el celular:
+en: You checked services that may affect signing in or your phone:
+
+es: Si apagas esto, esas funciones dejan de andar hasta que restablezcas "Servicios del Sistema" (y reinicies). El PIN de Windows y la huella no dependen de ellos.
+en: If you turn these off, those features stop working until you restore "System services" (and restart). The Windows PIN and the fingerprint do not depend on them.
+
+es: Aca "Todo menos esto" aplica todo lo demas pero no apaga estos servicios.
+en: Here "Everything except this" applies everything else but does not turn off these services.
+
+es: Seguros de apagar
+en: Safe to turn off
+
+es: Extremos (se pierde una funcion)
+en: Extreme (you lose a feature)
+
+es: Seguro de apagar
+en: Safe to turn off
+
+es: Extremo: se pierde una funcion
+en: Extreme: you lose a feature
+
+es: Afecta a las llaves de seguridad y tarjetas inteligentes (no al PIN, la huella ni la cara)
+en: Affects security keys and smart cards (not the PIN, fingerprint or face)
+
+es: Puede afectar a Windows Hello con la cara (usa la camara)
+en: May affect Windows Hello with your face (it uses the camera)
+
+es: Puede afectar a Vincular con el telefono (llamadas)
+en: May affect Phone Link (calls)
+
+es: Administracion remota
+en: Remote management
+
+es: controlar la PC por PowerShell remoto.
+en: control the PC through remote PowerShell.
+
+es: Router AllJoyn
+en: AllJoyn router
+
+es: aparatos de hogar inteligente viejos (AllJoyn).
+en: old smart home devices (AllJoyn).
+
+es: Archivos sin conexion
+en: Offline files
+
+es: carpetas de red disponibles sin conexion.
+en: network folders available offline.
+
+es: Recolector de diagnosticos
+en: Diagnostics collector
+
+
+
+
+
+
+
+
+es: Camara compartida
+en: Shared camera
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+es: Escaneres y camaras (WIA)
+en: Scanners and cameras (WIA)
+
+
+es: Compartir archivos y carpetas
+en: File and folder sharing
+
+
+es: Host de Hyper-V
+en: Hyper-V host
+
+
+es: Hyper-V: latido
+en: Hyper-V: heartbeat
+
+
+es: Hyper-V: apagado
+en: Hyper-V: shutdown
+
+
+es: Hyper-V: hora
+en: Hyper-V: time
+
+
+es: Percepcion de Windows
+en: Windows perception
+
+es: Datos espaciales
+en: Spatial data
+
+
+es: Marca los servicios que queres apagar. Los Seguros vienen marcados; los Extremos (con alerta) los marcas vos y cada uno dice que se pierde. Los que ya estan deshabilitados salen en gris: marcalos para volver a prenderlos uno por uno. Los que estan en Manual ya no corren y no hace falta tocarlos. Ninguno toca Windows Hello ni el PIN.
+en: Check the services you want to turn off. The Safe ones come checked; the Extreme ones (with a warning) you check yourself and each one says what you lose. The ones already disabled show in gray: check them to turn them back on one by one. The ones in Manual no longer run and need no change. None of them touches Windows Hello or the PIN.
+
+es: Volver a prender
+en: Turn back on
+
+es: Servicios a prender
+en: Services to turn on
+
+es: Servicios a apagar
+en: Services to turn off
+
+es: Cada uno vuelve a como estaba antes de apagarlo (o a como lo deja Windows).
+en: Each one goes back to how it was before it was turned off (or to how Windows leaves it).
+
+es: Apagados (marca para volver a prender)
+en: Off (check to turn back on)
+
+es: Todos los Seguros ya estan apagados.
+en: All the Safe ones are already off.
+
+es: Estado: Activo.
+en: Status: Active.
+
+es: Estado: Manual (Windows lo inicia si hace falta).
+en: Status: Manual (Windows starts it if needed).
+
+es: Estado: Apagado (deshabilitado).
+en: Status: Off (disabled).
+
+es: Apagado (deshabilitado)
+en: Off (disabled)
+
+es: Atencion: Windows Hello (huella y cara) esta apagado por una version anterior de Brio. Restablecer esta opcion lo devuelve.
+en: Warning: Windows Hello (fingerprint and face) was turned off by an earlier version of Brio. Restoring this option brings it back.
+
+es: "SIN VUELTA ATRAS: "
+en: "CAN'T BE UNDONE: "
+
+es: "Xbox, Game Pass y Minecraft: "
+en: "Xbox, Game Pass and Minecraft: "
+
+es: No hizo falta cambiar nada: ya estaba todo asi.
+en: Nothing needed changing: everything was already set.
+
+es: No se pudo aplicar:
+en: Could not apply:
+
+es: El resto de esta version y el historial completo estan en GitHub.
+en: The rest of this version and the full history are on GitHub.
+
+es: Las versiones anteriores estan en GitHub.
+en: Previous versions are on GitHub.
+
+
+es: fuera de tu PC
+en: gone from your PC
+
+es: Incluye las que ya no estaban instaladas.
+en: Includes the ones that were no longer installed.
+
+es: "Puede dar problemas: "
+en: "May cause problems: "
+
+es: Quedan restos
+en: Leftovers remain
+
+es: OneDrive ya no esta instalado pero quedan restos (paquete, carpetas tecnicas, accesos). Marcalo para limpiarlos. Tu carpeta de archivos no se toca.
+en: OneDrive is no longer installed but leftovers remain (package, technical folders, shortcuts). Check it to clean them up. Your files folder is not touched.
+
+es: OneDrive no se toco porque tus carpetas Escritorio, Documentos o Imagenes estan guardadas dentro de OneDrive. Para quitarlo, elegi OneDrive otra vez en Apps del Sistema y confirma que Brio las mueva, o hacelo a mano: clic derecho en la carpeta (por ejemplo Documentos) > Propiedades > Ubicacion > Restaurar valores predeterminados > Mover. Despues volve a elegir OneDrive en Apps del Sistema.
+en: OneDrive was not touched because your Desktop, Documents or Pictures folders are stored inside OneDrive. To remove it, choose OneDrive again in System apps and confirm that Brio moves them, or do it by hand: right-click the folder (for example Documents) > Properties > Location > Restore Default > Move. Then choose OneDrive again in System apps.
+
+es: Quedan restos de OneDrive que no se pudieron borrar (estan en uso o son accesos directos). Reinicia y volve a elegir OneDrive en Apps del Sistema para limpiarlos. Tu carpeta de archivos no se toca.
+en: OneDrive leftovers remain that could not be deleted (in use or shortcuts). Restart and choose OneDrive again in System apps to clean them up. Your files folder is not touched.
+
+es: Mover tus carpetas fuera de OneDrive
+en: Move your folders out of OneDrive
+
+es: Mover y quitar OneDrive
+en: Move and remove OneDrive
+
+es: No mover
+en: Do not move
+
+es: Carpeta {0}: de {1} a {2} ({3} archivos, {4} GB)
+en: Folder {0}: from {1} to {2} ({3} files, {4} GB)
+
+es: Total: {0} archivos, {1} GB
+en: Total: {0} files, {1} GB
+
+es: Total: {0} archivos, {1} GB o mas
+en: Total: {0} files, {1} GB or more
+
+es: OneDrive no se puede quitar mientras tus carpetas Escritorio, Documentos o Imagenes esten adentro. Brio puede devolverlas a su lugar normal moviendo TODO su contenido (es lo mismo que Propiedades > Ubicacion > Restaurar valores predeterminados > Mover):
+en: OneDrive cannot be removed while your Desktop, Documents or Pictures folders are inside it. Brio can put them back in their normal place by moving ALL their content (it is the same as Properties > Location > Restore Default > Move):
+
+es: SIN VUELTA AUTOMATICA: Restablecer no deshace este movimiento.
+en: NO AUTOMATIC UNDO: Restore does not undo this move.
+
+es: Los programas con rutas dentro de OneDrive (repos git, proyectos, accesos directos, saves de juegos, editores abiertos) van a cambiar de ruta. Antes de seguir, cerra editores, terminales, Claude Code, git y juegos que usen esas carpetas.
+en: Programs with paths inside OneDrive (git repos, projects, shortcuts, game saves, open editors) will change path. Before continuing, close editors, terminals, Claude Code, git and games that use those folders.
+
+es: Antes de mover, Brio revisa que no haya archivos solo en la nube, que haya espacio libre, rutas largas, enlaces y archivos abiertos; si algo falla, no se mueve nada. Si el destino ya tiene un archivo con el mismo nombre no se pisa: el de OneDrive queda como "nombre (desde OneDrive)".
+en: Before moving, Brio checks for cloud-only files, free space, long paths, links and open files; if anything fails, nothing is moved. If the destination already has a file with the same name it is not overwritten: the OneDrive one is kept as "name (desde OneDrive)".
+
+es: Si no confirmas, OneDrive no se desinstala y todo queda como esta.
+en: If you do not confirm, OneDrive is not uninstalled and everything stays as it is.
+
+es: Se movieron de OneDrive a su lugar normal las carpetas de Windows que estaban adentro (Escritorio, Documentos, etc.). Las rutas cambiaron (por ejemplo C:\Users\<usuario>\Documents en vez de ...\OneDrive\Documents): reabri los programas y revisa repos git, proyectos, accesos directos y saves de juegos que apuntaban a la ruta vieja.
+en: The Windows folders that were inside OneDrive (Desktop, Documents, etc.) were moved back to their normal place. Paths changed (for example C:\Users\<user>\Documents instead of ...\OneDrive\Documents): reopen your programs and check git repos, projects, shortcuts and game saves that pointed to the old path.
+
+es: No se movieron todas las carpetas de OneDrive: OneDrive queda instalado y lo que no se movio sigue como estaba. El detalle esta en el log.
+en: Not all OneDrive folders were moved: OneDrive stays installed and whatever was not moved is as it was. Details are in the log.
+
+es: No se movieron tus carpetas de OneDrive porque hay archivos que solo estan en la nube (no estan en tu PC). En OneDrive hace clic derecho en la carpeta > Mantener siempre en este dispositivo, espera a que termine de sincronizar y volve a elegir OneDrive. OneDrive queda instalado.
+en: Your OneDrive folders were not moved because some files exist only in the cloud (they are not on your PC). In OneDrive right-click the folder > Always keep on this device, wait for it to finish syncing and choose OneDrive again. OneDrive stays installed.
+
+es: No se movieron tus carpetas de OneDrive porque hay enlaces reales (junction o acceso simbolico) adentro: moverlos podria tocar archivos de otro lugar. OneDrive queda instalado; el detalle esta en el log.
+en: Your OneDrive folders were not moved because there are real links (junction or symbolic link) inside: moving them could touch files elsewhere. OneDrive stays installed; details are in the log.
+
+es: No se movieron tus carpetas de OneDrive porque hay archivos abiertos por otros programas. Cerra editores, terminales, Claude Code, git y juegos que usen esas carpetas y volve a elegir OneDrive. OneDrive queda instalado.
+en: Your OneDrive folders were not moved because some files are open in other programs. Close editors, terminals, Claude Code, git and games that use those folders and choose OneDrive again. OneDrive stays installed.
+
+es: No se movieron tus carpetas de OneDrive porque no hay espacio libre suficiente en el disco de destino. Libera espacio y volve a elegir OneDrive. OneDrive queda instalado.
+en: Your OneDrive folders were not moved because there is not enough free space on the destination drive. Free some space and choose OneDrive again. OneDrive stays installed.
+
+es: No se movieron tus carpetas de OneDrive porque hay archivos con rutas demasiado largas. Acortales el nombre o la ruta y volve a elegir OneDrive. OneDrive queda instalado.
+en: Your OneDrive folders were not moved because some files have paths that are too long. Shorten their name or path and choose OneDrive again. OneDrive stays installed.
+
+es: El antivirus SIGUE ENCENDIDO: Windows no dejo apagarlo, casi seguro porque la Proteccion contra alteraciones esta encendida. Apagala en Seguridad de Windows > Proteccion antivirus y contra amenazas > Configuracion de antivirus y proteccion contra amenazas > Proteccion contra alteraciones, y volve a aplicar.
+en: The antivirus is STILL ON: Windows did not let it be turned off, almost certainly because Tamper Protection is on. Turn it off in Windows Security > Virus & threat protection > Virus & threat protection settings > Tamper Protection, and apply again.
+
+es: No pude comprobar si la Proteccion contra alteraciones esta encendida. Por las dudas, apagala vos antes de seguir.
+en: I could not check whether Tamper Protection is on. To be safe, turn it off yourself before continuing.
+es: Dejarlo
+en: Keep it
+es: Sacarlo
+en: Remove it
+es: Si lo dejas, el perfil se aplica igual con todo lo demas.
+en: If you keep it, the profile is still applied with everything else.
+es: Usas OneDrive para guardar o sincronizar tus archivos?
+en: Do you use OneDrive to store or sync your files?
+es: Apps de fabrica
+en: Built-in apps
+es: Usas Spotify, Netflix, Teams u Outlook de los que vienen con Windows?
+en: Do you use Spotify, Netflix, Teams or Outlook, the ones that come with Windows?
+es: Copilot y la IA
+en: Copilot and AI
+es: Queres seguir usando Copilot y las funciones de IA de Windows?
+en: Do you want to keep using Copilot and the AI features of Windows?
+
+# Servicios del Sistema y Apps del Sistema: que es cada cosa, con lo bueno (+) y lo malo (-) de apagarla o quitarla
+es: Contenedor de NVIDIA
+en: NVIDIA container
+es: Inventario de compatibilidad
+en: Compatibility inventory
+es: Salud de Windows
+en: Windows Health
+es: Descubrimiento SSDP
+en: SSDP discovery
+es: Aparatos UPnP
+en: UPnP devices
+es: Mapa de red
+en: Network map
+es: Tu PC en la red
+en: Your PC on the network
+es: Buscar en la red
+en: Network search
+es: Compartir medios
+en: Media sharing
+es: Carpetas de trabajo
+en: Work Folders
+es: Carpetas web (WebDAV)
+en: Web folders (WebDAV)
+es: Escritorio remoto
+en: Remote Desktop
+es: Escritorio remoto: sesiones
+en: Remote Desktop: sessions
+es: Escritorio remoto: aparatos
+en: Remote Desktop: devices
+es: Temas
+en: Themes
+es: IA de Windows (AI Fabric)
+en: Windows AI (AI Fabric)
+es: Que es: la billetera de Windows (pagos guardados). Apagarlo: + libera algo de RAM / - no podes usar la billetera.
+en: What it is: the Windows wallet (saved payments). Turning it off: + frees some RAM / - you can't use the wallet.
+es: Que es: pagos con NFC desde la PC. Apagarlo: + un servicio menos / - no andan esos pagos. No afecta el PIN, la huella ni la cara.
+en: What it is: NFC payments from the PC. Turning it off: + one service less / - those payments stop working. It does not affect the PIN, fingerprint or face.
+es: Que es: compartir el internet de la PC por wifi. Apagarlo: + un servicio menos / - la PC no sirve de zona wifi.
+en: What it is: sharing the PC internet over Wi-Fi. Turning it off: + one service less / - the PC can't be a hotspot.
+es: Que es: el programa de versiones de prueba de Windows. Apagarlo: + un servicio menos / - no recibis versiones Insider.
+en: What it is: the Windows preview builds program. Turning it off: + one service less / - you don't get Insider builds.
+es: Que es: los limites de Microsoft Family. Apagarlo: + un servicio menos / - no se aplican esos limites. No afecta Windows Hello.
+en: What it is: the Microsoft Family limits. Turning it off: + one service less / - those limits don't apply. It does not affect Windows Hello.
+es: Que es: arregla accesos directos a archivos movidos en la red. Apagarlo: + un servicio menos / - esos accesos se pueden romper.
+en: What it is: fixes shortcuts to files moved over the network. Turning it off: + one service less / - those shortcuts can break.
+es: Que es: aparatos de hogar inteligente viejos (AllJoyn). Apagarlo: + un servicio menos / - esos aparatos no se ven.
+en: What it is: old smart home devices (AllJoyn). Turning it off: + one service less / - those devices are not found.
+es: Que es: carpetas de red disponibles sin conexion. Apagarlo: + un servicio menos / - no tenes esas carpetas sin red.
+en: What it is: network folders available offline. Turning it off: + one service less / - those folders are not there without a network.
+es: Que es: diagnostico para programadores. Apagarlo: + un servicio menos / - Visual Studio no mide el rendimiento.
+en: What it is: diagnostics for developers. Turning it off: + one service less / - Visual Studio can't measure performance.
+es: Que es: controlar la PC por PowerShell remoto. Apagarlo: + una puerta de entrada menos / - no se administra a distancia.
+en: What it is: controlling the PC through remote PowerShell. Turning it off: + one less way in / - no remote management.
+es: Que es: las llamadas con Vincular con el telefono. Apagarlo: + un servicio menos / - pueden dejar de andar las llamadas.
+en: What it is: calls with Phone Link. Turning it off: + one service less / - calls may stop working.
+es: Que es: lectores de tarjetas inteligentes (DNI, tokens de empresa). Apagarlo: + un servicio menos / - no andan las llaves tipo tarjeta.
+en: What it is: smart card readers (ID cards, company tokens). Turning it off: + one service less / - card-type security keys stop working.
+es: Que es: detecta lectores de tarjetas inteligentes. Apagarlo: + un servicio menos / - no se detectan los lectores.
+en: What it is: detects smart card readers. Turning it off: + one service less / - readers are not detected.
+es: Que es: bloquea la PC al sacar la tarjeta inteligente. Apagarlo: + un servicio menos / - no se bloquea al sacarla.
+en: What it is: locks the PC when the smart card is removed. Turning it off: + one service less / - it no longer locks when removed.
+es: Que es: copia los certificados de las tarjetas inteligentes. Apagarlo: + un servicio menos / - no andan los accesos con certificado.
+en: What it is: copies the smart card certificates. Turning it off: + one service less / - certificate sign-ins stop working.
+es: Que es: deja que varias apps usen la camara. Apagarlo: + un servicio menos / - la webcam no anda en la app Camara ni en apps modernas.
+en: What it is: lets several apps use the camera. Turning it off: + one service less / - the webcam stops working in the Camera app and modern apps.
+es: Que es: los datos de los sensores de la PC. Apagarlo: + un servicio menos / - se pierden el brillo automatico y la rotacion.
+en: What it is: the PC sensor data. Turning it off: + one service less / - automatic brightness and rotation are lost.
+es: Que es: el brillo automatico segun la luz. Apagarlo: + un servicio menos / - se pierde el brillo automatico.
+en: What it is: automatic brightness based on light. Turning it off: + one service less / - automatic brightness is lost.
+es: Que es: rotacion de pantalla y sensores de notebooks y tablets. Apagarlo: + un servicio menos / - se pierde la rotacion.
+en: What it is: screen rotation and sensors on laptops and tablets. Turning it off: + one service less / - rotation is lost.
+es: Que es: conectar al wifi con el boton WPS. Apagarlo: + un servicio menos / - no anda el boton WPS.
+en: What it is: connecting to Wi-Fi with the WPS button. Turning it off: + one service less / - the WPS button stops working.
+es: Que es: proyectar y conectar aparatos por Wi-Fi Direct. Apagarlo: + un servicio menos / - no podes proyectar asi.
+en: What it is: projecting and connecting devices over Wi-Fi Direct. Turning it off: + one service less / - you can't project that way.
+es: Que es: modems y telefonia vieja. Apagarlo: + un servicio menos / - no andan los programas de telefonia viejos.
+en: What it is: modems and old telephony. Turning it off: + one service less / - old telephony programs stop working.
+es: Que es: discos de red de empresa (iSCSI). Apagarlo: + un servicio menos / - se pierden esos discos.
+en: What it is: company network disks (iSCSI). Turning it off: + one service less / - those disks are lost.
+es: Que es: copias automaticas de tus archivos. Apagarlo: + menos uso de disco / - se dejan de hacer esas copias.
+en: What it is: automatic copies of your files. Turning it off: + less disk use / - those copies stop being made.
+es: Que es: las copias de seguridad de Windows 7. Apagarlo: + un servicio menos / - no podes usar esas copias.
+en: What it is: the Windows 7 backups. Turning it off: + one service less / - you can't use those backups.
+es: Que es: junta eventos de otras PCs. Apagarlo: + un servicio menos / - solo importa en redes de empresa.
+en: What it is: collects events from other PCs. Turning it off: + one service less / - it only matters on company networks.
+es: Que es: instala controles ActiveX de paginas viejas. Apagarlo: + un servicio menos / - no se instalan esos controles.
+en: What it is: installs ActiveX controls from old pages. Turning it off: + one service less / - those controls are not installed.
+es: Que es: apps que instala una empresa. Apagarlo: + un servicio menos / - solo importa en PCs de empresa.
+en: What it is: apps installed by a company. Turning it off: + one service less / - it only matters on company PCs.
+es: Que es: arreglos que Windows sugiere solo. Apagarlo: + un servicio menos / - se pierden esas sugerencias.
+en: What it is: fixes Windows suggests on its own. Turning it off: + one service less / - those suggestions are lost.
+es: Que es: ayuda a programas de red muy viejos. Apagarlo: + un servicio menos / - esos programas no andan.
+en: What it is: helps very old network programs. Turning it off: + one service less / - those programs stop working.
+es: Que es: compartir internet con el metodo viejo (ICS). Apagarlo: + un servicio menos / - no anda ese metodo.
+en: What it is: sharing internet with the old method (ICS). Turning it off: + one service less / - that method stops working.
+es: Que es: mensajes de texto en PCs con chip. Apagarlo: + un servicio menos / - no andan los SMS.
+en: What it is: text messages on PCs with a SIM. Turning it off: + one service less / - SMS stops working.
+es: Que es: nombres de red local del metodo viejo. Apagarlo: + un servicio menos / - PCs viejas pueden no verse en la red.
+en: What it is: local network names, old method. Turning it off: + one service less / - old PCs may not show up on the network.
+es: Que es: escanear e importar fotos desde Windows. Apagarlo: + un servicio menos / - no escaneas con Windows ni andan algunas camaras.
+en: What it is: scanning and importing photos from Windows. Turning it off: + one service less / - no scanning with Windows and some cameras stop working.
+es: Que es: comparte carpetas de esta PC en la red. Apagarlo: + una puerta de entrada menos / - nadie ve tus carpetas compartidas.
+en: What it is: shares this PC's folders on the network. Turning it off: + one less way in / - nobody sees your shared folders.
+es: Que es: contadores de Hyper-V. Apagarlo: + un servicio menos / - solo importa si usas maquinas virtuales de Hyper-V.
+en: What it is: Hyper-V counters. Turning it off: + one service less / - it only matters if you use Hyper-V virtual machines.
+es: Que es: el host ve si la maquina virtual sigue viva. Apagarlo: + un servicio menos / - si usas maquinas virtuales o WSL, dejalo.
+en: What it is: the host checks that the virtual machine is alive. Turning it off: + one service less / - if you use virtual machines or WSL, leave it.
+es: Que es: apagar maquinas virtuales desde el host. Apagarlo: + un servicio menos / - si usas maquinas virtuales o WSL, dejalo.
+en: What it is: shutting down virtual machines from the host. Turning it off: + one service less / - if you use virtual machines or WSL, leave it.
+es: Que es: pone en hora las maquinas virtuales. Apagarlo: + un servicio menos / - si usas maquinas virtuales o WSL, dejalo.
+en: What it is: keeps virtual machines on time. Turning it off: + one service less / - if you use virtual machines or WSL, leave it.
+es: Que es: visores de Realidad Mixta de Windows. Apagarlo: + un servicio menos / - no andan esos visores.
+en: What it is: Windows Mixed Reality headsets. Turning it off: + one service less / - those headsets stop working.
+es: Que es: datos espaciales de Realidad Mixta. Apagarlo: + un servicio menos / - no andan esos visores.
+en: What it is: Mixed Reality spatial data. Turning it off: + one service less / - those headsets stop working.
+es: Que es: mantiene listo el Panel de control de NVIDIA. Apagarlo: + libera RAM / - el Panel de NVIDIA no abre. Puede volver al actualizar el driver.
+en: What it is: keeps the NVIDIA Control Panel ready. Turning it off: + frees RAM / - the NVIDIA panel won't open. A driver update may turn it back on.
+es: Que es: revisa si tu PC puede pasar a una version nueva de Windows. Apagarlo: + menos CPU de fondo / - puede frenar la 26H2.
+en: What it is: checks whether your PC can move to a new Windows version. Turning it off: + less background CPU / - it can block 26H2.
+es: Que es: ayuda a Windows Update a evaluar tu PC. Apagarlo: + un proceso menos / - puede frenar la 26H2. Antes de actualizar, prendelo.
+en: What it is: helps Windows Update assess your PC. Turning it off: + one process less / - it can block 26H2. Turn it back on before updating.
+es: Que es: encuentra teles y aparatos en la red local. Apagarlo: + un servicio menos / - no podes transmitir a la tele.
+en: What it is: finds TVs and devices on the local network. Turning it off: + one service less / - you can't cast to the TV.
+es: Que es: deja que la PC se vea como aparato UPnP en la red. Apagarlo: + un servicio menos / - no podes transmitir a la tele.
+en: What it is: lets the PC show up as a UPnP device on the network. Turning it off: + one service less / - you can't cast to the TV.
+es: Que es: arma el mapa de la red local. Apagarlo: + un servicio menos / - el mapa de red de Windows queda vacio.
+en: What it is: builds the local network map. Turning it off: + one service less / - the Windows network map stays empty.
+es: Que es: hace que tu PC aparezca en la red local. Apagarlo: + un servicio menos / - las otras PCs no ven la tuya.
+en: What it is: makes your PC show up on the local network. Turning it off: + one service less / - other PCs don't see yours.
+es: Que es: busca otras PCs y aparatos en la red local. Apagarlo: + un servicio menos / - Red del Explorador queda vacia.
+en: What it is: looks for other PCs and devices on the local network. Turning it off: + one service less / - Network in File Explorer stays empty.
+es: Que es: comparte musica y videos de Media Player en la red. Apagarlo: + un servicio menos / - no se comparten.
+en: What it is: shares Media Player music and videos on the network. Turning it off: + one service less / - they are not shared.
+es: Que es: sincroniza las Carpetas de trabajo de una empresa. Apagarlo: + un servicio menos / - solo importa en PCs de empresa.
+en: What it is: syncs a company's Work Folders. Turning it off: + one service less / - it only matters on company PCs.
+es: Que es: abre carpetas web (WebDAV) en el Explorador. Apagarlo: + un servicio menos / - no podes abrir esas carpetas.
+en: What it is: opens web folders (WebDAV) in File Explorer. Turning it off: + one service less / - you can't open those folders.
+es: Que es: deja entrar a esta PC con Escritorio remoto. Apagarlo: + una puerta de entrada menos / - nadie puede entrar asi.
+en: What it is: lets people into this PC with Remote Desktop. Turning it off: + one less way in / - nobody can get in that way.
+es: Que es: prepara las sesiones de Escritorio remoto. Apagarlo: + un servicio menos / - no anda Escritorio remoto.
+en: What it is: prepares Remote Desktop sessions. Turning it off: + one service less / - Remote Desktop stops working.
+es: Que es: pasa impresoras y discos a Escritorio remoto. Apagarlo: + un servicio menos / - no anda Escritorio remoto.
+en: What it is: passes printers and drives to Remote Desktop. Turning it off: + one service less / - Remote Desktop stops working.
+es: Que es: el estilo visual de Windows (temas y fondos). Apagarlo: + ahorra poca RAM / - los programas clasicos se ven viejos y planos.
+en: What it is: the Windows visual style (themes and backgrounds). Turning it off: + saves a little RAM / - classic programs look old and flat.
+es: Que es: corre los modelos de IA locales de Windows. Apagarlo: + un servicio menos / - no andan Click to Do ni la IA de Fotos y Paint.
+en: What it is: runs the local AI models of Windows. Turning it off: + one service less / - Click to Do and the AI in Photos and Paint stop working.
+es: Que es: la nube de Microsoft. Quitarlo: + menos procesos / - deja de sincronizar. Si tus carpetas estan en OneDrive, te ofrece moverlas antes. Tus archivos no se borran.
+en: What it is: the Microsoft cloud. Removing it: + fewer processes / - it stops syncing. If your folders are in OneDrive, it offers to move them first. Your files are not deleted.
+es: Que es: editor de imagenes de Adobe que viene de fabrica. Quitarla: + mas espacio / - si la queres, vuelve desde la Store.
+en: What it is: preinstalled Adobe image editor. Removing it: + more space / - if you want it, get it back from the Store.
+es: Que es: que otra persona controle tu PC para ayudarte. Quitarla: + una puerta de entrada menos / - no recibis ayuda asi.
+en: What it is: lets another person control your PC to help you. Removing it: + one less way in / - you can't get help that way.
+es: Que es: recomendaciones y paneles del menu Inicio. Quitarla: + Inicio mas limpio / - se pierden esos paneles.
+en: What it is: Start menu recommendations and panels. Removing it: + a cleaner Start / - those panels are lost.
+es: Que es: el Paint moderno. Quitarla: + mas espacio / - te quedas sin Paint (vuelve desde la Store).
+en: What it is: the modern Paint. Removing it: + more space / - no Paint (get it back from the Store).
+es: Que es: notas adhesivas. Quitarla: + mas espacio / - se pierden las notas que no esten sincronizadas.
+en: What it is: sticky notes. Removing it: + more space / - notes that are not synced are lost.
+es: Que es: alarmas, temporizador y sesiones de concentracion. Quitarla: + mas espacio / - te quedas sin alarmas de Windows.
+en: What it is: alarms, timer and focus sessions. Removing it: + more space / - no Windows alarms.
+es: Que es: la app de camara de Windows. Quitarla: + mas espacio / - las otras apps siguen usando la webcam, sin esta app.
+en: What it is: the Windows camera app. Removing it: + more space / - other apps keep using the webcam, without this app.
+es: Que es: el reproductor de musica y video moderno. Quitarla: + mas espacio / - necesitas otro reproductor.
+en: What it is: the modern music and video player. Removing it: + more space / - you need another player.
+es: Que es: el navegador de Windows (WebView2 se queda). Quitarla: + menos procesos / - sin otro navegador, te quedas sin uno.
+en: What it is: the Windows browser (WebView2 stays). Removing it: + fewer processes / - without another browser, you are left with none.
+es: Que es: el motor web que usan Teams, Office, Widgets y muchas apps. Quitarla: + un programa menos / - esas apps pueden fallar o no abrir.
+en: What it is: the web engine used by Teams, Office, Widgets and many apps. Removing it: + one program less / - those apps may fail or not open.
+es: Que es: busqueda web de Bing en Windows. Quitarla: + Inicio sin resultados web / - la busqueda no muestra resultados de internet.
+en: What it is: Bing web search in Windows. Removing it: + Start without web results / - search doesn't show internet results.
+es: Que es: consejos y presentacion de Windows. Quitarla: + menos avisos / - ninguno importante.
+en: What it is: Windows tips and intro. Removing it: + fewer notices / - nothing important.
+es: Que es: compartir y seguir con el telefono y otras PCs. Quitarla: + menos procesos / - se pierde usar el celular desde la PC.
+en: What it is: sharing and continuing with your phone and other PCs. Removing it: + fewer processes / - you lose using your phone from the PC.
+es: Que es: el panel de Widgets y las noticias. Quitarla: + menos RAM y procesos / - sin Widgets ni clima en la barra.
+en: What it is: the Widgets panel and news. Removing it: + less RAM and fewer processes / - no Widgets or weather on the taskbar.
+es: Que es: la base de Copilot en Windows. Quitarla: + menos IA de fondo / - dejan de andar las funciones de Copilot.
+en: What it is: the base of Copilot in Windows. Removing it: + less background AI / - Copilot features stop working.
+es: Que es: el Copilot integrado en Windows. Quitarla: + menos IA de fondo / - te quedas sin Copilot del sistema.
+en: What it is: the Copilot built into Windows. Removing it: + less background AI / - no system Copilot.
+es: Que es: la guia de inicio del lector de pantalla. Quitarla: + un paquete menos / - el Narrador sigue, sin la guia.
+en: What it is: the screen reader getting-started guide. Removing it: + one package less / - Narrator stays, without the guide.
+es: Que es: el panel de control parental viejo. Quitarla: + un paquete menos / - no podes usar ese panel.
+en: What it is: the old parental controls panel. Removing it: + one package less / - you can't use that panel.
+es: Que es: navegador para examenes en escuelas. Quitarla: + un paquete menos / - no anda en examenes que lo piden.
+en: What it is: browser for school exams. Removing it: + one package less / - it won't work in exams that require it.
+es: Que es: controlar la PC con la mirada. Quitarla: + un paquete menos / - se pierde el control con la mirada.
+en: What it is: controlling the PC with your eyes. Removing it: + one package less / - eye control is lost.
+es: Que es: la pantalla de bloqueo del modo quiosco. Quitarla: + un paquete menos / - no podes usar el modo quiosco.
+en: What it is: the kiosk mode lock screen. Removing it: + one package less / - you can't use kiosk mode.
+es: Que es: la ventana moderna de imprimir. Quitarla: + un paquete menos / - las apps de la Store usan la clasica.
+en: What it is: the modern print window. Removing it: + one package less / - Store apps use the classic one.
+es: Que es: el panel moderno de la cola de impresion. Quitarla: + un paquete menos / - se pierde ese panel.
+en: What it is: the modern print queue panel. Removing it: + one package less / - that panel is lost.
+es: Que es: el panel de contactos de la barra de tareas. Quitarla: + un paquete menos / - se pierde ese panel.
+en: What it is: the taskbar contacts panel. Removing it: + one package less / - that panel is lost.
+es: Que es: el aviso al sacar una placa de video externa. Quitarla: + un paquete menos / - te quedas sin ese aviso.
+en: What it is: the notice when removing an external graphics card. Removing it: + one package less / - no more of that notice.
+es: Que es: la confirmacion al anclar apps al Inicio o a la barra. Quitarla: + un paquete menos / - las apps no te piden anclarse.
+en: What it is: the confirmation when pinning apps to Start or the taskbar. Removing it: + one package less / - apps can't ask to be pinned.
+es: Que es: la ventana para elegir que grabar o capturar. Quitarla: + un paquete menos / - algunas apps no pueden grabar la pantalla.
+en: What it is: the window to choose what to record or capture. Removing it: + one package less / - some apps can't record the screen.
+es: Que es: sugerencias, anuncios y apps recomendadas en Inicio y bloqueo. Quitarla: + menos anuncios / - se pierde Windows destacado.
+en: What it is: suggestions, ads and recommended apps on Start and the lock screen. Removing it: + fewer ads / - Windows spotlight is lost.
+es: Que es: las herramientas de desarrollo de Edge. Quitarla: + un paquete menos / - ninguno si no programas paginas web.
+en: What it is: the Edge developer tools. Removing it: + one package less / - nothing, unless you build web pages.
+es: Que es: avisos de la Game Bar y juegos de Xbox. Quitarla: + un paquete menos / - no aparecen los avisos de inicio de sesion ni logros.
+en: What it is: Game Bar and Xbox game notices. Removing it: + one package less / - sign-in and achievement notices no longer show.

@@ -8,7 +8,7 @@
 # ============================================================
 
 # Opciones que necesitan reiniciar para aplicarse. Solo se pide reiniciar si alguna de estas cambio algo de verdad.
-$ReinGaming = @('tk', 'mm', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'mi', 'vbs', 'md', 'v4', 'll', 'nag', 'nic', 'dup', 'spc', 'xbt')
+$ReinGaming = @('tk', 'mm', 'notif', 'gf', 'mpo', 'msi', 'pca', 'tr', 'mi', 'vbs', 'md', 'v4', 'll', 'nag', 'nic', 'dup', 'spc', 'xbt', 'fsm')
 
 # Opciones que usan comandos que Windows 7 y 8 no tienen (tareas programadas nuevas, apps de la Store, DNS por placa,
 # Defender nuevo, dispositivos). En esas versiones la app las muestra como no compatibles y aca se saltean.
@@ -828,6 +828,80 @@ function Appx-Poner([string[]]$pares) {
 # ------------------------------------------------------------
 # Programitas que miran el teclado: tienen que correr en TU sesion (un servicio de SYSTEM no ve tu teclado), asi que la tarea
 # arranca al iniciar sesion con tu usuario y permisos altos (si no, no ven los juegos ni programas abiertos como administrador).
+$CodBrioPuntero = @'
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
+public class P {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    struct DEVMODE {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+        public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+        public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+        public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+        public short dmLogPixels;
+        public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency, dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
+    }
+    [DllImport("user32.dll", CharSet = CharSet.Ansi)] static extern bool EnumDisplaySettings(string dev, int modo, ref DEVMODE dm);
+    [DllImport("user32.dll")] static extern bool SystemParametersInfo(uint accion, uint param, IntPtr valor, uint flags);
+    // MouseSensitivity 1..20 en Windows equivale a estos factores (con la aceleracion apagada)
+    static readonly double[] Tabla = { 1 / 32.0, 1 / 16.0, 1 / 8.0, 1 / 4.0, 3 / 8.0, 1 / 2.0, 5 / 8.0, 3 / 4.0, 7 / 8.0, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5 };
+    // Paso 1..20 que mantiene la sensacion de la velocidad base a la resolucion nativa: factor base x (ancho actual / ancho nativo), al paso mas cercano
+    public static int Paso(int actual, int nativa, int bas) {
+        if (bas < 1) bas = 1; if (bas > 20) bas = 20;
+        if (actual <= 0 || nativa <= 0) return bas;
+        double f = Tabla[bas - 1] * actual / nativa;
+        int mejor = 0; double dif = double.MaxValue;
+        for (int i = 0; i < Tabla.Length; i++) { double d = Math.Abs(Tabla[i] - f); if (d < dif - 1e-9) { dif = d; mejor = i; } }
+        return mejor + 1;
+    }
+    static DEVMODE Nuevo() { DEVMODE d = new DEVMODE(); d.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE)); return d; }
+    // EnumDisplaySettings da pixeles reales aunque el programa no sea DPI-aware
+    static int Actual() { DEVMODE d = Nuevo(); return EnumDisplaySettings(null, -1, ref d) ? d.dmPelsWidth : 0; }
+    // Nativa = la resolucion mas grande que ofrece el monitor principal
+    static int Nativa() {
+        int ancho = 0; long area = 0;
+        for (int i = 0; i < 400; i++) {
+            DEVMODE d = Nuevo();
+            if (!EnumDisplaySettings(null, i, ref d)) break;
+            long a = (long)d.dmPelsWidth * d.dmPelsHeight;
+            if (a > area) { area = a; ancho = d.dmPelsWidth; }
+        }
+        return ancho;
+    }
+    static string Cfg = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Brio", "puntero.cfg");
+    static int Leer(string clave, int def) {
+        try {
+            foreach (string l in File.ReadAllLines(Cfg)) {
+                int i = l.IndexOf('=');
+                int v;
+                if (i > 0 && l.Substring(0, i).Trim() == clave && int.TryParse(l.Substring(i + 1).Trim(), out v)) return v;
+            }
+        } catch { }
+        return def;
+    }
+    public static void Main() {
+        bool unica;
+        using (Mutex m = new Mutex(true, "Local\\BrioPuntero", out unica)) {
+            if (!unica) return;
+            string ultimo = "";
+            while (true) {
+                try {
+                    int nat = Leer("ancho", 0);
+                    if (nat == 0 && File.Exists(Cfg)) { nat = Nativa(); if (nat > 0) File.AppendAllText(Cfg, "ancho=" + nat + "\r\n"); }
+                    int p = Paso(Actual(), nat, Leer("base", 10));
+                    // Solo se toca al arrancar y cuando cambia la resolucion o la base: no se pelea con quien mueva el control de Windows
+                    string clave = p + "|" + nat;
+                    if (nat > 0 && clave != ultimo) { if (SystemParametersInfo(0x0071, 0, (IntPtr)p, 0)) ultimo = clave; }
+                } catch { }
+                Thread.Sleep(2000);
+            }
+        }
+    }
+}
+'@
 function Prog-Usuario-On([string]$tn, [string]$cs, [string]$cuando) {
     $dir = Join-Path $env:ProgramData 'Brio'; $exe = Join-Path $dir ($tn + '.exe')
     Proteger-Carpeta $dir
@@ -862,6 +936,366 @@ function Prog-Usuario-Off([string]$tn, [string]$cuando) {
     Remove-Item -LiteralPath $exe, ($exe + '.ver') -Force -ErrorAction SilentlyContinue
     if ((Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) -or (Get-Process -Name $tn -ErrorAction SilentlyContinue)) { Log 'FALLO' ($cuando + ' no se pudo borrar del todo'); return 1 }
     Log 'OK' ('verificado: ' + $cuando + ' borrado'); return 0
+}
+
+# Velocidad del puntero fija (BrioPuntero): guarda lo que tenias, apaga la aceleracion y deja corriendo el programa que ajusta la velocidad al cambiar de resolucion
+function Puntero-Cfg {
+    $cfg = Join-Path (Join-Path $env:ProgramData 'Brio') 'puntero.cfg'; $v = @{}
+    if (Test-Path -LiteralPath $cfg) { foreach ($l in @(Get-Content -LiteralPath $cfg -ErrorAction SilentlyContinue)) { if ($l -match '^(\w+)=(\d+)\s*$') { $v[$Matches[1]] = [int]$Matches[2] } } }
+    return $v
+}
+function Puntero-On([int]$base) {
+    if (($base -lt 1) -or ($base -gt 20)) { $base = 10 }
+    $dir = Join-Path $env:ProgramData 'Brio'; $cfg = Join-Path $dir 'puntero.cfg'
+    Proteger-Carpeta $dir
+    $v = Puntero-Cfg
+    $mk = 'HKCU:\Control Panel\Mouse'
+    $leer = { param($n, $d) $x = (Get-ItemProperty -Path $mk -Name $n -ErrorAction SilentlyContinue).$n; if ($x -match '^\d+$') { [int]$x } else { $d } }
+    # Lo que tenias antes se guarda una sola vez: si volves a aplicar con otra base no se pierde
+    $orig = $(if ($v.ContainsKey('orig')) { $v.orig } else { & $leer 'MouseSensitivity' 10 })
+    $vel = $(if ($v.ContainsKey('origvel')) { $v.origvel } else { & $leer 'MouseSpeed' 0 })
+    $t1 = $(if ($v.ContainsKey('origt1')) { $v.origt1 } else { & $leer 'MouseThreshold1' 0 })
+    $t2 = $(if ($v.ContainsKey('origt2')) { $v.origt2 } else { & $leer 'MouseThreshold2' 0 })
+    # La compensacion asume una curva lineal: sin aceleracion (igual que Mouse competitivo, pero sin tocar la velocidad)
+    if ((Act 'SPI' 'M:0:0:0;U:0x0060:0;U:0x005D:0;P:0x1021:0;') -ge 1) { Log 'FALLO' 'no se pudo apagar la aceleracion del mouse'; return 1 }
+    Set-Content -LiteralPath $cfg -Value @(('base=' + $base), ('orig=' + $orig), ('origvel=' + $vel), ('origt1=' + $t1), ('origt2=' + $t2)) -Encoding ASCII
+    $code = Prog-Usuario-On 'BrioPuntero' $CodBrioPuntero 'velocidad del puntero fija'
+    if ($code -ge 1) { return $code }
+    # El programa anota la resolucion nativa (la mas grande del monitor principal) en el mismo archivo
+    $nat = 0
+    for ($i = 0; ($i -lt 16) -and ($nat -eq 0); $i++) { $nat = [int](Puntero-Cfg).ancho; if ($nat -eq 0) { Start-Sleep -Milliseconds 500 } }
+    if ($nat -gt 0) { Log 'OK' ('verificado: resolucion nativa ' + $nat + ' px de ancho, velocidad base ' + $base) }
+    else { Log 'FALLO' 'el programa no pudo leer la resolucion nativa del monitor'; return 1 }
+    return $code
+}
+function Puntero-Off {
+    $cfg = Join-Path (Join-Path $env:ProgramData 'Brio') 'puntero.cfg'
+    $v = Puntero-Cfg
+    $code = Prog-Usuario-Off 'BrioPuntero' 'velocidad del puntero fija'
+    if ($code -ge 1) { return $code }
+    if ($v.ContainsKey('orig')) {
+        # Devuelve lo que tenias antes (el programa ya no corre, nadie lo vuelve a cambiar)
+        $r = Act 'SPI' ('P:0x0071:' + $v.orig + ';M:' + [int]$v.origt1 + ':' + [int]$v.origt2 + ':' + [int]$v.origvel + ';')
+        if ($r -ge 1) { Log 'FALLO' 'no se pudo devolver la velocidad del puntero'; return 1 }
+        Reg-Chk 'HKCU\Control Panel\Mouse' 'MouseSensitivity' ([string]$v.orig)
+        $code = 0
+    }
+    Remove-Item -LiteralPath $cfg -Force -ErrorAction SilentlyContinue
+    return $code
+}
+
+# Modo foco sin programa (fsm): apaga las dos teclas Windows con el Scancode Map del registro (lo lee el driver del teclado al arrancar).
+# No queda ningun programa ni gancho de teclado. El mapa que ya tengas (por ejemplo Bloq Mayus -> Ctrl) se respeta: solo se agregan o quitan estas dos entradas.
+# Formato: 8 bytes en 0, cantidad de entradas + 1 (DWORD), entradas de 4 bytes (scancode nuevo y de origen, 2 bytes cada uno) y 4 bytes en 0.
+$ScmClave = 'HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layout'
+$ScmWin = [uint32[]]@((0xE05B * 65536), (0xE05C * 65536))   # Windows izquierda y derecha -> nada (bytes 00 00 5B E0 y 00 00 5C E0)
+# Entradas del mapa como UInt32 (nuevo en los 2 bytes bajos, origen en los altos). Sin mapa: lista vacia. $null = formato que no se entiende (no se toca).
+function Scm-Entradas($m) {
+    if ($null -eq $m) { return , ([uint32[]]@()) }
+    if ($m -isnot [byte[]]) { return $null }
+    if (($m.Count -lt 16) -or (($m.Count % 4) -ne 0) -or ((12 + 4 * [int64][BitConverter]::ToUInt32($m, 8)) -ne $m.Count) -or ([BitConverter]::ToUInt32($m, $m.Count - 4) -ne 0)) { return $null }
+    return , ([uint32[]]@(for ($i = 12; $i -lt ($m.Count - 4); $i += 4) { [BitConverter]::ToUInt32($m, $i) }))
+}
+function Scm-Armar([uint32[]]$e) {
+    $b = New-Object System.Collections.Generic.List[byte]
+    $b.AddRange([byte[]]::new(8)); $b.AddRange([BitConverter]::GetBytes([uint32]($e.Count + 1)))
+    foreach ($x in $e) { $b.AddRange([BitConverter]::GetBytes([uint32]$x)) }
+    $b.AddRange([byte[]]::new(4))
+    return , $b.ToArray()
+}
+# Agrega las teclas Windows que falten. Si una ya esta cambiada en tu mapa (a otra tecla o a nada), se respeta y no se duplica.
+function Scm-Con([uint32[]]$e) {
+    $r = @($e)
+    foreach ($w in $ScmWin) { if (@($r | Where-Object { [math]::Floor($_ / 65536) -eq [math]::Floor($w / 65536) }).Count -eq 0) { $r += $w } }
+    return , ([uint32[]]$r)
+}
+function Scm-Leer {
+    $k = $null
+    try { $k = Reg-Abrir $ScmClave 'leer'; if ($k) { $v = $k.GetValue('Scancode Map', $null); if ($null -ne $v) { return , $v } } } catch { } finally { if ($k) { $k.Dispose() } }
+    return $null
+}
+# Escribe el mapa (sin entradas: borra el valor) y lo verifica leyendo el registro
+function Scm-Escribir([uint32[]]$n) {
+    $k = $null
+    try {
+        $k = Reg-Abrir $ScmClave 'borrar'
+        if ($n.Count -eq 0) { $k.DeleteValue('Scancode Map', $false) } else { $k.SetValue('Scancode Map', (Scm-Armar $n), [Microsoft.Win32.RegistryValueKind]::Binary) }
+    } catch { Log 'FALLO' ('no se pudo escribir el Scancode Map - ' + ($_.Exception.Message -replace '\s+', ' ')); return $false } finally { if ($k) { $k.Dispose() } }
+    $l = Scm-Leer
+    if ($n.Count -eq 0) { $ok = ($null -eq $l); $txt = '(borrado)' } else { $txt = [BitConverter]::ToString((Scm-Armar $n)); $ok = (($l -is [byte[]]) -and ([BitConverter]::ToString($l) -eq $txt)) }
+    if ($ok) { Log 'OK' ('verificado: Scancode Map = ' + $txt) } else { Log 'FALLO' ('el Scancode Map no quedo como se esperaba: ' + $txt) }
+    return $ok
+}
+function Scm-Archivo { return (Join-Path (Join-Path $env:ProgramData 'Brio') 'scancode_orig.txt') }
+function Scm-On {
+    $m = Scm-Leer
+    $e = Scm-Entradas $m
+    if ($null -eq $e) { Log 'FALLO' 'ya hay un Scancode Map que Brio no entiende: no se toca (revisalo a mano en HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layout)'; return 1 }
+    $n = Scm-Con $e
+    if ($n.Count -eq $e.Count) { Log 'OK' 'ya estaba: las teclas Windows ya estan cambiadas en el Scancode Map'; return 5 }
+    # Como estaba antes se anota UNA sola vez (si existia el mapa y que entradas agrego Brio): R quita solo esas
+    $f = Scm-Archivo
+    if (-not (Test-Path -LiteralPath $f)) {
+        $dir = Split-Path -Parent $f; if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        Set-Content -LiteralPath $f -Encoding ASCII -Value @(('existia=' + [int]($null -ne $m)), ('orig=' + $(if ($null -ne $m) { [BitConverter]::ToString($m) } else { '' })), ('agregadas=' + (@($n | Where-Object { $e -notcontains $_ }) -join ',')))
+    }
+    if ($null -ne $m) { Log 'INFO' ('Scancode Map que ya tenias (se respeta): ' + [BitConverter]::ToString($m)) }
+    if (-not (Scm-Escribir $n)) { return 1 }
+    return 0
+}
+function Scm-Off {
+    $f = Scm-Archivo
+    $e = Scm-Entradas (Scm-Leer)
+    if ($null -eq $e) { Log 'FALLO' 'hay un Scancode Map que Brio no entiende: no se toca (revisalo a mano en HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layout)'; return 1 }
+    $v = @{}; if (Test-Path -LiteralPath $f) { foreach ($l in @(Get-Content -LiteralPath $f -ErrorAction SilentlyContinue)) { if ($l -match '^(\w+)=(.*)$') { $v[$Matches[1]] = $Matches[2].Trim() } } }
+    # Con lo anotado se quita solo lo que agrego Brio; sin anotar (se borro el archivo), las dos teclas Windows
+    $quitar = $(if ($v.ContainsKey('agregadas')) { [uint32[]]@($v.agregadas -split ',' | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [uint32]$_ }) } else { $ScmWin })
+    $n = [uint32[]]@($e | Where-Object { $quitar -notcontains $_ })
+    if ($n.Count -eq $e.Count) { Log 'OK' 'ya estaba: las teclas Windows no estan apagadas por Brio en el Scancode Map'; Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue; return 5 }
+    if ($v.orig) { Log 'INFO' ('Scancode Map que tenias antes de Brio: ' + $v.orig) }
+    if (-not (Scm-Escribir $n)) { return 1 }
+    Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue
+    return 0
+}
+
+# Escala de Windows segun la resolucion (BrioEscala): sube la escala (DPI por monitor) cuando usas una resolucion mayor que tu base, para que todo se vea del mismo tamano.
+# Nunca baja de lo que ya tenias y nunca pasa del maximo que Windows ofrece para ese monitor.
+$CodEscalaApi = @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+public class Mon { public uint Lo; public int Hi; public uint SrcId; public uint TgtId; public string Dev; public int W; public int X; public int Y; public int Min; public int Cur; public int Max; }
+public static class Esc {
+    [StructLayout(LayoutKind.Sequential)] struct LUID { public uint Lo; public int Hi; }
+    [StructLayout(LayoutKind.Sequential)] struct HDR { public int type; public int size; public LUID adapterId; public uint id; }
+    [StructLayout(LayoutKind.Sequential)] struct DPI_GET { public HDR h; public int minScaleRel; public int curScaleRel; public int maxScaleRel; }
+    [StructLayout(LayoutKind.Sequential)] struct DPI_SET { public HDR h; public int scaleRel; }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] struct SRCNAME { public HDR h; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string name; }
+    [StructLayout(LayoutKind.Sequential)] struct PATHSRC { public LUID adapterId; public uint id; public uint modeInfoIdx; public uint statusFlags; }
+    [StructLayout(LayoutKind.Sequential)] struct RATIONAL { public uint n; public uint d; }
+    [StructLayout(LayoutKind.Sequential)] struct PATHTGT { public LUID adapterId; public uint id; public uint modeInfoIdx; public int outputTechnology; public int rotation; public int scaling; public RATIONAL refresh; public int scanLineOrdering; public int targetAvailable; public uint statusFlags; }
+    [StructLayout(LayoutKind.Sequential)] struct PATHINFO { public PATHSRC src; public PATHTGT tgt; public uint flags; }
+    [StructLayout(LayoutKind.Sequential, Size = 64)] struct MODEINFO { public int infoType; public uint id; public LUID adapterId; }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct DEVMODE {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+        public ushort dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra; public uint dmFields;
+        public int dmPositionX, dmPositionY; public uint dmDisplayOrientation, dmDisplayFixedOutput;
+        public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+        public ushort dmLogPixels; public uint dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency, dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
+    }
+    [DllImport("user32.dll")] static extern int GetDisplayConfigBufferSizes(uint f, out uint np, out uint nm);
+    [DllImport("user32.dll")] static extern int QueryDisplayConfig(uint f, ref uint np, [Out] PATHINFO[] p, ref uint nm, [Out] MODEINFO[] m, IntPtr t);
+    [DllImport("user32.dll")] static extern int DisplayConfigGetDeviceInfo(ref DPI_GET p);
+    [DllImport("user32.dll")] static extern int DisplayConfigGetDeviceInfo(ref SRCNAME p);
+    [DllImport("user32.dll")] static extern int DisplayConfigSetDeviceInfo(ref DPI_SET p);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool EnumDisplaySettings(string dev, int n, ref DEVMODE dm);
+    public static readonly int[] Pasos = { 100, 125, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500 };
+    // Indice (en Pasos) al que corresponde la escala ancho actual / ancho base; 0 (100%) si la resolucion no supera a la base. En el empate gana el paso de abajo.
+    public static int Idx(int actual, int bas) {
+        if (bas <= 0 || actual <= bas) return 0;
+        double t = 100.0 * actual / bas; int mejor = 0; double dif = double.MaxValue;
+        for (int i = 0; i < Pasos.Length; i++) { double d = Math.Abs(Pasos[i] - t); if (d < dif - 1e-9) { dif = d; mejor = i; } }
+        return mejor;
+    }
+    // Desplazamiento (relativo al recomendado, como lo pide Windows) a aplicar: nunca menos que lo original, nunca mas que el maximo del monitor
+    public static int Rel(int actual, int bas, int orig, int rec, int max) {
+        int a = Math.Max(orig, Idx(actual, bas));
+        if (a > rec + max) a = rec + max;
+        if (a < 0) a = 0;
+        return a - rec;
+    }
+    static PATHINFO[] Paths() {
+        uint np, nm; if (GetDisplayConfigBufferSizes(2, out np, out nm) != 0) return new PATHINFO[0];
+        PATHINFO[] p = new PATHINFO[np]; MODEINFO[] m = new MODEINFO[nm];
+        if (QueryDisplayConfig(2, ref np, p, ref nm, m, IntPtr.Zero) != 0) return new PATHINFO[0];
+        return p;
+    }
+    // Monitores activos con su resolucion real (EnumDisplaySettings da pixeles reales) y los limites de escala que informa Windows
+    public static List<Mon> Lista() {
+        List<Mon> r = new List<Mon>();
+        foreach (PATHINFO p in Paths()) {
+            Mon m = new Mon(); m.Lo = p.src.adapterId.Lo; m.Hi = p.src.adapterId.Hi; m.SrcId = p.src.id; m.TgtId = p.tgt.id;
+            SRCNAME sn = new SRCNAME(); sn.h.type = 1; sn.h.size = Marshal.SizeOf(typeof(SRCNAME)); sn.h.adapterId = p.src.adapterId; sn.h.id = p.src.id;
+            if (DisplayConfigGetDeviceInfo(ref sn) != 0) continue;
+            m.Dev = sn.name;
+            DEVMODE dm = new DEVMODE(); dm.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
+            if (!EnumDisplaySettings(m.Dev, -1, ref dm) || dm.dmPelsWidth == 0) continue;
+            m.W = (int)dm.dmPelsWidth; m.X = dm.dmPositionX; m.Y = dm.dmPositionY;
+            DPI_GET q = new DPI_GET(); q.h.type = -3; q.h.size = Marshal.SizeOf(typeof(DPI_GET)); q.h.adapterId = p.src.adapterId; q.h.id = p.src.id;
+            if (DisplayConfigGetDeviceInfo(ref q) != 0) continue;
+            m.Min = q.minScaleRel; m.Cur = q.curScaleRel; m.Max = q.maxScaleRel;
+            r.Add(m);
+        }
+        return r;
+    }
+    public static int Poner(Mon m, int rel) {
+        DPI_SET q = new DPI_SET(); q.h.type = -4; q.h.size = Marshal.SizeOf(typeof(DPI_SET)); q.h.adapterId.Lo = m.Lo; q.h.adapterId.Hi = m.Hi; q.h.id = m.SrcId; q.scaleRel = rel;
+        return DisplayConfigSetDeviceInfo(ref q);
+    }
+}
+'@
+$CodBrioEscala = $CodEscalaApi + @'
+public class E {
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
+    [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, System.Text.StringBuilder s, int n);
+    [DllImport("user32.dll")] static extern bool SystemParametersInfo(uint a, uint p, IntPtr v, uint f);
+    [StructLayout(LayoutKind.Sequential)] struct RECT { public int L, T, R, B; }
+    static string Dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Brio");
+    static string Cfg = System.IO.Path.Combine(Dir, "escala.cfg");
+    static string Reg = System.IO.Path.Combine(Dir, "escala.log");
+    static void Anotar(string t) {
+        try {
+            if (System.IO.File.Exists(Reg) && new System.IO.FileInfo(Reg).Length > 100000) System.IO.File.Delete(Reg);
+            System.IO.File.AppendAllText(Reg, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + t + "\r\n");
+        } catch { }
+    }
+    static int Leer(string clave, int def) {
+        try {
+            foreach (string l in System.IO.File.ReadAllLines(Cfg)) {
+                int i = l.IndexOf('=');
+                int v;
+                if (i > 0 && l.Substring(0, i).Trim() == clave && int.TryParse(l.Substring(i + 1).Trim(), out v)) return v;
+            }
+        } catch { }
+        return def;
+    }
+    static void Escribir(string clave, int val) {
+        try {
+            List<string> ls = new List<string>();
+            foreach (string l in System.IO.File.ReadAllLines(Cfg)) { int i = l.IndexOf('='); if (i > 0 && l.Substring(0, i).Trim() == clave) continue; ls.Add(l); }
+            ls.Add(clave + "=" + val);
+            System.IO.File.WriteAllLines(Cfg, ls.ToArray());
+        } catch { }
+    }
+    // Un juego a pantalla completa (ventana sin borde que cubre el monitor, que no sea el escritorio): no se toca nada mientras tanto
+    static bool JuegoEnPrimerPlano() {
+        try {
+            IntPtr h = GetForegroundWindow(); if (h == IntPtr.Zero) return false;
+            RECT r; if (!GetWindowRect(h, out r)) return false;
+            System.Text.StringBuilder c = new System.Text.StringBuilder(64); GetClassName(h, c, 64);
+            string cl = c.ToString(); if (cl == "Progman" || cl == "WorkerW" || cl == "Shell_TrayWnd") return false;
+            if ((GetWindowLong(h, -16) & 0xC00000) != 0) return false;
+            return (r.R - r.L) >= 640 && (r.B - r.T) >= 480 && IgualAMonitor(r.R - r.L, r.B - r.T);
+        } catch { return false; }
+    }
+    static bool IgualAMonitor(int w, int h) {
+        foreach (Mon m in Esc.Lista()) { if (m.W == w) return true; }
+        return false;
+    }
+    static int CursorOrig = 0;
+    static int CursorAct = 0;
+    static void Cursor(int pct, int pctOrig) {
+        if (pctOrig <= 0) pctOrig = 100;
+        if (CursorOrig == 0) CursorOrig = Leer("cur", 0);
+        if (CursorOrig == 0) return;
+        int t = (int)(Math.Round(CursorOrig * (double)pct / pctOrig / 8.0) * 8);
+        if (t < CursorOrig) t = CursorOrig; if (t > 256) t = 256;
+        if (t == CursorAct) return;
+        try {
+            Microsoft.Win32.Registry.SetValue("HKEY_CURRENT_USER\\Control Panel\\Cursors", "CursorBaseSize", t, Microsoft.Win32.RegistryValueKind.DWord);
+            SystemParametersInfo(0x57, 0, IntPtr.Zero, 2);
+            CursorAct = t; Anotar("cursor " + t);
+        } catch { }
+    }
+    public static void Main() {
+        bool unica;
+        using (System.Threading.Mutex mx = new System.Threading.Mutex(true, "Local\\BrioEscala", out unica)) {
+            if (!unica) return;
+            Dictionary<uint, int> ancho = new Dictionary<uint, int>(), estable = new Dictionary<uint, int>(), puesto = new Dictionary<uint, int>(), fallo = new Dictionary<uint, int>();
+            while (true) {
+                try {
+                    int bas = Leer("base", 0);
+                    if (bas > 0) {
+                        foreach (Mon m in Esc.Lista()) {
+                            if (!ancho.ContainsKey(m.TgtId) || ancho[m.TgtId] != m.W) { ancho[m.TgtId] = m.W; estable[m.TgtId] = 0; continue; }
+                            estable[m.TgtId]++;
+                            // Resolucion estable unos segundos y sin juego a pantalla completa: si no, se espera
+                            if (estable[m.TgtId] < 3 || JuegoEnPrimerPlano()) continue;
+                            int rec = -m.Min, cur = rec + m.Cur;
+                            string clave = "o" + m.TgtId;
+                            int orig = Leer(clave, -1);
+                            // Si alguien cambio la escala a mano, eso pasa a ser lo tuyo
+                            if (orig < 0 || (puesto.ContainsKey(m.TgtId) && puesto[m.TgtId] != cur)) { orig = cur; Escribir(clave, orig); puesto.Remove(m.TgtId); }
+                            int rel = Esc.Rel(m.W, bas, orig, rec, m.Max), meta = rec + rel;
+                            if (meta != cur) {
+                                int tope = m.W * 1000 + bas;
+                                if (fallo.ContainsKey(m.TgtId) && fallo[m.TgtId] == tope) continue;
+                                int rr = Esc.Poner(m, rel);
+                                System.Threading.Thread.Sleep(700);
+                                int nuevo = -1;
+                                foreach (Mon n in Esc.Lista()) { if (n.TgtId == m.TgtId) nuevo = rec + n.Cur; }
+                                if (rr == 0 && nuevo == meta) { puesto[m.TgtId] = meta; Anotar(m.Dev + " " + m.W + " px, base " + bas + ": escala " + Esc.Pasos[cur] + "% -> " + Esc.Pasos[meta] + "%"); }
+                                else { Esc.Poner(m, cur - rec); fallo[m.TgtId] = tope; Anotar(m.Dev + ": no se pudo poner " + Esc.Pasos[meta] + "% (codigo " + rr + "), se vuelve a " + Esc.Pasos[cur] + "%"); }
+                            } else if (cur != orig || puesto.ContainsKey(m.TgtId)) { puesto[m.TgtId] = cur; }
+                            if (m.X == 0 && m.Y == 0) { int ab = rec + m.Cur; foreach (Mon n in Esc.Lista()) { if (n.TgtId == m.TgtId) ab = rec + n.Cur; } Cursor(Esc.Pasos[ab], Esc.Pasos[orig]); }
+                        }
+                    }
+                } catch { }
+                System.Threading.Thread.Sleep(2000);
+            }
+        }
+    }
+}
+'@
+function Escala-Cfg {
+    $cfg = Join-Path (Join-Path $env:ProgramData 'Brio') 'escala.cfg'; $v = @{}
+    if (Test-Path -LiteralPath $cfg) { foreach ($l in @(Get-Content -LiteralPath $cfg -ErrorAction SilentlyContinue)) { if ($l -match '^(\w+)=(-?\d+)\s*$') { $v[$Matches[1]] = [int]$Matches[2] } } }
+    return $v
+}
+function Escala-Api { if (-not ('Esc' -as [type])) { Add-Type -TypeDefinition $CodEscalaApi -Language CSharp } }
+function Escala-Cursor([int]$t) {
+    Set-ItemProperty -Path 'HKCU:\Control Panel\Cursors' -Name 'CursorBaseSize' -Value $t -Type DWord
+    Add-Type -Namespace Brio -Name EscSpi -MemberDefinition '[DllImport("user32.dll")] public static extern bool SystemParametersInfo(uint a, uint p, IntPtr v, uint f);' -ErrorAction SilentlyContinue
+    [void][Brio.EscSpi]::SystemParametersInfo(0x57, 0, [IntPtr]::Zero, 2)
+}
+# base = ancho de la resolucion base (por ejemplo 1920)
+function Escala-On([int]$base) {
+    if (($base -lt 640) -or ($base -gt 15360)) { Log 'FALLO' ('resolucion base no valida: ' + $base); return 1 }
+    Escala-Api
+    $dir = Join-Path $env:ProgramData 'Brio'; $cfg = Join-Path $dir 'escala.cfg'
+    Proteger-Carpeta $dir
+    $v = Escala-Cfg
+    $mons = @([Esc]::Lista())
+    if ($mons.Count -eq 0) { Log 'FALLO' 'no se pudo leer la escala de los monitores'; return 1 }
+    # Lo que tenias (escala de cada monitor y tamano del cursor) se guarda una sola vez: si volves a aplicar con otra base no se pierde
+    $lin = @(('base=' + $base))
+    foreach ($m in $mons) { $k = 'o' + $m.TgtId; $o = $(if ($v.ContainsKey($k)) { $v[$k] } else { (-$m.Min) + $m.Cur }); $lin += ($k + '=' + $o) }
+    $cur = $(if ($v.ContainsKey('cur')) { $v.cur } else { $c = (Get-ItemProperty 'HKCU:\Control Panel\Cursors' -Name CursorBaseSize -ErrorAction SilentlyContinue).CursorBaseSize; if ($c -match '^\d+$') { [int]$c } else { 32 } })
+    $lin += ('cur=' + $cur)
+    Set-Content -LiteralPath $cfg -Value $lin -Encoding ASCII
+    $code = Prog-Usuario-On 'BrioEscala' $CodBrioEscala 'escala segun la resolucion'
+    if ($code -ge 1) { return $code }
+    foreach ($m in $mons) {
+        $rec = -$m.Min; $meta = $rec + [Esc]::Rel($m.W, $base, $(if ($v.ContainsKey('o' + $m.TgtId)) { $v['o' + $m.TgtId] } else { $rec + $m.Cur }), $rec, $m.Max)
+        Log 'INFO' ($m.Dev + ': ' + $m.W + ' px, base ' + $base + ', escala ahora ' + [Esc]::Pasos[$rec + $m.Cur] + '%, con la base elegida quedara en ' + [Esc]::Pasos[$meta] + '% (maximo que ofrece Windows en este monitor: ' + [Esc]::Pasos[$rec + $m.Max] + '%)')
+    }
+    return $code
+}
+function Escala-Off {
+    $v = Escala-Cfg
+    $code = Prog-Usuario-Off 'BrioEscala' 'escala segun la resolucion'
+    if ($code -ge 1) { return $code }
+    if ($v.Count -gt 0) {
+        Escala-Api
+        $mal = 0
+        foreach ($m in @([Esc]::Lista())) {
+            $k = 'o' + $m.TgtId
+            if (-not $v.ContainsKey($k)) { continue }
+            $rec = -$m.Min; $meta = [math]::Min([math]::Max($v[$k], 0), $rec + $m.Max)
+            if (($rec + $m.Cur) -eq $meta) { continue }
+            [void][Esc]::Poner($m, $meta - $rec); Start-Sleep -Milliseconds 700
+            $n = @([Esc]::Lista() | Where-Object { $_.TgtId -eq $m.TgtId })[0]
+            if ($n -and (($rec + $n.Cur) -eq $meta)) { Log 'OK' ('verificado: ' + $m.Dev + ' escala devuelta a ' + [Esc]::Pasos[$meta] + '%') } else { Log 'FALLO' ('no se pudo devolver la escala de ' + $m.Dev); $mal++ }
+        }
+        if ($v.ContainsKey('cur')) { try { Escala-Cursor $v.cur; Log 'OK' ('verificado: cursor devuelto a ' + $v.cur) } catch { Log 'FALLO' 'no se pudo devolver el tamano del cursor'; $mal++ } }
+        if ($mal -gt 0) { return 1 }
+    }
+    Remove-Item -LiteralPath (Join-Path (Join-Path $env:ProgramData 'Brio') 'escala.cfg') -Force -ErrorAction SilentlyContinue
+    return $code
 }
 
 function Gaming-Act([string]$XAct, [string]$XDato) {
@@ -1456,6 +1890,12 @@ function Gaming-Act([string]$XAct, [string]$XDato) {
     'FOCO_ON' { $code = Prog-Usuario-On 'BrioFoco' $CodBrioFoco 'modo foco' }
 
     'FOCO_OFF' { $code = Prog-Usuario-Off 'BrioFoco' 'modo foco' }
+    'FSM_ON' { $code = Scm-On }
+    'FSM_OFF' { $code = Scm-Off }
+    'PTR_ON' { $code = Puntero-On ([int]$XDato) }
+    'PTR_OFF' { $code = Puntero-Off }
+    'ESC_ON' { $code = Escala-On ([int]$XDato) }
+    'ESC_OFF' { $code = Escala-Off }
 
     'RAM_ON' {
         $tn = 'BrioRAM'; $dir = Join-Path $env:ProgramData 'Brio'; $exe = Join-Path $dir 'BrioRAM.exe'
@@ -2602,7 +3042,7 @@ $ListaOpciones = @(
     @{
         Id = 'wgo'; Seccion = 'GRAFICOS'
         Q = '- Desea activar las optimizaciones para juegos en ventana? (Modo moderno en ventana y sin bordes; solo Windows 11)'
-        Hace = 'activa "Optimizaciones para juegos en ventana": los juegos DirectX 10 y 11 en ventana o sin bordes usan el modo moderno de presentacion.'
+        Hace = 'activa "Optimizaciones para juegos en ventana": los juegos DirectX 10 y 11 en ventana o sin bordes usan el modo moderno de presentacion. Tip: si al hacer Alt+Tab desde un juego en pantalla completa la pantalla se pone negra un momento, proba jugar en ventana sin bordes con esto activado.'
         Favor = 'menos latencia en ventana y sin bordes, y ahi tambien andan Auto HDR y la frecuencia variable (G-Sync o FreeSync).'
         Contra = 'en algun juego viejo puede cambiar como se ve; R lo vuelve atras.'
         Saltar = {
@@ -2944,7 +3384,7 @@ $ListaOpciones = @(
         Q = '- Desea desactivar la Integridad de memoria? (Mas rendimiento, menos proteccion contra drivers maliciosos)'
         Hace = 'apaga la Integridad de memoria de Windows.'
         Favor = 'mas FPS en algunos juegos.'
-        Contra = 'menos proteccion contra drivers maliciosos.'
+        Contra = 'menos proteccion contra drivers maliciosos. Si tenes Riot Vanguard, se borra: REINICIA LA PC SIN FALTA antes de volver a instalarlo (o abrir VALORANT o LoL), o pueden salir errores y bucles de instalacion.'
         S = {
             Opt-Ini 'Integridad de memoria'
             Reg-Set 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' 'Enabled' 'REG_DWORD' '0'
@@ -2989,7 +3429,7 @@ $ListaOpciones = @(
         Q = '- Desea desactivar VBS? (5 a 10 por ciento mas en juegos; rompe Docker, WSL y Hyper-V)'
         Hace = 'apaga la seguridad basada en virtualizacion.'
         Favor = 'entre 5 y 10 por ciento mas de FPS.'
-        Contra = 'deja de andar WSL, Docker, Hyper-V y las maquinas virtuales.'
+        Contra = 'deja de andar WSL, Docker, Hyper-V y las maquinas virtuales. Si tenes Riot Vanguard, se borra: REINICIA LA PC SIN FALTA antes de volver a instalarlo (o abrir VALORANT o LoL), o pueden salir errores y bucles de instalacion.'
         S = {
             Opt-Ini 'VBS'
             Say '  Revisando el estado de la virtualizacion, un momento...'
@@ -3140,6 +3580,40 @@ $ListaOpciones = @(
         }
     },
     @{
+        Id = 'vpf'; Seccion = 'MOUSE'
+        Q = '- Desea fijar la velocidad del puntero de Windows segun la resolucion? (Elegis la velocidad base de 1 a 20; al bajar la resolucion se ajusta sola para que se sienta igual)'
+        Hace = 'un programa chico en segundo plano ajusta la velocidad del puntero de Windows cada vez que cambias de resolucion, para que el mouse se mueva lo mismo que en la resolucion nativa de tu monitor. Elegis la velocidad base de 1 a 20 (10 es la de Windows) y apaga la aceleracion del mouse. Solo afecta al puntero de Windows: los juegos con entrada directa (raw input) no se tocan.'
+        Favor = 'los juegos viejos, launchers y emuladores que usan el puntero de Windows se sienten parecidos a la resolucion nativa.'
+        Contra = 'la velocidad cambia sola al cambiar de resolucion, tambien en el escritorio; no se usa junto con Mouse competitivo.'
+        S = {
+            Opt-Ini 'Velocidad del puntero fija'
+            Resps (Act 'PTR_ON' ([string]$env:PTRBASE))
+            Opt-Fin 'Velocidad del puntero fija activa (arranca al iniciar sesion)'
+        }
+        R = {
+            Opt-Ini 'Velocidad del puntero fija (restaurar)'
+            Resps (Act 'PTR_OFF')
+            Opt-Fin 'Velocidad del puntero como la tenias antes'
+        }
+    },
+    @{
+        Id = 'esc'; Seccion = 'MOUSE'
+        Q = '- Desea subir la escala de Windows cuando uses una resolucion mayor que tu base? (Elegis la resolucion base, por ejemplo 1920x1080; si usas una mayor, Brio sube la escala para que iconos, textos y cursor se vean del mismo tamano)'
+        Hace = 'un programa chico en segundo plano mira la resolucion de cada monitor. Elegis una resolucion base (por ejemplo 1920x1080): cuando usas una resolucion mayor, sube la escala de Windows de ese monitor (la de Configuracion > Pantalla > Escala) a lo que corresponde, por ejemplo 2560x1440 con base 1920x1080 es 133 % y queda en el paso mas cercano que ofrece Windows (125 %), para que iconos, textos, carpetas, ventanas y el cursor se vean del mismo tamano fisico. Si la resolucion es igual o menor que la base no toca nada. Solo sube: nunca pasa del maximo que Windows ofrece para ese monitor ni baja de la escala que ya tenias. Espera unos segundos a que la resolucion este estable y no cambia nada con un juego en pantalla completa. Si el cambio falla, vuelve a la escala anterior.'
+        Favor = 'podes jugar a una resolucion alta sin que el escritorio y los programas se vean diminutos.'
+        Contra = 'sube la escala cuando usas una resolucion mayor que tu base; no puede achicar nada por debajo del tamano normal. Los programas que ya estaban abiertos pueden no cambiar de tamano hasta que los cierres y los abras de nuevo, y a veces Windows pide cerrar sesion para aplicar el cambio por completo (Brio no la cierra por vos).'
+        S = {
+            Opt-Ini 'Escala segun la resolucion'
+            Resps (Act 'ESC_ON' ([string]$env:ESCBASE))
+            Opt-Fin 'Escala segun la resolucion activa (arranca al iniciar sesion; los programas abiertos pueden necesitar reabrirse)'
+        }
+        R = {
+            Opt-Ini 'Escala segun la resolucion (restaurar)'
+            Resps (Act 'ESC_OFF')
+            Opt-Fin 'Escala y cursor como los tenias antes'
+        }
+    },
+    @{
         Id = 'dtk'; Seccion = 'TECLADO'
         Q = '- Desea que el teclado se destrabe solo? (Un programa chico suelta Alt, Ctrl, Shift y Windows si quedan apretados; atajo Ctrl + Alt + K)'
         Hace = 'un programa chico en segundo plano suelta Alt, Ctrl, Shift y Windows cuando quedan apretados sin que toques nada, y deja el atajo Ctrl + Alt + K para soltarlos y reiniciar la entrada de texto (ctfmon) cuando quieras.'
@@ -3161,7 +3635,7 @@ $ListaOpciones = @(
         Q = '- Desea activar el Modo foco? (La tecla Windows no abre el Inicio ni te saca del juego en pantalla completa; Ctrl + Alt + F la bloquea siempre)'
         Hace = 'un programa chico en segundo plano ignora la tecla Windows mientras hay un juego en pantalla completa. Con Ctrl + Alt + F la ignora siempre, hasta que repitas el atajo (suena un pitido).'
         Favor = 'un toque sin querer a la tecla Windows ya no te saca de la partida ni abre el menu Inicio.'
-        Contra = 'con el juego en pantalla completa tampoco andan los atajos con Windows (Win + D, Win + Shift + S...).'
+        Contra = 'con el juego en pantalla completa tampoco andan los atajos con Windows (Win + D, Win + Shift + S...). Algunos antitrampas (Valorant/Vanguard, FACEIT) pueden no llevarse bien con un programa que mira el teclado: para esos juegos esta el Modo foco sin programa.'
         S = {
             Opt-Ini 'Modo foco'
             Resps (Act 'FOCO_ON')
@@ -3171,6 +3645,23 @@ $ListaOpciones = @(
             Opt-Ini 'Modo foco (restaurar)'
             Resps (Act 'FOCO_OFF')
             Opt-Fin 'Modo foco desactivado: la tecla Windows vuelve a andar siempre'
+        }
+    },
+    @{
+        Id = 'fsm'; Seccion = 'TECLADO'
+        Q = '- Desea apagar las teclas Windows sin ningun programa? (Compatible con antitrampas: se apagan desde el registro, siempre y para todos; pide reiniciar)'
+        Hace = 'apaga las dos teclas Windows desde el registro (Scancode Map), sin ningun programa ni gancho de teclado. Si ya tenias otras teclas cambiadas, se respetan.'
+        Favor = 'no queda ningun programa corriendo ni mirando el teclado: el antitrampas no ve nada.'
+        Contra = 'las teclas Windows quedan apagadas SIEMPRE, tambien fuera de los juegos y para todos los usuarios de la PC (sin Inicio por teclado ni atajos como Win + D). Hay que reiniciar para que se aplique y para que vuelvan.'
+        S = {
+            Opt-Ini 'Modo foco sin programa'
+            Resps (Act 'FSM_ON')
+            Opt-Fin 'Teclas Windows apagadas (se aplica al reiniciar)'
+        }
+        R = {
+            Opt-Ini 'Modo foco sin programa (restaurar)'
+            Resps (Act 'FSM_OFF')
+            Opt-Fin 'Teclas Windows devueltas (se aplica al reiniciar)'
         }
     },
     @{
