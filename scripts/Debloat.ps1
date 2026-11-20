@@ -1462,7 +1462,9 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                 if (@(Get-AppxPackage -AllUsers -Name 'Microsoft.OneDriveSync' -ErrorAction SilentlyContinue).Count -eq 0) { $odRestosHechos++ } else { $odRestosQuedan += 'paquete Microsoft.OneDriveSync (se termina al reiniciar)' }
             }
             $raizUsr = $(if ($env:OneDrive) { ([string]$env:OneDrive).TrimEnd('\') } else { '' })
-            foreach ($dr in @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive'), (Join-Path $env:ProgramData 'Microsoft OneDrive'))) {
+            # Si OneDrive.exe sigue vivo, se cierra igual que arriba antes de borrar sus carpetas
+            if (Get-Process -Name 'OneDrive' -ErrorAction SilentlyContinue) { Stop-Process -Name 'OneDrive' -Force -ErrorAction SilentlyContinue; Esperar-Cierre 'OneDrive' 2000 }
+            foreach ($dr in @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive'), (Join-Path $env:LOCALAPPDATA 'OneDrive'), (Join-Path $env:ProgramData 'Microsoft OneDrive'), (Join-Path $env:APPDATA 'Microsoft\OneDrive'), ($env:SystemDrive + '\OneDriveTemp'))) {
                 if (-not (Test-Path -LiteralPath $dr)) { continue }
                 $itd = Get-Item -LiteralPath $dr -Force -ErrorAction SilentlyContinue
                 $enUsr = ($raizUsr -and (($dr.TrimEnd('\') + '\').StartsWith($raizUsr + '\', [StringComparison]::OrdinalIgnoreCase)))
@@ -1472,6 +1474,14 @@ function Debloat-Act([string]$XAct, [string]$XDato, [bool]$XChk) {
                 }
                 & cmd.exe /c ('rd /s /q "' + $dr + '"') 2>&1 | Out-Null
                 if (Test-Path -LiteralPath $dr) { $odRestosQuedan += $dr; Res $false ('resto de OneDrive en uso: ' + $dr) } else { $odRestosHechos++; Res $true ('resto de OneDrive borrado: ' + $dr) }
+            }
+            # La carpeta de tus archivos solo se borra si esta vacia del todo (Directory.Delete sin recursion: si hay algo adentro, falla y no borra nada)
+            $cu = Join-Path $env:USERPROFILE 'OneDrive'
+            if (Test-Path -LiteralPath $cu -PathType Container) {
+                $itu = Get-Item -LiteralPath $cu -Force -ErrorAction SilentlyContinue
+                if ($itu -and (-not ($itu.Attributes -band [IO.FileAttributes]::ReparsePoint)) -and (@(Get-ChildItem -LiteralPath $cu -Force -ErrorAction SilentlyContinue).Count -eq 0)) {
+                    try { [IO.Directory]::Delete($cu); $odRestosHechos++; Res $true ('carpeta OneDrive vacia borrada: ' + $cu) } catch { $odRestosQuedan += $cu; Res $false ('carpeta OneDrive vacia no se pudo borrar: ' + $cu) }
+                } else { Log 'INFO' ('carpeta OneDrive se deja (tiene archivos tuyos): ' + $cu) }
             }
             foreach ($lk in @((Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'), (Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'))) {
                 if (Test-Path -LiteralPath $lk) { Remove-Item -LiteralPath $lk -Force -ErrorAction SilentlyContinue; if (Test-Path -LiteralPath $lk) { $odRestosQuedan += $lk } else { $odRestosHechos++; Res $true ('acceso de OneDrive quitado del menu Inicio: ' + $lk) } }
