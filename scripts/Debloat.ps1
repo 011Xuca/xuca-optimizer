@@ -621,7 +621,8 @@ function Inicio-Lista {
         # La carpeta de tu usuario no cuenta: si tu usuario se llama "Xuca", "Intel", "HP"... todo lo que vive en tu carpeta quedaba protegido
         $txt = $e.Texto
         if ($env:USERPROFILE) { $txt = $txt.Replace($env:USERPROFILE, '') }
-        $e.Dejar = ($txt -match $rx) -or ($e.Nombre -match '(?i)xuca|\bpulso\b|\bbrio\b') -or ($e.Ruta -match '(?i)(xuca|pulso|brio)[^\\/"]*\.(exe|lnk|bat|cmd)') -or ($win -and ($e.Ruta -like ('*' + $win + '\*')))
+        # El icono de Seguridad de Windows (SecurityHealth) si se apaga: es solo el icono de la bandeja, el antivirus sigue
+        $e.Dejar = (($txt -match $rx) -or ($e.Nombre -match '(?i)xuca|\bpulso\b|\bbrio\b') -or ($e.Ruta -match '(?i)(xuca|pulso|brio)[^\\/"]*\.(exe|lnk|bat|cmd)') -or ($win -and ($e.Ruta -like ('*' + $win + '\*')))) -and ($e.Texto -notmatch '(?i)SecurityHealth')
     }
     return $r
 }
@@ -2891,7 +2892,7 @@ $ListaOpciones = @(
     @{
         Id = 'ini'; Seccion = 'APPS Y PROCESOS EN SEGUNDO PLANO'
         Q = '- Desea apagar las apps basura de inicio? (Las que se abren solas al prender la PC; no toca drivers, perifericos ni Wallpaper Engine)'
-        Hace = 'apaga los programas que se abren solos al prender la PC (Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge y parecidos). No toca lo de Windows, drivers, paneles de mouse, teclado, auriculares y RGB (Logitech, Razer, SteelSeries Sonar, Corsair...), Wallpaper Engine, antivirus, VPN ni antitrampas.'
+        Hace = 'apaga los programas que se abren solos al prender la PC (Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge y parecidos). Apaga tambien el icono de Seguridad de Windows de la bandeja (el antivirus sigue protegiendo igual). No toca lo de Windows, drivers, paneles de mouse, teclado, auriculares y RGB (Logitech, Razer, SteelSeries Sonar, Corsair...), Wallpaper Engine, otros antivirus, VPN ni antitrampas.'
         Favor = 'la PC prende mas rapido y queda mas RAM libre.'
         Contra = 'esos programas ya no se abren solos: los abris vos cuando los necesitas.'
         S = {

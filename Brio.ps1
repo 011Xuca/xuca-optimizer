@@ -2270,7 +2270,7 @@ function Tipo-Dialogo([string]$titulo, [string]$colorSi, [bool]$pregunta) {
 }
 
 # Pregunta Si/No. Devuelve $true si tocas el boton principal. Sin $textoNo es solo un aviso con un boton.
-function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]$colorSi, [string]$textoNo, [string]$textoMedio) {
+function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]$colorSi, [string]$textoNo, [string]$textoMedio, [bool]$enterCancela = $false) {
     if (-not $textoSi) { $textoSi = 'Seguir' }
     if (-not $colorSi) { $colorSi = '#60A5FA' }
     $w = Nuevo-Dialogo 480
@@ -2301,21 +2301,32 @@ function Confirmar([string]$titulo, [string]$mensaje, [string]$textoSi, [string]
         $bMe.Add_Click({ $script:Res3 = 'menos'; [Windows.Window]::GetWindow($this).DialogResult = $true })
         $der += $bMe
     }
+    if ($enterCancela -and $textoNo) { $bNo.IsDefault = $true; $bSi.IsDefault = $false }
     $der += $bSi
     $sp.Children.Add((Fila-Botones @() $der)) | Out-Null
     $w.Content.Child = $sp
     return ($w.ShowDialog() -eq $true)
 }
 # Cartel de 3 botones. Devuelve 'cancelar' (Esc o la X: no se aplica nada), 'menos' (todo menos lo del cartel) o 'aplicar' (todo, con lo del cartel).
-function Confirmar-Tres([string]$titulo, [string]$mensaje, [string]$textoSi = 'Aplicar', [string]$colorSi = '#60A5FA') {
+function Confirmar-Tres([string]$titulo, [string]$mensaje, [string]$textoSi = 'Aplicar', [string]$colorSi = '#60A5FA', [string]$textoMedio = 'Todo menos esto') {
     $script:Res3 = 'cancelar'
-    [void](Confirmar $titulo $mensaje $textoSi $colorSi 'Cancelar' 'Todo menos esto')
+    # Sin "Todo menos esto" Enter cancela: antes Enter era ese boton, que con solo esto marcado no aplicaba nada
+    [void](Confirmar $titulo $mensaje $textoSi $colorSi 'Cancelar' $textoMedio (-not $textoMedio))
     return $script:Res3
 }
 $TxtTres = 'Cancelar no aplica nada y vuelve a la pantalla. "Todo menos esto" aplica todo lo demas y desmarca solo estos ajustes. "Aplicar" los aplica junto con el resto.'
+$TxtDos = 'Cancelar no aplica nada y vuelve a la pantalla. "Aplicar" lo aplica.'
+# Si lo marcado en toda la pantalla es solo lo del cartel, "Todo menos esto" no deja nada para aplicar: sobra el boton
+function Unico-Aviso([string[]]$claves) {
+    if ($claves.Count -eq 0) { return $false }
+    $n = 0
+    foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { if ($cb.IsChecked) { $n++ } } }
+    return ($n -le $claves.Count)
+}
 # Pregunta con 3 botones por un grupo de opciones ('Pagina|id'). Devuelve 'salir' (Cancelar: no se aplica nada), 'menos' (ya desmarco esas) o 'aplicar'.
 function Preguntar-Tres([string]$titulo, [string]$q, [string[]]$claves, [string]$perfil, [string]$colorSi = '#B3412F') {
-    $r = Confirmar-Tres $titulo ($q + "`n`n" + (Con-Enie $TxtTres)) 'Aplicar' $colorSi
+    if (Unico-Aviso $claves) { $r = Confirmar-Tres $titulo ($q + "`n`n" + (Con-Enie $TxtDos)) 'Aplicar' $colorSi '' }
+    else { $r = Confirmar-Tres $titulo ($q + "`n`n" + (Con-Enie $TxtTres)) 'Aplicar' $colorSi }
     if ($r -eq 'cancelar') {
         # Con un perfil de 1 clic las marcas las puso el perfil: Cancelar las saca para no dejar la pantalla con un perfil a medias
         if ($perfil) { foreach ($p in 'Debloat', 'Gaming') { foreach ($cb in $Casillas[$p].Values) { $cb.IsChecked = $false } }; Actualizar-Contador }
@@ -7241,10 +7252,10 @@ function Terminar-Corrida {
         # Resumen: cuantos ajustes, cuales, y lo que cambio de verdad (disco, apps, inicio, DNS)
         # Solo lo que se hizo de verdad: las opciones que ya estaban asi o no aplican no se listan (quedan en el log)
         $res = @()
-        $tit = @($C.Titulos); $titF = @()
+        $tit = @($C.Titulos); $titF = @(); $titP = @()
         if ($C.ContainsKey('Ops')) {
             $tit = @(); $titF = @()
-            foreach ($op in @($C.Ops)) { $q = $op -split '\|'; $ti = Titulo-De $q[0] $q[1]; if ($ti) { if ($q[2] -eq 'fallo') { $titF += $ti } elseif (($q[2] -eq 'ok') -and ($tit -notcontains $ti)) { $tit += $ti } } }
+            foreach ($op in @($C.Ops)) { $q = $op -split '\|'; $ti = Titulo-De $q[0] $q[1]; if ($ti) { if ($q[2] -eq 'fallo') { $titF += $ti } elseif ($q[2] -eq 'pend') { $titP += $ti } elseif (($q[2] -eq 'ok') -and ($tit -notcontains $ti)) { $tit += $ti } } }
         }
         if ($tit.Count -gt 0) { $res += ('Que se aplico: ' + (@($tit | Select-Object -First 10 | ForEach-Object { Con-Enie $_ }) -join ', ') + $(if ($tit.Count -gt 10) { ' (+' + ($tit.Count - 10) + ')' } else { '' })) }
         if ($C.Libre -gt 0) { $res += 'Espacio liberado: ' + $(if ($C.Libre -ge 1GB) { '{0:N1} GB' -f ($C.Libre / 1GB) } else { '{0:N0} MB' -f ($C.Libre / 1MB) }) + ' (' + $env:SystemDrive + ')' }
@@ -7255,6 +7266,9 @@ function Terminar-Corrida {
         if ($C.Dns) { $res += 'DNS elegido: ' + $C.Dns }
         if ($C.ContainsKey('Avisos')) { foreach ($av in @($C.Avisos | Select-Object -Unique)) { $res += ('Ojo: ' + (Con-Enie $av)) } }
         if ($titF.Count -gt 0) { $res += 'No se pudo aplicar: ' + (@($titF | ForEach-Object { Con-Enie $_ }) -join ', ') }
+        # Pendiente (ej: DISM espera un reinicio): no se aplico, la tarjeta sigue sin aplicar
+        if ($titP.Count -gt 0) { $res += $(if ($C.PideReinicio) { 'Quedo pendiente (reinicia la PC y volve a aplicarlo): ' } else { 'Quedo pendiente (el motivo esta en el log): ' }) + (@($titP | ForEach-Object { Con-Enie $_ }) -join ', ')
+            if ($C.Fallos -eq 0) { $m = 'Termino, pero algo quedo pendiente.' } }
         if ($res.Count -eq 0) { $m = $(if ($C.Fallos -gt 0) { $m } else { 'No hizo falta cambiar nada: ya estaba todo asi.' }) }
         else {
             if ($tit.Count -gt 0) { $res += 'Todo lo que tiene restablecimiento se deshace marcandolo y tocando "Restablecer seleccionadas".' }
@@ -7503,7 +7517,7 @@ function Items-Submenu([string]$id) {
                 $cuida = ($e.Nb -and $nb)
                 $d = $e.Desc + ' (' + $e.Id + ')'
                 if ($est -eq 'dis') {
-                    $x = Item $its.Count $e.Nombre ('Estado: Apagado (deshabilitado). ' + $d) $false 0xE74D $null 'Apagado (deshabilitado)' '#9AA0A6' $false
+                    $x = Item $its.Count $e.Nombre $d $false 0xE74D $null 'Apagado' '#9AA0A6' $false
                     $x.Seccion = 'apag'; $x.Enc = $true
                     $dis += $x
                     $x.Clave = $e.Id
@@ -7538,7 +7552,7 @@ function Items-Submenu([string]$id) {
 $TextosSubmenu = @{
     ini   = @('Limpiar arranque', 'Marca los programas que NO queres que se abran solos al prender la PC. Se apagan igual que desde el Administrador de tareas: se vuelven a prender con Restablecer. Los de drivers y perifericos (audio, mouse, RGB) mejor dejalos.')
     db    = @('Apps del Sistema', 'Marca las apps del sistema que queres borrar. Las protegidas por Windows (Edge, Bing, Cross-device, Widgets, Copilot y otras opcionales) llevan un icono de alerta: se borran a la fuerza y no se revierten facil, y la app te avisa antes de aplicar. Las que ya se borraron salen en gris, las que ya no estan en tu PC (las borraste antes, con Brio o sin el) van aparte en "Ya no estan en tu PC" y SI cuentan en el contador, y las que Windows termina de quitar al reiniciar dicen "Se quita al reiniciar".')
-    rsv   = @('Servicios del Sistema', 'Cada servicio muestra su estado: Activo, Manual (Windows lo inicia si hace falta) o Apagado (deshabilitado). Marca los que queres apagar: los Seguros vienen marcados; los Extremos (con alerta) los marcas vos y cada uno dice que se pierde. Un servicio en Manual o Activo NO esta apagado hasta que lo apagues aca. Los Apagados salen en gris: marcalos para volver a prenderlos uno por uno. Ninguno toca Windows Hello ni el PIN.')
+    rsv   = @('Servicios del Sistema', 'Cada servicio muestra su estado: Activo, Manual (Windows lo inicia si hace falta) o Apagado. Marca los que queres apagar: los Seguros vienen marcados; los Extremos (con alerta) los marcas vos y cada uno dice que se pierde. Un servicio en Manual o Activo NO esta apagado hasta que lo apagues aca. Los Apagados salen en gris: marcalos para volver a prenderlos uno por uno. Ninguno toca Windows Hello ni el PIN.')
     dold  = @('Borrar apps antiguas', 'Marca las apps antiguas que queres BORRAR. Lo que dejes sin marcar se queda.')
     dball = @('Borrar apps modernas', 'Marca las apps modernas que queres BORRAR. Lo que dejes sin marcar se queda.')
 }
@@ -7709,7 +7723,7 @@ function Aplicar-Seleccion([string]$perfil = '') {
     $xbx = @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }) | Where-Object { $AvisosXbox.Contains($_) })
     if ($xbx.Count -gt 0) {
         $lin = @($xbx | ForEach-Object { '- ' + (Titulo-De ($_ -split '\|')[0] ($_ -split '\|')[1]) + ': ' + (Con-Enie $AvisosXbox[$_]) })
-        $q = (Con-Enie 'Marcaste ajustes que tocan Xbox, la Game Bar, Game Pass o Minecraft:') + "`n" + ($lin -join "`n") + "`n`n" + (Con-Enie 'Si usas Xbox, Game Pass o Minecraft, toca "Todo menos esto".')
+        $q = (Con-Enie 'Marcaste ajustes que tocan Xbox, la Game Bar, Game Pass o Minecraft:') + "`n" + ($lin -join "`n") + "`n`n" + $(if (Unico-Aviso $xbx) { Con-Enie 'Si usas Xbox, Game Pass o Minecraft, toca "Cancelar".' } else { Con-Enie 'Si usas Xbox, Game Pass o Minecraft, toca "Todo menos esto".' })
         $r3 = Preguntar-Tres ($Aviso + ' Xbox, Game Pass y Minecraft') $q $xbx $perfil
         if ($r3 -eq 'salir') { return }
         if ($r3 -eq 'menos') {
@@ -7722,7 +7736,7 @@ function Aplicar-Seleccion([string]$perfil = '') {
     $svs = @(@($selD | ForEach-Object { 'Debloat|' + $_ }) + @($selG | ForEach-Object { 'Gaming|' + $_ }) | Where-Object { $SinVuelta.Contains($_) })
     if ($svs.Count -gt 0) {
         $lin = @($svs | ForEach-Object { '- ' + (Titulo-De ($_ -split '\|')[0] ($_ -split '\|')[1]) + ': ' + (Con-Enie $SinVuelta[$_]) })
-        $q = (Con-Enie 'Marcaste opciones que BORRAN partes de Windows y NO SE PUEDEN RESTABLECER desde la app:') + "`n" + ($lin -join "`n") + "`n`n" + (Con-Enie 'Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Todo menos esto".')
+        $q = (Con-Enie 'Marcaste opciones que BORRAN partes de Windows y NO SE PUEDEN RESTABLECER desde la app:') + "`n" + ($lin -join "`n") + "`n`n" + $(if (Unico-Aviso $svs) { Con-Enie 'Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Cancelar".' } else { Con-Enie 'Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Todo menos esto".' })
         $r3 = Preguntar-Tres ($Aviso + ' Sin vuelta atras') $q $svs $perfil
         if ($r3 -eq 'salir') { return }
         if ($r3 -eq 'menos') {

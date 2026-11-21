@@ -111,7 +111,7 @@ Contra: some apps don't notify you of anything until you open them.
 
 [Debloat ini]
 Titulo: Clean up startup
-Hace: turns off the programs that open by themselves when the PC starts (Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge and similar). It doesn't touch Windows stuff, drivers, mouse, keyboard, headset and RGB software (Logitech, Razer, SteelSeries Sonar, Corsair...), Wallpaper Engine, antivirus, VPN or anti-cheats.
+Hace: turns off the programs that open by themselves when the PC starts (Discord, Spotify, Steam, Epic, Teams, OneDrive, Edge and similar). It also turns off the Windows Security tray icon (the antivirus keeps protecting you as usual). It doesn't touch Windows stuff, drivers, mouse, keyboard, headset and RGB software (Logitech, Razer, SteelSeries Sonar, Corsair...), Wallpaper Engine, other antivirus, VPN or anti-cheats.
 Favor: the PC boots faster and more RAM stays free.
 Contra: those programs no longer open by themselves: you open them when you need them.
 
@@ -361,9 +361,9 @@ Contra: a key held for more than 30 seconds with no other input is released by i
 
 [Gaming foc]
 Titulo: Focus mode
-Hace: a small background program ignores the Windows key while a game is in full screen. With Ctrl + Alt + F it ignores it always, until you repeat the shortcut (it beeps).
+Hace: a small background program ignores the Windows key on its own and ALL its shortcuts while a game is in full screen. Only 3 keep working: Win + Tab (task view), Win + D (shows the desktop, minimizes everything) and Win + Shift + Left or Right (moves the window to the other monitor). With Ctrl + Alt + F it does this always, until you repeat the shortcut (it beeps).
 Favor: an accidental tap on the Windows key no longer kicks you out of the match or opens the Start menu.
-Contra: with the game in full screen, shortcuts that use Windows (Win + D, Win + Shift + S...) don't work either. Some anti-cheats (Valorant/Vanguard, FACEIT) may not get along with a program that watches the keyboard: for those games there is Focus mode without a program.
+Contra: with the game in full screen the other Windows shortcuts (Win + E, Win + Shift + S, Win + G...) don't work. Some anti-cheats (Valorant/Vanguard, FACEIT) may not get along with a program that watches the keyboard: for those games there is Focus mode without a program.
 
 [Gaming fsm]
 Titulo: Focus mode without a program (anti-cheat)

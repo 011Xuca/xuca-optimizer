@@ -3790,6 +3790,15 @@ en: If you use Xbox, Game Pass or Minecraft, press "Everything except this".
 es: Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Todo menos esto".
 en: Going back may require reinstalling Windows. Create a restore point first and back up what matters. If you are not sure, press "Everything except this".
 
+es: Si usas Xbox, Game Pass o Minecraft, toca "Cancelar".
+en: If you use Xbox, Game Pass or Minecraft, press "Cancel".
+
+es: Para volver atras puede hacer falta reinstalar Windows. Crea un punto de restauracion antes y hace una copia de lo importante. Si no estas seguro, toca "Cancelar".
+en: Going back may require reinstalling Windows. Create a restore point first and back up what matters. If you are not sure, press "Cancel".
+
+es: Cancelar no aplica nada y vuelve a la pantalla. "Aplicar" lo aplica.
+en: Cancel applies nothing and returns to the screen. "Apply" applies it.
+
 es: Aca "Todo menos esto" aplica todo lo demas pero no borra las apps protegidas.
 en: Here "Everything except this" applies everything else but does not delete the protected apps.
 
@@ -4062,8 +4071,8 @@ en: Competitive mouse keeps the speed fixed at 10 and the other one adjusts it b
 es: Las dos apagan la tecla Windows: una con un programa solo en juegos y la otra desde el registro, siempre. Con una alcanza.
 en: Both turn off the Windows key: one with a program only in games and the other from the registry, always. One is enough.
 
-es: Cada servicio muestra su estado: Activo, Manual (Windows lo inicia si hace falta) o Apagado (deshabilitado). Marca los que queres apagar: los Seguros vienen marcados; los Extremos (con alerta) los marcas vos y cada uno dice que se pierde. Un servicio en Manual o Activo NO esta apagado hasta que lo apagues aca. Los Apagados salen en gris: marcalos para volver a prenderlos uno por uno. Ninguno toca Windows Hello ni el PIN.
-en: Each service shows its state: Active, Manual (Windows starts it if needed) or Off (disabled). Check the ones you want to turn off: the Safe ones come checked; the Extreme ones (with a warning) you check yourself and each one says what you lose. A service on Manual or Active is NOT off until you turn it off here. The Off ones show in gray: check them to turn them back on one by one. None of them touches Windows Hello or the PIN.
+es: Cada servicio muestra su estado: Activo, Manual (Windows lo inicia si hace falta) o Apagado. Marca los que queres apagar: los Seguros vienen marcados; los Extremos (con alerta) los marcas vos y cada uno dice que se pierde. Un servicio en Manual o Activo NO esta apagado hasta que lo apagues aca. Los Apagados salen en gris: marcalos para volver a prenderlos uno por uno. Ninguno toca Windows Hello ni el PIN.
+en: Each service shows its state: Active, Manual (Windows starts it if needed) or Off. Check the ones you want to turn off: the Safe ones come checked; the Extreme ones (with a warning) you check yourself and each one says what you lose. A service on Manual or Active is NOT off until you turn it off here. The Off ones show in gray: check them to turn them back on one by one. None of them touches Windows Hello or the PIN.
 
 es: Marcaste servicios que pueden afectar el inicio de sesion o el celular:
 en: You checked services that may affect signing in or your phone:
@@ -4202,11 +4211,8 @@ en: Status: Active.
 es: Estado: Manual (Windows lo inicia si hace falta).
 en: Status: Manual (Windows starts it if needed).
 
-es: Estado: Apagado (deshabilitado).
-en: Status: Off (disabled).
-
-es: Apagado (deshabilitado)
-en: Off (disabled)
+es: Apagado
+en: Off
 
 es: Atencion: Windows Hello (huella y cara) esta apagado por una version anterior de Brio. Restablecer esta opcion lo devuelve.
 en: Warning: Windows Hello (fingerprint and face) was turned off by an earlier version of Brio. Restoring this option brings it back.
@@ -4536,3 +4542,12 @@ es: Que es: las herramientas de desarrollo de Edge. Quitarla: + un paquete menos
 en: What it is: the Edge developer tools. Removing it: + one package less / - nothing, unless you build web pages.
 es: Que es: avisos de la Game Bar y juegos de Xbox. Quitarla: + un paquete menos / - no aparecen los avisos de inicio de sesion ni logros.
 en: What it is: Game Bar and Xbox game notices. Removing it: + one package less / - sign-in and achievement notices no longer show.
+
+es: "Quedo pendiente (reinicia la PC y volve a aplicarlo): "
+en: "Still pending (restart the PC and apply it again): "
+
+es: "Quedo pendiente (el motivo esta en el log): "
+en: "Still pending (the reason is in the log): "
+
+es: Termino, pero algo quedo pendiente.
+en: Finished, but something is still pending.

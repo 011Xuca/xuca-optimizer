@@ -143,22 +143,53 @@ public class P {
     static Gancho cb = Cb;
     static IntPtr hook;
     static volatile bool manual;
+    [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte sc, uint fl, UIntPtr ex);
+    [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vk);
     static bool[] sostenida = new bool[2];
     static bool[] tragada = new bool[2];
+    static bool[] inyectada = new bool[2];
+    static bool[] bloqueada = new bool[256];
     // Pantalla completa (2 = ocupado, 3 = Direct3D a pantalla completa): lo calcula Windows, es una llamada barata
     static bool Juego() { int s; return SHQueryUserNotificationState(out s) == 0 && (s == 2 || s == 3); }
+    static bool Modificadora(int vk) { return (vk >= 0x10 && vk <= 0x12) || (vk >= 0xA0 && vk <= 0xA5); }
+    // Los unicos atajos con Windows que andan: Win + Tab (vista de tareas), Win + D (mostrar el escritorio, minimiza todo)
+    // y Win + Shift + Izquierda / Derecha (pasar la ventana al otro monitor)
+    static bool Permitido(int vk) {
+        if (vk == 0x09 || vk == 0x44) return true;
+        return (vk == 0x25 || vk == 0x27) && (GetAsyncKeyState(0x10) & 0x8000) != 0;
+    }
     static IntPtr Cb(int n, IntPtr w, IntPtr l) {
         if (n >= 0) {
             int vk = Marshal.ReadInt32(l);
+            int sc = Marshal.ReadInt32(l, 4);
             int fl = Marshal.ReadInt32(l, 8);
-            // Solo la tecla Windows real (no las inyectadas, 0x10). Se decide al apretarla y se repite al soltarla: nunca queda una tecla a medias
-            if ((vk == 0x5B || vk == 0x5C) && (fl & 0x10) == 0) {
-                int i = vk - 0x5B;
-                if ((fl & 0x80) == 0) { if (!sostenida[i]) { sostenida[i] = true; tragada[i] = manual || Juego(); } }
-                else sostenida[i] = false;
-                bool tragar = tragada[i];
-                if ((fl & 0x80) != 0) tragada[i] = false;
-                if (tragar) return (IntPtr)1;
+            bool abajo = (fl & 0x80) == 0;
+            // Solo teclas reales (no las inyectadas, 0x10: son las que manda este mismo programa)
+            if ((fl & 0x10) == 0) {
+                if (vk == 0x5B || vk == 0x5C) {
+                    // La tecla Windows sola se traga; se decide al apretarla y se repite al soltarla: nunca queda una tecla a medias
+                    int i = vk - 0x5B;
+                    if (abajo) { if (!sostenida[i]) { sostenida[i] = true; tragada[i] = manual || Juego(); inyectada[i] = false; } }
+                    else sostenida[i] = false;
+                    bool tragar = tragada[i] && !inyectada[i];
+                    if (!abajo) { tragada[i] = false; inyectada[i] = false; }
+                    if (tragar) return (IntPtr)1;
+                } else if (!abajo && vk < 256 && bloqueada[vk]) {
+                    bloqueada[vk] = false; return (IntPtr)1;
+                } else if (abajo && vk < 256 && !Modificadora(vk)) {
+                    // Otra tecla con la Windows apretada: solo pasan los atajos permitidos (se manda la Windows y despues la tecla)
+                    for (int i = 0; i < 2; i++) {
+                        if (!sostenida[i] || !tragada[i]) continue;
+                        if (!Permitido(vk)) { bloqueada[vk] = true; return (IntPtr)1; }
+                        if (!inyectada[i]) {
+                            inyectada[i] = true;
+                            keybd_event((byte)(0x5B + i), 0, 0, UIntPtr.Zero);
+                            keybd_event((byte)vk, (byte)sc, (uint)((fl & 1) != 0 ? 1 : 0), UIntPtr.Zero);
+                            return (IntPtr)1;
+                        }
+                        break;
+                    }
+                }
             }
         }
         return CallNextHookEx(hook, n, w, l);
@@ -3632,10 +3663,10 @@ $ListaOpciones = @(
     },
     @{
         Id = 'foc'; Seccion = 'TECLADO'
-        Q = '- Desea activar el Modo foco? (La tecla Windows no abre el Inicio ni te saca del juego en pantalla completa; Ctrl + Alt + F la bloquea siempre)'
-        Hace = 'un programa chico en segundo plano ignora la tecla Windows mientras hay un juego en pantalla completa. Con Ctrl + Alt + F la ignora siempre, hasta que repitas el atajo (suena un pitido).'
+        Q = '- Desea activar el Modo foco? (Con un juego en pantalla completa se bloquea la tecla Windows y todos sus atajos, menos Win + Tab, Win + D y Win + Shift + Izquierda/Derecha; Ctrl + Alt + F lo bloquea siempre)'
+        Hace = 'un programa chico en segundo plano ignora la tecla Windows sola y TODOS sus atajos mientras hay un juego en pantalla completa. Solo siguen andando 3: Win + Tab (vista de tareas), Win + D (muestra el escritorio, minimiza todo) y Win + Shift + Izquierda o Derecha (pasa la ventana al otro monitor). Con Ctrl + Alt + F lo hace siempre, hasta que repitas el atajo (suena un pitido).'
         Favor = 'un toque sin querer a la tecla Windows ya no te saca de la partida ni abre el menu Inicio.'
-        Contra = 'con el juego en pantalla completa tampoco andan los atajos con Windows (Win + D, Win + Shift + S...). Algunos antitrampas (Valorant/Vanguard, FACEIT) pueden no llevarse bien con un programa que mira el teclado: para esos juegos esta el Modo foco sin programa.'
+        Contra = 'con el juego en pantalla completa no andan los otros atajos con Windows (Win + E, Win + Shift + S, Win + G...). Algunos antitrampas (Valorant/Vanguard, FACEIT) pueden no llevarse bien con un programa que mira el teclado: para esos juegos esta el Modo foco sin programa.'
         S = {
             Opt-Ini 'Modo foco'
             Resps (Act 'FOCO_ON')

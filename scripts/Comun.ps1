@@ -42,7 +42,8 @@ $Parar = $false             # una opcion pidio cortar aca (por ejemplo, se abrio
 # vieja, en ANSI) se sigue escribiendo igual que lo que ya tiene, para no mezclar dos codificaciones en el mismo archivo.
 $XLogRuta = ''; $XLogEnc = $null
 function Log([string]$tag, [string]$msg) {
-    if (-not $script:XLog) { return }
+    if ($tag -eq 'FALLO') { $script:FalloAnotado = $true }
+    if ((-not $script:XLog) -or ($tag -eq 'OMITIDO')) { return }   # los OMITIDO (no existe / no aplica en esta PC) no sirven: no se anotan
     try {
         if ($script:XLogRuta -ne $script:XLog) {
             $script:XLogRuta = $script:XLog; $script:XLogEnc = (New-Object Text.UTF8Encoding $true)
@@ -119,14 +120,15 @@ function Log-Cabecera {
 # ------------------------------------------------------------
 function Opt-Ini([string]$nombre) {
     $script:OptT = 0; $script:OptF = 0; $script:OptS = 0; $script:OptP = 0
+    $script:FalloAnotado = $false; $script:ErrIni = $(if ($Error.Count -gt 0) { $Error[0] } else { $null })
     Log 'INFO' ('== ' + $nombre)
 }
 
 function Opt-Fin([string]$msg) {
     if (($script:OptT -gt 0) -and ($script:ReinIds -contains $script:QAct)) { $script:Reinicio = $true }
-    # Para el cartel final de la app: solo cuenta como "aplicada" la que cambio algo de verdad (ok), no las que ya estaban o no aplican
+    # Para el cartel final de la app: solo cuenta como "aplicada" la que cambio algo de verdad (ok), no las que quedaron pendientes (pend), ya estaban o no aplican
     if ($env:XR_XRES -eq '1') {
-        $est = $(if ($script:OptF -gt 0) { 'fallo' } elseif (($script:OptP -gt 0) -or ($script:OptT -gt 0)) { 'ok' } elseif ($script:OptS -gt 0) { 'ya' } else { 'noap' })
+        $est = $(if ($script:OptF -gt 0) { 'fallo' } elseif ($script:OptP -gt 0) { 'pend' } elseif ($script:OptT -gt 0) { 'ok' } elseif ($script:OptS -gt 0) { 'ya' } else { 'noap' })
         Say ('XRES|op|' + $script:QAct + '|' + $est)
     }
     if ($script:OptF -gt 0) {
@@ -151,9 +153,19 @@ function Opt-Fin([string]$msg) {
 function Ya-Estaba { $script:OptS++ }
 
 # Un cambio hecho: suma y anota si salio bien o mal
+# La causa de un fallo: el ultimo error de PowerShell que paso desde que empezo la opcion (vacio si no hubo ninguno)
+function Causa-Error {
+    try {
+        if (($Error.Count -eq 0) -or [object]::ReferenceEquals($Error[0], $script:ErrIni)) { return '' }
+        $m = (([string]$(if ($Error[0].Exception) { $Error[0].Exception.Message } else { $Error[0] })) -replace '\s+', ' ').Trim()
+        if ($m.Length -gt 220) { $m = $m.Substring(0, 220) + '...' }
+        if ($m) { return ' | causa: ' + $m }
+    } catch { }
+    return ''
+}
 function Res([bool]$ok, [string]$msg) {
     $script:OptT++
-    if ($ok) { Log 'OK' $msg } else { $script:OptF++; Log 'FALLO' $msg }
+    if ($ok) { Log 'OK' $msg } else { $script:OptF++; Log 'FALLO' ($msg + (Causa-Error)) }
 }
 
 # Lo que devuelve una accion: 0 = hecho, 1 = fallo, 2 = no aplica en esta PC, 5 = ya estaba, 6 = queda un paso para despues
@@ -161,7 +173,7 @@ function Resps([int]$code) {
     if ($code -ge 6) { $script:OptP++; Log 'PENDIENTE' 'queda un paso para despues' }
     elseif ($code -eq 5) { $script:OptS++; Log 'OK' 'ya estaba asi, no se toco nada' }
     elseif ($code -ge 2) { Log 'OMITIDO' 'esta parte no aplica en esta PC' }
-    elseif ($code -eq 1) { $script:OptT++; $script:OptF++ }
+    elseif ($code -eq 1) { $script:OptT++; $script:OptF++; if (-not $script:FalloAnotado) { Log 'FALLO' ('una accion de esta opcion devolvio fallo' + (Causa-Error)) } }
     else { $script:OptT++ }
 }
 
@@ -271,7 +283,7 @@ function Reg-Soft([string]$ruta, [string]$nombre, [string]$tipo, [string]$valor)
         if ($tipo -eq 'REG_DWORD') { $k.SetValue($nombre, [BitConverter]::ToInt32([BitConverter]::GetBytes([uint32]$valor), 0), [Microsoft.Win32.RegistryValueKind]::DWord) }
         else { $k.SetValue($nombre, $valor, [Microsoft.Win32.RegistryValueKind]::String) }
     } catch {
-        Log 'OMITIDO' ('Windows no deja escribir ' + $ruta + ' ' + $nombre + ' - ' + ($_.Exception.Message -replace '\s+', ' '))
+        Log 'INFO' ('Windows no deja escribir ' + $ruta + ' ' + $nombre + ' - ' + ($_.Exception.Message -replace '\s+', ' '))
         return
     } finally { if ($k) { $k.Dispose() } }
     $script:OptT++
